@@ -1,10 +1,21 @@
-// Placeholder for authentication middleware
-// Will implement token validation logic here
+const jwt = require('jsonwebtoken');
+const { JWT_SECRET } = require('../config');
 
 const authenticateToken = (req, res, next) => {
-  // TODO: Implement JWT token verification
-  // For now, just pass through to allow development
-  next();
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Access token required' });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ error: 'Invalid or expired token' });
+    }
+    req.user = user;
+    next();
+  });
 };
 
 module.exports = {

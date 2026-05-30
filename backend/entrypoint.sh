@@ -1,18 +1,19 @@
 #!/bin/sh
 
 echo "Waiting for database..."
-npx prisma db push --skip-generate 2>/dev/null || {
+until npx prisma migrate deploy; do
   echo "Database not ready yet, retrying in 3s..."
   sleep 3
-  npx prisma db push --skip-generate 2>/dev/null || {
-    echo "Database still not ready, retrying in 5s..."
-    sleep 5
-    npx prisma db push --skip-generate
-  }
-}
+done
 
 echo "Running Prisma migrations..."
 npx prisma migrate deploy
+
+echo "Generating Prisma client..."
+npx prisma generate
+
+echo "Seeding database..."
+node prisma/seed.js
 
 echo "Starting application..."
 exec npm run dev
