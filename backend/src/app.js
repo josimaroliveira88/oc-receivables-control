@@ -1,10 +1,10 @@
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
 const { ZodError } = require('zod');
 
-// Load environment variables
-dotenv.config();
+if (process.env.NODE_ENV !== 'test') {
+  require('dotenv').config();
+}
 
 const app = express();
 
@@ -23,6 +23,14 @@ app.get('/health', (req, res) => {
 // Auth routes
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
+
+// People routes
+const peopleRoutes = require('./routes/peopleRoutes');
+app.use('/api/people', peopleRoutes);
+
+// Orders routes
+const ordersRoutes = require('./routes/ordersRoutes');
+app.use('/api/orders', ordersRoutes);
 
 // Centralized error handling middleware
 app.use((error, req, res, next) => {

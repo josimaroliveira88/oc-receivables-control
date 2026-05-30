@@ -9,7 +9,9 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name init",
     "prisma:studio": "prisma studio",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -22,6 +24,9 @@
   },
   "devDependencies": {
     "nodemon": "^3.0.2",
-    "prisma": "^5.8.1"
+    "prisma": "^5.8.1",
+    "vitest": "^1.2.1",
+    "@vitest/ui": "^1.2.1",
+    "supertest": "^6.3.4"
   }
 }
