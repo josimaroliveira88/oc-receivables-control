@@ -66,3 +66,12 @@ Phase 2 (Database Modeling & Migrations) has been completed:
   - Order has 1:N relationships with Item and Payment (Cascade delete)
   - Person has 1:N relationships with Item and Payment (SetNull on delete)
   - All monetary fields use Decimal(10,2) precision as required
+
+Phase 3 (Express Core Server & Auth Layer) has been completed:
+- Implemented core Express server architecture with src/server.js & src/app.js
+- Created authentication middleware in src/middlewares/auth.js
+- Built authentication controller and routes in src/controllers/authController.js and src/routes/authRoutes.js
+- Added JWT validation and bcrypt password hashing for secure authentication
+- Implemented centralized error handling middleware for Zod validation errors
+- Seeded admin user in the database
+- Working Express server responds to POST /api/auth/login with valid JWT payload and expiration field
