@@ -1,7 +1,7 @@
 # Receivables Control System - Architecture Documentation
 
 ## Overview
-This document describes the current state of the project architecture, file organization, and how to run the system. The project is currently in **Phase 3: Express Core Server & Auth Layer** completed.
+This document describes the current state of the project architecture, file organization, and how to run the system. The project is currently in **Phase 4: Frontend Authentication Flow** completed.
 
 ## Technology Stack
 - **Backend**: Node.js (Express) with Prisma ORM
@@ -45,9 +45,17 @@ oc-receivables-control/
 │   ├── Dockerfile              # Frontend container definition
 │   ├── package.json            # Frontend dependencies & scripts
 │   ├── index.html              # HTML template
-│   └── src/
-│       ├── main.jsx            # React entry point
-│       └── App.jsx             # Root React component (placeholder)
+│       ├── main.jsx # React entry point
+│       ├── index.css # Tailwind CSS directives
+│       ├── App.jsx # Root React component with routing
+│       ├── services/
+│       │   └── api.js # Axios client with auth interceptor
+│       ├── context/
+│       │   └── AuthContext.jsx # Auth state (login/logout/token)
+│       ├── components/
+│       │   └── ProtectedRoute.jsx # Route guard for auth
+│       └── pages/
+│           └── LoginPage.jsx # Login form (PT-BR)
 ```
 
 ## Docker Services
@@ -110,7 +118,7 @@ NODE_ENV=development
 4. To stop: `docker compose down`
 5. To rebuild after code changes: `docker compose up --build` or `docker compose up -d --build`
 
-## Current Implementation Status (Phase 3 Complete)
+## Current Implementation Status (Phase 4 Complete)
 ✅ Docker Compose orchestration with all required services
 ✅ Backend Express server with CORS and JSON middleware
 ✅ Basic health check endpoint (`GET /health`)
@@ -128,13 +136,19 @@ NODE_ENV=development
 ✅ Working JWT authentication system with bcrypt password hashing
 ✅ Admin user seeded in database
 ✅ Centralized error handling middleware for Zod validation errors
+✅ Axios client with automatic Bearer token injection from localStorage (`src/services/api.js`)
+✅ Auth context provider managing login, logout, and token validation (`src/context/AuthContext.jsx`)
+✅ Protected route component blocking unauthenticated access (`src/components/ProtectedRoute.jsx`)
+✅ Tailwind CSS setup with PostCSS and Vite integration
+✅ Login page with PT-BR labels and error messages (`src/pages/LoginPage.jsx`)
+✅ React Router routing with login and protected routes
 
-## Next Steps (Phase 3)
-When ready to proceed, Phase 3 will involve:
-- Implementing core Express server architecture with `src/server.js` & `src/app.js`
-- Creating authentication middleware in `src/middlewares/auth.js`
-- Building authentication controller and routes in `src/controllers/authController.js` and `src/routes/authRoutes.js`
-- Adding JWT validation and bcrypt password hashing for secure authentication
+## Next Steps (Phase 5)
+When ready to proceed, Phase 5 will involve:
+- Building `src/pages/PeoplePage.jsx` with people listing and CRUD modals
+- Building `src/pages/OrdersPage.jsx` with dynamic multi-row item sub-forms
+- Creating backend CRUD endpoints for People and Orders
+- PT-BR interface labels: "Cadastro de Pessoas", "Gestão de Pedidos", etc.
 
 ## Notes for Developers/Agents
 - Backend source is mounted at `/app` inside container for live editing
