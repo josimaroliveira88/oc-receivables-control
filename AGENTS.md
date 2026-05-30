@@ -164,6 +164,17 @@ Phase 10 (Backend Tests — Payments & Status) has been completed:
 - All created persons and orders are tracked in arrays and cleaned up in afterEach
 - Total backend tests: 57 (14 people + 20 orders + 23 payments)
 
+Phase 11 (Frontend ReceivablesPage UI) has been completed:
+- Created `src/pages/ReceivablesPage.jsx` — payment tracking page with order listing, status badges (🔴 Pendente / ⚠️ Parcial / ✅ Quitado), and "Registrar Pagamento" button per order
+- Payment modal fetches per-person balance via `GET /api/orders/:orderId/balance`, populates person dropdown with only pending balances
+- Frontend validation guards: rejects amount > pending balance ("Valor excede o saldo pendente"), rejects amount <= 0 ("Valor deve ser maior que zero")
+- Payment submission to `POST /api/orders/:orderId/payments` with amount, personId, and optional notes
+- Created `src/components/Toast.jsx` — reusable toast notification system with ToastProvider context, useToast hook, success/error types, 3s auto-dismiss
+- Toast messages in PT-BR: "Pagamento registrado com sucesso!" (success) / "Valor excede o saldo pendente" (error)
+- Updated `src/App.jsx` — added ToastProvider wrapper, ReceivablesPage route at `/receivables`, navigation link "Recebíveis" in AppLayout
+- Orders with status QUITADO show "Pago" label instead of payment button
+- Existing frontend tests (32) and backend tests (57) pass with no regressions
+
 ## Lessons Learned / Pitfalls to Avoid
 
 ### 1. vi.mock Hoisting Bug (Vitest)

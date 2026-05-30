@@ -180,20 +180,19 @@ Deliverable: ✅ 23 backend payment tests passing. Coverage includes partial pay
 ---
 
 📊 PHASE 11: Frontend ReceivablesPage UI
-Status:
+Status: ✅ COMPLETED
 
 Context: Payment backend is ready and tested. Need tracking layout screens[cite: 65, 138, 144].
 Stack: React, Tailwind CSS, Axios[cite: 28, 70].
 
 Task:
-Implement the tracking panel `src/pages/ReceivablesPage.jsx`[cite: 68, 145].
-Provide a UI layout showing financial statuses using visual badge elements[cite: 66, 142, 145]:
+Implement the tracking panel `src/pages/ReceivablesPage.jsx`[cite: 68, 145]. Provide a UI layout showing financial statuses using visual badge elements[cite: 66, 142, 145]:
 - Green Badge: "✅ Quitado" [cite: 66, 145]
 - Yellow Badge: "⚠️ Parcial" [cite: 66, 145]
 - Red Badge: "🔴 Pendente" [cite: 66, 145]
 Create a processing payment modal containing validation guards: prevent submit actions if input value fields bypass the user's outstanding balance ceiling[cite: 68, 141, 145]. Render a standard toast prompt message in Brazilian Portuguese ("Pagamento registrado com sucesso!" / "Valor excede o saldo pendente")[cite: 145].
 
-Deliverable: A payment tracking UI that displays status badges, validates overpayment at the form layer, and confirms success with toast feedback.
+Deliverable: ✅ A payment tracking UI that displays status badges, validates overpayment at the form layer, and confirms success with toast feedback. ReceivablesPage shows orders with 🔴 Pendente / ⚠️ Parcial / ✅ Quitado badges. Payment modal fetches balance per person via GET /api/orders/:orderId/balance, enforces frontend validation (amount > pending → "Valor excede o saldo pendente", amount <= 0 → "Valor deve ser maior que zero"), and submits to POST /api/orders/:orderId/payments. Toast notification system (Toast.jsx with ToastProvider + useToast hook) renders success/error messages in PT-BR with 3s auto-dismiss. Navigation link "Recebíveis" added to AppLayout.
 
 ---
 

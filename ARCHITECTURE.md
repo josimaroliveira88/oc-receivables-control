@@ -1,7 +1,7 @@
 # Receivables Control System - Architecture Documentation
 
 ## Overview
-This document describes the current state of the project architecture, file organization, and how to run the system. The project is currently in **Phase 10: Backend Tests — Payments & Status** completed.
+This document describes the current state of the project architecture, file organization, and how to run the system. The project is currently in **Phase 11: Frontend ReceivablesPage UI** completed.
 
 ## Technology Stack
 - **Backend**: Node.js (Express) with Prisma ORM
@@ -64,12 +64,14 @@ oc-receivables-control/
 │   │   └── api.js              # Axios client with auth interceptor
 │   ├── context/
 │   │   └── AuthContext.jsx     # Auth state (login/logout/token)
-│   ├── components/
-│   │   └── ProtectedRoute.jsx  # Route guard for auth
+│ ├── components/
+│ │ ├── ProtectedRoute.jsx # Route guard for auth
+│ │ └── Toast.jsx # Toast notification provider & component
 │   ├── pages/
 │   │   ├── LoginPage.jsx       # Login form (PT-BR)
 │   │   ├── PeoplePage.jsx      # People CRUD with modals (PT-BR)
-│ │ └── OrdersPage.jsx # Orders CRUD with dynamic item rows (PT-BR)
+│ │ ├── OrdersPage.jsx # Orders CRUD with dynamic item rows (PT-BR)
+│ │ └── ReceivablesPage.jsx # Payment tracking with status badges & payment modal (PT-BR)
 │ └── tests/
 │ ├── setup.js # @testing-library/jest-dom import
 │ ├── PeoplePage.test.jsx # 14 PeoplePage tests
@@ -136,7 +138,7 @@ NODE_ENV=development
 4. To stop: `docker compose down`
 5. To rebuild after code changes: `docker compose up --build` or `docker compose up -d --build`
 
-## Current Implementation Status (Phase 10 Complete)
+## Current Implementation Status (Phase 11 Complete)
 ✅ Docker Compose orchestration with all required services
 ✅ Backend Express server with CORS and JSON middleware
 ✅ Basic health check endpoint (`GET /health`)
@@ -150,7 +152,7 @@ NODE_ENV=development
 ✅ Orders + Items routes implemented (`src/routes/ordersRoutes.js`) at `/api/orders` and `/api/orders/items/:id`
 ✅ Centralized error handling middleware for Zod validation errors
 ✅ Frontend React entry point with AppLayout + Outlet pattern
-✅ AppLayout with header, navigation links (Pessoas/Pedidos), and logout button
+✅ AppLayout with header, navigation links (Pessoas/Pedidos/Recebíveis), and logout button
 ✅ Protected route component blocking unauthenticated access (`src/components/ProtectedRoute.jsx`)
 ✅ PeoplePage component with table listing, create/edit modals, delete confirmation (PT-BR)
 ✅ OrdersPage component with table listing, status badges, dynamic multi-row item sub-form (PT-BR)
@@ -181,13 +183,21 @@ NODE_ENV=development
 ✅ Balance breakdown endpoint (`GET /api/orders/:orderId/balance`) returning per-person pending amounts
 ✅ Payment and balance routes protected with JWT authentication middleware
 ✅ Backend payment tests: 23 tests covering partial payment, full payment, overpayment rejection, Zod validation, status transitions, auth guards, balance breakdown, transactional consistency with rollback
+✅ ReceivablesPage component with order listing and visual status badges (`src/pages/ReceivablesPage.jsx`)
+✅ Status badges with emoji indicators: 🔴 Pendente, ⚠️ Parcial, ✅ Quitado
+✅ Payment modal with person dropdown (populated from balance API), amount input, notes field
+✅ Frontend overpayment validation guard: rejects amount > pending balance with "Valor excede o saldo pendente" error
+✅ Frontend zero/negative validation: rejects amount <= 0 with "Valor deve ser maior que zero" error
+✅ Toast notification system (`src/components/Toast.jsx`) with success/error types and auto-dismiss
+✅ Toast messages in PT-BR: "Pagamento registrado com sucesso!" / "Valor excede o saldo pendente"
+✅ Navigation link "Recebíveis" added to AppLayout header
+✅ Route `/receivables` added to App with ProtectedRoute guard
 
-## Next Steps (Phase 11)
-When ready to proceed, Phase 11 will involve:
-- Frontend ReceivablesPage UI with status badges and payment modal
-- Visual badge elements for QUITADO/PARCIAL/PENDENTE
-- Payment modal with balance ceiling validation
-- Toast feedback messages in PT-BR
+## Next Steps (Phase 12)
+When ready to proceed, Phase 12 will involve:
+- Frontend tests for ReceivablesPage (badge rendering, payment modal, validation guards, toast feedback)
+- Balance display per person tests
+- Protected route blocking unauthenticated access tests
 
 ## Notes for Developers/Agents
 - Backend source is mounted at `/app` inside container for live editing
