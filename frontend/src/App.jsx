@@ -1,10 +1,12 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import PeoplePage from './pages/PeoplePage';
+import OrdersPage from './pages/OrdersPage';
 
-const Dashboard = () => {
+const AppLayout = () => {
   const { logout } = useAuth();
   return (
     <div className="min-h-screen bg-gray-50">
@@ -13,21 +15,37 @@ const Dashboard = () => {
           <h1 className="text-2xl font-bold text-gray-900">
             Controle de Recebíveis
           </h1>
-          <button
-            onClick={logout}
-            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
-          >
-            Sair
-          </button>
+          <div className="flex items-center space-x-3">
+            <nav className="flex space-x-2 mr-4">
+              <a href="/people" className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors">
+                Pessoas
+              </a>
+              <a href="/orders" className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors">
+                Pedidos
+              </a>
+            </nav>
+            <button
+              onClick={logout}
+              className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+            >
+              Sair
+            </button>
+          </div>
         </div>
       </header>
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <p className="text-gray-600">
-            Bem-vindo ao sistema de Controle de Recebíveis. Funcionalidades em desenvolvimento.
-          </p>
-        </div>
+        <Outlet />
       </main>
+    </div>
+  );
+};
+
+const Dashboard = () => {
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6">
+      <p className="text-gray-600">
+        Bem-vindo ao sistema de Controle de Recebíveis. Utilize o menu acima para navegar.
+      </p>
     </div>
   );
 };
@@ -37,13 +55,16 @@ const App = () => {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route
-        path="/"
         element={
           <ProtectedRoute>
-            <Dashboard />
+            <AppLayout />
           </ProtectedRoute>
         }
-      />
+      >
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/people" element={<PeoplePage />} />
+        <Route path="/orders" element={<OrdersPage />} />
+      </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
