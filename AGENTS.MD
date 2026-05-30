@@ -46,6 +46,21 @@ User-facing content:
 - Avoid floating point arithmetic
 - Preserve financial consistency
 
+## TDD Methodology (Required from Phase 5 onward)
+
+All phases starting from Phase 5 must follow Test-Driven Development:
+
+1. **Write tests before implementation**: Before writing any business logic, identify and write test cases that define the expected behavior.
+2. **Backend tests** (Vitest or Jest):
+   - Services, financial calculations, validation rules
+   - Priority: partial payment, full payment, overpayment rejection, status transitions, transactional consistency
+3. **Frontend tests** (React Testing Library):
+   - Forms, authentication flow, protected routes, financial validations
+4. **Run tests as verification**: Tests must pass before marking a phase as complete.
+5. **Test commands**: Must be documented in AGENTS.md under "Available Test Scripts" and added to `package.json`.
+
+Do not create untestable business logic.
+
 ## Documentation Practices
 
 After completing each phase of development, the implementing agent must:
@@ -54,6 +69,7 @@ After completing each phase of development, the implementing agent must:
 3. Update AGENTS.md if any technical specifications or rules change
 4. Document any environment variables, configuration changes, or new dependencies
 5. Make sure ROADMAP.md accurately reflects completed and pending work
+6. Document test files and coverage under "## Available Test Scripts"
 
 This ensures future agents can understand the project state and continue development seamlessly.
 
@@ -75,3 +91,12 @@ Phase 3 (Express Core Server & Auth Layer) has been completed:
 - Implemented centralized error handling middleware for Zod validation errors
 - Seeded admin user in the database
 - Working Express server responds to POST /api/auth/login with valid JWT payload and expiration field
+
+Phase 4 (Frontend Authentication Flow) has been completed:
+- Created Axios client (src/services/api.js) with automatic Bearer token injection from localStorage
+- Implemented AuthContext (src/context/AuthContext.jsx) managing login, logout, and token validation state
+- Built ProtectedRoute component (src/components/ProtectedRoute.jsx) blocking unauthenticated views
+- Developed LoginPage (src/pages/LoginPage.jsx) with PT-BR labels: "Entrar no Sistema", "Usuário", "Senha", "Acessar"
+- Error message: "Usuário ou senha inválidos. Tente novamente."
+- Tailwind CSS configured with PostCSS and Vite integration
+- React Router routing with login and protected routes configured
