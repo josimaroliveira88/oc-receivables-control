@@ -53,6 +53,7 @@ Implement the core API backend architecture. Generate the following application 
 Deliverable: A working Express server that can start successfully and respond to `POST /api/auth/login` with a valid JWT payload and expiration field.
 
 💻 PHASE 4: Frontend Authentication Flow
+Status: ✅ COMPLETED
 
 Context: The Backend API auth structure is ready. Now setting up the frontend application shell[cite: 50, 119].
 Stack: React, Tailwind CSS, Axios, React Router[cite: 28, 50].
@@ -71,7 +72,7 @@ Deliverable: A frontend login experience where the user can see the login screen
 📋 PHASE 5: Frontend Component CRUD (People & Orders)
 
 Context: Auth framework is operational. Need UI panels to input data resources[cite: 53, 124].
-Stack: React, Tailwind CSS, Axios[cite: 28, 53].
+Stack: React, Tailwind CSS, Axios, React Testing Library, Vitest[cite: 28, 53].
 
 Task:
 Build management pages targeting data generation. Create:
@@ -79,12 +80,16 @@ Build management pages targeting data generation. Create:
 2. `src/pages/OrdersPage.jsx`: Order setup module featuring a dynamic, multi-row sub-form array allowing real-time insertion/removal of multiple line items[cite: 55, 126, 129]. Each line item must capture a text description, cost value, and link to a specific Person from a dropdown menu[cite: 55, 126].
 - Interface details must be implemented in Portuguese (Brazil): "Cadastro de Pessoas", "Gestão de Pedidos", "Nome", "Valor (R$)", "Adicionar Item"[cite: 55, 129].
 
-Deliverable: Functional people and orders CRUD pages where users can create and edit records through the interface, and the pages render correctly inside the authenticated app shell.
+TDD Requirements (write tests FIRST):
+3. Backend tests: CRUD endpoint validation (create/read/update/delete Person and Order), Zod schema validation errors, missing required fields, invalid data types.
+4. Frontend tests: Form rendering and submission, modal open/close behavior, dynamic item row add/remove, dropdown Person selection, validation error display.
+
+Deliverable: Functional people and orders CRUD pages where users can create and edit records through the interface, and the pages render correctly inside the authenticated app shell. All automated tests must pass.
 
 💰 PHASE 6: Financial Balances Processing Engine (Backend)
 
 Context: Master UI pages can create rows. We now require core financial calculations for partial payment entrypoints[cite: 58, 131, 136].
-Stack: Node.js, Prisma ORM, Zod[cite: 28, 62, 136].
+Stack: Node.js, Prisma ORM, Zod, Vitest[cite: 28, 62, 136].
 
 Task:
 Build the calculation ledger layer. Implement `POST /api/orders/:orderId/payments`[cite: 58, 132].
@@ -97,12 +102,16 @@ The code must execute within a standard database transaction block[cite: 60, 135
 6. Re-evaluate overall order health status: If all buyers owe 0, transition Order status to `QUITADO`[cite: 60, 62, 134, 137]. If some balances are open but partial cash was logged, switch to `PARCIAL`[cite: 60, 62, 134, 137].
 7. Return updated transactional payment models back to client[cite: 60, 135].
 
-Deliverable: A backend payment endpoint that persists valid payments, enforces balance validation, and updates order status to `PARCIAL` or `QUITADO` as appropriate.
+TDD Requirements (write tests FIRST):
+8. Unit tests for payment service: partial payment, full payment, overpayment rejection (amount > pending), zero/negative amount rejection, status transitions (PENDENTE → PARCIAL → QUITADO), transactional consistency on rollback.
+9. Integration tests for the endpoint: valid payment returns 201 with payment data, overpayment returns 400, unauthenticated request returns 401, non-existent order returns 404.
+
+Deliverable: A backend payment endpoint that persists valid payments, enforces balance validation, and updates order status to `PARCIAL` or `QUITADO` as appropriate. All automated tests must pass.
 
 📊 PHASE 7: Payment Tracking UI & Badges
 
 Context: Calculations backend is ready. Need tracking layout screens[cite: 65, 138, 144].
-Stack: React, Tailwind CSS, Axios[cite: 28, 70].
+Stack: React, Tailwind CSS, Axios, React Testing Library, Vitest[cite: 28, 70].
 
 Task:
 Implement the tracking panel `src/pages/ReceivablesPage.jsx`[cite: 68, 145].
@@ -112,12 +121,15 @@ Provide a UI layout showing financial statuses using visual badge elements[cite:
 - Red Badge: "🔴 Pendente" [cite: 66, 145]
 Create a processing payment modal containing validation guards: prevent submit actions if input value fields bypass the user's outstanding balance ceiling[cite: 68, 141, 145]. Render a standard toast prompt message in Brazilian Portuguese ("Pagamento registrado com sucesso!" / "Valor excede o saldo pendente")[cite: 145].
 
-Deliverable: A payment tracking UI that displays status badges, validates overpayment at the form layer, and confirms success with toast feedback.
+TDD Requirements (write tests FIRST):
+- Frontend tests: Badge rendering based on status, payment modal open/close, overpayment validation guard prevents submit, toast messages display on success/error, protected route blocks unauthenticated access.
+
+Deliverable: A payment tracking UI that displays status badges, validates overpayment at the form layer, and confirms success with toast feedback. All automated tests must pass.
 
 📈 PHASE 8: Executive Summary Dashboard & XLSX Generation
 
 Context: All ledger transactional pipelines operate normally. Need high-level analytics layout[cite: 71, 146, 152].
-Stack: React, Recharts, SheetJS (xlsx library)[cite: 28, 72].
+Stack: React, Recharts, SheetJS (xlsx library), React Testing Library, Vitest[cite: 28, 72].
 
 Task:
 Develop `src/pages/DashboardPage.jsx`[cite: 74, 148, 153]. Design an analytic interface incorporating:
@@ -125,4 +137,7 @@ Develop `src/pages/DashboardPage.jsx`[cite: 74, 148, 153]. Design an analytic in
 2. Performance Bar Graphs: Using Recharts, plot balances due indexed by Person[cite: 74, 149].
 3. Client-Side Excel exporter button: Add an action element labeled "📥 Exportar para Excel" compiling active application context into a `.xlsx` data workbook split by descriptive sheets: "Pedidos", "Pessoas", "Histórico de Pagamentos", "Saldo Pendente"[cite: 72, 150, 153]. Force cells formatting to follow BRL monetary mask[cite: 75, 76, 150].
 
-Deliverable: A dashboard where KPIs and charts render correctly and the Excel exporter button generates a downloadable `.xlsx` workbook with properly formatted Brazilian currency data.
+TDD Requirements (write tests FIRST):
+- Frontend tests: KPI widgets render correct values, export button triggers XLSX download, BRL currency formatting in exported cells, chart component renders with data, protected route guards dashboard.
+
+Deliverable: A dashboard where KPIs and charts render correctly and the Excel exporter button generates a downloadable `.xlsx` workbook with properly formatted Brazilian currency data. All automated tests must pass.
