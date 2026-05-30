@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Person {
+  id        String    @id @default(uuid())
+  name      String
+  contact   String?
+  items     Item[]
+  payments  Payment[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Order {
+  id         String      @id @default(uuid())
+  orderNumber String      @unique
+  totalValue Decimal     @db.Decimal(10, 2)
+  orderDate  DateTime    @default(now())
+  status     OrderStatus @default(PENDENTE)
+  items      Item[]
+  payments   Payment[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+enum OrderStatus {
+  PENDENTE
+  PARCIAL
+  QUITADO
+}
+
+model Item {
+  id          String  @id @default(uuid())
+  description String
+  value       Decimal @db.Decimal(10, 2)
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId     String
+  person      Person? @relation(fields: [personId], references: [id], onDelete: SetNull)
+  personId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Payment {
+  id      String  @id @default(uuid())
+  amount  Decimal @db.Decimal(10, 2)
+  paidAt  DateTime @default(now())
+  notes   String?
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId String
+  person  Person? @relation(fields: [personId], references: [id], onDelete: SetNull)
+  personId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
