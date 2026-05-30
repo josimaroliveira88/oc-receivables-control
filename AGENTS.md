@@ -137,8 +137,9 @@ Phase 5 (Frontend Component CRUD - People & Orders) has been completed:
 - `backend/tests/orders.test.js`: 20 tests
 - `backend/tests/payments.test.js`: 23 tests
 - Frontend tests: 32 tests passing using Vitest + React Testing Library
-  - `frontend/tests/PeoplePage.test.jsx`: 14 tests (arrow-function mock pattern to avoid hoisting issues)
-  - `frontend/tests/OrdersPage.test.jsx`: 18 tests (arrow-function mock pattern to avoid hoisting issues)
+- `frontend/tests/PeoplePage.test.jsx`: 14 tests (arrow-function mock pattern to avoid hoisting issues)
+- `frontend/tests/OrdersPage.test.jsx`: 18 tests (arrow-function mock pattern to avoid hoisting issues)
+- `frontend/tests/ReceivablesPage.test.jsx`: 21 tests (arrow-function mock pattern, ToastProvider wrapper, regex matchers for emoji badges)
 - All tests follow TDD methodology (tests written before final implementation)
 
 Phase 9 (Backend Payments & Status Engine) has been completed:
@@ -174,6 +175,18 @@ Phase 11 (Frontend ReceivablesPage UI) has been completed:
 - Updated `src/App.jsx` — added ToastProvider wrapper, ReceivablesPage route at `/receivables`, navigation link "Recebíveis" in AppLayout
 - Orders with status QUITADO show "Pago" label instead of payment button
 - Existing frontend tests (32) and backend tests (57) pass with no regressions
+
+Phase 12 (Frontend Tests — ReceivablesPage) has been completed:
+- Created `frontend/tests/ReceivablesPage.test.jsx` — 21 tests organized in 6 groups:
+  - Rendering (4): page title, loading state, empty state, API error message
+  - Badge Rendering (3): 🔴 Pendente, ⚠️ Parcial, ✅ Quitado — using regex matchers for emoji-prefixed text
+  - Action Buttons (2): "Registrar Pagamento" for PENDENTE/PARCIAL orders, "Pago" label for QUITADO orders
+  - Payment Modal (6): modal open with balance fetch, person dropdown with pending values, balance display per person, empty pending state, close via "Cancelar", close via × button
+  - Validation Guards (4): zero/negative amount rejection ("Valor deve ser maior que zero"), overpayment rejection ("Valor excede o saldo pendente"), valid payment POST submission
+  - Toast Feedback (2): success toast "Pagamento registrado com sucesso!", error toast for backend overpayment rejection
+- All tests use arrow-function mock pattern (Lição 1), ToastProvider wrapper (useToast context), fireEvent.submit for form validation bypass (Lição 2)
+- Total frontend tests: 53 (14 PeoplePage + 18 OrdersPage + 21 ReceivablesPage)
+- All existing backend tests (57) pass with no regressions
 
 ## Lessons Learned / Pitfalls to Avoid
 

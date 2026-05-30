@@ -1,7 +1,7 @@
 # Receivables Control System - Architecture Documentation
 
 ## Overview
-This document describes the current state of the project architecture, file organization, and how to run the system. The project is currently in **Phase 11: Frontend ReceivablesPage UI** completed.
+This document describes the current state of the project architecture, file organization, and how to run the system. The project is currently in **Phase 12: Frontend Tests — ReceivablesPage** completed.
 
 ## Technology Stack
 - **Backend**: Node.js (Express) with Prisma ORM
@@ -73,9 +73,10 @@ oc-receivables-control/
 │ │ ├── OrdersPage.jsx # Orders CRUD with dynamic item rows (PT-BR)
 │ │ └── ReceivablesPage.jsx # Payment tracking with status badges & payment modal (PT-BR)
 │ └── tests/
-│ ├── setup.js # @testing-library/jest-dom import
-│ ├── PeoplePage.test.jsx # 14 PeoplePage tests
-│ └── OrdersPage.test.jsx # 18 OrdersPage tests
+ │ ├── setup.js # @testing-library/jest-dom import
+ │ ├── PeoplePage.test.jsx # 14 PeoplePage tests
+ │ ├── OrdersPage.test.jsx # 18 OrdersPage tests
+ │ └── ReceivablesPage.test.jsx # 21 ReceivablesPage tests (badge rendering, payment modal, validation guards, toast feedback)
 ```
 
 ## Docker Services
@@ -176,6 +177,8 @@ NODE_ENV=development
 ✅ Frontend tests: 32 tests passing (Vitest + React Testing Library)
 - `frontend/tests/PeoplePage.test.jsx`: 14 tests
 - `frontend/tests/OrdersPage.test.jsx`: 18 tests
+✅ Frontend ReceivablesPage tests: 21 tests passing (Vitest + React Testing Library)
+- `frontend/tests/ReceivablesPage.test.jsx`: 21 tests — badge rendering (Pendente/Parcial/Quitado), payment modal open/close, person dropdown with balances, balance display per person, zero/negative validation, overpayment validation guard, valid payment submission, toast success/error feedback
 ✅ Payment creation endpoint with transactional consistency (`POST /api/orders/:orderId/payments`)
 ✅ Balance validation: rejects overpayment (amount > pending) and zero/negative amounts
 ✅ Automatic order status transitions: PENDENTE → PARCIAL → QUITADO
@@ -192,12 +195,13 @@ NODE_ENV=development
 ✅ Toast messages in PT-BR: "Pagamento registrado com sucesso!" / "Valor excede o saldo pendente"
 ✅ Navigation link "Recebíveis" added to AppLayout header
 ✅ Route `/receivables` added to App with ProtectedRoute guard
+✅ ReceivablesPage test suite: 21 tests covering badge rendering (Pendente/Parcial/Quitado), payment modal open/close with balance fetch, person dropdown with pending balances, balance display per selected person, empty pending state, zero/negative amount validation, overpayment validation guard, valid payment POST submission, toast success/error feedback, modal close via Cancelar and × button
 
-## Next Steps (Phase 12)
-When ready to proceed, Phase 12 will involve:
-- Frontend tests for ReceivablesPage (badge rendering, payment modal, validation guards, toast feedback)
-- Balance display per person tests
-- Protected route blocking unauthenticated access tests
+## Next Steps (Phase 13)
+When ready to proceed, Phase 13 will involve:
+- Frontend Dashboard page with KPI widgets and Recharts bar graphs
+- Backend aggregation endpoint for dashboard data
+- Navigation link to Dashboard in AppLayout
 
 ## Notes for Developers/Agents
 - Backend source is mounted at `/app` inside container for live editing

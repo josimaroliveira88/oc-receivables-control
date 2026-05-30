@@ -197,7 +197,7 @@ Deliverable: ✅ A payment tracking UI that displays status badges, validates ov
 ---
 
 🧪 PHASE 12: Frontend Tests — ReceivablesPage
-Status:
+Status: ✅ COMPLETED
 
 Context: Frontend ReceivablesPage is implemented. Need automated test coverage.
 Stack: Vitest, React Testing Library[cite: 28, 70].
@@ -211,7 +211,14 @@ Write frontend tests for ReceivablesPage:
 - Protected route blocks unauthenticated access
 - Balance display per person
 
-Deliverable: All ReceivablesPage frontend tests passing. Badge rendering, payment modal, validation guards, and toast feedback fully covered.
+Deliverable: ✅ 21 ReceivablesPage frontend tests passing. Coverage includes:
+- Rendering (4): page title, loading state, empty state, API error message
+- Badge Rendering (3): 🔴 Pendente, ⚠️ Parcial, ✅ Quitado — using regex matchers for emoji-prefixed text
+- Action Buttons (2): "Registrar Pagamento" for PENDENTE/PARCIAL orders, "Pago" label for QUITADO orders
+- Payment Modal (6): modal open with balance fetch, person dropdown with pending values, balance display per person, empty pending state, close via "Cancelar", close via × button
+- Validation Guards (4): zero/negative amount rejection ("Valor deve ser maior que zero"), overpayment rejection ("Valor excede o saldo pendente"), valid payment POST submission
+- Toast Feedback (2): success toast "Pagamento registrado com sucesso!", error toast for backend overpayment rejection
+Total frontend tests: 53 (14 PeoplePage + 18 OrdersPage + 21 ReceivablesPage). All existing backend tests (57) pass with no regressions.
 
 ---
 
