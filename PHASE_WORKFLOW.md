@@ -3,13 +3,13 @@
 To implement a specific phase without advancing to the next phase:
 
 ## Standard File References (Case-Sensitive)
-- Technology specs: `AGENTS.MD` (root)
+- Technology specs: `AGENTS.md` (root)
 - Architecture docs: `ARCHITECTURE.md` (root)
 - Phase roadmap: `docs/ROADMAP.md`
 
 ## Implementation Process
 1. **Verify current state**:
-   - Read `AGENTS.MD` for tech stack, rules, and phase completion notes
+   - Read `AGENTS.md` for tech stack, rules, and phase completion notes
    - Read `ARCHITECTURE.md` to see current implementation status
    - Read `docs/ROADMAP.md` for detailed phase tasks and deliverables
 
@@ -42,7 +42,7 @@ To implement a specific phase without advancing to the next phase:
      - Update "Next Steps" to show following phase
    - In `docs/ROADMAP.md`:
      - Change phase status from blank to `✅ COMPLETED`
-   - In `AGENTS.MD`:
+   - In `AGENTS.md`:
      - Add completion notes under "## Phase Completion Notes"
      - Document test files and test commands under "## Available Test Scripts"
    - Ensure all updates are accurate and verifiable
