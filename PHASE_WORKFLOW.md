@@ -18,13 +18,12 @@ To implement a specific phase without advancing to the next phase:
    - Extract exact tasks and deliverables for THAT phase only
    - Note: Do NOT interpret or infer work for future phases
 
-3. **Write test cases FIRST (TDD - from Phase 5 onward)**:
-   - Before implementing any business logic, identify all test scenarios
-   - Write failing tests that define the expected behavior
-   - Backend: Use Vitest or Jest for services, controllers, validation rules
-   - Frontend: Use React Testing Library for forms, auth flow, protected routes, financial validations
+3. **Write tests in dedicated test phases (from Phase 5 onward)**:
+   - Implementation phases and test phases are separate (e.g., Phase 5 implements, Phase 6 tests)
+   - Test phases immediately follow their corresponding implementation phase
+   - Backend tests: Use Vitest + supertest for services, controllers, validation rules
+   - Frontend tests: Use React Testing Library + vi.mock for forms, modals, auth flow, financial validations
    - Priority test scenarios: partial payment, full payment, overpayment rejection, status transitions, transactional consistency
-   - Tests must be committed alongside or before the implementation code
 
 4. **Implement strictly within phase scope**:
    - Follow existing code conventions in the repository
@@ -73,9 +72,10 @@ To implement a specific phase without advancing to the next phase:
 ## Critical Constraints
 - **Never** advance phase status in documentation before completing all deliverables
 - **Never** implement components from future phases "just in case"
-- **Always** write tests BEFORE implementation code (TDD) for Phase 5 onward
+- **Always** write tests in the dedicated test phase immediately following the implementation phase
 - **Always** run the automated test suite and confirm all tests pass before marking a phase complete
 - **Always** verify using the exact test cases described in the phase's deliverable section
+- Test phases must cover the implementation from the immediately preceding phase
 - When in doubt, re-read the specific phase section in ROADMAP.md
 
 This workflow ensures phased implementation remains isolated, verifiable, and testable.

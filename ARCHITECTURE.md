@@ -1,7 +1,7 @@
 # Receivables Control System - Architecture Documentation
 
 ## Overview
-This document describes the current state of the project architecture, file organization, and how to run the system. The project is currently in **Phase 4: Frontend Authentication Flow** completed.
+This document describes the current state of the project architecture, file organization, and how to run the system. The project is currently in **Phase 8: Frontend Tests — People & Orders** completed.
 
 ## Technology Stack
 - **Backend**: Node.js (Express) with Prisma ORM
@@ -36,26 +36,37 @@ oc-receivables-control/
 │       ├── config.js           # Environment configuration loader
 │       │   └── database.js     # Prisma client singleton
 │       ├── middlewares/
-│       │   └── auth.js         # JWT authentication middleware (placeholder)
+│       │   └── auth.js         # JWT authentication middleware
 │       ├── controllers/
-│       │   └── authController.js # Auth login controller (placeholder)
+│       │   ├── authController.js # Auth login controller
+│       │   ├── peopleController.js # People CRUD with Zod validation
+│       │   └── ordersController.js # Orders + Items CRUD with Zod validation
 │       └── routes/
-│           └── authRoutes.js   # Auth route definitions (/api/auth/login)
+│           ├── authRoutes.js   # Auth route definitions (/api/auth/login)
+│           ├── peopleRoutes.js # People CRUD routes (/api/people)
+│           └── ordersRoutes.js # Orders + Items routes (/api/orders, /api/orders/items/:id)
 ├── frontend/
 │   ├── Dockerfile              # Frontend container definition
 │   ├── package.json            # Frontend dependencies & scripts
+│   ├── vitest.config.js        # Vitest config for frontend (jsdom)
 │   ├── index.html              # HTML template
-│       ├── main.jsx # React entry point
-│       ├── index.css # Tailwind CSS directives
-│       ├── App.jsx # Root React component with routing
-│       ├── services/
-│       │   └── api.js # Axios client with auth interceptor
-│       ├── context/
-│       │   └── AuthContext.jsx # Auth state (login/logout/token)
-│       ├── components/
-│       │   └── ProtectedRoute.jsx # Route guard for auth
-│       └── pages/
-│           └── LoginPage.jsx # Login form (PT-BR)
+│   ├── main.jsx                # React entry point
+│   ├── index.css               # Tailwind CSS directives
+│   ├── App.jsx                 # Root React component with AppLayout + Outlet
+│   ├── services/
+│   │   └── api.js              # Axios client with auth interceptor
+│   ├── context/
+│   │   └── AuthContext.jsx     # Auth state (login/logout/token)
+│   ├── components/
+│   │   └── ProtectedRoute.jsx  # Route guard for auth
+│   ├── pages/
+│   │   ├── LoginPage.jsx       # Login form (PT-BR)
+│   │   ├── PeoplePage.jsx      # People CRUD with modals (PT-BR)
+│   │   └── OrdersPage.jsx      # Orders CRUD with dynamic item rows (PT-BR)
+│   └── tests/
+│       ├── setup.js            # @testing-library/jest-dom import
+│       ├── PeoplePage.test.jsx # 14 PeoplePage tests
+│       └── OrdersPage.test.jsx # 18 OrdersPage tests
 ```
 
 ## Docker Services
@@ -118,7 +129,7 @@ NODE_ENV=development
 4. To stop: `docker compose down`
 5. To rebuild after code changes: `docker compose up --build` or `docker compose up -d --build`
 
-## Current Implementation Status (Phase 4 Complete)
+## Current Implementation Status (Phase 8 Complete)
 ✅ Docker Compose orchestration with all required services
 ✅ Backend Express server with CORS and JSON middleware
 ✅ Basic health check endpoint (`GET /health`)
@@ -126,7 +137,16 @@ NODE_ENV=development
 ✅ Authentication middleware implemented (`src/middlewares/auth.js`)
 ✅ Authentication controller implemented with JWT and bcrypt (`src/controllers/authController.js`)
 ✅ Auth routes implemented (`src/routes/authRoutes.js`)
-✅ Frontend React entry point with basic container component
+✅ People CRUD controller with Zod validation (`src/controllers/peopleController.js`)
+✅ People routes implemented (`src/routes/peopleRoutes.js`) at `/api/people`
+✅ Orders + Items CRUD controller with Zod validation (`src/controllers/ordersController.js`)
+✅ Orders + Items routes implemented (`src/routes/ordersRoutes.js`) at `/api/orders` and `/api/orders/items/:id`
+✅ Centralized error handling middleware for Zod validation errors
+✅ Frontend React entry point with AppLayout + Outlet pattern
+✅ AppLayout with header, navigation links (Pessoas/Pedidos), and logout button
+✅ Protected route component blocking unauthenticated access (`src/components/ProtectedRoute.jsx`)
+✅ PeoplePage component with table listing, create/edit modals, delete confirmation (PT-BR)
+✅ OrdersPage component with table listing, status badges, dynamic multi-row item sub-form (PT-BR)
 ✅ Environment configuration files
 ✅ Dockerfiles for both backend and frontend
 ✅ Volume mounting for live development
@@ -135,20 +155,25 @@ NODE_ENV=development
 ✅ Proper relationships and cascade rules established
 ✅ Working JWT authentication system with bcrypt password hashing
 ✅ Admin user seeded in database
-✅ Centralized error handling middleware for Zod validation errors
 ✅ Axios client with automatic Bearer token injection from localStorage (`src/services/api.js`)
 ✅ Auth context provider managing login, logout, and token validation (`src/context/AuthContext.jsx`)
-✅ Protected route component blocking unauthenticated access (`src/components/ProtectedRoute.jsx`)
 ✅ Tailwind CSS setup with PostCSS and Vite integration
 ✅ Login page with PT-BR labels and error messages (`src/pages/LoginPage.jsx`)
 ✅ React Router routing with login and protected routes
+✅ Backend tests: 34 tests passing (Vitest + supertest)
+  - `backend/tests/people.test.js`: 14 tests for People CRUD
+  - `backend/tests/orders.test.js`: 20 tests for Orders + Items CRUD
+✅ Frontend tests: 32 tests passing (Vitest + React Testing Library)
+  - `frontend/tests/PeoplePage.test.jsx`: 14 tests
+  - `frontend/tests/OrdersPage.test.jsx`: 18 tests
 
-## Next Steps (Phase 5)
-When ready to proceed, Phase 5 will involve:
-- Building `src/pages/PeoplePage.jsx` with people listing and CRUD modals
-- Building `src/pages/OrdersPage.jsx` with dynamic multi-row item sub-forms
-- Creating backend CRUD endpoints for People and Orders
-- PT-BR interface labels: "Cadastro de Pessoas", "Gestão de Pedidos", etc.
+## Next Steps (Phase 9)
+When ready to proceed, Phase 9 will involve:
+- Building the financial payment processing engine (`POST /api/orders/:orderId/payments`)
+- Implementing balance calculations: sum items, sum payments, calculate pending balance
+- Status transitions: PENDENTE → PARCIAL → QUITADO based on payment progress
+- Transactional payment recording with Prisma transactions
+- Balance endpoint: `GET /api/orders/:orderId/balance` for per-person balance breakdown
 
 ## Notes for Developers/Agents
 - Backend source is mounted at `/app` inside container for live editing

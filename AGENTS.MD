@@ -51,7 +51,7 @@ User-facing content:
 All phases starting from Phase 5 must follow Test-Driven Development:
 
 1. **Write tests before implementation**: Before writing any business logic, identify and write test cases that define the expected behavior.
-2. **Backend tests** (Vitest or Jest):
+2. **Backend tests** (Vitest):
    - Services, financial calculations, validation rules
    - Priority: partial payment, full payment, overpayment rejection, status transitions, transactional consistency
 3. **Frontend tests** (React Testing Library):
@@ -64,6 +64,7 @@ Do not create untestable business logic.
 ## Documentation Practices
 
 After completing each phase of development, the implementing agent must:
+
 1. Update the project documentation to reflect changes made
 2. Ensure ARCHITECTURE.md is current with the latest file structure and setup instructions
 3. Update AGENTS.md if any technical specifications or rules change
@@ -72,6 +73,27 @@ After completing each phase of development, the implementing agent must:
 6. Document test files and coverage under "## Available Test Scripts"
 
 This ensures future agents can understand the project state and continue development seamlessly.
+
+## Available Test Scripts
+
+Backend:
+- `npm run test` - Runs all backend tests with Vitest
+- `npm run test:watch` - Runs backend tests in watch mode
+
+Frontend:
+- `npm run test` - Runs all frontend tests with Vitest
+- `npm run test:watch` - Runs frontend tests in watch mode
+
+## Key Development Commands
+
+Start development environment:
+- `docker compose up --build` - Starts all services (backend, frontend, database, adminer)
+
+Backend only:
+- `npm run dev` - Starts backend server with nodemon
+
+Frontend only:
+- `npm run dev` - Starts frontend Vite dev server
 
 ## Phase Completion Notes
 
@@ -100,3 +122,130 @@ Phase 4 (Frontend Authentication Flow) has been completed:
 - Error message: "Usuário ou senha inválidos. Tente novamente."
 - Tailwind CSS configured with PostCSS and Vite integration
 - React Router routing with login and protected routes configured
+
+Phase 5 (Frontend Component CRUD - People & Orders) has been completed:
+- Backend: Implemented `peopleController.js` with CRUD operations and Zod validation (name required, contact optional/nullable)
+- Backend: Implemented `ordersController.js` with CRUD operations for Orders + Items sub-resource, including dynamic item management and total recalculation
+- Backend: Created `peopleRoutes.js` mounting GET/POST/PUT/DELETE at `/api/people`
+- Backend: Created `ordersRoutes.js` mounting Orders CRUD at `/api/orders` and Items CRUD at `/api/orders/items/:id`
+- Backend: Fixed controller issues (removed broken `status: {}` empty object, separated create/update Zod schemas)
+- Frontend: Created `PeoplePage.jsx` with table listing, create/edit modals, delete confirmation, PT-BR labels ("Cadastro de Pessoas", "Nome", "Contato", "Novo", "Editar", "Excluir")
+- Frontend: Created `OrdersPage.jsx` with table listing, status badges, create/edit modal with dynamic multi-row item sub-form, person dropdown, total calculation, PT-BR labels ("Gestão de Pedidos", "Adicionar Item", "Descrição", "Valor (R$)", "Pessoa")
+- Frontend: Restructured `App.jsx` using `AppLayout` + `Outlet` pattern with navigation links to Pessoas/Pedidos
+- Backend tests: 34 tests passing using Vitest + supertest
+  - `backend/tests/people.test.js`: 14 tests
+  - `backend/tests/orders.test.js`: 20 tests
+- Frontend tests: 32 tests passing using Vitest + React Testing Library
+  - `frontend/tests/PeoplePage.test.jsx`: 14 tests (arrow-function mock pattern to avoid hoisting issues)
+  - `frontend/tests/OrdersPage.test.jsx`: 18 tests (arrow-function mock pattern to avoid hoisting issues)
+- All tests follow TDD methodology (tests written before final implementation)
+
+## Lessons Learned / Pitfalls to Avoid
+
+### 1. vi.mock Hoisting Bug (Vitest)
+**Problem**: `vi.mock()` factory functions are hoisted to the top of the file by Vitest. They execute BEFORE any `const`/`let` variable declarations. Passing a variable defined at module scope directly to `vi.mock` results in `undefined` at runtime.
+```js
+// WRONG — mockApi is undefined when vi.mock factory runs
+const mockApi = { get: vi.fn(), post: vi.fn() };
+vi.mock('../src/services/api', () => ({ default: mockApi }));
+```
+**Fix**: Use arrow function wrappers that reference the variables lazily:
+```js
+// CORRECT — arrow functions resolve mockGet etc. at call time, not at hoist time
+const mockGet = vi.fn();
+const mockPost = vi.fn();
+vi.mock('../src/services/api', () => ({
+  default: {
+    get: (...args) => mockGet(...args),
+    post: (...args) => mockPost(...args),
+  },
+}));
+```
+
+### 2. HTML5 `required` Attribute Blocks Form Submission in jsdom
+**Problem**: When a form input has the HTML5 `required` attribute, clicking the submit button in jsdom/React Testing Library does NOT trigger the `onSubmit` handler if the required field is empty. The browser's built-in validation intercepts before React's handler fires. This means custom `setError()` validation inside `onSubmit` never executes.
+```js
+// WRONG — click on submit button never fires onSubmit if required field is empty
+fireEvent.click(screen.getByText('Salvar'));
+await waitFor(() => {
+  expect(screen.getByText('Nome é obrigatório')).toBeInTheDocument(); // FAILS
+});
+```
+**Fix**: Use `fireEvent.submit(form)` to bypass HTML5 validation and trigger the onSubmit handler directly:
+```js
+// CORRECT
+const form = screen.getByPlaceholderText('Digite o nome').closest('form');
+fireEvent.submit(form);
+await waitFor(() => {
+  expect(screen.getByText('Nome é obrigatório')).toBeInTheDocument(); // PASSES
+});
+```
+
+### 3. Conditional Rendering of "Remover" Button in Dynamic Item Lists
+**Problem**: When a list has only 1 item, the "Remover" (remove) button is intentionally hidden by the component logic (`items.length <= 1`). Tests that add only 1 extra item and then look for "Remover" will fail because the first item still doesn't show the button — only items beyond the first show it when `items.length > 1`.
+**Fix**: When testing item removal, add 2+ items first so all items show the "Remover" button, then target a specific one:
+```js
+fireEvent.click(screen.getByText('Adicionar Item')); // now 2 items
+fireEvent.click(screen.getByText('Adicionar Item')); // now 3 items
+const removeButtons = screen.getAllByText('Remover');
+fireEvent.click(removeButtons[1]); // remove specific item
+```
+
+### 4. dotenv.config() Overriding Test Environment Variables
+**Problem**: `dotenv.config()` loads `.env` file values which override `process.env` defaults. In Docker, `.env` has `DATABASE_URL=postgresql://admin:admin@db:5432/receivables` (hostname `db`), but tests run on the host machine and need `localhost:5432`. Without a guard, dotenv replaces the test DATABASE_URL with the Docker one.
+**Fix**: Skip `dotenv.config()` when `NODE_ENV === 'test'`:
+```js
+// config.js
+if (process.env.NODE_ENV !== 'test') {
+  require('dotenv').config();
+}
+```
+Test setup file (`backend/tests/setup.js`) must set env vars BEFORE any module imports:
+```js
+process.env.NODE_ENV = 'test';
+process.env.DATABASE_URL = 'postgresql://admin:admin@localhost:5432/receivables';
+process.env.JWT_SECRET = 'test-secret';
+process.env.PORT = 4001;
+```
+
+### 5. Frontend Missing `"type": "module"` in package.json
+**Problem**: When frontend config files (`vite.config.js`, `postcss.config.js`, `vitest.config.js`) use ESM syntax (`export default`), Node.js fails to parse them if `package.json` doesn't declare `"type": "module"`. Error: `SyntaxError: Unexpected token 'export'` or PostCSS config fails to load inside Docker container.
+**Fix**: Add `"type": "module"` to `frontend/package.json`. The backend does NOT use this (it's CommonJS).
+
+### 6. React Router v6 — Nested `<Routes>` Inside `<ProtectedRoute>` Causes Routing Bugs
+**Problem**: Placing nested `<Routes>` inside a wrapper component (like `<ProtectedRoute>`) causes route matching issues in React Router v6. Child routes fail to render or match incorrectly.
+**Fix**: Use the `<Outlet />` pattern — the parent layout component renders `<Outlet />` and the route config nests children under the layout route:
+```jsx
+// AppLayout renders header + <Outlet />
+const AppLayout = () => (
+  <div>
+    <header>...</header>
+    <main><Outlet /></main>
+  </div>
+);
+
+// Route config — children render inside the Outlet
+<Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+  <Route path="/people" element={<PeoplePage />} />
+  <Route path="/orders" element={<OrdersPage />} />
+</Route>
+```
+
+### 7. Prisma Decimal Fields Return Strings
+**Problem**: Prisma returns `Decimal(10,2)` fields as strings, not numbers. Direct numeric comparisons fail. For example, `order.totalValue` is `"300.00"`, not `300`.
+**Fix**: Always use `parseFloat()` when comparing or displaying Decimal values:
+```js
+const total = parseFloat(order.totalValue); // "300.00" → 300
+expect(total).toBe(300);
+// In JSX:
+<span>R$ {parseFloat(order.totalValue).toFixed(2)}</span>
+```
+
+### 8. Docker node_modules Ownership Conflict
+**Problem**: When Docker bind-mounts the source directory (`./frontend:/app`), the `node_modules` folder inside the container can be owned by `root`. Running `npm install` on the host then fails with EACCES permission errors.
+**Fix**: Remove the host `node_modules` and reinstall as the current user:
+```bash
+rm -rf frontend/node_modules
+cd frontend && npm install
+```
+The docker-compose volume `- /app/node_modules` creates an anonymous volume that preserves the container's node_modules separately from the host.
