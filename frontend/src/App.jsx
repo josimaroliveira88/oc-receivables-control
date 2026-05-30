@@ -5,6 +5,8 @@ import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import PeoplePage from './pages/PeoplePage';
 import OrdersPage from './pages/OrdersPage';
+import ReceivablesPage from './pages/ReceivablesPage';
+import ToastProvider from './components/Toast';
 
 const AppLayout = () => {
   const { logout } = useAuth();
@@ -22,6 +24,9 @@ const AppLayout = () => {
               </a>
               <a href="/orders" className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors">
                 Pedidos
+              </a>
+              <a href="/receivables" className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors">
+                Recebíveis
               </a>
             </nav>
             <button
@@ -52,21 +57,24 @@ const Dashboard = () => {
 
 const App = () => {
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route
-        element={
-          <ProtectedRoute>
-            <AppLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/people" element={<PeoplePage />} />
-        <Route path="/orders" element={<OrdersPage />} />
-      </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <ToastProvider>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          element={
+            <ProtectedRoute>
+              <AppLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/people" element={<PeoplePage />} />
+          <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/receivables" element={<ReceivablesPage />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </ToastProvider>
   );
 };
 
