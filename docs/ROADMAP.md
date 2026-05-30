@@ -164,7 +164,7 @@ Deliverable: A backend payment endpoint that persists valid payments, enforces b
 ---
 
 🧪 PHASE 10: Backend Tests — Payments & Status
-Status:
+Status: ✅ COMPLETED
 
 Context: Backend payment engine is implemented. Need automated test coverage for financial logic.
 Stack: Vitest, supertest, Prisma[cite: 28, 62, 136].
@@ -175,7 +175,7 @@ Write backend tests for payment processing and status transitions:
 2. Integration tests for the endpoint: valid payment returns 201 with payment data, overpayment returns 400, unauthenticated request returns 401, non-existent order returns 404.
 3. Tests for balance endpoint: correct per-person balance calculation, returns 0 for fully paid, returns 404 for non-existent order.
 
-Deliverable: All backend payment and balance tests passing. Coverage includes edge cases for financial validation, status transitions, and transactional consistency.
+Deliverable: ✅ 23 backend payment tests passing. Coverage includes partial payment, full payment (QUITADO), overpayment rejection, zero/negative amount Zod validation, invalid personId, non-existent order/person, auth guards (401/403), status transitions (PENDENTE→PARCIAL→QUITADO), optional notes, two-person scenarios, balance breakdown, and transactional consistency with rollback verification. Total backend tests: 57 (14 people + 20 orders + 23 payments).
 
 ---
 

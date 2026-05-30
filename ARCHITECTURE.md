@@ -1,7 +1,7 @@
 # Receivables Control System - Architecture Documentation
 
 ## Overview
-This document describes the current state of the project architecture, file organization, and how to run the system. The project is currently in **Phase 9: Backend Payments & Status Engine** completed.
+This document describes the current state of the project architecture, file organization, and how to run the system. The project is currently in **Phase 10: Backend Tests — Payments & Status** completed.
 
 ## Technology Stack
 - **Backend**: Node.js (Express) with Prisma ORM
@@ -46,6 +46,12 @@ oc-receivables-control/
 │ ├── authRoutes.js # Auth route definitions (/api/auth/login)
 │ ├── peopleRoutes.js # People CRUD routes (/api/people)
 │ └── ordersRoutes.js # Orders + Items + Payments routes (/api/orders, /api/orders/items/:id, /api/orders/:orderId/payments, /api/orders/:orderId/balance)
+│ ├── vitest.config.js # Vitest config for backend (node environment)
+│ └── tests/
+│ ├── setup.js # Test environment setup (NODE_ENV, DATABASE_URL, JWT_SECRET)
+│ ├── people.test.js # 14 People CRUD tests
+│ ├── orders.test.js # 20 Orders + Items CRUD tests
+│ └── payments.test.js # 23 Payments & Balance tests
 ├── frontend/
 │   ├── Dockerfile              # Frontend container definition
 │   ├── package.json            # Frontend dependencies & scripts
@@ -63,11 +69,11 @@ oc-receivables-control/
 │   ├── pages/
 │   │   ├── LoginPage.jsx       # Login form (PT-BR)
 │   │   ├── PeoplePage.jsx      # People CRUD with modals (PT-BR)
-│   │   └── OrdersPage.jsx      # Orders CRUD with dynamic item rows (PT-BR)
-│   └── tests/
-│       ├── setup.js            # @testing-library/jest-dom import
-│       ├── PeoplePage.test.jsx # 14 PeoplePage tests
-│       └── OrdersPage.test.jsx # 18 OrdersPage tests
+│ │ └── OrdersPage.jsx # Orders CRUD with dynamic item rows (PT-BR)
+│ └── tests/
+│ ├── setup.js # @testing-library/jest-dom import
+│ ├── PeoplePage.test.jsx # 14 PeoplePage tests
+│ └── OrdersPage.test.jsx # 18 OrdersPage tests
 ```
 
 ## Docker Services
@@ -130,7 +136,7 @@ NODE_ENV=development
 4. To stop: `docker compose down`
 5. To rebuild after code changes: `docker compose up --build` or `docker compose up -d --build`
 
-## Current Implementation Status (Phase 9 Complete)
+## Current Implementation Status (Phase 10 Complete)
 ✅ Docker Compose orchestration with all required services
 ✅ Backend Express server with CORS and JSON middleware
 ✅ Basic health check endpoint (`GET /health`)
@@ -161,9 +167,10 @@ NODE_ENV=development
 ✅ Tailwind CSS setup with PostCSS and Vite integration
 ✅ Login page with PT-BR labels and error messages (`src/pages/LoginPage.jsx`)
 ✅ React Router routing with login and protected routes
-✅ Backend tests: 34 tests passing (Vitest + supertest)
+✅ Backend tests: 57 tests passing (Vitest + supertest)
 - `backend/tests/people.test.js`: 14 tests for People CRUD
 - `backend/tests/orders.test.js`: 20 tests for Orders + Items CRUD
+- `backend/tests/payments.test.js`: 23 tests for Payments & Balance
 ✅ Frontend tests: 32 tests passing (Vitest + React Testing Library)
 - `frontend/tests/PeoplePage.test.jsx`: 14 tests
 - `frontend/tests/OrdersPage.test.jsx`: 18 tests
@@ -173,14 +180,14 @@ NODE_ENV=development
 ✅ Per-person balance calculation within Prisma transaction
 ✅ Balance breakdown endpoint (`GET /api/orders/:orderId/balance`) returning per-person pending amounts
 ✅ Payment and balance routes protected with JWT authentication middleware
+✅ Backend payment tests: 23 tests covering partial payment, full payment, overpayment rejection, Zod validation, status transitions, auth guards, balance breakdown, transactional consistency with rollback
 
-## Next Steps (Phase 10)
-When ready to proceed, Phase 10 will involve:
-- Backend tests for payment processing and status transitions
-- Unit tests for: partial payment, full payment, overpayment rejection, zero/negative amount rejection
-- Integration tests for: valid payment returns 201, overpayment returns 400, unauthenticated returns 401, non-existent order returns 404
-- Balance endpoint tests: correct per-person balance, returns 0 for fully paid, 404 for non-existent order
-- Transactional consistency and rollback tests
+## Next Steps (Phase 11)
+When ready to proceed, Phase 11 will involve:
+- Frontend ReceivablesPage UI with status badges and payment modal
+- Visual badge elements for QUITADO/PARCIAL/PENDENTE
+- Payment modal with balance ceiling validation
+- Toast feedback messages in PT-BR
 
 ## Notes for Developers/Agents
 - Backend source is mounted at `/app` inside container for live editing

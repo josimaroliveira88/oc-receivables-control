@@ -132,9 +132,10 @@ Phase 5 (Frontend Component CRUD - People & Orders) has been completed:
 - Frontend: Created `PeoplePage.jsx` with table listing, create/edit modals, delete confirmation, PT-BR labels ("Cadastro de Pessoas", "Nome", "Contato", "Novo", "Editar", "Excluir")
 - Frontend: Created `OrdersPage.jsx` with table listing, status badges, create/edit modal with dynamic multi-row item sub-form, person dropdown, total calculation, PT-BR labels ("Gestão de Pedidos", "Adicionar Item", "Descrição", "Valor (R$)", "Pessoa")
 - Frontend: Restructured `App.jsx` using `AppLayout` + `Outlet` pattern with navigation links to Pessoas/Pedidos
-- Backend tests: 34 tests passing using Vitest + supertest
-  - `backend/tests/people.test.js`: 14 tests
-  - `backend/tests/orders.test.js`: 20 tests
+- Backend tests: 57 tests passing using Vitest + supertest
+- `backend/tests/people.test.js`: 14 tests
+- `backend/tests/orders.test.js`: 20 tests
+- `backend/tests/payments.test.js`: 23 tests
 - Frontend tests: 32 tests passing using Vitest + React Testing Library
   - `frontend/tests/PeoplePage.test.jsx`: 14 tests (arrow-function mock pattern to avoid hoisting issues)
   - `frontend/tests/OrdersPage.test.jsx`: 18 tests (arrow-function mock pattern to avoid hoisting issues)
@@ -153,6 +154,15 @@ Phase 9 (Backend Payments & Status Engine) has been completed:
 - Created `src/controllers/paymentsController.js` with createPayment and getOrderBalance
 - Updated `src/routes/ordersRoutes.js` to mount payment and balance routes with auth
 - Existing test suite (34 backend tests) passes with no regressions
+
+Phase 10 (Backend Tests — Payments & Status) has been completed:
+- `backend/tests/payments.test.js`: 23 tests covering:
+  - POST /payments: partial payment → PARCIAL, full payment → QUITADO, overpayment rejection, zero/negative Zod validation, invalid personId, non-existent order/person, 401/403 auth guards, PENDENTE→PARCIAL→QUITADO transitions, optional notes, two-person scenarios
+  - GET /balance: per-person balance breakdown, partial payments, fully paid (pending=0), 404 non-existent order, 401/403 auth guards
+  - Transactional consistency: atomic status update within transaction, rollback verification (overpayment does not persist payment, status stays PENDENTE)
+- All orderNumbers use dynamic `uniqueOrderNumber()` function to avoid unique constraint conflicts across test runs
+- All created persons and orders are tracked in arrays and cleaned up in afterEach
+- Total backend tests: 57 (14 people + 20 orders + 23 payments)
 
 ## Lessons Learned / Pitfalls to Avoid
 
