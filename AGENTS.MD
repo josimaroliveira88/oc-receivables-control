@@ -140,6 +140,20 @@ Phase 5 (Frontend Component CRUD - People & Orders) has been completed:
   - `frontend/tests/OrdersPage.test.jsx`: 18 tests (arrow-function mock pattern to avoid hoisting issues)
 - All tests follow TDD methodology (tests written before final implementation)
 
+Phase 9 (Backend Payments & Status Engine) has been completed:
+- Implemented `POST /api/orders/:orderId/payments` — transactional payment creation with Prisma $transaction
+- Payment validation: rejects amount <= 0 (Zod), rejects amount > pending balance (business logic)
+- Per-person balance calculation: sums items and historical payments for the personId, computes pending = itemSum - paymentSum
+- Automatic order status transitions inside transaction:
+  - All persons paid (pending <= 0 for every person) → QUITADO
+  - Some persons have partial payments but balances remain → PARCIAL
+  - No payments at all → PENDENTE
+- Implemented `GET /api/orders/:orderId/balance` — returns per-person balance breakdown (personId, personName, itemTotal, paymentTotal, pending)
+- Payment and balance endpoints protected with authenticateToken JWT middleware
+- Created `src/controllers/paymentsController.js` with createPayment and getOrderBalance
+- Updated `src/routes/ordersRoutes.js` to mount payment and balance routes with auth
+- Existing test suite (34 backend tests) passes with no regressions
+
 ## Lessons Learned / Pitfalls to Avoid
 
 ### 1. vi.mock Hoisting Bug (Vitest)
@@ -249,3 +263,21 @@ rm -rf frontend/node_modules
 cd frontend && npm install
 ```
 The docker-compose volume `- /app/node_modules` creates an anonymous volume that preserves the container's node_modules separately from the host.
+
+### 9. Prisma Transaction — Stale Data in Status Re-evaluation
+**Problem**: When creating a payment inside `prisma.$transaction()`, the `order` variable (fetched with `include: { payments }` at the start of the transaction) does NOT include the newly created payment. Using `order.payments` to re-evaluate order status after `tx.payment.create()` results in incorrect status — the new payment is missing from the sum, so status stays `PENDENTE` instead of transitioning to `PARCIAL`.
+**Fix**: Manually add the new payment amount to the person's payment sum when re-evaluating status:
+```js
+// WRONG — order.payments is stale, missing the new payment
+const personPaymentSum = order.payments
+  .filter(p => p.personId === pid)
+  .reduce((sum, p) => sum + parseFloat(p.amount), 0);
+
+// CORRECT — add the new payment amount if it belongs to this person
+let personPaymentSum = order.payments
+  .filter(p => p.personId === pid)
+  .reduce((sum, p) => sum + parseFloat(p.amount), 0);
+if (pid === validatedData.personId) {
+  personPaymentSum += validatedData.amount;
+}
+```

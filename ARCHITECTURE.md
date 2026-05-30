@@ -1,7 +1,7 @@
 # Receivables Control System - Architecture Documentation
 
 ## Overview
-This document describes the current state of the project architecture, file organization, and how to run the system. The project is currently in **Phase 8: Frontend Tests — People & Orders** completed.
+This document describes the current state of the project architecture, file organization, and how to run the system. The project is currently in **Phase 9: Backend Payments & Status Engine** completed.
 
 ## Technology Stack
 - **Backend**: Node.js (Express) with Prisma ORM
@@ -37,14 +37,15 @@ oc-receivables-control/
 │       │   └── database.js     # Prisma client singleton
 │       ├── middlewares/
 │       │   └── auth.js         # JWT authentication middleware
-│       ├── controllers/
-│       │   ├── authController.js # Auth login controller
-│       │   ├── peopleController.js # People CRUD with Zod validation
-│       │   └── ordersController.js # Orders + Items CRUD with Zod validation
-│       └── routes/
-│           ├── authRoutes.js   # Auth route definitions (/api/auth/login)
-│           ├── peopleRoutes.js # People CRUD routes (/api/people)
-│           └── ordersRoutes.js # Orders + Items routes (/api/orders, /api/orders/items/:id)
+│ ├── controllers/
+│ │ ├── authController.js # Auth login controller
+│ │ ├── peopleController.js # People CRUD with Zod validation
+│ │ ├── ordersController.js # Orders + Items CRUD with Zod validation
+│ │ └── paymentsController.js # Payments + balance with transactional status engine
+│ └── routes/
+│ ├── authRoutes.js # Auth route definitions (/api/auth/login)
+│ ├── peopleRoutes.js # People CRUD routes (/api/people)
+│ └── ordersRoutes.js # Orders + Items + Payments routes (/api/orders, /api/orders/items/:id, /api/orders/:orderId/payments, /api/orders/:orderId/balance)
 ├── frontend/
 │   ├── Dockerfile              # Frontend container definition
 │   ├── package.json            # Frontend dependencies & scripts
@@ -129,7 +130,7 @@ NODE_ENV=development
 4. To stop: `docker compose down`
 5. To rebuild after code changes: `docker compose up --build` or `docker compose up -d --build`
 
-## Current Implementation Status (Phase 8 Complete)
+## Current Implementation Status (Phase 9 Complete)
 ✅ Docker Compose orchestration with all required services
 ✅ Backend Express server with CORS and JSON middleware
 ✅ Basic health check endpoint (`GET /health`)
@@ -161,19 +162,25 @@ NODE_ENV=development
 ✅ Login page with PT-BR labels and error messages (`src/pages/LoginPage.jsx`)
 ✅ React Router routing with login and protected routes
 ✅ Backend tests: 34 tests passing (Vitest + supertest)
-  - `backend/tests/people.test.js`: 14 tests for People CRUD
-  - `backend/tests/orders.test.js`: 20 tests for Orders + Items CRUD
+- `backend/tests/people.test.js`: 14 tests for People CRUD
+- `backend/tests/orders.test.js`: 20 tests for Orders + Items CRUD
 ✅ Frontend tests: 32 tests passing (Vitest + React Testing Library)
-  - `frontend/tests/PeoplePage.test.jsx`: 14 tests
-  - `frontend/tests/OrdersPage.test.jsx`: 18 tests
+- `frontend/tests/PeoplePage.test.jsx`: 14 tests
+- `frontend/tests/OrdersPage.test.jsx`: 18 tests
+✅ Payment creation endpoint with transactional consistency (`POST /api/orders/:orderId/payments`)
+✅ Balance validation: rejects overpayment (amount > pending) and zero/negative amounts
+✅ Automatic order status transitions: PENDENTE → PARCIAL → QUITADO
+✅ Per-person balance calculation within Prisma transaction
+✅ Balance breakdown endpoint (`GET /api/orders/:orderId/balance`) returning per-person pending amounts
+✅ Payment and balance routes protected with JWT authentication middleware
 
-## Next Steps (Phase 9)
-When ready to proceed, Phase 9 will involve:
-- Building the financial payment processing engine (`POST /api/orders/:orderId/payments`)
-- Implementing balance calculations: sum items, sum payments, calculate pending balance
-- Status transitions: PENDENTE → PARCIAL → QUITADO based on payment progress
-- Transactional payment recording with Prisma transactions
-- Balance endpoint: `GET /api/orders/:orderId/balance` for per-person balance breakdown
+## Next Steps (Phase 10)
+When ready to proceed, Phase 10 will involve:
+- Backend tests for payment processing and status transitions
+- Unit tests for: partial payment, full payment, overpayment rejection, zero/negative amount rejection
+- Integration tests for: valid payment returns 201, overpayment returns 400, unauthenticated returns 401, non-existent order returns 404
+- Balance endpoint tests: correct per-person balance, returns 0 for fully paid, 404 for non-existent order
+- Transactional consistency and rollback tests
 
 ## Notes for Developers/Agents
 - Backend source is mounted at `/app` inside container for live editing
