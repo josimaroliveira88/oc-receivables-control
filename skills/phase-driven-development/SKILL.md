@@ -1,6 +1,6 @@
 ---
 name: phase-driven-development
-description: MVP implementation roadmap.
+description: 16-phase implementation roadmap separating backend, frontend, and test concerns.
 ---
 
 # Development Roadmap
@@ -11,25 +11,49 @@ Phase 1:
 Infrastructure
 
 Phase 2:
-Database
+Database Modeling & Migrations
 
 Phase 3:
-Backend Auth
+Express Core Server & Auth Layer
 
 Phase 4:
-Frontend Auth
+Frontend Authentication Flow
 
 Phase 5:
-CRUD
+Backend People & Orders CRUD
 
 Phase 6:
-Payments Engine
+Backend Tests — People & Orders
 
 Phase 7:
-Receivables UI
+Frontend People & Orders Pages
 
 Phase 8:
-Dashboard & XLSX
+Frontend Tests — People & Orders
+
+Phase 9:
+Backend Payments & Status Engine
+
+Phase 10:
+Backend Tests — Payments & Status
+
+Phase 11:
+Frontend ReceivablesPage UI
+
+Phase 12:
+Frontend Tests — ReceivablesPage
+
+Phase 13:
+Frontend Dashboard & Charts
+
+Phase 14:
+Frontend Tests — Dashboard & Charts
+
+Phase 15:
+Frontend XLSX Export Feature
+
+Phase 16:
+Frontend Tests — XLSX Export
 
 Never skip phases.
 Never implement future phases.

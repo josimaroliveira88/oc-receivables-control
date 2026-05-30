@@ -52,3 +52,22 @@ Intl.NumberFormat(
     currency: 'BRL'
   }
 )
+
+## Lessons Learned
+
+1. **ProtectedRoute Pattern**: Avoid nesting `<Routes>` inside `<ProtectedRoute>` as it causes routing bugs in React Router v6. Use the `<Outlet />` pattern instead:
+   ```jsx
+   // AppLayout renders header + <Outlet />
+   const AppLayout = () => (
+     <div>
+       <header>...</header>
+       <main><Outlet /></main>
+     </div>
+   );
+
+   // Route config — children render inside the Outlet
+   <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+     <Route path="/people" element={<PeoplePage />} />
+     <Route path="/orders" element={<OrdersPage />} />
+   </Route>
+   ```

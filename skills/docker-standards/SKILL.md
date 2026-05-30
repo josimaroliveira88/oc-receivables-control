@@ -149,3 +149,14 @@ Avoid:
 * privileged containers
 * root users when unnecessary
 * unrestricted network exposure
+
+## Lessons Learned
+
+**Docker node_modules Ownership Conflict**: When Docker bind-mounts the source directory (e.g., `./frontend:/app`), the `node_modules` folder inside the container can be owned by `root`. Running `npm install` on the host then fails with EACCES permission errors.
+
+Fix: Remove the host `node_modules` and reinstall as the current user:
+```bash
+rm -rf frontend/node_modules
+cd frontend && npm install
+```
+The docker-compose volume `- /app/node_modules` creates an anonymous volume that preserves the container's node_modules separately from the host.
