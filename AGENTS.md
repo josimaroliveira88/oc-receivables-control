@@ -109,23 +109,23 @@ The Receivables Control System is now fully functional with all core features im
 ✅ Express.js backend with JWT authentication
 ✅ React frontend with Vite and Tailwind CSS
 ✅ People management (CRUD)
-✅ Orders management with dynamic item sub-forms
+✅ Orders management with dynamic item sub-forms and custom order date
 ✅ Payment processing with automatic order status transitions (PENDENTE → PARCIAL → QUITADO)
 ✅ Receivables tracking dashboard with per-person balance breakdown
 ✅ Analytics dashboard with KPI widgets and Recharts visualizations
 ✅ Excel export functionality (4-sheet workbook with BRL formatting)
-✅ Comprehensive test coverage (105 frontend tests + 59 backend tests)
+✅ Comprehensive test coverage (111 frontend tests + 62 backend tests)
 ✅ Financial precision (integer cents arithmetic, no floating-point errors)
 ✅ Complete TDD methodology applied across all phases
 ✅ PT-BR localization for all user-facing content
 
 ### Test Results:
-- **Backend Tests**: 59 passing (14 People + 20 Orders + 25 Payments)
-- **Frontend Tests**: 105 passing (14 PeoplePage + 18 OrdersPage + 22 ReceivablesPage + 19 DashboardPage + 32 exportExcel)
-- **Total**: 164 tests passing with zero regressions
+- **Backend Tests**: 62 passing (14 People + 23 Orders + 25 Payments)
+- **Frontend Tests**: 111 passing (14 PeoplePage + 24 OrdersPage + 22 ReceivablesPage + 19 DashboardPage + 32 exportExcel)
+- **Total**: 173 tests passing with zero regressions
 
 ### Key Learnings Documented:
-11 critical lessons learned documented in AGENTS.md (see "Lessons Learned / Pitfalls to Avoid") to guide future development:
+13 critical lessons learned documented in AGENTS.md (see "Lessons Learned / Pitfalls to Avoid") to guide future development:
 1. vi.mock hoisting bug in Vitest — arrow-function wrapper solution
 2. HTML5 required attribute blocking form submission in jsdom
 3. Conditional rendering of dynamic list items
@@ -148,7 +148,7 @@ When the client requests new functionality:
 3. **Plan Test Coverage**: Identify which tests need to be written (backend/frontend)
 4. **Implement with TDD**: Follow the TDD methodology used in phases 5+
 5. **Update Documentation**: Ensure ARCHITECTURE.md, AGENTS.md, and ROADMAP.md reflect changes
-6. **Run Full Test Suite**: Verify all 164+ tests pass with zero regressions
+6. **Run Full Test Suite**: Verify all 173+ tests pass with zero regressions
 
 The codebase is well-structured, documented, and ready to accept new features without breaking existing functionality.
 
@@ -309,4 +309,21 @@ function toCents(value) { return Math.round(parseFloat(value) * 100); }
 function fromCents(cents) { return cents / 100; }
 // Compare in cents: toCents(1.56) === toCents(1234.56) - toCents(1233)
 // 156 === 123456 - 123300 === 156 ✓
+```
+
+### 13. Timezone-Safe Date Parsing (YYYY-MM-DD strings)
+**Problem**: `new Date('2026-05-15')` interprets the string as UTC midnight. In timezones like UTC-3 (Brazil), the local date shifts back to May 14, causing `getDate()` to return 14 instead of 15. This causes backend tests to fail and frontend `formatDateBR()` to display the wrong day.
+**Fix**: Parse date strings manually to create local Date objects, and extract date parts directly from the ISO string for display:
+```js
+// Backend — parse as local date
+const parseLocalDate = (dateStr) => {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
+// Frontend — extract date parts from ISO string (avoids Date object entirely)
+const formatDateBR = (dateStr) => {
+  const [year, month, day] = dateStr.split('T')[0].split('-').map(Number);
+  return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+};
 ```

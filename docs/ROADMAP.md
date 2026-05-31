@@ -104,7 +104,7 @@ Stack: Vitest, supertest[cite: 28, 53].
 Task:
 Write backend integration tests for People and Orders CRUD:
 1. `backend/tests/people.test.js`: 14 tests for CRUD, Zod validation, missing fields
-2. `backend/tests/orders.test.js`: 20 tests for Orders + Items CRUD, status transitions
+2. `backend/tests/orders.test.js`: 23 tests for Orders + Items CRUD, status transitions, custom orderDate
 
 Deliverable: ✅ 34 backend tests passing. All People and Orders API endpoints covered with automated tests.
 
@@ -135,7 +135,7 @@ Stack: Vitest, React Testing Library[cite: 28, 53].
 Task:
 Write frontend tests for People and Orders pages:
 1. `frontend/tests/PeoplePage.test.jsx`: 14 tests for rendering, modals, CRUD operations
-2. `frontend/tests/OrdersPage.test.jsx`: 18 tests for rendering, dynamic items, person dropdown, validation
+2. `frontend/tests/OrdersPage.test.jsx`: 24 tests for rendering, dynamic items, person dropdown, validation, orderDate
 
 Deliverable: ✅ 32 frontend tests passing. PeoplePage and OrdersPage fully covered with automated tests (mocking API calls with vi.mock).
 
@@ -329,6 +329,24 @@ Deliverable: ✅ All XLSX export frontend tests passing. Export functionality, f
 
 ---
 
+📅 PHASE 17: Custom Order Date on Registration
+Status: ✅ COMPLETED
+
+Context: Client requested the ability to specify the order date at registration time, instead of always defaulting to the current timestamp.
+
+Task:
+Implement custom orderDate support across backend and frontend:
+1. Backend: Add optional `orderDate` string field to `createOrderSchema` and `updateOrderSchema` (Zod). Parse YYYY-MM-DD strings as local dates using `parseLocalDate()` to avoid UTC timezone shifts. Update ordering to `[{ orderDate: 'desc' }, { createdAt: 'desc' }]`.
+2. Frontend: Add `<input type="date">` field labeled "Data do Pedido" in create/edit modals, pre-filled with today's date on create and with `order.orderDate` on edit. Add "Data" column to orders table formatted as DD/MM/YYYY. Send `orderDate` in POST/PUT requests.
+3. Tests: Backend — create with custom date, create without date (defaults to now), update date. Frontend — date column header, formatted dates in table, date field in create modal, pre-filled today, send orderDate on create, pre-filled on edit.
+
+Deliverable: ✅ Custom order date fully implemented and tested. Orders can be created/updated with a specific date. Table displays date in DD/MM/YYYY format. Excel export already uses `order.orderDate || order.createdAt` so it integrates seamlessly.
+- Backend: 62 tests passing (14 People + 23 Orders + 25 Payments)
+- Frontend: 111 tests passing (14 PeoplePage + 24 OrdersPage + 22 ReceivablesPage + 19 DashboardPage + 32 exportExcel)
+- **Total: 173 tests passing with zero regressions**
+
+---
+
 ## 🎉 MVP PROJECT COMPLETION
 
 **All 16 phases have been successfully completed.** The Receivables Control System is now a fully functional, production-ready financial tracking application with comprehensive test coverage.
@@ -338,7 +356,7 @@ Deliverable: ✅ All XLSX export frontend tests passing. Export functionality, f
 ✅ **Backend (Node.js + Express + Prisma)**
 - User authentication with JWT (stateless)
 - People management (CRUD with validation)
-- Orders management with nested items (CRUD with dynamic sub-forms)
+- Orders management with nested items (CRUD with dynamic sub-forms and custom order date)
 - Payments processing with automatic status transitions
 - Dashboard aggregation (KPIs and per-person balances)
 - Financial calculations using integer cents arithmetic (no floating-point errors)
@@ -346,7 +364,7 @@ Deliverable: ✅ All XLSX export frontend tests passing. Export functionality, f
 ✅ **Frontend (React + Vite + Tailwind)**
 - Login and authentication flow
 - People management page (CRUD with modals)
-- Orders management page (CRUD with dynamic item rows)
+- Orders management page (CRUD with dynamic item rows and custom order date)
 - Receivables tracking page (payment processing modal with validation)
 - Analytics dashboard with KPI widgets and Recharts visualizations
 - Excel export functionality (4-sheet workbook with BRL formatting)
@@ -357,9 +375,9 @@ Deliverable: ✅ All XLSX export frontend tests passing. Export functionality, f
 - Decimal(10,2) monetary precision
 
 ✅ **Testing (Vitest + React Testing Library)**
-- Backend: 59 tests (14 People + 20 Orders + 25 Payments)
-- Frontend: 105 tests (14 PeoplePage + 18 OrdersPage + 22 ReceivablesPage + 19 DashboardPage + 32 exportExcel)
-- **Total: 164 passing tests with zero regressions**
+- Backend: 62 tests (14 People + 23 Orders + 25 Payments)
+- Frontend: 111 tests (14 PeoplePage + 24 OrdersPage + 22 ReceivablesPage + 19 DashboardPage + 32 exportExcel)
+- **Total: 173 passing tests with zero regressions**
 - 100% TDD methodology applied
 - Comprehensive edge case coverage (overpayment validation, status transitions, floating-point precision)
 
