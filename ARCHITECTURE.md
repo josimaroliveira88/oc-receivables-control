@@ -1,7 +1,7 @@
 # Receivables Control System - Architecture Documentation
 
 ## Overview
-This document describes the current state of the project architecture, file organization, and how to run the system. The project is currently in **Phase 13: Frontend Dashboard & Charts** completed.
+This document describes the current state of the project architecture, file organization, and how to run the system. The project is currently in **Phase 14: Frontend Tests — Dashboard & Charts** completed.
 
 ## Technology Stack
 - **Backend**: Node.js (Express) with Prisma ORM
@@ -41,8 +41,10 @@ oc-receivables-control/
 │   │   ├── authController.js # Auth login controller
 │   │   ├── peopleController.js # People CRUD with Zod validation
 │   │   ├── ordersController.js # Orders + Items CRUD with Zod validation
-│   │   ├── paymentsController.js # Payments + balance with transactional status engine
-│   │   └── dashboardController.js # Dashboard aggregation (KPIs + person balances)
+│   │ ├── paymentsController.js # Payments + balance with transactional status engine
+│   │ └── dashboardController.js # Dashboard aggregation (KPIs + person balances)
+│   ├── utils/
+│   │ └── money.js # toCents, fromCents, formatBRL (integer cents arithmetic)
 │   └── routes/
 │       ├── authRoutes.js # Auth route definitions (/api/auth/login)
 │       ├── peopleRoutes.js # People CRUD routes (/api/people)
@@ -53,7 +55,7 @@ oc-receivables-control/
 │ ├── setup.js # Test environment setup (NODE_ENV, DATABASE_URL, JWT_SECRET)
 │ ├── people.test.js # 14 People CRUD tests
 │ ├── orders.test.js # 20 Orders + Items CRUD tests
-│ └── payments.test.js # 23 Payments & Balance tests
+│ └── payments.test.js # 25 Payments & Balance tests (incl. 2 floating-point regression tests)
 ├── frontend/
 │   ├── Dockerfile              # Frontend container definition
 │   ├── package.json            # Frontend dependencies & scripts
@@ -69,6 +71,8 @@ oc-receivables-control/
 │ ├── components/
 │ │ ├── ProtectedRoute.jsx # Route guard for auth
 │ │ └── Toast.jsx # Toast notification provider & component
+│   ├── utils/
+│   │   └── money.js # toCents, fromCents, formatBRL (integer cents arithmetic, string-safe)
 │   ├── pages/
 │   │   ├── LoginPage.jsx # Login form (PT-BR)
 │   │   ├── DashboardPage.jsx # Dashboard with KPI widgets & Recharts bar chart
@@ -77,9 +81,10 @@ oc-receivables-control/
 │   │   └── ReceivablesPage.jsx # Payment tracking with status badges & payment modal (PT-BR)
 │ └── tests/
  │ ├── setup.js # @testing-library/jest-dom import
- │ ├── PeoplePage.test.jsx # 14 PeoplePage tests
- │ ├── OrdersPage.test.jsx # 18 OrdersPage tests
- │ └── ReceivablesPage.test.jsx # 21 ReceivablesPage tests (badge rendering, payment modal, validation guards, toast feedback)
+│ ├── PeoplePage.test.jsx # 14 PeoplePage tests
+│ ├── OrdersPage.test.jsx # 18 OrdersPage tests
+│ ├── ReceivablesPage.test.jsx # 22 ReceivablesPage tests (badge rendering, payment modal, validation guards, toast feedback, FP regression)
+│ └── DashboardPage.test.jsx # 12 DashboardPage tests (KPI widgets, chart, empty state, auth error)
 ```
 
 ## Docker Services
@@ -142,7 +147,7 @@ NODE_ENV=development
 4. To stop: `docker compose down`
 5. To rebuild after code changes: `docker compose up --build` or `docker compose up -d --build`
 
-## Current Implementation Status (Phase 13 Complete)
+## Current Implementation Status (Phase 14 Complete)
 ✅ Docker Compose orchestration with all required services
 ✅ Backend Express server with CORS and JSON middleware
 ✅ Basic health check endpoint (`GET /health`)
@@ -156,7 +161,7 @@ NODE_ENV=development
 ✅ Orders + Items routes implemented (`src/routes/ordersRoutes.js`) at `/api/orders` and `/api/orders/items/:id`
 ✅ Centralized error handling middleware for Zod validation errors
 ✅ Frontend React entry point with AppLayout + Outlet pattern
-✅ AppLayout with header, navigation links (Pessoas/Pedidos/Recebíveis), and logout button
+✅ AppLayout with header, navigation links (Dashboard/Pessoas/Pedidos/Recebíveis), and logout button
 ✅ Protected route component blocking unauthenticated access (`src/components/ProtectedRoute.jsx`)
 ✅ PeoplePage component with table listing, create/edit modals, delete confirmation (PT-BR)
 ✅ OrdersPage component with table listing, status badges, dynamic multi-row item sub-form (PT-BR)
@@ -173,49 +178,33 @@ NODE_ENV=development
 ✅ Tailwind CSS setup with PostCSS and Vite integration
 ✅ Login page with PT-BR labels and error messages (`src/pages/LoginPage.jsx`)
 ✅ React Router routing with login and protected routes
-✅ Backend tests: 57 tests passing (Vitest + supertest)
-- `backend/tests/people.test.js`: 14 tests for People CRUD
-- `backend/tests/orders.test.js`: 20 tests for Orders + Items CRUD
-- `backend/tests/payments.test.js`: 23 tests for Payments & Balance
-✅ Frontend tests: 32 tests passing (Vitest + React Testing Library)
-- `frontend/tests/PeoplePage.test.jsx`: 14 tests
-- `frontend/tests/OrdersPage.test.jsx`: 18 tests
-✅ Frontend ReceivablesPage tests: 21 tests passing (Vitest + React Testing Library)
-- `frontend/tests/ReceivablesPage.test.jsx`: 21 tests — badge rendering (Pendente/Parcial/Quitado), payment modal open/close, person dropdown with balances, balance display per person, zero/negative validation, overpayment validation guard, valid payment submission, toast success/error feedback
+✅ Shared money utilities (`src/utils/money.js`) with integer cents arithmetic — toCents, fromCents, formatBRL
+✅ Backend refactored to use integer cents for all monetary calculations (paymentsController, dashboardController)
+✅ Frontend refactored to use integer cents for validation (ReceivablesPage) and total calculation (OrdersPage)
+✅ formatBRL handles both number and string inputs (Prisma Decimal fields return strings)
+✅ Floating-point precision bug fixed: exact balance comparison (1234.56-1233=1.56) no longer fails
 ✅ Payment creation endpoint with transactional consistency (`POST /api/orders/:orderId/payments`)
 ✅ Balance validation: rejects overpayment (amount > pending) and zero/negative amounts
 ✅ Automatic order status transitions: PENDENTE → PARCIAL → QUITADO
 ✅ Per-person balance calculation within Prisma transaction
 ✅ Balance breakdown endpoint (`GET /api/orders/:orderId/balance`) returning per-person pending amounts
 ✅ Payment and balance routes protected with JWT authentication middleware
-✅ Backend payment tests: 23 tests covering partial payment, full payment, overpayment rejection, Zod validation, status transitions, auth guards, balance breakdown, transactional consistency with rollback
+✅ Backend payment tests: 25 tests (incl. 2 floating-point regression tests)
 ✅ ReceivablesPage component with order listing and visual status badges (`src/pages/ReceivablesPage.jsx`)
 ✅ Status badges with emoji indicators: 🔴 Pendente, ⚠️ Parcial, ✅ Quitado
 ✅ Payment modal with person dropdown (populated from balance API), amount input, notes field
-✅ Frontend overpayment validation guard: rejects amount > pending balance with "Valor excede o saldo pendente" error
-✅ Frontend zero/negative validation: rejects amount <= 0 with "Valor deve ser maior que zero" error
+✅ Frontend overpayment validation guard: rejects amount > pending balance
+✅ Frontend zero/negative validation: rejects amount <= 0
 ✅ Toast notification system (`src/components/Toast.jsx`) with success/error types and auto-dismiss
-✅ Toast messages in PT-BR: "Pagamento registrado com sucesso!" / "Valor excede o saldo pendente"
-✅ Navigation link "Recebíveis" added to AppLayout header
-✅ Route `/receivables` added to App with ProtectedRoute guard
-✅ ReceivablesPage test suite: 21 tests covering badge rendering (Pendente/Parcial/Quitado), payment modal open/close with balance fetch, person dropdown with pending balances, balance display per selected person, empty pending state, zero/negative amount validation, overpayment validation guard, valid payment POST submission, toast success/error feedback, modal close via Cancelar and × button
+✅ Navigation links: Dashboard, Pessoas, Pedidos, Recebíveis
 ✅ Backend dashboard controller (`src/controllers/dashboardController.js`) with `getDashboardData` aggregation
 ✅ Backend `GET /api/dashboard` (JWT-protected) returns: totalPending, totalPaid, currentMonthReceipts, personBalances[]
-✅ Backend dashboard routes (`src/routes/dashboardRoutes.js`) mounted at `/api/dashboard` with authenticateToken
 ✅ DashboardPage component (`src/pages/DashboardPage.jsx`) with KPI widgets and Recharts bar chart
-✅ KPI Widgets: 🔴 "Total Pendente" (red), ✅ "Total Quitado" (green), 💰 "Recebimentos (Mês Atual)" (blue)
-✅ KPI values formatted as BRL currency (pt-BR locale)
-✅ Bar Chart "Saldos por Pessoa" — X-axis personName, bars for "Itens" (blue) and "Pagamentos" (green)
-✅ Tooltip with BRL currency formatting, Y-axis tick formatter (R$ 1.5k)
-✅ Empty state: "Nenhum saldo por pessoa" when no personBalances data
-✅ Loading spinner and error handling with PT-BR messages
-✅ Navigation link "Dashboard" added as first link in AppLayout header
-✅ Person with null personId (deleted person) displayed as "Sem pessoa" in chart
-✅ Recharts dependency added to frontend package.json
+✅ DashboardPage test suite: 12 tests covering rendering, KPI widgets (BRL formatting, zero values), chart (data present, empty state), error/auth handling
 
-## Next Steps (Phase 14)
-When ready to proceed, Phase 14 will involve:
-- Frontend tests for DashboardPage (KPI rendering, chart display, route protection, empty state handling)
+## Next Steps (Phase 15)
+When ready to proceed, Phase 15 will involve:
+- Frontend XLSX Export Feature: Excel download with BRL-formatted multi-sheet workbook
 
 ## Notes for Developers/Agents
 - Backend source is mounted at `/app` inside container for live editing
@@ -223,4 +212,4 @@ When ready to proceed, Phase 14 will involve:
 - Node modules are installed within containers (separate from host)
 - Environment variables are loaded via `.env` file for backend
 - Frontend assumes backend API at `http://localhost:4000` (adjust in future API service)
-- All financial calculations should use Decimal(10,2) as per financial rules in AGENTS.md
+- All financial calculations use integer cents via `src/utils/money.js` to avoid IEEE 754 floating-point errors

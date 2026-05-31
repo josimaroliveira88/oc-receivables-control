@@ -133,14 +133,15 @@ Phase 5 (Frontend Component CRUD - People & Orders) has been completed:
 - Frontend: Created `PeoplePage.jsx` with table listing, create/edit modals, delete confirmation, PT-BR labels ("Cadastro de Pessoas", "Nome", "Contato", "Novo", "Editar", "Excluir")
 - Frontend: Created `OrdersPage.jsx` with table listing, status badges, create/edit modal with dynamic multi-row item sub-form, person dropdown, total calculation, PT-BR labels ("Gestão de Pedidos", "Adicionar Item", "Descrição", "Valor (R$)", "Pessoa")
 - Frontend: Restructured `App.jsx` using `AppLayout` + `Outlet` pattern with navigation links to Pessoas/Pedidos
-- Backend tests: 57 tests passing using Vitest + supertest
+- Backend tests: 59 tests passing using Vitest + supertest
 - `backend/tests/people.test.js`: 14 tests
 - `backend/tests/orders.test.js`: 20 tests
-- `backend/tests/payments.test.js`: 23 tests
-- Frontend tests: 32 tests passing using Vitest + React Testing Library
+- `backend/tests/payments.test.js`: 25 tests (incl. 2 floating-point regression tests)
+- Frontend tests: 66 tests passing using Vitest + React Testing Library
 - `frontend/tests/PeoplePage.test.jsx`: 14 tests (arrow-function mock pattern to avoid hoisting issues)
 - `frontend/tests/OrdersPage.test.jsx`: 18 tests (arrow-function mock pattern to avoid hoisting issues)
-- `frontend/tests/ReceivablesPage.test.jsx`: 21 tests (arrow-function mock pattern, ToastProvider wrapper, regex matchers for emoji badges)
+- `frontend/tests/ReceivablesPage.test.jsx`: 22 tests (arrow-function mock pattern, ToastProvider wrapper, regex matchers for emoji badges, FP precision regression)
+- `frontend/tests/DashboardPage.test.jsx`: 12 tests (KPI widgets, chart, empty state, auth error)
 - All tests follow TDD methodology (tests written before final implementation)
 
 Phase 9 (Backend Payments & Status Engine) has been completed:
@@ -158,13 +159,14 @@ Phase 9 (Backend Payments & Status Engine) has been completed:
 - Existing test suite (34 backend tests) passes with no regressions
 
 Phase 10 (Backend Tests — Payments & Status) has been completed:
-- `backend/tests/payments.test.js`: 23 tests covering:
-  - POST /payments: partial payment → PARCIAL, full payment → QUITADO, overpayment rejection, zero/negative Zod validation, invalid personId, non-existent order/person, 401/403 auth guards, PENDENTE→PARCIAL→QUITADO transitions, optional notes, two-person scenarios
+- `backend/tests/payments.test.js`: 25 tests covering:
+- POST /payments: partial payment → PARCIAL, full payment → QUITADO, overpayment rejection, zero/negative Zod validation, invalid personId, non-existent order/person, 401/403 auth guards, PENDENTE→PARCIAL→QUITADO transitions, optional notes, two-person scenarios
+- Floating-point regression: exact balance 1234.56-1233=1.56, overpayment rejection with cents
   - GET /balance: per-person balance breakdown, partial payments, fully paid (pending=0), 404 non-existent order, 401/403 auth guards
   - Transactional consistency: atomic status update within transaction, rollback verification (overpayment does not persist payment, status stays PENDENTE)
 - All orderNumbers use dynamic `uniqueOrderNumber()` function to avoid unique constraint conflicts across test runs
 - All created persons and orders are tracked in arrays and cleaned up in afterEach
-- Total backend tests: 57 (14 people + 20 orders + 23 payments)
+- Total backend tests: 59 (14 people + 20 orders + 25 payments)
 
 Phase 11 (Frontend ReceivablesPage UI) has been completed:
 - Created `src/pages/ReceivablesPage.jsx` — payment tracking page with order listing, status badges (🔴 Pendente / ⚠️ Parcial / ✅ Quitado), and "Registrar Pagamento" button per order
@@ -178,16 +180,17 @@ Phase 11 (Frontend ReceivablesPage UI) has been completed:
 - Existing frontend tests (32) and backend tests (57) pass with no regressions
 
 Phase 12 (Frontend Tests — ReceivablesPage) has been completed:
-- Created `frontend/tests/ReceivablesPage.test.jsx` — 21 tests organized in 6 groups:
+- Created `frontend/tests/ReceivablesPage.test.jsx` — 22 tests organized in 6 groups:
 - Rendering (4): page title, loading state, empty state, API error message
 - Badge Rendering (3): 🔴 Pendente, ⚠️ Parcial, ✅ Quitado — using regex matchers for emoji-prefixed text
 - Action Buttons (2): "Registrar Pagamento" for PENDENTE/PARCIAL orders, "Pago" label for QUITADO orders
 - Payment Modal (6): modal open with balance fetch, person dropdown with pending values, balance display per person, empty pending state, close via "Cancelar", close via × button
 - Validation Guards (4): zero/negative amount rejection ("Valor deve ser maior que zero"), overpayment rejection ("Valor excede o saldo pendente"), valid payment POST submission
+- Floating-point regression: overpayment guard with exact cent precision (toCents/fromCents)
 - Toast Feedback (2): success toast "Pagamento registrado com sucesso!", error toast for backend overpayment rejection
 - All tests use arrow-function mock pattern (Lição 1), ToastProvider wrapper (useToast context), fireEvent.submit for form validation bypass (Lição 2)
-- Total frontend tests: 53 (14 PeoplePage + 18 OrdersPage + 21 ReceivablesPage)
-- All existing backend tests (57) pass with no regressions
+- Total frontend tests: 66 (14 PeoplePage + 18 OrdersPage + 22 ReceivablesPage + 12 DashboardPage)
+- All existing backend tests (59) pass with no regressions
 
 Phase 13 (Frontend Dashboard & Charts) has been completed:
 - Backend: Created `src/controllers/dashboardController.js` with `getDashboardData` aggregation endpoint
@@ -206,7 +209,24 @@ Phase 13 (Frontend Dashboard & Charts) has been completed:
 - Person with null personId (deleted person) displayed as "Sem pessoa" in chart
 - Current month receipts calculated by filtering payments where paidAt matches current year/month
 - totalPending = sum of (orderTotal - paymentSum) for PENDENTE/PARCIAL orders; totalPaid = sum of totalValue for QUITADO orders
-- Existing backend tests (57) and frontend tests (53) pass with no regressions
+- Existing backend tests (59) and frontend tests (66) pass with no regressions
+
+Phase 14 (Frontend Tests — Dashboard & Charts + Floating-Point Fix) has been completed:
+- Created shared `src/utils/money.js` (backend + frontend) with `toCents`, `fromCents`, `formatBRL` using integer cents arithmetic
+- Refactored `backend/src/controllers/paymentsController.js` — all sums/comparisons use integer cents internally
+- Refactored `backend/src/controllers/dashboardController.js` — same cents approach
+- Added 2 regression tests in `backend/tests/payments.test.js`: exact balance (1234.56-1233=1.56) and overpayment rejection with cents
+- Refactored `frontend/src/pages/ReceivablesPage.jsx` — validation uses cents, display uses formatBRL
+- Refactored `frontend/src/pages/OrdersPage.jsx` — calculateTotal uses cents, display uses formatBRL
+- Refactored `frontend/src/pages/DashboardPage.jsx` — replaced inline formatBRL with imported shared utility
+- Fixed `formatBRL` to handle string inputs (Prisma Decimal fields return strings) — `parseFloat()` before `toLocaleString()`
+- Updated test assertions to match pt-BR locale formatting: `R$ 300,00` (comma decimal), `\s*` regex for non-breaking space
+- Created `frontend/tests/DashboardPage.test.jsx` — 12 tests:
+- Rendering (4): page title, loading state, API error, 401 session expired
+- KPI Widgets (5): "Total Pendente", "Total Quitado", "Recebimentos (Mês Atual)" labels, BRL currency formatting, zero values
+- Chart (3): "Saldos por Pessoa" with data, empty state, chart container present
+- Total frontend tests: 66 (14 + 18 + 22 + 12)
+- Total backend tests: 59 (14 + 20 + 25)
 
 ## Lessons Learned / Pitfalls to Avoid
 
@@ -334,4 +354,35 @@ let personPaymentSum = order.payments
 if (pid === validatedData.personId) {
   personPaymentSum += validatedData.amount;
 }
+```
+
+### 10. formatBRL Must Handle String Inputs (Prisma Decimal)
+**Problem**: Prisma returns `Decimal(10,2)` fields as strings (e.g., `"150.00"`). When `formatBRL(value)` calls `value.toLocaleString(...)`, strings don't have locale-aware number formatting — `"150.00".toLocaleString('pt-BR', {style:'currency'})` just returns `"150.00"` without `R$` prefix or comma separator.
+**Fix**: Always parse to number before formatting:
+```js
+export function formatBRL(value) {
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+```
+
+### 11. Non-Breaking Space in BRL Currency Formatting
+**Problem**: `toLocaleString('pt-BR', {style:'currency'})` inserts a non-breaking space (`\xa0`, char code 160) between `R$` and the number. Test assertions like `/R\$ 150,00/` fail because the space is `\xa0`, not a regular space.
+**Fix**: Use `\s*` regex pattern to match any whitespace including non-breaking spaces:
+```js
+// WRONG
+expect(screen.getByText(/R\$ 150,00/)).toBeInTheDocument();
+
+// CORRECT
+expect(screen.getByText(/R\$\s*150,00/)).toBeInTheDocument();
+```
+
+### 12. Floating-Point Precision in Financial Calculations
+**Problem**: JavaScript IEEE 754 floating-point arithmetic causes precision errors. For example, `1234.56 - 1233 = 1.5599999999999454` instead of `1.56`. This causes overpayment validation to reject valid amounts: `1.56 > 1.5599999999999454` is `true`, so a payment of exactly the pending balance is rejected as overpayment. `Math.round(value * 100) / 100` is also insufficient because `1.005 * 100 = 100.4999...` which rounds to 100 instead of 101.
+**Fix**: Use integer cents arithmetic throughout. Convert all monetary values to cents (integers) before comparing, then convert back only for display:
+```js
+function toCents(value) { return Math.round(parseFloat(value) * 100); }
+function fromCents(cents) { return cents / 100; }
+// Compare in cents: toCents(1.56) === toCents(1234.56) - toCents(1233)
+// 156 === 123456 - 123300 === 156 ✓
 ```

@@ -239,7 +239,7 @@ Deliverable: ✅ A dashboard where KPIs and charts render correctly with real da
 ---
 
 🧪 PHASE 14: Frontend Tests — Dashboard & Charts
-Status:
+Status: ✅ COMPLETED
 
 Context: Frontend Dashboard is implemented. Need automated test coverage.
 Stack: Vitest, React Testing Library, Recharts[cite: 28, 72].
@@ -252,7 +252,19 @@ Write frontend tests for DashboardPage:
 - Navigation link to Dashboard present
 - Empty state handling (no orders/payments)
 
-Deliverable: All DashboardPage frontend tests passing. KPI rendering, chart display, and route protection fully covered.
+Also fixed floating-point precision bug across backend and frontend:
+- Created shared `src/utils/money.js` (backend + frontend) with `toCents`, `fromCents`, `formatBRL`
+- Refactored `paymentsController.js` and `dashboardController.js` to use integer cents internally
+- Refactored `ReceivablesPage.jsx` and `OrdersPage.jsx` to use cents for validation/calculation
+- Fixed `formatBRL` to handle string inputs (Prisma Decimal fields return strings)
+- Added 2 regression tests for floating-point edge case (1234.56-1233=1.56)
+
+Deliverable: ✅ 12 DashboardPage frontend tests passing. Coverage includes:
+- Rendering (4): page title, loading state, API error message, 401 session expired
+- KPI Widgets (5): "Total Pendente", "Total Quitado", "Recebimentos (Mês Atual)" labels, BRL currency formatting, zero values
+- Chart (3): "Saldos por Pessoa" title with data, empty state "Nenhum saldo por pessoa", chart container present
+Total frontend tests: 66 (14 PeoplePage + 18 OrdersPage + 22 ReceivablesPage + 12 DashboardPage).
+Total backend tests: 59 (14 people + 20 orders + 25 payments).
 
 ---
 
