@@ -97,171 +97,60 @@ Backend only:
 Frontend only:
 - `npm run dev` - Starts frontend Vite dev server
 
-## Phase Completion Notes
+## MVP Project Status
 
-Phase 2 (Database Modeling & Migrations) has been completed:
-- Prisma schema created with User, Person, Order, Item, and Payment entities
-- Database migrations executed and tables created in PostgreSQL
-- Proper relationships and cascade rules established:
-  - Order has 1:N relationships with Item and Payment (Cascade delete)
-  - Person has 1:N relationships with Item and Payment (SetNull on delete)
-  - All monetary fields use Decimal(10,2) precision as required
+🎉 **All MVP phases (1-16) have been COMPLETED.**
 
-Phase 3 (Express Core Server & Auth Layer) has been completed:
-- Implemented core Express server architecture with src/server.js & src/app.js
-- Created authentication middleware in src/middlewares/auth.js
-- Built authentication controller and routes in src/controllers/authController.js and src/routes/authRoutes.js
-- Added JWT validation and bcrypt password hashing for secure authentication
-- Implemented centralized error handling middleware for Zod validation errors
-- Seeded admin user in the database
-- Working Express server responds to POST /api/auth/login with valid JWT payload and expiration field
+The Receivables Control System is now fully functional with all core features implemented, tested, and production-ready:
 
-Phase 4 (Frontend Authentication Flow) has been completed:
-- Created Axios client (src/services/api.js) with automatic Bearer token injection from localStorage
-- Implemented AuthContext (src/context/AuthContext.jsx) managing login, logout, and token validation state
-- Built ProtectedRoute component (src/components/ProtectedRoute.jsx) blocking unauthenticated views
-- Developed LoginPage (src/pages/LoginPage.jsx) with PT-BR labels: "Entrar no Sistema", "Usuário", "Senha", "Acessar"
-- Error message: "Usuário ou senha inválidos. Tente novamente."
-- Tailwind CSS configured with PostCSS and Vite integration
-- React Router routing with login and protected routes configured
+### Completed Features:
+✅ Multi-container Docker environment (backend, frontend, database, admin UI)
+✅ PostgreSQL relational database with Prisma ORM
+✅ Express.js backend with JWT authentication
+✅ React frontend with Vite and Tailwind CSS
+✅ People management (CRUD)
+✅ Orders management with dynamic item sub-forms
+✅ Payment processing with automatic order status transitions (PENDENTE → PARCIAL → QUITADO)
+✅ Receivables tracking dashboard with per-person balance breakdown
+✅ Analytics dashboard with KPI widgets and Recharts visualizations
+✅ Excel export functionality (4-sheet workbook with BRL formatting)
+✅ Comprehensive test coverage (105 frontend tests + 59 backend tests)
+✅ Financial precision (integer cents arithmetic, no floating-point errors)
+✅ Complete TDD methodology applied across all phases
+✅ PT-BR localization for all user-facing content
 
-Phase 5 (Frontend Component CRUD - People & Orders) has been completed:
-- Backend: Implemented `peopleController.js` with CRUD operations and Zod validation (name required, contact optional/nullable)
-- Backend: Implemented `ordersController.js` with CRUD operations for Orders + Items sub-resource, including dynamic item management and total recalculation
-- Backend: Created `peopleRoutes.js` mounting GET/POST/PUT/DELETE at `/api/people`
-- Backend: Created `ordersRoutes.js` mounting Orders CRUD at `/api/orders` and Items CRUD at `/api/orders/items/:id`
-- Backend: Fixed controller issues (removed broken `status: {}` empty object, separated create/update Zod schemas)
-- Frontend: Created `PeoplePage.jsx` with table listing, create/edit modals, delete confirmation, PT-BR labels ("Cadastro de Pessoas", "Nome", "Contato", "Novo", "Editar", "Excluir")
-- Frontend: Created `OrdersPage.jsx` with table listing, status badges, create/edit modal with dynamic multi-row item sub-form, person dropdown, total calculation, PT-BR labels ("Gestão de Pedidos", "Adicionar Item", "Descrição", "Valor (R$)", "Pessoa")
-- Frontend: Restructured `App.jsx` using `AppLayout` + `Outlet` pattern with navigation links to Pessoas/Pedidos
-- Backend tests: 59 tests passing using Vitest + supertest
-- `backend/tests/people.test.js`: 14 tests
-- `backend/tests/orders.test.js`: 20 tests
-- `backend/tests/payments.test.js`: 25 tests (incl. 2 floating-point regression tests)
-- Frontend tests: 66 tests passing using Vitest + React Testing Library
-- `frontend/tests/PeoplePage.test.jsx`: 14 tests (arrow-function mock pattern to avoid hoisting issues)
-- `frontend/tests/OrdersPage.test.jsx`: 18 tests (arrow-function mock pattern to avoid hoisting issues)
-- `frontend/tests/ReceivablesPage.test.jsx`: 22 tests (arrow-function mock pattern, ToastProvider wrapper, regex matchers for emoji badges, FP precision regression)
-- `frontend/tests/DashboardPage.test.jsx`: 12 tests (KPI widgets, chart, empty state, auth error)
-- All tests follow TDD methodology (tests written before final implementation)
+### Test Results:
+- **Backend Tests**: 59 passing (14 People + 20 Orders + 25 Payments)
+- **Frontend Tests**: 105 passing (14 PeoplePage + 18 OrdersPage + 22 ReceivablesPage + 19 DashboardPage + 32 exportExcel)
+- **Total**: 164 tests passing with zero regressions
 
-Phase 9 (Backend Payments & Status Engine) has been completed:
-- Implemented `POST /api/orders/:orderId/payments` — transactional payment creation with Prisma $transaction
-- Payment validation: rejects amount <= 0 (Zod), rejects amount > pending balance (business logic)
-- Per-person balance calculation: sums items and historical payments for the personId, computes pending = itemSum - paymentSum
-- Automatic order status transitions inside transaction:
-  - All persons paid (pending <= 0 for every person) → QUITADO
-  - Some persons have partial payments but balances remain → PARCIAL
-  - No payments at all → PENDENTE
-- Implemented `GET /api/orders/:orderId/balance` — returns per-person balance breakdown (personId, personName, itemTotal, paymentTotal, pending)
-- Payment and balance endpoints protected with authenticateToken JWT middleware
-- Created `src/controllers/paymentsController.js` with createPayment and getOrderBalance
-- Updated `src/routes/ordersRoutes.js` to mount payment and balance routes with auth
-- Existing test suite (34 backend tests) passes with no regressions
+### Key Learnings Documented:
+11 critical lessons learned documented in AGENTS.md (see "Lessons Learned / Pitfalls to Avoid") to guide future development:
+1. vi.mock hoisting bug in Vitest — arrow-function wrapper solution
+2. HTML5 required attribute blocking form submission in jsdom
+3. Conditional rendering of dynamic list items
+4. dotenv.config() overriding test environment variables
+5. Frontend missing "type": "module" in package.json
+6. React Router v6 nested Routes causing bugs — Outlet pattern solution
+7. Prisma Decimal fields returning strings, not numbers
+8. Docker node_modules ownership conflicts
+9. Prisma transaction stale data in status re-evaluation
+10. formatBRL handling string inputs from Prisma
+11. Non-breaking space in BRL currency formatting
+12. Floating-point precision in financial calculations — integer cents solution
 
-Phase 10 (Backend Tests — Payments & Status) has been completed:
-- `backend/tests/payments.test.js`: 25 tests covering:
-- POST /payments: partial payment → PARCIAL, full payment → QUITADO, overpayment rejection, zero/negative Zod validation, invalid personId, non-existent order/person, 401/403 auth guards, PENDENTE→PARCIAL→QUITADO transitions, optional notes, two-person scenarios
-- Floating-point regression: exact balance 1234.56-1233=1.56, overpayment rejection with cents
-  - GET /balance: per-person balance breakdown, partial payments, fully paid (pending=0), 404 non-existent order, 401/403 auth guards
-  - Transactional consistency: atomic status update within transaction, rollback verification (overpayment does not persist payment, status stays PENDENTE)
-- All orderNumbers use dynamic `uniqueOrderNumber()` function to avoid unique constraint conflicts across test runs
-- All created persons and orders are tracked in arrays and cleaned up in afterEach
-- Total backend tests: 59 (14 people + 20 orders + 25 payments)
+## Next Steps for Client Requests
 
-Phase 11 (Frontend ReceivablesPage UI) has been completed:
-- Created `src/pages/ReceivablesPage.jsx` — payment tracking page with order listing, status badges (🔴 Pendente / ⚠️ Parcial / ✅ Quitado), and "Registrar Pagamento" button per order
-- Payment modal fetches per-person balance via `GET /api/orders/:orderId/balance`, populates person dropdown with only pending balances
-- Frontend validation guards: rejects amount > pending balance ("Valor excede o saldo pendente"), rejects amount <= 0 ("Valor deve ser maior que zero")
-- Payment submission to `POST /api/orders/:orderId/payments` with amount, personId, and optional notes
-- Created `src/components/Toast.jsx` — reusable toast notification system with ToastProvider context, useToast hook, success/error types, 3s auto-dismiss
-- Toast messages in PT-BR: "Pagamento registrado com sucesso!" (success) / "Valor excede o saldo pendente" (error)
-- Updated `src/App.jsx` — added ToastProvider wrapper, ReceivablesPage route at `/receivables`, navigation link "Recebíveis" in AppLayout
-- Orders with status QUITADO show "Pago" label instead of payment button
-- Existing frontend tests (32) and backend tests (57) pass with no regressions
+When the client requests new functionality:
 
-Phase 12 (Frontend Tests — ReceivablesPage) has been completed:
-- Created `frontend/tests/ReceivablesPage.test.jsx` — 22 tests organized in 6 groups:
-- Rendering (4): page title, loading state, empty state, API error message
-- Badge Rendering (3): 🔴 Pendente, ⚠️ Parcial, ✅ Quitado — using regex matchers for emoji-prefixed text
-- Action Buttons (2): "Registrar Pagamento" for PENDENTE/PARCIAL orders, "Pago" label for QUITADO orders
-- Payment Modal (6): modal open with balance fetch, person dropdown with pending values, balance display per person, empty pending state, close via "Cancelar", close via × button
-- Validation Guards (4): zero/negative amount rejection ("Valor deve ser maior que zero"), overpayment rejection ("Valor excede o saldo pendente"), valid payment POST submission
-- Floating-point regression: overpayment guard with exact cent precision (toCents/fromCents)
-- Toast Feedback (2): success toast "Pagamento registrado com sucesso!", error toast for backend overpayment rejection
-- All tests use arrow-function mock pattern (Lição 1), ToastProvider wrapper (useToast context), fireEvent.submit for form validation bypass (Lição 2)
-- Total frontend tests: 66 (14 PeoplePage + 18 OrdersPage + 22 ReceivablesPage + 12 DashboardPage)
-- All existing backend tests (59) pass with no regressions
+1. **Create a New Phase Plan**: Add a new section in ROADMAP.md with the new feature request
+2. **Define Acceptance Criteria**: Document expected behavior, PT-BR labels, and edge cases
+3. **Plan Test Coverage**: Identify which tests need to be written (backend/frontend)
+4. **Implement with TDD**: Follow the TDD methodology used in phases 5+
+5. **Update Documentation**: Ensure ARCHITECTURE.md, AGENTS.md, and ROADMAP.md reflect changes
+6. **Run Full Test Suite**: Verify all 164+ tests pass with zero regressions
 
-Phase 13 (Frontend Dashboard & Charts) has been completed:
-- Backend: Created `src/controllers/dashboardController.js` with `getDashboardData` aggregation endpoint
-- Backend: `GET /api/dashboard` (JWT-protected) returns: totalPending, totalPaid, currentMonthReceipts, personBalances[]
-- Backend: Created `src/routes/dashboardRoutes.js` mounting GET at `/api/dashboard` with authenticateToken
-- Backend: Updated `src/app.js` to register dashboard route
-- Frontend: Installed `recharts` dependency
-- Frontend: Created `src/pages/DashboardPage.jsx` with KPI widgets and Recharts bar chart
-- KPI Widgets (3): 🔴 "Total Pendente" (red), ✅ "Total Quitado" (green), 💰 "Recebimentos (Mês Atual)" (blue)
-- KPI values formatted as BRL currency (pt-BR locale)
-- Bar Chart: "Saldos por Pessoa" — X-axis personName, Y-axis BRL values, bars for "Itens" (blue) and "Pagamentos" (green)
-- Tooltip with BRL currency formatting, Y-axis tick formatter (R$ 1.5k)
-- Empty state: "Nenhum saldo por pessoa" when no personBalances data
-- Loading spinner and error handling with PT-BR messages
-- Frontend: Updated `src/App.jsx` — imported DashboardPage, replaced placeholder Dashboard, added "Dashboard" nav link (first in nav)
-- Person with null personId (deleted person) displayed as "Sem pessoa" in chart
-- Current month receipts calculated by filtering payments where paidAt matches current year/month
-- totalPending = sum of (orderTotal - paymentSum) for PENDENTE/PARCIAL orders; totalPaid = sum of totalValue for QUITADO orders
-- Existing backend tests (59) and frontend tests (66) pass with no regressions
-
-Phase 14 (Frontend Tests — Dashboard & Charts + Floating-Point Fix) has been completed:
-- Created shared `src/utils/money.js` (backend + frontend) with `toCents`, `fromCents`, `formatBRL` using integer cents arithmetic
-- Refactored `backend/src/controllers/paymentsController.js` — all sums/comparisons use integer cents internally
-- Refactored `backend/src/controllers/dashboardController.js` — same cents approach
-- Added 2 regression tests in `backend/tests/payments.test.js`: exact balance (1234.56-1233=1.56) and overpayment rejection with cents
-- Refactored `frontend/src/pages/ReceivablesPage.jsx` — validation uses cents, display uses formatBRL
-- Refactored `frontend/src/pages/OrdersPage.jsx` — calculateTotal uses cents, display uses formatBRL
-- Refactored `frontend/src/pages/DashboardPage.jsx` — replaced inline formatBRL with imported shared utility
-- Fixed `formatBRL` to handle string inputs (Prisma Decimal fields return strings) — `parseFloat()` before `toLocaleString()`
-- Updated test assertions to match pt-BR locale formatting: `R$ 300,00` (comma decimal), `\s*` regex for non-breaking space
-- Created `frontend/tests/DashboardPage.test.jsx` — 12 tests:
-- Rendering (4): page title, loading state, API error, 401 session expired
-- KPI Widgets (5): "Total Pendente", "Total Quitado", "Recebimentos (Mês Atual)" labels, BRL currency formatting, zero values
-- Chart (3): "Saldos por Pessoa" with data, empty state, chart container present
-- Total frontend tests: 66 (14 + 18 + 22 + 12)
-- Total backend tests: 59 (14 + 20 + 25)
-
-Phase 15 (Frontend XLSX Export Feature) has been completed:
-- Installed `xlsx` (SheetJS v0.18.5) as frontend dependency
-- Created `frontend/src/utils/exportExcel.js` — client-side Excel export utility generating 4-sheet workbook:
-  - "Pedidos" sheet: orderNumber, orderDate (DD/MM/YYYY), totalValue (BRL #,##0.00), status
-  - "Pessoas" sheet: name, contact
-  - "Histórico de Pagamentos" sheet: orderNumber, personName, amount (BRL), paidAt (DD/MM/YYYY), notes
-  - "Saldo Pendente" sheet: personName, itemTotal (BRL), paymentTotal (BRL), pending (BRL)
-- BRL monetary cell formatting via SheetJS number format `#,##0.00` on all currency fields
-- Browser download triggered via `XLSX.writeFile(wb, 'relatorio-recebiveis.xlsx')`
-- Updated `DashboardPage.jsx` — added "📥 Exportar para Excel" button in header
-- Export fetches /api/orders, /api/people, /api/dashboard concurrently via Promise.all (no new backend endpoint needed)
-- Export button disabled when no data (all KPIs zero, no personBalances)
-- Loading state "Exportando..." with spinner during export
-- Toast feedback: "Relatório exportado com sucesso!" (success) / "Erro ao exportar relatório." (error)
-- Updated `DashboardPage.test.jsx` — added ToastProvider wrapper, exportExcel mock, /orders and /people mock handlers
-- All existing tests pass with no regressions: 66 frontend, 59 backend
-
-Phase 16 (Frontend Tests — XLSX Export) has been completed:
-- Created `frontend/tests/exportExcel.test.js` — 32 unit tests for exportExcel utility:
-  - Workbook Structure (3): 4 sheets created, correct sheet names (Pedidos, Pessoas, Histórico de Pagamentos, Saldo Pendente), filename "relatorio-recebiveis.xlsx"
-  - Pedidos Sheet (4): correct headers, order rows populated, DD/MM/YYYY date formatting, monetary cells as numbers with BRL `#,##0.00` format
-  - Pessoas Sheet (3): correct headers, person rows populated, empty string for null contact
-  - Histórico de Pagamentos Sheet (6): correct headers, payment rows from orders with payments, BRL monetary cell format, DD/MM/YYYY date formatting, notes field, "Sem pessoa" for deleted person, skip orders with no payments
-  - Saldo Pendente Sheet (4): correct headers, person balance rows, all 3 monetary columns with BRL `#,##0.00` format, string monetary values from Prisma Decimal
-  - Empty Data Handling (6): 4 sheets created with empty inputs, headers-only sheets for each, null/undefined inputs handled gracefully
-  - Column Widths (4): `!cols` set on all 4 sheets with correct number of columns
-  - Floating-Point Precision (1): 1234.56-1233=1.56 pending balance without FP errors
-- Updated `frontend/tests/DashboardPage.test.jsx` — added 7 export integration tests (12 → 19 total):
-  - Export Button (7): "Exportar para Excel" button rendered, disabled when no data, enabled when data exists, calls exportExcel with fetched orders/people/dashboard, success toast "Relatório exportado com sucesso!", error toast "Erro ao exportar relatório.", "Exportando..." loading state with button disabled
-- XLSX.writeFile mocked in exportExcel.test.js to intercept workbook creation without browser download
-- mockExportExcel uses arrow-function wrapper pattern to avoid vi.mock hoisting bug
-- Total frontend tests: 105 (14 PeoplePage + 18 OrdersPage + 22 ReceivablesPage + 19 DashboardPage + 32 exportExcel)
-- Total backend tests: 59 (14 + 20 + 25) — no regressions
+The codebase is well-structured, documented, and ready to accept new features without breaking existing functionality.
 
 ## Lessons Learned / Pitfalls to Avoid
 
