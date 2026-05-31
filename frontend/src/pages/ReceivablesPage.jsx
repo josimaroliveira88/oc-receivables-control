@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useToast } from '../components/Toast';
+import { toCents, formatBRL } from '../utils/money';
 
 const statusBadge = (status) => {
   const config = {
@@ -57,7 +58,7 @@ const ReceivablesPage = () => {
     try {
       const response = await api.get(`/orders/${order.id}/balance`);
       const pendingBalances = response.data.balances.filter(
-        (b) => parseFloat(b.pending) > 0
+        (b) => toCents(b.pending) > 0
       );
       setBalances(pendingBalances);
       if (pendingBalances.length > 0) {
@@ -79,24 +80,24 @@ const ReceivablesPage = () => {
     setPaymentError('');
   };
 
-  const getSelectedPending = () => {
+  const getSelectedPendingCents = () => {
     const balance = balances.find((b) => b.personId === selectedPersonId);
-    return balance ? parseFloat(balance.pending) : 0;
+    return balance ? toCents(balance.pending) : 0;
   };
 
   const handlePaymentSubmit = async (e) => {
     e.preventDefault();
     setPaymentError('');
 
-    const amount = parseFloat(paymentAmount);
+    const amountCents = toCents(parseFloat(paymentAmount));
 
-    if (!amount || amount <= 0) {
+    if (!amountCents || amountCents <= 0) {
       setPaymentError('Valor deve ser maior que zero');
       return;
     }
 
-    const pending = getSelectedPending();
-    if (amount > pending) {
+    const pendingCents = getSelectedPendingCents();
+    if (amountCents > pendingCents) {
       setPaymentError('Valor excede o saldo pendente');
       return;
     }
@@ -109,7 +110,7 @@ const ReceivablesPage = () => {
     try {
       setSubmitting(true);
       await api.post(`/orders/${selectedOrder.id}/payments`, {
-        amount,
+        amount: parseFloat(paymentAmount),
         personId: selectedPersonId,
         notes: paymentNotes.trim() || undefined,
       });
@@ -176,7 +177,7 @@ const ReceivablesPage = () => {
                         {order.orderNumber}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        R$ {parseFloat(order.totalValue).toFixed(2)}
+                        {formatBRL(parseFloat(order.totalValue))}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {statusBadge(order.status)}
@@ -236,7 +237,7 @@ const ReceivablesPage = () => {
                   >
                     {balances.map((b) => (
                       <option key={b.personId} value={b.personId}>
-                        {b.personName} — Pendente: R$ {parseFloat(b.pending).toFixed(2)}
+                        {b.personName} — Pendente: {formatBRL(b.pending)}
                       </option>
                     ))}
                   </select>
@@ -246,7 +247,7 @@ const ReceivablesPage = () => {
               {selectedPersonId && (
                 <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
                   <p className="text-sm text-blue-700">
-                    Saldo pendente: <strong>R$ {getSelectedPending().toFixed(2)}</strong>
+                    Saldo pendente: <strong>{formatBRL(getSelectedPendingCents() / 100)}</strong>
                   </p>
                 </div>
               )}

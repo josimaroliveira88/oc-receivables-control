@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { formatBRL } from '../utils/money';
 import {
   BarChart,
   Bar,
@@ -10,9 +11,6 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-
-const formatBRL = (value) =>
-  value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 const brlTooltipFormatter = (value) => formatBRL(value);
 

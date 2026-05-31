@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { toCents, formatBRL } from '../utils/money';
 
 const emptyItem = () => ({ id: Date.now(), description: '', value: '', personId: '' });
 
@@ -46,7 +47,8 @@ const OrdersPage = () => {
   };
 
   const calculateTotal = () => {
-    return items.reduce((total, item) => total + (parseFloat(item.value) || 0), 0);
+    const totalCents = items.reduce((total, item) => total + (toCents(parseFloat(item.value)) || 0), 0);
+    return totalCents / 100;
   };
 
   const resetForm = () => {
@@ -206,7 +208,7 @@ const OrdersPage = () => {
                     <tr key={order.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.orderNumber}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        R$ {parseFloat(order.totalValue).toFixed(2)}
+                        {formatBRL(parseFloat(order.totalValue))}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">{statusBadge(order.status)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -310,7 +312,7 @@ const OrdersPage = () => {
 
                 <div className="mt-4 pt-3 border-t border-gray-200 flex items-center justify-between">
                   <span className="text-lg font-medium text-gray-900">Valor Total:</span>
-                  <span className="text-lg font-bold text-gray-900">R$ {calculateTotal().toFixed(2)}</span>
+                  <span className="text-lg font-bold text-gray-900">{formatBRL(calculateTotal())}</span>
                 </div>
               </div>
 

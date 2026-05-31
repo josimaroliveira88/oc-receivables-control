@@ -184,7 +184,7 @@ describe('ReceivablesPage', () => {
       fireEvent.click(buttons[0]);
 
       await waitFor(() => {
-        expect(screen.getByText(/João Silva — Pendente: R\$ 150\.00/)).toBeInTheDocument();
+        expect(screen.getByText(/João Silva — Pendente: R\$\s*150,00/)).toBeInTheDocument();
       });
     });
 
@@ -346,6 +346,60 @@ describe('ReceivablesPage', () => {
           notes: undefined,
         });
       });
+    });
+  });
+
+  describe('Floating point precision (cents)', () => {
+    it('should accept exact remaining balance without floating point rejection', async () => {
+      mockGet.mockImplementation((url) => {
+        if (url === '/orders') {
+          return Promise.resolve({ data: [{
+            id: 'order-fp',
+            orderNumber: 'ORD-FP',
+            totalValue: '1234.56',
+            status: 'PARCIAL',
+          }] });
+        }
+        if (url === '/orders/order-fp/balance') {
+          return Promise.resolve({ data: {
+            balances: [
+              { personId: 'p1', personName: 'João', itemTotal: 1234.56, paymentTotal: 1233, pending: 1.56 },
+            ],
+          } });
+        }
+        return Promise.resolve({ data: [] });
+      });
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Registrar Pagamento')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Registrar Pagamento'));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Registrar Pagamento — ORD-FP/)).toBeInTheDocument();
+      });
+
+      const amountInput = screen.getByPlaceholderText('0.00');
+      fireEvent.change(amountInput, { target: { value: '1.56' } });
+
+      mockPost.mockResolvedValue({ data: { id: 'pay-fp', amount: '1.56', personId: 'p1' } });
+      mockGet.mockResolvedValue({ data: [] });
+
+      const form = amountInput.closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith('/orders/order-fp/payments', {
+          amount: 1.56,
+          personId: 'p1',
+          notes: undefined,
+        });
+      });
+
+      expect(screen.queryByText('Valor excede o saldo pendente')).not.toBeInTheDocument();
     });
   });
 

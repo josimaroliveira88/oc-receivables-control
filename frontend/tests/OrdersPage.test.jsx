@@ -113,8 +113,8 @@ describe('OrdersPage', () => {
     it('should display order total values', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('R$ 300.00')).toBeInTheDocument();
-        expect(screen.getByText('R$ 500.00')).toBeInTheDocument();
+        expect(screen.getByText(/R\$\s*300,00/)).toBeInTheDocument();
+        expect(screen.getByText(/R\$\s*500,00/)).toBeInTheDocument();
       });
     });
 
