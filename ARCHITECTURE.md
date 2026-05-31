@@ -1,11 +1,11 @@
 # Receivables Control System - Architecture Documentation
 
 ## Overview
-This document describes the current state of the project architecture, file organization, and how to run the system. The project is currently in **Phase 12: Frontend Tests — ReceivablesPage** completed.
+This document describes the current state of the project architecture, file organization, and how to run the system. The project is currently in **Phase 13: Frontend Dashboard & Charts** completed.
 
 ## Technology Stack
 - **Backend**: Node.js (Express) with Prisma ORM
-- **Frontend**: React with Vite and Tailwind CSS
+- **Frontend**: React with Vite, Tailwind CSS, and Recharts
 - **Database**: PostgreSQL 15
 - **Infrastructure**: Docker and Docker Compose
 
@@ -37,15 +37,17 @@ oc-receivables-control/
 │       │   └── database.js     # Prisma client singleton
 │       ├── middlewares/
 │       │   └── auth.js         # JWT authentication middleware
-│ ├── controllers/
-│ │ ├── authController.js # Auth login controller
-│ │ ├── peopleController.js # People CRUD with Zod validation
-│ │ ├── ordersController.js # Orders + Items CRUD with Zod validation
-│ │ └── paymentsController.js # Payments + balance with transactional status engine
-│ └── routes/
-│ ├── authRoutes.js # Auth route definitions (/api/auth/login)
-│ ├── peopleRoutes.js # People CRUD routes (/api/people)
-│ └── ordersRoutes.js # Orders + Items + Payments routes (/api/orders, /api/orders/items/:id, /api/orders/:orderId/payments, /api/orders/:orderId/balance)
+│   ├── controllers/
+│   │   ├── authController.js # Auth login controller
+│   │   ├── peopleController.js # People CRUD with Zod validation
+│   │   ├── ordersController.js # Orders + Items CRUD with Zod validation
+│   │   ├── paymentsController.js # Payments + balance with transactional status engine
+│   │   └── dashboardController.js # Dashboard aggregation (KPIs + person balances)
+│   └── routes/
+│       ├── authRoutes.js # Auth route definitions (/api/auth/login)
+│       ├── peopleRoutes.js # People CRUD routes (/api/people)
+│       ├── ordersRoutes.js # Orders + Items + Payments routes (/api/orders, /api/orders/items/:id, /api/orders/:orderId/payments, /api/orders/:orderId/balance)
+│       └── dashboardRoutes.js # Dashboard route (/api/dashboard)
 │ ├── vitest.config.js # Vitest config for backend (node environment)
 │ └── tests/
 │ ├── setup.js # Test environment setup (NODE_ENV, DATABASE_URL, JWT_SECRET)
@@ -68,10 +70,11 @@ oc-receivables-control/
 │ │ ├── ProtectedRoute.jsx # Route guard for auth
 │ │ └── Toast.jsx # Toast notification provider & component
 │   ├── pages/
-│   │   ├── LoginPage.jsx       # Login form (PT-BR)
-│   │   ├── PeoplePage.jsx      # People CRUD with modals (PT-BR)
-│ │ ├── OrdersPage.jsx # Orders CRUD with dynamic item rows (PT-BR)
-│ │ └── ReceivablesPage.jsx # Payment tracking with status badges & payment modal (PT-BR)
+│   │   ├── LoginPage.jsx # Login form (PT-BR)
+│   │   ├── DashboardPage.jsx # Dashboard with KPI widgets & Recharts bar chart
+│   │   ├── PeoplePage.jsx # People CRUD with modals (PT-BR)
+│   │   ├── OrdersPage.jsx # Orders CRUD with dynamic item rows (PT-BR)
+│   │   └── ReceivablesPage.jsx # Payment tracking with status badges & payment modal (PT-BR)
 │ └── tests/
  │ ├── setup.js # @testing-library/jest-dom import
  │ ├── PeoplePage.test.jsx # 14 PeoplePage tests
@@ -139,7 +142,7 @@ NODE_ENV=development
 4. To stop: `docker compose down`
 5. To rebuild after code changes: `docker compose up --build` or `docker compose up -d --build`
 
-## Current Implementation Status (Phase 11 Complete)
+## Current Implementation Status (Phase 13 Complete)
 ✅ Docker Compose orchestration with all required services
 ✅ Backend Express server with CORS and JSON middleware
 ✅ Basic health check endpoint (`GET /health`)
@@ -196,12 +199,23 @@ NODE_ENV=development
 ✅ Navigation link "Recebíveis" added to AppLayout header
 ✅ Route `/receivables` added to App with ProtectedRoute guard
 ✅ ReceivablesPage test suite: 21 tests covering badge rendering (Pendente/Parcial/Quitado), payment modal open/close with balance fetch, person dropdown with pending balances, balance display per selected person, empty pending state, zero/negative amount validation, overpayment validation guard, valid payment POST submission, toast success/error feedback, modal close via Cancelar and × button
+✅ Backend dashboard controller (`src/controllers/dashboardController.js`) with `getDashboardData` aggregation
+✅ Backend `GET /api/dashboard` (JWT-protected) returns: totalPending, totalPaid, currentMonthReceipts, personBalances[]
+✅ Backend dashboard routes (`src/routes/dashboardRoutes.js`) mounted at `/api/dashboard` with authenticateToken
+✅ DashboardPage component (`src/pages/DashboardPage.jsx`) with KPI widgets and Recharts bar chart
+✅ KPI Widgets: 🔴 "Total Pendente" (red), ✅ "Total Quitado" (green), 💰 "Recebimentos (Mês Atual)" (blue)
+✅ KPI values formatted as BRL currency (pt-BR locale)
+✅ Bar Chart "Saldos por Pessoa" — X-axis personName, bars for "Itens" (blue) and "Pagamentos" (green)
+✅ Tooltip with BRL currency formatting, Y-axis tick formatter (R$ 1.5k)
+✅ Empty state: "Nenhum saldo por pessoa" when no personBalances data
+✅ Loading spinner and error handling with PT-BR messages
+✅ Navigation link "Dashboard" added as first link in AppLayout header
+✅ Person with null personId (deleted person) displayed as "Sem pessoa" in chart
+✅ Recharts dependency added to frontend package.json
 
-## Next Steps (Phase 13)
-When ready to proceed, Phase 13 will involve:
-- Frontend Dashboard page with KPI widgets and Recharts bar graphs
-- Backend aggregation endpoint for dashboard data
-- Navigation link to Dashboard in AppLayout
+## Next Steps (Phase 14)
+When ready to proceed, Phase 14 will involve:
+- Frontend tests for DashboardPage (KPI rendering, chart display, route protection, empty state handling)
 
 ## Notes for Developers/Agents
 - Backend source is mounted at `/app` inside container for live editing

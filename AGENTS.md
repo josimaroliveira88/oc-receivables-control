@@ -11,6 +11,7 @@ Frontend:
 - React
 - Vite
 - Tailwind CSS
+- Recharts
 
 Database:
 - PostgreSQL 15
@@ -178,15 +179,34 @@ Phase 11 (Frontend ReceivablesPage UI) has been completed:
 
 Phase 12 (Frontend Tests — ReceivablesPage) has been completed:
 - Created `frontend/tests/ReceivablesPage.test.jsx` — 21 tests organized in 6 groups:
-  - Rendering (4): page title, loading state, empty state, API error message
-  - Badge Rendering (3): 🔴 Pendente, ⚠️ Parcial, ✅ Quitado — using regex matchers for emoji-prefixed text
-  - Action Buttons (2): "Registrar Pagamento" for PENDENTE/PARCIAL orders, "Pago" label for QUITADO orders
-  - Payment Modal (6): modal open with balance fetch, person dropdown with pending values, balance display per person, empty pending state, close via "Cancelar", close via × button
-  - Validation Guards (4): zero/negative amount rejection ("Valor deve ser maior que zero"), overpayment rejection ("Valor excede o saldo pendente"), valid payment POST submission
-  - Toast Feedback (2): success toast "Pagamento registrado com sucesso!", error toast for backend overpayment rejection
+- Rendering (4): page title, loading state, empty state, API error message
+- Badge Rendering (3): 🔴 Pendente, ⚠️ Parcial, ✅ Quitado — using regex matchers for emoji-prefixed text
+- Action Buttons (2): "Registrar Pagamento" for PENDENTE/PARCIAL orders, "Pago" label for QUITADO orders
+- Payment Modal (6): modal open with balance fetch, person dropdown with pending values, balance display per person, empty pending state, close via "Cancelar", close via × button
+- Validation Guards (4): zero/negative amount rejection ("Valor deve ser maior que zero"), overpayment rejection ("Valor excede o saldo pendente"), valid payment POST submission
+- Toast Feedback (2): success toast "Pagamento registrado com sucesso!", error toast for backend overpayment rejection
 - All tests use arrow-function mock pattern (Lição 1), ToastProvider wrapper (useToast context), fireEvent.submit for form validation bypass (Lição 2)
 - Total frontend tests: 53 (14 PeoplePage + 18 OrdersPage + 21 ReceivablesPage)
 - All existing backend tests (57) pass with no regressions
+
+Phase 13 (Frontend Dashboard & Charts) has been completed:
+- Backend: Created `src/controllers/dashboardController.js` with `getDashboardData` aggregation endpoint
+- Backend: `GET /api/dashboard` (JWT-protected) returns: totalPending, totalPaid, currentMonthReceipts, personBalances[]
+- Backend: Created `src/routes/dashboardRoutes.js` mounting GET at `/api/dashboard` with authenticateToken
+- Backend: Updated `src/app.js` to register dashboard route
+- Frontend: Installed `recharts` dependency
+- Frontend: Created `src/pages/DashboardPage.jsx` with KPI widgets and Recharts bar chart
+- KPI Widgets (3): 🔴 "Total Pendente" (red), ✅ "Total Quitado" (green), 💰 "Recebimentos (Mês Atual)" (blue)
+- KPI values formatted as BRL currency (pt-BR locale)
+- Bar Chart: "Saldos por Pessoa" — X-axis personName, Y-axis BRL values, bars for "Itens" (blue) and "Pagamentos" (green)
+- Tooltip with BRL currency formatting, Y-axis tick formatter (R$ 1.5k)
+- Empty state: "Nenhum saldo por pessoa" when no personBalances data
+- Loading spinner and error handling with PT-BR messages
+- Frontend: Updated `src/App.jsx` — imported DashboardPage, replaced placeholder Dashboard, added "Dashboard" nav link (first in nav)
+- Person with null personId (deleted person) displayed as "Sem pessoa" in chart
+- Current month receipts calculated by filtering payments where paidAt matches current year/month
+- totalPending = sum of (orderTotal - paymentSum) for PENDENTE/PARCIAL orders; totalPaid = sum of totalValue for QUITADO orders
+- Existing backend tests (57) and frontend tests (53) pass with no regressions
 
 ## Lessons Learned / Pitfalls to Avoid
 

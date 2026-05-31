@@ -223,7 +223,7 @@ Total frontend tests: 53 (14 PeoplePage + 18 OrdersPage + 21 ReceivablesPage). A
 ---
 
 📈 PHASE 13: Frontend Dashboard & Charts
-Status:
+Status: ✅ COMPLETED
 
 Context: All ledger transactional pipelines operate normally. Need high-level analytics layout[cite: 71, 146, 152].
 Stack: React, Recharts, Axios[cite: 28, 72].
@@ -234,7 +234,7 @@ Develop `src/pages/DashboardPage.jsx`[cite: 74, 148, 153]. Design an analytic in
 2. Performance Bar Graphs: Using Recharts, plot balances due indexed by Person[cite: 74, 149].
 3. Add navigation link to Dashboard in AppLayout.
 
-Deliverable: A dashboard where KPIs and charts render correctly with real data from the backend. Navigation includes Dashboard link.
+Deliverable: ✅ A dashboard where KPIs and charts render correctly with real data from the backend. Navigation includes Dashboard link. Backend: `GET /api/dashboard` (JWT-protected) returns totalPending, totalPaid, currentMonthReceipts, personBalances[]. Frontend: DashboardPage with 3 KPI widgets (🔴 Total Pendente, ✅ Total Quitado, 💰 Recebimentos Mês Atual) formatted as BRL, plus Recharts BarChart "Saldos por Pessoa" with Itens (blue) and Pagamentos (green) bars. Deleted persons displayed as "Sem pessoa". Tooltip with BRL formatting, Y-axis tick formatter (R$ 1.5k). Empty state "Nenhum saldo por pessoa". Loading spinner and error handling with PT-BR messages. "Dashboard" nav link added as first link in AppLayout. Existing backend tests (57) and frontend tests (53) pass with no regressions.
 
 ---
 
