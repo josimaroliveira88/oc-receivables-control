@@ -1,23 +1,22 @@
 const { PrismaClient } = require('@prisma/client');
 const { z } = require('zod');
 const prisma = new PrismaClient();
+const { toCents, fromCents } = require('../utils/money');
 
-// Zod schema for payment validation
 const paymentSchema = z.object({
   amount: z.number().positive('Amount must be greater than zero'),
   personId: z.string().uuid('Person ID must be a valid UUID'),
   notes: z.string().optional(),
 });
 
-// Create a new payment for an order
 const createPayment = async (req, res) => {
   try {
     const { orderId } = req.params;
     const validatedData = paymentSchema.parse(req.body);
 
-    // Execute in a transaction to ensure consistency
+    const amountCents = Math.round(validatedData.amount * 100);
+
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Find the order with items and payments
       const order = await tx.order.findUnique({
         where: { id: orderId },
         include: {
@@ -34,7 +33,6 @@ const createPayment = async (req, res) => {
         throw new Error('Order not found');
       }
 
-      // 2. Verify person exists
       const person = await tx.person.findUnique({
         where: { id: validatedData.personId },
       });
@@ -43,29 +41,24 @@ const createPayment = async (req, res) => {
         throw new Error('Person not found');
       }
 
-      // 3. Sum total items cost for this person
-      const itemSum = order.items
+      const itemSumCents = order.items
         .filter(item => item.personId === validatedData.personId)
-        .reduce((sum, item) => sum + parseFloat(item.value), 0);
+        .reduce((sum, item) => sum + toCents(item.value), 0);
 
-      // 4. Sum all historical payments for this person/order
-      const paymentSum = order.payments
+      const paymentSumCents = order.payments
         .filter(payment => payment.personId === validatedData.personId)
-        .reduce((sum, payment) => sum + parseFloat(payment.amount), 0);
+        .reduce((sum, payment) => sum + toCents(payment.amount), 0);
 
-      // 5. Calculate pending balance
-      const pending = itemSum - paymentSum;
+      const pendingCents = itemSumCents - paymentSumCents;
 
-      // 6. Validate input
-      if (validatedData.amount <= 0) {
+      if (amountCents <= 0) {
         throw new Error('Amount must be greater than zero');
       }
 
-      if (validatedData.amount > pending) {
+      if (amountCents > pendingCents) {
         throw new Error('Amount exceeds pending balance');
       }
 
-      // 7. Create the payment record
       const payment = await tx.payment.create({
         data: {
           amount: validatedData.amount,
@@ -75,7 +68,6 @@ const createPayment = async (req, res) => {
         },
       });
 
-      // 8. Re-evaluate overall order health status (including the new payment)
       const personIds = [...new Set(order.items.map(item => item.personId))];
 
       let allPaid = true;
@@ -84,26 +76,25 @@ const createPayment = async (req, res) => {
       for (const pid of personIds) {
         if (!pid) continue;
 
-        const personItemSum = order.items
+        const personItemSumCents = order.items
           .filter(item => item.personId === pid)
-          .reduce((sum, item) => sum + parseFloat(item.value), 0);
+          .reduce((sum, item) => sum + toCents(item.value), 0);
 
-        let personPaymentSum = order.payments
+        let personPaymentSumCents = order.payments
           .filter(payment => payment.personId === pid)
-          .reduce((sum, payment) => sum + parseFloat(payment.amount), 0);
+          .reduce((sum, payment) => sum + toCents(payment.amount), 0);
 
-        // Include the new payment if it belongs to this person
         if (pid === validatedData.personId) {
-          personPaymentSum += validatedData.amount;
+          personPaymentSumCents += amountCents;
         }
 
-        const personPending = personItemSum - personPaymentSum;
+        const personPendingCents = personItemSumCents - personPaymentSumCents;
 
-        if (personPending > 0) {
+        if (personPendingCents > 0) {
           allPaid = false;
         }
 
-        if (personPaymentSum > 0) {
+        if (personPaymentSumCents > 0) {
           hasAnyPayment = true;
         }
       }
@@ -117,7 +108,6 @@ const createPayment = async (req, res) => {
         newStatus = 'PENDENTE';
       }
 
-      // 10. Update order status if changed
       if (newStatus !== order.status) {
         await tx.order.update({
           where: { id: orderId },
@@ -125,7 +115,6 @@ const createPayment = async (req, res) => {
         });
       }
 
-      // Return the created payment and updated order info
       return {
         payment,
         order: {
@@ -150,12 +139,10 @@ const createPayment = async (req, res) => {
   }
 };
 
-// Get balance breakdown for an order
 const getOrderBalance = async (req, res) => {
   try {
     const { orderId } = req.params;
 
-    // Find order with items and payments
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
@@ -176,60 +163,61 @@ const getOrderBalance = async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    // Group by person to calculate balances
     const personMap = new Map();
 
-    // Process items
     order.items.forEach(item => {
       const personId = item.personId;
-      if (!personId) return; // Skip items without person
+      if (!personId) return;
 
       if (!personMap.has(personId)) {
         const person = item.person;
         personMap.set(personId, {
           personId,
           personName: person ? person.name : 'Unknown',
-          itemTotal: 0,
-          paymentTotal: 0,
+          itemTotalCents: 0,
+          paymentTotalCents: 0,
         });
       }
 
       const current = personMap.get(personId);
       personMap.set(personId, {
         ...current,
-        itemTotal: current.itemTotal + parseFloat(item.value),
+        itemTotalCents: current.itemTotalCents + toCents(item.value),
       });
     });
 
-    // Process payments
     order.payments.forEach(payment => {
       const personId = payment.personId;
-      if (!personId) return; // Skip payments without person
+      if (!personId) return;
 
       if (!personMap.has(personId)) {
         const person = payment.person;
         personMap.set(personId, {
           personId,
           personName: person ? person.name : 'Unknown',
-          itemTotal: 0,
-          paymentTotal: 0,
+          itemTotalCents: 0,
+          paymentTotalCents: 0,
         });
       }
 
       const current = personMap.get(personId);
       personMap.set(personId, {
         ...current,
-        paymentTotal: current.paymentTotal + parseFloat(payment.amount),
+        paymentTotalCents: current.paymentTotalCents + toCents(payment.amount),
       });
     });
 
-    // Convert to array and calculate pending
-    const balances = Array.from(personMap.values()).map(personData => ({
-      ...personData,
-      pending: personData.itemTotal - personData.paymentTotal,
-    }));
+    const balances = Array.from(personMap.values()).map(personData => {
+      const pendingCents = personData.itemTotalCents - personData.paymentTotalCents;
+      return {
+        personId: personData.personId,
+        personName: personData.personName,
+        itemTotal: fromCents(personData.itemTotalCents),
+        paymentTotal: fromCents(personData.paymentTotalCents),
+        pending: fromCents(Math.max(0, pendingCents)),
+      };
+    });
 
-    // Sort by person name for consistent output
     balances.sort((a, b) => a.personName.localeCompare(b.personName));
 
     res.status(200).json({

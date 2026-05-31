@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const { toCents, fromCents } = require('../utils/money');
 
 const getDashboardData = async (req, res) => {
   try {
@@ -20,21 +21,21 @@ const getDashboardData = async (req, res) => {
       },
     });
 
-    let totalPending = 0;
-    let totalPaid = 0;
+    let totalPendingCents = 0;
+    let totalPaidCents = 0;
 
     for (const order of orders) {
-      const orderPaymentSum = order.payments.reduce(
-        (sum, p) => sum + parseFloat(p.amount),
+      const orderPaymentSumCents = order.payments.reduce(
+        (sum, p) => sum + toCents(p.amount),
         0
       );
-      const orderTotal = parseFloat(order.totalValue);
+      const orderTotalCents = toCents(order.totalValue);
 
       if (order.status === 'QUITADO') {
-        totalPaid += orderTotal;
+        totalPaidCents += orderTotalCents;
       } else {
-        const orderPending = orderTotal - orderPaymentSum;
-        totalPending += orderPending > 0 ? orderPending : 0;
+        const orderPendingCents = orderTotalCents - orderPaymentSumCents;
+        totalPendingCents += orderPendingCents > 0 ? orderPendingCents : 0;
       }
     }
 
@@ -42,7 +43,7 @@ const getDashboardData = async (req, res) => {
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
 
-    const currentMonthReceipts = allPayments
+    const currentMonthReceiptsCents = allPayments
       .filter((p) => {
         const paidAt = new Date(p.paidAt);
         return (
@@ -50,7 +51,7 @@ const getDashboardData = async (req, res) => {
           paidAt.getMonth() === currentMonth
         );
       })
-      .reduce((sum, p) => sum + parseFloat(p.amount), 0);
+      .reduce((sum, p) => sum + toCents(p.amount), 0);
 
     const personMap = new Map();
 
@@ -60,9 +61,9 @@ const getDashboardData = async (req, res) => {
         const name = item.person ? item.person.name : 'Sem pessoa';
 
         if (!personMap.has(pid)) {
-          personMap.set(pid, { personId: pid, personName: name, itemTotal: 0, paymentTotal: 0 });
+          personMap.set(pid, { personId: pid, personName: name, itemTotalCents: 0, paymentTotalCents: 0 });
         }
-        personMap.get(pid).itemTotal += parseFloat(item.value);
+        personMap.get(pid).itemTotalCents += toCents(item.value);
       }
 
       for (const payment of order.payments) {
@@ -70,23 +71,29 @@ const getDashboardData = async (req, res) => {
         const name = payment.person ? payment.person.name : 'Sem pessoa';
 
         if (!personMap.has(pid)) {
-          personMap.set(pid, { personId: pid, personName: name, itemTotal: 0, paymentTotal: 0 });
+          personMap.set(pid, { personId: pid, personName: name, itemTotalCents: 0, paymentTotalCents: 0 });
         }
-        personMap.get(pid).paymentTotal += parseFloat(payment.amount);
+        personMap.get(pid).paymentTotalCents += toCents(payment.amount);
       }
     }
 
     const personBalances = Array.from(personMap.values())
-      .map((entry) => ({
-        ...entry,
-        pending: Math.max(0, entry.itemTotal - entry.paymentTotal),
-      }))
+      .map((entry) => {
+        const pendingCents = entry.itemTotalCents - entry.paymentTotalCents;
+        return {
+          personId: entry.personId,
+          personName: entry.personName,
+          itemTotal: fromCents(entry.itemTotalCents),
+          paymentTotal: fromCents(entry.paymentTotalCents),
+          pending: fromCents(Math.max(0, pendingCents)),
+        };
+      })
       .sort((a, b) => a.personName.localeCompare(b.personName));
 
     res.status(200).json({
-      totalPending,
-      totalPaid,
-      currentMonthReceipts,
+      totalPending: fromCents(totalPendingCents),
+      totalPaid: fromCents(totalPaidCents),
+      currentMonthReceipts: fromCents(currentMonthReceiptsCents),
       personBalances,
     });
   } catch (error) {

@@ -403,6 +403,86 @@ describe('Payments & Balance', () => {
     });
   });
 
+  describe('Floating point precision (cents)', () => {
+    it('should accept exact remaining balance without floating point errors', async () => {
+      const person = await prisma.person.create({
+        data: { name: 'Cents Test', contact: 'cents@test.com' },
+      });
+      createdPersonIds.push(person.id);
+
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: uniqueOrderNumber('ORD-CENTS'),
+          totalValue: 1234.56,
+          items: {
+            create: [
+              { description: 'Item 1234.56', value: 1234.56, personId: person.id },
+            ],
+          },
+        },
+        include: { items: true },
+      });
+      createdOrderIds.push(order.id);
+
+      const firstPayment = await request(app)
+        .post(`/api/orders/${order.id}/payments`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ amount: 1233.00, personId: person.id });
+
+      expect(firstPayment.status).toBe(201);
+      expect(firstPayment.body.order.status).toBe('PARCIAL');
+
+      const finalPayment = await request(app)
+        .post(`/api/orders/${order.id}/payments`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ amount: 1.56, personId: person.id });
+
+      expect(finalPayment.status).toBe(201);
+      expect(finalPayment.body.order.status).toBe('QUITADO');
+
+      const balanceRes = await request(app)
+        .get(`/api/orders/${order.id}/balance`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(balanceRes.status).toBe(200);
+      expect(parseFloat(balanceRes.body.balances[0].pending)).toBe(0);
+    });
+
+    it('should still reject overpayment with cents-based calculation', async () => {
+      const person = await prisma.person.create({
+        data: { name: 'Cents Over Test', contact: 'centsover@test.com' },
+      });
+      createdPersonIds.push(person.id);
+
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: uniqueOrderNumber('ORD-CENTS-OVER'),
+          totalValue: 1234.56,
+          items: {
+            create: [
+              { description: 'Item 1234.56', value: 1234.56, personId: person.id },
+            ],
+          },
+        },
+        include: { items: true },
+      });
+      createdOrderIds.push(order.id);
+
+      await request(app)
+        .post(`/api/orders/${order.id}/payments`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ amount: 1233.00, personId: person.id });
+
+      const overpaymentRes = await request(app)
+        .post(`/api/orders/${order.id}/payments`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ amount: 1.57, personId: person.id });
+
+      expect(overpaymentRes.status).toBe(400);
+      expect(overpaymentRes.body.error).toBe('Amount exceeds pending balance');
+    });
+  });
+
   describe('Transactional consistency', () => {
     it('should update order status atomically within the payment transaction', async () => {
       const person = await prisma.person.create({
