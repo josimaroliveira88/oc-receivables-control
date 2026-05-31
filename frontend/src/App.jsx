@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import DashboardPage from './pages/DashboardPage';
 import PeoplePage from './pages/PeoplePage';
 import OrdersPage from './pages/OrdersPage';
 import ReceivablesPage from './pages/ReceivablesPage';
@@ -18,8 +19,11 @@ const AppLayout = () => {
             Controle de Recebíveis
           </h1>
           <div className="flex items-center space-x-3">
-            <nav className="flex space-x-2 mr-4">
-              <a href="/people" className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors">
+        <nav className="flex space-x-2 mr-4">
+          <a href="/" className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors">
+            Dashboard
+          </a>
+          <a href="/people" className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors">
                 Pessoas
               </a>
               <a href="/orders" className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors">
@@ -45,16 +49,6 @@ const AppLayout = () => {
   );
 };
 
-const Dashboard = () => {
-  return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <p className="text-gray-600">
-        Bem-vindo ao sistema de Controle de Recebíveis. Utilize o menu acima para navegar.
-      </p>
-    </div>
-  );
-};
-
 const App = () => {
   return (
     <ToastProvider>
@@ -67,7 +61,7 @@ const App = () => {
             </ProtectedRoute>
           }
         >
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<DashboardPage />} />
           <Route path="/people" element={<PeoplePage />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/receivables" element={<ReceivablesPage />} />
