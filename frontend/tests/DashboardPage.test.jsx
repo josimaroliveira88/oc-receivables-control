@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import DashboardPage from '../src/pages/DashboardPage';
+import { ToastProvider } from '../src/components/Toast';
 
 const mockGet = vi.fn();
 
@@ -9,6 +10,10 @@ vi.mock('../src/services/api', () => ({
   default: {
     get: (...args) => mockGet(...args),
   },
+}));
+
+vi.mock('../src/utils/exportExcel', () => ({
+  exportExcel: vi.fn(),
 }));
 
 const mockDashboardData = {
@@ -24,6 +29,8 @@ const mockDashboardData = {
 const mockGetImplementation = (data = mockDashboardData) => {
   mockGet.mockImplementation((url) => {
     if (url === '/dashboard') return Promise.resolve({ data });
+    if (url === '/orders') return Promise.resolve({ data: [] });
+    if (url === '/people') return Promise.resolve({ data: [] });
     return Promise.resolve({ data: {} });
   });
 };
@@ -31,7 +38,9 @@ const mockGetImplementation = (data = mockDashboardData) => {
 const renderPage = () => {
   return render(
     <MemoryRouter>
-      <DashboardPage />
+      <ToastProvider>
+        <DashboardPage />
+      </ToastProvider>
     </MemoryRouter>
   );
 };

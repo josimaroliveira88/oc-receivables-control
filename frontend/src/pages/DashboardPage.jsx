@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { formatBRL } from '../utils/money';
+import { exportExcel } from '../utils/exportExcel';
+import { useToast } from '../components/Toast';
 import {
   BarChart,
   Bar,
@@ -25,6 +27,8 @@ const DashboardPage = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const { addToast } = useToast();
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -44,6 +48,34 @@ const DashboardPage = () => {
     };
     fetchDashboard();
   }, []);
+
+  const hasData = data && (
+    (data.personBalances && data.personBalances.length > 0) ||
+    data.totalPending > 0 ||
+    data.totalPaid > 0 ||
+    data.currentMonthReceipts > 0
+  );
+
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      const [ordersRes, peopleRes, dashboardRes] = await Promise.all([
+        api.get('/orders'),
+        api.get('/people'),
+        api.get('/dashboard'),
+      ]);
+      exportExcel({
+        orders: ordersRes.data,
+        people: peopleRes.data,
+        dashboard: dashboardRes.data,
+      });
+      addToast('Relatório exportado com sucesso!', 'success');
+    } catch (err) {
+      addToast('Erro ao exportar relatório.', 'error');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -102,8 +134,22 @@ const DashboardPage = () => {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-lg shadow-md">
-        <div className="border-b px-6 py-4">
+        <div className="border-b px-6 py-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-800">Dashboard</h2>
+          <button
+            onClick={handleExport}
+            disabled={exporting || !hasData}
+            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {exporting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                Exportando...
+              </>
+            ) : (
+              <>📥 Exportar para Excel</>
+            )}
+          </button>
         </div>
 
         <div className="px-6 py-6">
