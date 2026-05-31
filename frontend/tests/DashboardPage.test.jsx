@@ -1,10 +1,11 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import DashboardPage from '../src/pages/DashboardPage';
 import { ToastProvider } from '../src/components/Toast';
 
 const mockGet = vi.fn();
+const mockExportExcel = vi.fn();
 
 vi.mock('../src/services/api', () => ({
   default: {
@@ -13,7 +14,7 @@ vi.mock('../src/services/api', () => ({
 }));
 
 vi.mock('../src/utils/exportExcel', () => ({
-  exportExcel: vi.fn(),
+  exportExcel: (...args) => mockExportExcel(...args),
 }));
 
 const mockDashboardData = {
@@ -160,6 +161,134 @@ describe('DashboardPage', () => {
       await waitFor(() => {
         expect(screen.getByText('Saldos por Pessoa')).toBeInTheDocument();
         expect(document.querySelector('.recharts-responsive-container')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Export Button', () => {
+    it('should render "Exportar para Excel" button', async () => {
+      mockGetImplementation();
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText(/Exportar para Excel/)).toBeInTheDocument();
+      });
+    });
+
+    it('should disable export button when no data (all KPIs zero, no personBalances)', async () => {
+      mockGetImplementation({
+        totalPending: 0,
+        totalPaid: 0,
+        currentMonthReceipts: 0,
+        personBalances: [],
+      });
+      renderPage();
+      await waitFor(() => {
+        const btn = screen.getByText(/Exportar para Excel/).closest('button');
+        expect(btn).toBeDisabled();
+      });
+    });
+
+    it('should enable export button when data exists', async () => {
+      mockGetImplementation();
+      renderPage();
+      await waitFor(() => {
+        const btn = screen.getByText(/Exportar para Excel/).closest('button');
+        expect(btn).not.toBeDisabled();
+      });
+    });
+
+    it('should call exportExcel with fetched orders, people, and dashboard data on click', async () => {
+      const mockOrders = [{ orderNumber: 'ORD-001', totalValue: '500.00' }];
+      const mockPeople = [{ name: 'João Silva', contact: 'joao@email.com' }];
+
+      mockGet.mockImplementation((url) => {
+        if (url === '/dashboard') return Promise.resolve({ data: mockDashboardData });
+        if (url === '/orders') return Promise.resolve({ data: mockOrders });
+        if (url === '/people') return Promise.resolve({ data: mockPeople });
+        return Promise.resolve({ data: {} });
+      });
+      mockExportExcel.mockImplementation(() => {});
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText(/Exportar para Excel/)).toBeInTheDocument();
+      });
+
+      const btn = screen.getByText(/Exportar para Excel/).closest('button');
+      fireEvent.click(btn);
+
+      await waitFor(() => {
+        expect(mockGet).toHaveBeenCalledWith('/orders');
+        expect(mockGet).toHaveBeenCalledWith('/people');
+        expect(mockGet).toHaveBeenCalledWith('/dashboard');
+        expect(mockExportExcel).toHaveBeenCalledWith({
+          orders: mockOrders,
+          people: mockPeople,
+          dashboard: mockDashboardData,
+        });
+      });
+    });
+
+    it('should show success toast "Relatório exportado com sucesso!" after successful export', async () => {
+      mockGetImplementation();
+      mockExportExcel.mockImplementation(() => {});
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText(/Exportar para Excel/)).toBeInTheDocument();
+      });
+
+      const btn = screen.getByText(/Exportar para Excel/).closest('button');
+      fireEvent.click(btn);
+
+      await waitFor(() => {
+        expect(screen.getByText('Relatório exportado com sucesso!')).toBeInTheDocument();
+      });
+    });
+
+    it('should show error toast "Erro ao exportar relatório." when export fails', async () => {
+      mockGet.mockImplementation((url) => {
+        if (url === '/dashboard') return Promise.resolve({ data: mockDashboardData });
+        if (url === '/orders') return Promise.reject(new Error('Network error'));
+        if (url === '/people') return Promise.resolve({ data: [] });
+        return Promise.resolve({ data: {} });
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText(/Exportar para Excel/)).toBeInTheDocument();
+      });
+
+      const btn = screen.getByText(/Exportar para Excel/).closest('button');
+      fireEvent.click(btn);
+
+      await waitFor(() => {
+        expect(screen.getByText('Erro ao exportar relatório.')).toBeInTheDocument();
+      });
+    });
+
+    it('should show "Exportando..." loading state while exporting', async () => {
+      let resolveExport;
+      mockGetImplementation();
+      mockExportExcel.mockImplementation(() => new Promise((resolve) => { resolveExport = resolve; }));
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText(/Exportar para Excel/)).toBeInTheDocument();
+      });
+
+      const btn = screen.getByText(/Exportar para Excel/).closest('button');
+      fireEvent.click(btn);
+
+      await waitFor(() => {
+        expect(screen.getByText('Exportando...')).toBeInTheDocument();
+        expect(btn).toBeDisabled();
+      });
+
+      resolveExport();
+
+      await waitFor(() => {
+        expect(screen.queryByText('Exportando...')).not.toBeInTheDocument();
       });
     });
   });
