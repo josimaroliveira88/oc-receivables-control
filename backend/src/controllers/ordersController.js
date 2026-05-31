@@ -2,6 +2,11 @@ const { PrismaClient } = require('@prisma/client');
 const { z } = require('zod');
 const prisma = new PrismaClient();
 
+const parseLocalDate = (dateStr) => {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
 const itemSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   value: z.number().positive('Value must be greater than zero'),
@@ -10,11 +15,13 @@ const itemSchema = z.object({
 
 const createOrderSchema = z.object({
   orderNumber: z.string().min(1, 'Order number is required'),
+  orderDate: z.string().optional(),
   items: z.array(itemSchema).min(1, 'At least one item is required'),
 });
 
 const updateOrderSchema = z.object({
   orderNumber: z.string().min(1, 'Order number is required').optional(),
+  orderDate: z.string().optional(),
   items: z.array(itemSchema).min(1, 'At least one item is required').optional(),
 });
 
@@ -30,7 +37,7 @@ const getOrders = async (req, res) => {
         },
         payments: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ orderDate: 'desc' }, { createdAt: 'desc' }],
     });
     res.status(200).json(orders);
   } catch (error) {
@@ -89,6 +96,7 @@ const createOrder = async (req, res) => {
       data: {
         orderNumber: validatedData.orderNumber,
         totalValue: totalValue,
+        orderDate: validatedData.orderDate ? parseLocalDate(validatedData.orderDate) : undefined,
         status: 'PENDENTE',
         items: {
           create: validatedData.items.map(item => ({
@@ -150,6 +158,7 @@ const updateOrder = async (req, res) => {
       data: {
         orderNumber: validatedData.orderNumber || existingOrder.orderNumber,
         totalValue: totalValue,
+        orderDate: validatedData.orderDate ? parseLocalDate(validatedData.orderDate) : undefined,
         items: {
           deleteMany: {},
           create: validatedData.items.map(item => ({
@@ -174,6 +183,7 @@ const updateOrder = async (req, res) => {
       where: { id },
       data: {
         orderNumber: validatedData.orderNumber || existingOrder.orderNumber,
+        ...(validatedData.orderDate && { orderDate: parseLocalDate(validatedData.orderDate) }),
       },
       include: {
         items: {

@@ -115,6 +115,46 @@ describe('Orders CRUD with Items', () => {
 
       expect(response.status).toBe(400);
     });
+
+    it('should create an order with custom orderDate', async () => {
+      const response = await request(app)
+        .post('/api/orders')
+        .send({
+          orderNumber: uniqueOrderNumber('ORD'),
+          orderDate: '2026-05-15',
+          items: [
+            { description: 'Item 1', value: 100.00, personId: testPersonId },
+          ],
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.orderDate).toBeDefined();
+      const returnedDate = new Date(response.body.orderDate);
+      expect(returnedDate.getFullYear()).toBe(2026);
+      expect(returnedDate.getMonth()).toBe(4);
+      expect(returnedDate.getDate()).toBe(15);
+      createdOrderId = response.body.id;
+    });
+
+    it('should create an order without orderDate (defaults to now)', async () => {
+      const response = await request(app)
+        .post('/api/orders')
+        .send({
+          orderNumber: uniqueOrderNumber('ORD'),
+          items: [
+            { description: 'Item 1', value: 100.00, personId: testPersonId },
+          ],
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.orderDate).toBeDefined();
+      const returnedDate = new Date(response.body.orderDate);
+      const now = new Date();
+      expect(returnedDate.getFullYear()).toBe(now.getFullYear());
+      expect(returnedDate.getMonth()).toBe(now.getMonth());
+      expect(returnedDate.getDate()).toBe(now.getDate());
+      createdOrderId = response.body.id;
+    });
   });
 
     describe('GET /api/orders', () => {
@@ -231,6 +271,18 @@ describe('Orders CRUD with Items', () => {
         });
 
       expect(response.status).toBe(400);
+    });
+
+    it('should update order with new orderDate', async () => {
+      const response = await request(app)
+        .put(`/api/orders/${createdOrderId}`)
+        .send({ orderDate: '2026-01-20' });
+
+      expect(response.status).toBe(200);
+      const returnedDate = new Date(response.body.orderDate);
+      expect(returnedDate.getFullYear()).toBe(2026);
+      expect(returnedDate.getMonth()).toBe(0);
+      expect(returnedDate.getDate()).toBe(20);
     });
   });
 
