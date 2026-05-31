@@ -1,7 +1,7 @@
 # Receivables Control System - Architecture Documentation
 
 ## Overview
-This document describes the current state of the project architecture, file organization, and how to run the system. The project is currently in **Phase 15: Frontend XLSX Export Feature** completed.
+This document describes the current state of the project architecture, file organization, and how to run the system. The project is currently in **Phase 16: Frontend Tests — XLSX Export** completed.
 
 ## Technology Stack
 - **Backend**: Node.js (Express) with Prisma ORM
@@ -85,7 +85,8 @@ oc-receivables-control/
 │ ├── PeoplePage.test.jsx # 14 PeoplePage tests
 │ ├── OrdersPage.test.jsx # 18 OrdersPage tests
 │ ├── ReceivablesPage.test.jsx # 22 ReceivablesPage tests (badge rendering, payment modal, validation guards, toast feedback, FP regression)
-│ └── DashboardPage.test.jsx # 12 DashboardPage tests (KPI widgets, chart, empty state, auth error)
+│ ├── DashboardPage.test.jsx # 19 DashboardPage tests (KPI widgets, chart, export button integration, toast feedback)
+│ └── exportExcel.test.js # 32 exportExcel utility tests (workbook structure, sheet content, BRL formatting, empty data, column widths, FP precision)
 ```
 
 ## Docker Services
@@ -148,7 +149,7 @@ NODE_ENV=development
 4. To stop: `docker compose down`
 5. To rebuild after code changes: `docker compose up --build` or `docker compose up -d --build`
 
-## Current Implementation Status (Phase 15 Complete)
+## Current Implementation Status (Phase 16 Complete)
 ✅ Docker Compose orchestration with all required services
 ✅ Backend Express server with CORS and JSON middleware
 ✅ Basic health check endpoint (`GET /health`)
@@ -209,10 +210,12 @@ NODE_ENV=development
 ✅ Export button disabled when no data (all KPIs zero, no personBalances)
 ✅ Export loading state with "Exportando..." spinner
 ✅ Toast feedback for export: "Relatório exportado com sucesso!" / "Erro ao exportar relatório."
+✅ exportExcel unit test suite: 32 tests covering workbook structure, sheet content (Pedidos, Pessoas, Histórico de Pagamentos, Saldo Pendente), BRL monetary cell formatting, DD/MM/YYYY date formatting, empty data handling, column widths, floating-point precision
+✅ DashboardPage export integration tests: 7 tests covering export button rendering, disabled state, enabled state, exportExcel call with fetched data, success/error toast feedback, "Exportando..." loading state
 
-## Next Steps (Phase 16)
-When ready to proceed, Phase 16 will involve:
-- Frontend Tests — XLSX Export: automated test coverage for export button, workbook structure, BRL formatting, disabled state
+## Next Steps (Phase 17)
+When ready to proceed, Phase 17 will involve:
+- TBD (refer to ROADMAP.md for future planning)
 
 ## Notes for Developers/Agents
 - Backend source is mounted at `/app` inside container for live editing

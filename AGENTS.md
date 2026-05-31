@@ -246,6 +246,23 @@ Phase 15 (Frontend XLSX Export Feature) has been completed:
 - Updated `DashboardPage.test.jsx` — added ToastProvider wrapper, exportExcel mock, /orders and /people mock handlers
 - All existing tests pass with no regressions: 66 frontend, 59 backend
 
+Phase 16 (Frontend Tests — XLSX Export) has been completed:
+- Created `frontend/tests/exportExcel.test.js` — 32 unit tests for exportExcel utility:
+  - Workbook Structure (3): 4 sheets created, correct sheet names (Pedidos, Pessoas, Histórico de Pagamentos, Saldo Pendente), filename "relatorio-recebiveis.xlsx"
+  - Pedidos Sheet (4): correct headers, order rows populated, DD/MM/YYYY date formatting, monetary cells as numbers with BRL `#,##0.00` format
+  - Pessoas Sheet (3): correct headers, person rows populated, empty string for null contact
+  - Histórico de Pagamentos Sheet (6): correct headers, payment rows from orders with payments, BRL monetary cell format, DD/MM/YYYY date formatting, notes field, "Sem pessoa" for deleted person, skip orders with no payments
+  - Saldo Pendente Sheet (4): correct headers, person balance rows, all 3 monetary columns with BRL `#,##0.00` format, string monetary values from Prisma Decimal
+  - Empty Data Handling (6): 4 sheets created with empty inputs, headers-only sheets for each, null/undefined inputs handled gracefully
+  - Column Widths (4): `!cols` set on all 4 sheets with correct number of columns
+  - Floating-Point Precision (1): 1234.56-1233=1.56 pending balance without FP errors
+- Updated `frontend/tests/DashboardPage.test.jsx` — added 7 export integration tests (12 → 19 total):
+  - Export Button (7): "Exportar para Excel" button rendered, disabled when no data, enabled when data exists, calls exportExcel with fetched orders/people/dashboard, success toast "Relatório exportado com sucesso!", error toast "Erro ao exportar relatório.", "Exportando..." loading state with button disabled
+- XLSX.writeFile mocked in exportExcel.test.js to intercept workbook creation without browser download
+- mockExportExcel uses arrow-function wrapper pattern to avoid vi.mock hoisting bug
+- Total frontend tests: 105 (14 PeoplePage + 18 OrdersPage + 22 ReceivablesPage + 19 DashboardPage + 32 exportExcel)
+- Total backend tests: 59 (14 + 20 + 25) — no regressions
+
 ## Lessons Learned / Pitfalls to Avoid
 
 ### 1. vi.mock Hoisting Bug (Vitest)

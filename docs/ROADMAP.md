@@ -300,7 +300,7 @@ Deliverable: ✅ Excel exporter button generates a downloadable `.xlsx` workbook
 ---
 
 🧪 PHASE 16: Frontend Tests — XLSX Export
-Status:
+Status: ✅ COMPLETED
 
 Context: XLSX export feature is implemented. Need automated test coverage.
 Stack: Vitest, React Testing Library, SheetJS[cite: 28, 72].
@@ -312,4 +312,17 @@ Write frontend tests for XLSX export:
 - Workbook contains correct sheet names ("Pedidos", "Pessoas", "Histórico de Pagamentos", "Saldo Pendente")
 - Export button disabled when no data available
 
-Deliverable: All XLSX export frontend tests passing. Export functionality, formatting, and sheet structure fully covered.
+Deliverable: ✅ All XLSX export frontend tests passing. Export functionality, formatting, and sheet structure fully covered.
+- Created `frontend/tests/exportExcel.test.js` — 32 unit tests:
+  - Workbook Structure (3): 4 sheets, correct names, filename "relatorio-recebiveis.xlsx"
+  - Pedidos Sheet (4): headers, rows, DD/MM/YYYY dates, BRL monetary cells (#,##0.00)
+  - Pessoas Sheet (3): headers, rows, empty string for null contact
+  - Histórico de Pagamentos Sheet (6): headers, payment rows, BRL format, DD/MM/YYYY dates, notes, "Sem pessoa" for null person, skip orders with no payments
+  - Saldo Pendente Sheet (4): headers, balance rows, all 3 monetary columns BRL-formatted, string values from Prisma Decimal
+  - Empty Data Handling (6): all 4 sheets created with empty inputs, headers-only, null/undefined inputs
+  - Column Widths (4): `!cols` set on all 4 sheets
+  - Floating-Point Precision (1): 1234.56-1233=1.56 without FP errors
+- Updated `frontend/tests/DashboardPage.test.jsx` — 7 export integration tests (12 → 19):
+  - "Exportar para Excel" button rendered, disabled when no data, enabled when data, calls exportExcel, success toast, error toast, "Exportando..." loading
+- Total frontend tests: 105 (14 + 18 + 22 + 19 + 32)
+- Total backend tests: 59 (14 + 20 + 25) — no regressions
