@@ -4,6 +4,20 @@ import { toCents, formatBRL } from '../utils/money';
 
 const emptyItem = () => ({ id: Date.now(), description: '', value: '', personId: '' });
 
+const getTodayString = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const formatDateBR = (dateStr) => {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('T')[0].split('-').map(Number);
+  return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+};
+
 const OrdersPage = () => {
   const [orders, setOrders] = useState([]);
   const [people, setPeople] = useState([]);
@@ -13,6 +27,7 @@ const OrdersPage = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editOrderId, setEditOrderId] = useState(null);
   const [orderNumber, setOrderNumber] = useState('');
+  const [orderDate, setOrderDate] = useState(getTodayString());
   const [items, setItems] = useState([emptyItem()]);
 
   const fetchData = async () => {
@@ -53,6 +68,7 @@ const OrdersPage = () => {
 
   const resetForm = () => {
     setOrderNumber('');
+    setOrderDate(getTodayString());
     setItems([emptyItem()]);
     setShowCreateModal(false);
     setShowEditModal(false);
@@ -75,6 +91,7 @@ const OrdersPage = () => {
     try {
       await api.post('/orders', {
         orderNumber: orderNumber.trim(),
+        orderDate: orderDate || undefined,
         items: items.map(item => ({
           description: item.description.trim(),
           value: parseFloat(item.value),
@@ -91,6 +108,7 @@ const OrdersPage = () => {
   const handleEditOrder = async (order) => {
     setEditOrderId(order.id);
     setOrderNumber(order.orderNumber);
+    setOrderDate(order.orderDate ? order.orderDate.split('T')[0] : getTodayString());
     setItems(order.items.map(item => ({
       id: item.id,
       description: item.description,
@@ -116,6 +134,7 @@ const OrdersPage = () => {
     try {
       await api.put(`/orders/${editOrderId}`, {
         orderNumber: orderNumber.trim(),
+        orderDate: orderDate || undefined,
         items: items.map(item => ({
           description: item.description.trim(),
           value: parseFloat(item.value),
@@ -196,17 +215,19 @@ const OrdersPage = () => {
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Número</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor Total (R$)</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {orders.map((order) => (
-                    <tr key={order.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.orderNumber}</td>
+          <tr>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Número</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor Total (R$)</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {orders.map((order) => (
+            <tr key={order.id} className="hover:bg-gray-50">
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.orderNumber}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatDateBR(order.orderDate)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {formatBRL(parseFloat(order.totalValue))}
                       </td>
@@ -235,14 +256,26 @@ const OrdersPage = () => {
             </div>
             <form onSubmit={showEditModal ? handleUpdateOrder : handleCreateOrder} className="px-6 py-4">
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Número do Pedido</label>
+                <label htmlFor="orderNumber" className="block text-sm font-medium text-gray-700 mb-1">Número do Pedido</label>
                 <input
+                  id="orderNumber"
                   type="text"
                   value={orderNumber}
                   onChange={(e) => setOrderNumber(e.target.value)}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Digite o número do pedido"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="orderDate" className="block text-sm font-medium text-gray-700 mb-1">Data do Pedido</label>
+                <input
+                  id="orderDate"
+                  type="date"
+                  value={orderDate}
+                  onChange={(e) => setOrderDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 

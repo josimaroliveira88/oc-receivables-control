@@ -21,6 +21,7 @@ const mockOrders = [
   {
     id: '1',
     orderNumber: 'ORD-001',
+    orderDate: '2026-05-15T00:00:00.000Z',
     totalValue: '300.00',
     status: 'PENDENTE',
     items: [
@@ -31,6 +32,7 @@ const mockOrders = [
   {
     id: '2',
     orderNumber: 'ORD-002',
+    orderDate: '2026-06-20T00:00:00.000Z',
     totalValue: '500.00',
     status: 'QUITADO',
     items: [
@@ -133,6 +135,21 @@ describe('OrdersPage', () => {
         const deleteButtons = screen.getAllByText('Excluir');
         expect(editButtons).toHaveLength(2);
         expect(deleteButtons).toHaveLength(2);
+      });
+    });
+
+    it('should display "Data" column header', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('Data')).toBeInTheDocument();
+      });
+    });
+
+    it('should display order dates formatted as DD/MM/YYYY', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('15/05/2026')).toBeInTheDocument();
+        expect(screen.getByText('20/06/2026')).toBeInTheDocument();
       });
     });
   });
@@ -273,6 +290,69 @@ describe('OrdersPage', () => {
         expect(screen.queryByText('Cancelar')).not.toBeInTheDocument();
       });
     });
+
+    it('should display "Data do Pedido" field in create modal', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Novo Pedido'));
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Data do Pedido')).toBeInTheDocument();
+      });
+    });
+
+    it('should pre-fill date field with today\'s date in create modal', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Novo Pedido'));
+
+      await waitFor(() => {
+        const dateInput = screen.getByLabelText('Data do Pedido');
+        expect(dateInput.value).not.toBe('');
+      });
+    });
+
+    it('should send orderDate when creating an order', async () => {
+      mockPost.mockResolvedValue({ data: { id: '3', orderNumber: 'ORD-003' } });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Novo Pedido'));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Digite o número do pedido')).toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByPlaceholderText('Digite o número do pedido'), { target: { value: 'ORD-NEW' } });
+      fireEvent.change(screen.getByLabelText('Data do Pedido'), { target: { value: '2026-03-10' } });
+
+      const descInput = screen.getByPlaceholderText('Descrição do item');
+      fireEvent.change(descInput, { target: { value: 'Test Item' } });
+      const valueInput = screen.getByPlaceholderText('0.00');
+      fireEvent.change(valueInput, { target: { value: '150' } });
+      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
+      fireEvent.change(personSelect, { target: { value: 'p1' } });
+
+      const form = screen.getByPlaceholderText('Digite o número do pedido').closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith('/orders', expect.objectContaining({
+          orderDate: '2026-03-10',
+        }));
+      });
+    });
   });
 
   describe('Edit Order', () => {
@@ -293,6 +373,23 @@ describe('OrdersPage', () => {
       await waitFor(() => {
         expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
         expect(screen.getByDisplayValue('ORD-001')).toBeInTheDocument();
+      });
+    });
+
+    it('should pre-fill date field with order date in edit modal', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+
+      const editButtons = screen.getAllByText('Editar');
+      fireEvent.click(editButtons[0]);
+
+      await waitFor(() => {
+        expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
+        const dateInput = screen.getByLabelText('Data do Pedido');
+        expect(dateInput.value).toBe('2026-05-15');
       });
     });
   });
