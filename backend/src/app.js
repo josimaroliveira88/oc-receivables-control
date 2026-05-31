@@ -32,6 +32,10 @@ app.use('/api/people', peopleRoutes);
 const ordersRoutes = require('./routes/ordersRoutes');
 app.use('/api/orders', ordersRoutes);
 
+// Dashboard routes
+const dashboardRoutes = require('./routes/dashboardRoutes');
+app.use('/api/dashboard', dashboardRoutes);
+
 // Centralized error handling middleware
 app.use((error, req, res, next) => {
   if (error instanceof ZodError) {
