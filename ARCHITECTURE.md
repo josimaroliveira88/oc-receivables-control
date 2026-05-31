@@ -1,7 +1,7 @@
 # Receivables Control System - Architecture Documentation
 
 ## Overview
-This document describes the current state of the project architecture, file organization, and how to run the system. The project is currently in **Phase 14: Frontend Tests — Dashboard & Charts** completed.
+This document describes the current state of the project architecture, file organization, and how to run the system. The project is currently in **Phase 15: Frontend XLSX Export Feature** completed.
 
 ## Technology Stack
 - **Backend**: Node.js (Express) with Prisma ORM
@@ -71,12 +71,13 @@ oc-receivables-control/
 │ ├── components/
 │ │ ├── ProtectedRoute.jsx # Route guard for auth
 │ │ └── Toast.jsx # Toast notification provider & component
-│   ├── utils/
-│   │   └── money.js # toCents, fromCents, formatBRL (integer cents arithmetic, string-safe)
+│ ├── utils/
+│ │ ├── money.js # toCents, fromCents, formatBRL (integer cents arithmetic, string-safe)
+│ │ └── exportExcel.js # XLSX workbook generation (4 sheets, BRL formatting)
 │   ├── pages/
 │   │   ├── LoginPage.jsx # Login form (PT-BR)
-│   │   ├── DashboardPage.jsx # Dashboard with KPI widgets & Recharts bar chart
-│   │   ├── PeoplePage.jsx # People CRUD with modals (PT-BR)
+│ │ ├── DashboardPage.jsx # Dashboard with KPI widgets, Recharts bar chart & XLSX export button
+│ │ ├── PeoplePage.jsx # People CRUD with modals (PT-BR)
 │   │   ├── OrdersPage.jsx # Orders CRUD with dynamic item rows (PT-BR)
 │   │   └── ReceivablesPage.jsx # Payment tracking with status badges & payment modal (PT-BR)
 │ └── tests/
@@ -147,7 +148,7 @@ NODE_ENV=development
 4. To stop: `docker compose down`
 5. To rebuild after code changes: `docker compose up --build` or `docker compose up -d --build`
 
-## Current Implementation Status (Phase 14 Complete)
+## Current Implementation Status (Phase 15 Complete)
 ✅ Docker Compose orchestration with all required services
 ✅ Backend Express server with CORS and JSON middleware
 ✅ Basic health check endpoint (`GET /health`)
@@ -201,10 +202,17 @@ NODE_ENV=development
 ✅ Backend `GET /api/dashboard` (JWT-protected) returns: totalPending, totalPaid, currentMonthReceipts, personBalances[]
 ✅ DashboardPage component (`src/pages/DashboardPage.jsx`) with KPI widgets and Recharts bar chart
 ✅ DashboardPage test suite: 12 tests covering rendering, KPI widgets (BRL formatting, zero values), chart (data present, empty state), error/auth handling
+✅ XLSX export button ("📥 Exportar para Excel") on DashboardPage — fetches /api/orders, /api/people, /api/dashboard concurrently
+✅ Export utility (`frontend/src/utils/exportExcel.js`) — generates 4-sheet .xlsx workbook: Pedidos, Pessoas, Histórico de Pagamentos, Saldo Pendente
+✅ BRL monetary cell formatting (#,##0.00) on all currency fields in exported Excel
+✅ Browser download of `relatorio-recebiveis.xlsx` triggered by XLSX.writeFile
+✅ Export button disabled when no data (all KPIs zero, no personBalances)
+✅ Export loading state with "Exportando..." spinner
+✅ Toast feedback for export: "Relatório exportado com sucesso!" / "Erro ao exportar relatório."
 
-## Next Steps (Phase 15)
-When ready to proceed, Phase 15 will involve:
-- Frontend XLSX Export Feature: Excel download with BRL-formatted multi-sheet workbook
+## Next Steps (Phase 16)
+When ready to proceed, Phase 16 will involve:
+- Frontend Tests — XLSX Export: automated test coverage for export button, workbook structure, BRL formatting, disabled state
 
 ## Notes for Developers/Agents
 - Backend source is mounted at `/app` inside container for live editing

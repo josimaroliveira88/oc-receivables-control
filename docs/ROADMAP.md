@@ -269,7 +269,7 @@ Total backend tests: 59 (14 people + 20 orders + 25 payments).
 ---
 
 📥 PHASE 15: Frontend XLSX Export Feature
-Status:
+Status: ✅ COMPLETED
 
 Context: Dashboard is operational. Need Excel export functionality[cite: 71, 146, 152].
 Stack: React, SheetJS (xlsx library)[cite: 28, 72].
@@ -281,7 +281,21 @@ Implement client-side Excel exporter:
 3. Force cells formatting to follow BRL monetary mask[cite: 75, 76, 150].
 4. Trigger browser download of the generated file.
 
-Deliverable: The Excel exporter button generates a downloadable `.xlsx` workbook with properly formatted Brazilian currency data across multiple sheets.
+Deliverable: ✅ Excel exporter button generates a downloadable `.xlsx` workbook with properly formatted Brazilian currency data across multiple sheets.
+- Installed `xlsx` (SheetJS v0.18.5) as frontend dependency
+- Created `frontend/src/utils/exportExcel.js` — export utility generating 4-sheet workbook:
+  - "Pedidos": orderNumber, orderDate (DD/MM/YYYY), totalValue (BRL #,##0.00), status
+  - "Pessoas": name, contact
+  - "Histórico de Pagamentos": orderNumber, personName, amount (BRL), paidAt (DD/MM/YYYY), notes
+  - "Saldo Pendente": personName, itemTotal (BRL), paymentTotal (BRL), pending (BRL)
+- Updated `DashboardPage.jsx` — added "📥 Exportar para Excel" button in header, fetches /api/orders, /api/people, /api/dashboard concurrently on click, calls exportExcel utility, triggers browser download of `relatorio-recebiveis.xlsx`
+- BRL currency formatting applied to all monetary cells via SheetJS number format `#,##0.00`
+- Export button disabled when no data available (all KPIs zero and no personBalances)
+- Loading state "Exportando..." with spinner during export fetch
+- Toast feedback: "Relatório exportado com sucesso!" (success) / "Erro ao exportar relatório." (error)
+- No new backend endpoints needed — reuses existing /api/orders, /api/people, /api/dashboard
+- Updated DashboardPage.test.jsx — added ToastProvider wrapper, exportExcel mock, mock handlers for /orders and /people endpoints
+- All existing tests pass with no regressions: 66 frontend, 59 backend
 
 ---
 

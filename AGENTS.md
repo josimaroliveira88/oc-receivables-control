@@ -12,6 +12,7 @@ Frontend:
 - Vite
 - Tailwind CSS
 - Recharts
+- SheetJS (xlsx)
 
 Database:
 - PostgreSQL 15
@@ -227,6 +228,23 @@ Phase 14 (Frontend Tests — Dashboard & Charts + Floating-Point Fix) has been c
 - Chart (3): "Saldos por Pessoa" with data, empty state, chart container present
 - Total frontend tests: 66 (14 + 18 + 22 + 12)
 - Total backend tests: 59 (14 + 20 + 25)
+
+Phase 15 (Frontend XLSX Export Feature) has been completed:
+- Installed `xlsx` (SheetJS v0.18.5) as frontend dependency
+- Created `frontend/src/utils/exportExcel.js` — client-side Excel export utility generating 4-sheet workbook:
+  - "Pedidos" sheet: orderNumber, orderDate (DD/MM/YYYY), totalValue (BRL #,##0.00), status
+  - "Pessoas" sheet: name, contact
+  - "Histórico de Pagamentos" sheet: orderNumber, personName, amount (BRL), paidAt (DD/MM/YYYY), notes
+  - "Saldo Pendente" sheet: personName, itemTotal (BRL), paymentTotal (BRL), pending (BRL)
+- BRL monetary cell formatting via SheetJS number format `#,##0.00` on all currency fields
+- Browser download triggered via `XLSX.writeFile(wb, 'relatorio-recebiveis.xlsx')`
+- Updated `DashboardPage.jsx` — added "📥 Exportar para Excel" button in header
+- Export fetches /api/orders, /api/people, /api/dashboard concurrently via Promise.all (no new backend endpoint needed)
+- Export button disabled when no data (all KPIs zero, no personBalances)
+- Loading state "Exportando..." with spinner during export
+- Toast feedback: "Relatório exportado com sucesso!" (success) / "Erro ao exportar relatório." (error)
+- Updated `DashboardPage.test.jsx` — added ToastProvider wrapper, exportExcel mock, /orders and /people mock handlers
+- All existing tests pass with no regressions: 66 frontend, 59 backend
 
 ## Lessons Learned / Pitfalls to Avoid
 
