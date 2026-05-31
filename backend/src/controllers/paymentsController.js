@@ -3,9 +3,15 @@ const { z } = require('zod');
 const prisma = new PrismaClient();
 const { toCents, fromCents } = require('../utils/money');
 
+const parseLocalDate = (dateStr) => {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
 const paymentSchema = z.object({
   amount: z.number().positive('Amount must be greater than zero'),
   personId: z.string().uuid('Person ID must be a valid UUID'),
+  paidAt: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -59,14 +65,15 @@ const createPayment = async (req, res) => {
         throw new Error('Amount exceeds pending balance');
       }
 
-      const payment = await tx.payment.create({
-        data: {
-          amount: validatedData.amount,
-          orderId: orderId,
-          personId: validatedData.personId,
-          notes: validatedData.notes,
-        },
-      });
+    const payment = await tx.payment.create({
+      data: {
+        amount: validatedData.amount,
+        orderId: orderId,
+        personId: validatedData.personId,
+        paidAt: validatedData.paidAt ? parseLocalDate(validatedData.paidAt) : undefined,
+        notes: validatedData.notes,
+      },
+    });
 
       const personIds = [...new Set(order.items.map(item => item.personId))];
 

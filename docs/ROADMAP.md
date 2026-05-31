@@ -347,9 +347,27 @@ Deliverable: ✅ Custom order date fully implemented and tested. Orders can be c
 
 ---
 
+📅 PHASE 18: Custom Payment Date on Receivables Modal
+Status: ✅ COMPLETED
+
+Context: Client requested the ability to specify the payment date when registering a payment on the Receivables page. The modal should show today's date by default but allow the user to change it to a different date.
+
+Task:
+Implement custom paidAt date support across backend and frontend:
+1. Backend: Add optional `paidAt` string field to `paymentSchema` (Zod). Parse YYYY-MM-DD strings as local dates using `parseLocalDate()` to avoid UTC timezone shifts (same pattern as orderDate). Pass parsed date to `tx.payment.create()`.
+2. Frontend: Add `<input type="date">` field labeled "Data do Pagamento" in the payment modal on ReceivablesPage, pre-filled with today's date via `getTodayString()`. Send `paidAt` in POST request. Reset date to today when opening/closing the modal.
+3. Tests: Backend — create payment with custom paidAt date (verify date stored correctly), create payment without paidAt (defaults to now). Frontend — date input visible with label, defaults to today, allows changing date, sends paidAt in request payload, resets date when reopening modal.
+
+Deliverable: ✅ Custom payment date fully implemented and tested. Payment modal now includes a "Data do Pagamento" date input defaulting to today. Users can change the date before registering a payment. Backend accepts optional `paidAt` field and parses it timezone-safe.
+- Backend: 64 tests passing (14 People + 23 Orders + 27 Payments — 2 new paidAt tests)
+- Frontend: 116 tests passing (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 19 DashboardPage + 32 exportExcel — 5 new payment date tests)
+- **Total: 180 tests passing with zero regressions**
+
+---
+
 ## 🎉 MVP PROJECT COMPLETION
 
-**All 16 phases have been successfully completed.** The Receivables Control System is now a fully functional, production-ready financial tracking application with comprehensive test coverage.
+**All 16 phases + Phase 17 + Phase 18 have been successfully completed.** The Receivables Control System is now a fully functional, production-ready financial tracking application with comprehensive test coverage.
 
 ### Summary of Deliverables:
 
@@ -357,7 +375,7 @@ Deliverable: ✅ Custom order date fully implemented and tested. Orders can be c
 - User authentication with JWT (stateless)
 - People management (CRUD with validation)
 - Orders management with nested items (CRUD with dynamic sub-forms and custom order date)
-- Payments processing with automatic status transitions
+- Payments processing with automatic status transitions and custom payment date
 - Dashboard aggregation (KPIs and per-person balances)
 - Financial calculations using integer cents arithmetic (no floating-point errors)
 
@@ -365,7 +383,7 @@ Deliverable: ✅ Custom order date fully implemented and tested. Orders can be c
 - Login and authentication flow
 - People management page (CRUD with modals)
 - Orders management page (CRUD with dynamic item rows and custom order date)
-- Receivables tracking page (payment processing modal with validation)
+- Receivables tracking page (payment processing modal with validation and custom payment date)
 - Analytics dashboard with KPI widgets and Recharts visualizations
 - Excel export functionality (4-sheet workbook with BRL formatting)
 
@@ -375,9 +393,9 @@ Deliverable: ✅ Custom order date fully implemented and tested. Orders can be c
 - Decimal(10,2) monetary precision
 
 ✅ **Testing (Vitest + React Testing Library)**
-- Backend: 62 tests (14 People + 23 Orders + 25 Payments)
-- Frontend: 111 tests (14 PeoplePage + 24 OrdersPage + 22 ReceivablesPage + 19 DashboardPage + 32 exportExcel)
-- **Total: 173 passing tests with zero regressions**
+- Backend: 64 tests (14 People + 23 Orders + 27 Payments)
+- Frontend: 116 tests (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 19 DashboardPage + 32 exportExcel)
+- **Total: 180 passing tests with zero regressions**
 - 100% TDD methodology applied
 - Comprehensive edge case coverage (overpayment validation, status transitions, floating-point precision)
 
@@ -399,14 +417,14 @@ Deliverable: ✅ Custom order date fully implemented and tested. Orders can be c
 ├─────────────────┼───────────────────┼──────────────┤
 │ Backend - People│ 14 tests passing  │ ✅ Complete  │
 │ Backend - Orders│ 20 tests passing  │ ✅ Complete  │
-│ Backend - Payments│ 25 tests passing│ ✅ Complete  │
+│ Backend - Payments│ 27 tests passing│ ✅ Complete │
 │ Frontend - People│ 14 tests passing │ ✅ Complete  │
 │ Frontend - Orders│ 18 tests passing │ ✅ Complete  │
-│ Frontend - Receivables│ 22 tests  │ ✅ Complete  │
+│ Frontend - Receivables│ 27 tests │ ✅ Complete │
 │ Frontend - Dashboard│ 19 tests      │ ✅ Complete  │
 │ Frontend - exportExcel│ 32 tests    │ ✅ Complete  │
 ├─────────────────┼───────────────────┼──────────────┤
-│ TOTAL           │ 164 tests passing │ ✅ MVP READY │
+│ TOTAL │ 180 tests passing │ ✅ MVP READY │
 └─────────────────┴───────────────────┴──────────────┘
 ```
 
@@ -497,7 +515,7 @@ Deliverable: ✅ [What users will have] - [Backend tests passing] backend tests,
 ## 🏆 Project Highlights
 
 - **Zero Floating-Point Errors**: All financial calculations use integer cents arithmetic
-- **100% Test Coverage**: 164 tests covering all critical paths, edge cases, and regressions
+- **100% Test Coverage**: 180 tests covering all critical paths, edge cases, and regressions
 - **Financial Precision**: Decimal(10,2) database fields, proper overpayment rejection, accurate status transitions
 - **User Experience**: PT-BR localization, responsive Tailwind design, toast feedback, loading states
 - **Code Quality**: TDD methodology, clear error messages, proper auth guards, documented pitfalls

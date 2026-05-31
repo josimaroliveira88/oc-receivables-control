@@ -3,7 +3,7 @@
 ## Overview
 This document describes the current state of the project architecture, file organization, and how to run the system.
 
-**🎉 Project Status: MVP COMPLETE** — All 16 phases + Phase 17 completed with 173 automated tests passing. The Receivables Control System is production-ready with full CRUD operations, payment processing, dashboard analytics, Excel export functionality, and custom order date support. Ready to accept new client feature requests.
+**🎉 Project Status: MVP COMPLETE** — All 16 phases + Phase 17 + Phase 18 completed with 180 automated tests passing. The Receivables Control System is production-ready with full CRUD operations, payment processing, dashboard analytics, Excel export functionality, custom order date support, and custom payment date support. Ready to accept new client feature requests.
 
 ## Technology Stack
 - **Backend**: Node.js (Express) with Prisma ORM
@@ -43,7 +43,7 @@ oc-receivables-control/
 │   │   ├── authController.js # Auth login controller
 │   │   ├── peopleController.js # People CRUD with Zod validation
 │   │   ├── ordersController.js # Orders + Items CRUD with Zod validation, custom orderDate support
-│   │ ├── paymentsController.js # Payments + balance with transactional status engine
+│ │ ├── paymentsController.js # Payments + balance with transactional status engine, custom paidAt support
 │   │ └── dashboardController.js # Dashboard aggregation (KPIs + person balances)
 │   ├── utils/
 │   │ └── money.js # toCents, fromCents, formatBRL (integer cents arithmetic)
@@ -57,7 +57,7 @@ oc-receivables-control/
 │ ├── setup.js # Test environment setup (NODE_ENV, DATABASE_URL, JWT_SECRET)
 │ ├── people.test.js # 14 People CRUD tests
 │   ├── orders.test.js # 23 Orders + Items CRUD tests (incl. orderDate)
-│ └── payments.test.js # 25 Payments & Balance tests (incl. 2 floating-point regression tests)
+│   └── payments.test.js # 27 Payments & Balance tests (incl. 2 floating-point regression tests + 2 custom paidAt tests)
 ├── frontend/
 │   ├── Dockerfile              # Frontend container definition
 │   ├── package.json            # Frontend dependencies & scripts
@@ -81,12 +81,12 @@ oc-receivables-control/
 │ │ ├── DashboardPage.jsx # Dashboard with KPI widgets, Recharts bar chart & XLSX export button
 │ │ ├── PeoplePage.jsx # People CRUD with modals (PT-BR)
 │   │   ├── OrdersPage.jsx # Orders CRUD with dynamic item rows and custom order date (PT-BR)
-│   │   └── ReceivablesPage.jsx # Payment tracking with status badges & payment modal (PT-BR)
+│ │   └── ReceivablesPage.jsx # Payment tracking with status badges & payment modal with custom date (PT-BR)
 │ └── tests/
  │ ├── setup.js # @testing-library/jest-dom import
 │ ├── PeoplePage.test.jsx # 14 PeoplePage tests
 │   ├── OrdersPage.test.jsx # 24 OrdersPage tests
-│ ├── ReceivablesPage.test.jsx # 22 ReceivablesPage tests (badge rendering, payment modal, validation guards, toast feedback, FP regression)
+│   ├── ReceivablesPage.test.jsx # 27 ReceivablesPage tests (badge rendering, payment modal, validation guards, payment date field, toast feedback, FP regression)
 │ ├── DashboardPage.test.jsx # 19 DashboardPage tests (KPI widgets, chart, export button integration, toast feedback)
 │ └── exportExcel.test.js # 32 exportExcel utility tests (workbook structure, sheet content, BRL formatting, empty data, column widths, FP precision)
 ```
@@ -193,10 +193,10 @@ NODE_ENV=development
 ✅ Per-person balance calculation within Prisma transaction
 ✅ Balance breakdown endpoint (`GET /api/orders/:orderId/balance`) returning per-person pending amounts
 ✅ Payment and balance routes protected with JWT authentication middleware
-✅ Backend payment tests: 25 tests (incl. 2 floating-point regression tests)
+✅ Backend payment tests: 27 tests (incl. 2 floating-point regression tests + 2 custom paidAt tests)
 ✅ ReceivablesPage component with order listing and visual status badges (`src/pages/ReceivablesPage.jsx`)
 ✅ Status badges with emoji indicators: 🔴 Pendente, ⚠️ Parcial, ✅ Quitado
-✅ Payment modal with person dropdown (populated from balance API), amount input, notes field
+✅ Payment modal with person dropdown (populated from balance API), amount input, custom payment date field, notes field
 ✅ Frontend overpayment validation guard: rejects amount > pending balance
 ✅ Frontend zero/negative validation: rejects amount <= 0
 ✅ Toast notification system (`src/components/Toast.jsx`) with success/error types and auto-dismiss
@@ -215,8 +215,8 @@ NODE_ENV=development
 ✅ exportExcel unit test suite: 32 tests covering workbook structure, sheet content (Pedidos, Pessoas, Histórico de Pagamentos, Saldo Pendente), BRL monetary cell formatting, DD/MM/YYYY date formatting, empty data handling, column widths, floating-point precision
 ✅ DashboardPage export integration tests: 7 tests covering export button rendering, disabled state, enabled state, exportExcel call with fetched data, success/error toast feedback, "Exportando..." loading state
 
-## Next Steps (Phase 18)
-When ready to proceed, Phase 18 will involve:
+## Next Steps (Phase 19)
+When ready to proceed, Phase 19 will involve:
 - TBD (refer to ROADMAP.md for future planning)
 
 ## Notes for Developers/Agents

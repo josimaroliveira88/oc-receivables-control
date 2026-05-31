@@ -110,19 +110,19 @@ The Receivables Control System is now fully functional with all core features im
 ✅ React frontend with Vite and Tailwind CSS
 ✅ People management (CRUD)
 ✅ Orders management with dynamic item sub-forms and custom order date
-✅ Payment processing with automatic order status transitions (PENDENTE → PARCIAL → QUITADO)
+✅ Payment processing with automatic order status transitions (PENDENTE → PARCIAL → QUITADO) and custom payment date
 ✅ Receivables tracking dashboard with per-person balance breakdown
 ✅ Analytics dashboard with KPI widgets and Recharts visualizations
 ✅ Excel export functionality (4-sheet workbook with BRL formatting)
-✅ Comprehensive test coverage (111 frontend tests + 62 backend tests)
+✅ Comprehensive test coverage (116 frontend tests + 64 backend tests)
 ✅ Financial precision (integer cents arithmetic, no floating-point errors)
 ✅ Complete TDD methodology applied across all phases
 ✅ PT-BR localization for all user-facing content
 
 ### Test Results:
-- **Backend Tests**: 62 passing (14 People + 23 Orders + 25 Payments)
-- **Frontend Tests**: 111 passing (14 PeoplePage + 24 OrdersPage + 22 ReceivablesPage + 19 DashboardPage + 32 exportExcel)
-- **Total**: 173 tests passing with zero regressions
+- **Backend Tests**: 64 passing (14 People + 23 Orders + 27 Payments)
+- **Frontend Tests**: 116 passing (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 19 DashboardPage + 32 exportExcel)
+- **Total**: 180 tests passing with zero regressions
 
 ### Key Learnings Documented:
 13 critical lessons learned documented in AGENTS.md (see "Lessons Learned / Pitfalls to Avoid") to guide future development:
@@ -148,7 +148,7 @@ When the client requests new functionality:
 3. **Plan Test Coverage**: Identify which tests need to be written (backend/frontend)
 4. **Implement with TDD**: Follow the TDD methodology used in phases 5+
 5. **Update Documentation**: Ensure ARCHITECTURE.md, AGENTS.md, and ROADMAP.md reflect changes
-6. **Run Full Test Suite**: Verify all 173+ tests pass with zero regressions
+6. **Run Full Test Suite**: Verify all 180+ tests pass with zero regressions
 
 The codebase is well-structured, documented, and ready to accept new features without breaking existing functionality.
 

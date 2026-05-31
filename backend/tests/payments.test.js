@@ -261,6 +261,33 @@ describe('Payments & Balance', () => {
       expect(response.status).toBe(201);
       expect(response.body.order.status).toBe('QUITADO');
     });
+
+    it('should create payment with custom paidAt date', async () => {
+      const response = await request(app)
+        .post(`/api/orders/${testOrderId}/payments`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ amount: 100.00, personId: testPersonId, paidAt: '2025-03-15' });
+
+      expect(response.status).toBe(201);
+      const paidAt = new Date(response.body.payment.paidAt);
+      expect(paidAt.getFullYear()).toBe(2025);
+      expect(paidAt.getMonth()).toBe(2);
+      expect(paidAt.getDate()).toBe(15);
+    });
+
+    it('should create payment without paidAt and default to now', async () => {
+      const before = new Date();
+      const response = await request(app)
+        .post(`/api/orders/${testOrderId}/payments`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ amount: 50.00, personId: testPersonId });
+
+      expect(response.status).toBe(201);
+      const paidAt = new Date(response.body.payment.paidAt);
+      const after = new Date();
+      expect(paidAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
+      expect(paidAt.getTime()).toBeLessThanOrEqual(after.getTime());
+    });
   });
 
   describe('GET /api/orders/:orderId/balance', () => {
@@ -401,9 +428,9 @@ describe('Payments & Balance', () => {
       expect(response.status).toBe(403);
       expect(response.body.error).toBe('Invalid or expired token');
     });
-  });
+});
 
-  describe('Floating point precision (cents)', () => {
+describe('Floating point precision (cents)', () => {
     it('should accept exact remaining balance without floating point errors', async () => {
       const person = await prisma.person.create({
         data: { name: 'Cents Test', contact: 'cents@test.com' },

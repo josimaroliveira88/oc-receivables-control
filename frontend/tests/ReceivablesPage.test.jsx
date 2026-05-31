@@ -343,6 +343,7 @@ describe('ReceivablesPage', () => {
         expect(mockPost).toHaveBeenCalledWith('/orders/order-1/payments', {
           amount: 100,
           personId: 'p1',
+          paidAt: expect.any(String),
           notes: undefined,
         });
       });
@@ -395,11 +396,101 @@ describe('ReceivablesPage', () => {
         expect(mockPost).toHaveBeenCalledWith('/orders/order-fp/payments', {
           amount: 1.56,
           personId: 'p1',
+          paidAt: expect.any(String),
           notes: undefined,
         });
       });
 
       expect(screen.queryByText('Valor excede o saldo pendente')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Payment Date Field', () => {
+    const openModalWithBalance = async () => {
+      mockGetImplementation([mockOrders[0]]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Registrar Pagamento')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Registrar Pagamento'));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Registrar Pagamento — ORD-001/)).toBeInTheDocument();
+      });
+    };
+
+    it('should show date input with label "Data do Pagamento"', async () => {
+      await openModalWithBalance();
+
+      expect(screen.getByLabelText('Data do Pagamento')).toBeInTheDocument();
+    });
+
+    it('should default date input to today', async () => {
+      await openModalWithBalance();
+
+      const dateInput = screen.getByLabelText('Data do Pagamento');
+      const today = new Date();
+      const expected = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      expect(dateInput.value).toBe(expected);
+    });
+
+    it('should allow changing the payment date', async () => {
+      await openModalWithBalance();
+
+      const dateInput = screen.getByLabelText('Data do Pagamento');
+      fireEvent.change(dateInput, { target: { value: '2025-06-15' } });
+
+      expect(dateInput.value).toBe('2025-06-15');
+    });
+
+    it('should send paidAt in the payment request', async () => {
+      await openModalWithBalance();
+
+      const dateInput = screen.getByLabelText('Data do Pagamento');
+      fireEvent.change(dateInput, { target: { value: '2025-06-15' } });
+
+      const amountInput = screen.getByPlaceholderText('0.00');
+      fireEvent.change(amountInput, { target: { value: '100' } });
+
+      mockPost.mockResolvedValue({ data: { id: 'pay-1', amount: '100.00', personId: 'p1' } });
+      mockGet.mockResolvedValue({ data: [] });
+
+      const form = amountInput.closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith('/orders/order-1/payments', {
+          amount: 100,
+          personId: 'p1',
+          paidAt: '2025-06-15',
+          notes: undefined,
+        });
+      });
+    });
+
+    it('should reset date to today when reopening the modal', async () => {
+      await openModalWithBalance();
+
+      const dateInput = screen.getByLabelText('Data do Pagamento');
+      fireEvent.change(dateInput, { target: { value: '2025-01-01' } });
+      expect(dateInput.value).toBe('2025-01-01');
+
+      fireEvent.click(screen.getByText('Cancelar'));
+
+      await waitFor(() => {
+        expect(screen.queryByText(/Registrar Pagamento — ORD-001/)).not.toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Registrar Pagamento'));
+
+      await waitFor(() => {
+        const resetDateInput = screen.getByLabelText('Data do Pagamento');
+        const today = new Date();
+        const expected = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        expect(resetDateInput.value).toBe(expected);
+      });
     });
   });
 

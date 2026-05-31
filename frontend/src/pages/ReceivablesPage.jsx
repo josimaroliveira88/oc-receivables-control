@@ -3,6 +3,14 @@ import api from '../services/api';
 import { useToast } from '../components/Toast';
 import { toCents, formatBRL } from '../utils/money';
 
+const getTodayString = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const statusBadge = (status) => {
   const config = {
     PENDENTE: { label: '🔴 Pendente', className: 'bg-red-100 text-red-800' },
@@ -27,6 +35,7 @@ const ReceivablesPage = () => {
   const [selectedPersonId, setSelectedPersonId] = useState('');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentNotes, setPaymentNotes] = useState('');
+  const [paymentDate, setPaymentDate] = useState(getTodayString());
   const [paymentError, setPaymentError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { addToast } = useToast();
@@ -52,6 +61,7 @@ const ReceivablesPage = () => {
     setSelectedPersonId('');
     setPaymentAmount('');
     setPaymentNotes('');
+    setPaymentDate(getTodayString());
     setPaymentError('');
     setBalances([]);
 
@@ -77,6 +87,7 @@ const ReceivablesPage = () => {
     setSelectedPersonId('');
     setPaymentAmount('');
     setPaymentNotes('');
+    setPaymentDate(getTodayString());
     setPaymentError('');
   };
 
@@ -112,6 +123,7 @@ const ReceivablesPage = () => {
       await api.post(`/orders/${selectedOrder.id}/payments`, {
         amount: parseFloat(paymentAmount),
         personId: selectedPersonId,
+        paidAt: paymentDate || undefined,
         notes: paymentNotes.trim() || undefined,
       });
       addToast('Pagamento registrado com sucesso!', 'success');
@@ -244,15 +256,28 @@ const ReceivablesPage = () => {
                 )}
               </div>
 
-              {selectedPersonId && (
-                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                  <p className="text-sm text-blue-700">
-                    Saldo pendente: <strong>{formatBRL(getSelectedPendingCents() / 100)}</strong>
-                  </p>
-                </div>
-              )}
+            {selectedPersonId && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <p className="text-sm text-blue-700">
+                  Saldo pendente: <strong>{formatBRL(getSelectedPendingCents() / 100)}</strong>
+                </p>
+              </div>
+            )}
 
-              <div className="mb-4">
+            <div className="mb-4">
+              <label htmlFor="paymentDate" className="block text-sm font-medium text-gray-700 mb-1">
+                Data do Pagamento
+              </label>
+              <input
+                id="paymentDate"
+                type="date"
+                value={paymentDate}
+                onChange={(e) => setPaymentDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Valor (R$)
                 </label>
