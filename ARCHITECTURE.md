@@ -3,7 +3,7 @@
 ## Overview
 This document describes the current state of the project architecture, file organization, and how to run the system.
 
-**🎉 Project Status: MVP COMPLETE** — All 16 phases + Phase 17 + Phase 18 completed with 180 automated tests passing. The Receivables Control System is production-ready with full CRUD operations, payment processing, dashboard analytics, Excel export functionality, custom order date support, and custom payment date support. Ready to accept new client feature requests.
+**🎉 Project Status: MVP COMPLETE** — All 16 phases + Phase 17 + Phase 18 + Phase 19 completed with 192 automated tests passing. The Receivables Control System is production-ready with full CRUD operations, payment processing, dashboard analytics (including yearly breakdown), Excel export functionality, custom order date support, and custom payment date support. Ready to accept new client feature requests.
 
 ## Technology Stack
 - **Backend**: Node.js (Express) with Prisma ORM
@@ -44,7 +44,7 @@ oc-receivables-control/
 │   │   ├── peopleController.js # People CRUD with Zod validation
 │   │   ├── ordersController.js # Orders + Items CRUD with Zod validation, custom orderDate support
 │ │ ├── paymentsController.js # Payments + balance with transactional status engine, custom paidAt support
-│   │ └── dashboardController.js # Dashboard aggregation (KPIs + person balances)
+│   │ └── dashboardController.js # Dashboard aggregation (KPIs + person balances + yearly breakdown)
 │   ├── utils/
 │   │ └── money.js # toCents, fromCents, formatBRL (integer cents arithmetic)
 │   └── routes/
@@ -57,7 +57,8 @@ oc-receivables-control/
 │ ├── setup.js # Test environment setup (NODE_ENV, DATABASE_URL, JWT_SECRET)
 │ ├── people.test.js # 14 People CRUD tests
 │   ├── orders.test.js # 23 Orders + Items CRUD tests (incl. orderDate)
-│   └── payments.test.js # 27 Payments & Balance tests (incl. 2 floating-point regression tests + 2 custom paidAt tests)
+│   ├── payments.test.js # 27 Payments & Balance tests (incl. 2 floating-point regression tests + 2 custom paidAt tests)
+│   └── dashboard.test.js # 5 Dashboard yearly breakdown tests
 ├── frontend/
 │   ├── Dockerfile              # Frontend container definition
 │   ├── package.json            # Frontend dependencies & scripts
@@ -78,7 +79,7 @@ oc-receivables-control/
 │ │ └── exportExcel.js # XLSX workbook generation (4 sheets, BRL formatting)
 │   ├── pages/
 │   │   ├── LoginPage.jsx # Login form (PT-BR)
-│ │ ├── DashboardPage.jsx # Dashboard with KPI widgets, Recharts bar chart & XLSX export button
+│ │ ├── DashboardPage.jsx # Dashboard with KPI widgets, Recharts bar chart, yearly breakdown "Resumo por Ano" table & XLSX export button
 │ │ ├── PeoplePage.jsx # People CRUD with modals (PT-BR)
 │   │   ├── OrdersPage.jsx # Orders CRUD with dynamic item rows and custom order date (PT-BR)
 │ │   └── ReceivablesPage.jsx # Payment tracking with status badges & payment modal with custom date (PT-BR)
@@ -87,7 +88,7 @@ oc-receivables-control/
 │ ├── PeoplePage.test.jsx # 14 PeoplePage tests
 │   ├── OrdersPage.test.jsx # 24 OrdersPage tests
 │   ├── ReceivablesPage.test.jsx # 27 ReceivablesPage tests (badge rendering, payment modal, validation guards, payment date field, toast feedback, FP regression)
-│ ├── DashboardPage.test.jsx # 19 DashboardPage tests (KPI widgets, chart, export button integration, toast feedback)
+│ ├── DashboardPage.test.jsx # 26 DashboardPage tests (KPI widgets, chart, yearly breakdown, export button integration, toast feedback)
 │ └── exportExcel.test.js # 32 exportExcel utility tests (workbook structure, sheet content, BRL formatting, empty data, column widths, FP precision)
 ```
 
@@ -202,9 +203,9 @@ NODE_ENV=development
 ✅ Toast notification system (`src/components/Toast.jsx`) with success/error types and auto-dismiss
 ✅ Navigation links: Dashboard, Pessoas, Pedidos, Recebíveis
 ✅ Backend dashboard controller (`src/controllers/dashboardController.js`) with `getDashboardData` aggregation
-✅ Backend `GET /api/dashboard` (JWT-protected) returns: totalPending, totalPaid, currentMonthReceipts, personBalances[]
-✅ DashboardPage component (`src/pages/DashboardPage.jsx`) with KPI widgets and Recharts bar chart
-✅ DashboardPage test suite: 12 tests covering rendering, KPI widgets (BRL formatting, zero values), chart (data present, empty state), error/auth handling
+✅ Backend `GET /api/dashboard` (JWT-protected) returns: totalPending, totalPaid, currentMonthReceipts, personBalances[], yearlyBreakdown[]
+✅ DashboardPage component (`src/pages/DashboardPage.jsx`) with KPI widgets, Recharts bar chart, yearly breakdown "Resumo por Ano" table (with Pendente/Quitado columns per year), and XLSX export button
+✅ DashboardPage test suite: 26 tests covering: rendering, KPI widgets (BRL formatting, zero values), chart (data present, empty state), yearly breakdown table (title, headers, year values, BRL formatting, row count, empty state), error/auth handling
 ✅ XLSX export button ("📥 Exportar para Excel") on DashboardPage — fetches /api/orders, /api/people, /api/dashboard concurrently
 ✅ Export utility (`frontend/src/utils/exportExcel.js`) — generates 4-sheet .xlsx workbook: Pedidos, Pessoas, Histórico de Pagamentos, Saldo Pendente
 ✅ BRL monetary cell formatting (#,##0.00) on all currency fields in exported Excel
@@ -215,8 +216,8 @@ NODE_ENV=development
 ✅ exportExcel unit test suite: 32 tests covering workbook structure, sheet content (Pedidos, Pessoas, Histórico de Pagamentos, Saldo Pendente), BRL monetary cell formatting, DD/MM/YYYY date formatting, empty data handling, column widths, floating-point precision
 ✅ DashboardPage export integration tests: 7 tests covering export button rendering, disabled state, enabled state, exportExcel call with fetched data, success/error toast feedback, "Exportando..." loading state
 
-## Next Steps (Phase 19)
-When ready to proceed, Phase 19 will involve:
+## Next Steps (Phase 20)
+When ready to proceed, Phase 20 will involve:
 - TBD (refer to ROADMAP.md for future planning)
 
 ## Notes for Developers/Agents

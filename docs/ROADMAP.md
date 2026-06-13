@@ -365,9 +365,33 @@ Deliverable: ✅ Custom payment date fully implemented and tested. Payment modal
 
 ---
 
+📊 PHASE 19: Dashboard Yearly Breakdown (Pendente/Quitado por Ano)
+Status: ✅ COMPLETED
+
+Context: The dashboard showed only global KPIs and per-person balances, with no breakdown by year. The client requested the ability to see total pending and total paid-off amounts per year.
+
+Stack: Node.js, Express, React, Tailwind CSS, Vitest[cite: 28, 72].
+
+Task:
+Implement a yearly breakdown section in the dashboard that groups orders by their order year:
+1. Backend: Add `yearlyBreakdown` to `GET /api/dashboard` response. For each year (derived from `order.orderDate`), compute:
+   - `totalPending`: sum of `totalValue` for orders with status PENDENTE or PARCIAL
+   - `totalQuitado`: sum of `totalValue` for orders with status QUITADO
+   - Sorted by year descending
+2. Frontend: Add a "Resumo por Ano" table below the existing KPI cards and chart showing columns: Ano, Pendente (red), Quitado (green). Values formatted as BRL. Empty state: "Nenhum dado por ano".
+3. Tests: Backend — 5 integration tests verifying structure, pending/quitado grouping, PARCIAL inclusion in pending, descending sort, orderDate-based grouping (not payment date). Frontend — 7 tests verifying table title, headers, year values, BRL formatting, row count, and empty state.
+
+Deliverable: ✅ Dashboard shows a "Resumo por Ano" table with pending and quitado totals per year, sorted descending. Orders are grouped by their `orderDate` year regardless of when payments occur. All existing tests pass with zero regressions.
+- Backend: 69 tests passing (14 People + 23 Orders + 27 Payments + 5 Dashboard)
+- Frontend: 123 tests passing (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel)
+- **Total: 192 tests passing with zero regressions**
+
+---
+
+
 ## 🎉 MVP PROJECT COMPLETION
 
-**All 16 phases + Phase 17 + Phase 18 have been successfully completed.** The Receivables Control System is now a fully functional, production-ready financial tracking application with comprehensive test coverage.
+**All 16 phases + Phase 17 + Phase 18 + Phase 19 have been successfully completed.** The Receivables Control System is now a fully functional, production-ready financial tracking application with comprehensive test coverage.
 
 ### Summary of Deliverables:
 
@@ -376,7 +400,7 @@ Deliverable: ✅ Custom payment date fully implemented and tested. Payment modal
 - People management (CRUD with validation)
 - Orders management with nested items (CRUD with dynamic sub-forms and custom order date)
 - Payments processing with automatic status transitions and custom payment date
-- Dashboard aggregation (KPIs and per-person balances)
+- Dashboard aggregation (KPIs, per-person balances, and yearly breakdown)
 - Financial calculations using integer cents arithmetic (no floating-point errors)
 
 ✅ **Frontend (React + Vite + Tailwind)**
@@ -384,7 +408,7 @@ Deliverable: ✅ Custom payment date fully implemented and tested. Payment modal
 - People management page (CRUD with modals)
 - Orders management page (CRUD with dynamic item rows and custom order date)
 - Receivables tracking page (payment processing modal with validation and custom payment date)
-- Analytics dashboard with KPI widgets and Recharts visualizations
+- Analytics dashboard with KPI widgets, Recharts visualizations, and yearly breakdown table
 - Excel export functionality (4-sheet workbook with BRL formatting)
 
 ✅ **Database (PostgreSQL 15)**
@@ -393,9 +417,9 @@ Deliverable: ✅ Custom payment date fully implemented and tested. Payment modal
 - Decimal(10,2) monetary precision
 
 ✅ **Testing (Vitest + React Testing Library)**
-- Backend: 64 tests (14 People + 23 Orders + 27 Payments)
-- Frontend: 116 tests (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 19 DashboardPage + 32 exportExcel)
-- **Total: 180 passing tests with zero regressions**
+- Backend: 69 tests (14 People + 23 Orders + 27 Payments + 5 Dashboard)
+- Frontend: 123 tests (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel)
+- **Total: 192 passing tests with zero regressions**
 - 100% TDD methodology applied
 - Comprehensive edge case coverage (overpayment validation, status transitions, floating-point precision)
 
@@ -412,20 +436,21 @@ Deliverable: ✅ Custom payment date fully implemented and tested. Payment modal
 
 ### Test Results Summary:
 ```
-┌─────────────────┬───────────────────┬──────────────┐
-│ Component       │ Test Count        │ Status       │
-├─────────────────┼───────────────────┼──────────────┤
-│ Backend - People│ 14 tests passing  │ ✅ Complete  │
-│ Backend - Orders│ 20 tests passing  │ ✅ Complete  │
-│ Backend - Payments│ 27 tests passing│ ✅ Complete │
-│ Frontend - People│ 14 tests passing │ ✅ Complete  │
-│ Frontend - Orders│ 18 tests passing │ ✅ Complete  │
-│ Frontend - Receivables│ 27 tests │ ✅ Complete │
-│ Frontend - Dashboard│ 19 tests      │ ✅ Complete  │
-│ Frontend - exportExcel│ 32 tests    │ ✅ Complete  │
-├─────────────────┼───────────────────┼──────────────┤
-│ TOTAL │ 180 tests passing │ ✅ MVP READY │
-└─────────────────┴───────────────────┴──────────────┘
+┌─────────────────────────┬───────────────────┬──────────────┐
+│ Component               │ Test Count        │ Status       │
+├─────────────────────────┼───────────────────┼──────────────┤
+│ Backend - People        │ 14 tests passing  │ ✅ Complete  │
+│ Backend - Orders        │ 23 tests passing  │ ✅ Complete  │
+│ Backend - Payments      │ 27 tests passing  │ ✅ Complete  │
+│ Backend - Dashboard     │ 5 tests passing   │ ✅ Complete  │
+│ Frontend - People       │ 14 tests passing  │ ✅ Complete  │
+│ Frontend - Orders       │ 24 tests passing  │ ✅ Complete  │
+│ Frontend - Receivables  │ 27 tests passing  │ ✅ Complete  │
+│ Frontend - Dashboard    │ 26 tests passing  │ ✅ Complete  │
+│ Frontend - exportExcel  │ 32 tests passing  │ ✅ Complete  │
+├─────────────────────────┼───────────────────┼──────────────┤
+│ TOTAL │ 192 tests passing │ ✅ MVP READY │
+└─────────────────────────┴───────────────────┴──────────────┘
 ```
 
 ### Critical Lessons Learned (Documented in AGENTS.md):
