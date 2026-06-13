@@ -90,11 +90,38 @@ const getDashboardData = async (req, res) => {
       })
       .sort((a, b) => a.personName.localeCompare(b.personName));
 
+    const yearMap = new Map();
+
+    for (const order of orders) {
+      const year = order.orderDate.getFullYear();
+      const orderTotalCents = toCents(order.totalValue);
+
+      if (!yearMap.has(year)) {
+        yearMap.set(year, { year, totalPendingCents: 0, totalQuitadoCents: 0 });
+      }
+
+      const entry = yearMap.get(year);
+      if (order.status === 'QUITADO') {
+        entry.totalQuitadoCents += orderTotalCents;
+      } else {
+        entry.totalPendingCents += orderTotalCents;
+      }
+    }
+
+    const yearlyBreakdown = Array.from(yearMap.values())
+      .map((entry) => ({
+        year: entry.year,
+        totalPending: fromCents(entry.totalPendingCents),
+        totalQuitado: fromCents(entry.totalQuitadoCents),
+      }))
+      .sort((a, b) => b.year - a.year);
+
     res.status(200).json({
       totalPending: fromCents(totalPendingCents),
       totalPaid: fromCents(totalPaidCents),
       currentMonthReceipts: fromCents(currentMonthReceiptsCents),
       personBalances,
+      yearlyBreakdown,
     });
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
