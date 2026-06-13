@@ -194,6 +194,42 @@ const DashboardPage = () => {
               <p className="text-gray-500">Nenhum saldo por pessoa</p>
             </div>
           )}
+
+          {(data?.yearlyBreakdown && data.yearlyBreakdown.length > 0) ? (
+            <div className="mt-8">
+              <h3 className="text-lg font-medium text-gray-700 mb-4">
+                Resumo por Ano
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="yearly-breakdown-table w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-3 px-4 font-medium text-gray-600">Ano</th>
+                      <th className="text-right py-3 px-4 font-medium text-gray-600">Pendente</th>
+                      <th className="text-right py-3 px-4 font-medium text-gray-600">Quitado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.yearlyBreakdown.map((yearData) => (
+                      <tr key={yearData.year} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="py-3 px-4 font-medium text-gray-800">{yearData.year}</td>
+                        <td className="py-3 px-4 text-right text-red-600 font-medium">
+                          {formatBRL(yearData.totalPending)}
+                        </td>
+                        <td className="py-3 px-4 text-right text-green-600 font-medium">
+                          {formatBRL(yearData.totalQuitado)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-12 mt-8">
+              <p className="text-gray-500">Nenhum dado por ano</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

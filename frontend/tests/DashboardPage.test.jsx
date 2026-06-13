@@ -25,6 +25,10 @@ const mockDashboardData = {
     { personName: 'João Silva', itemTotal: 2000, paymentTotal: 500 },
     { personName: 'Maria Santos', itemTotal: 1500, paymentTotal: 1500 },
   ],
+  yearlyBreakdown: [
+    { year: 2026, totalPending: 800.0, totalQuitado: 1200.0 },
+    { year: 2025, totalPending: 500.0, totalQuitado: 1800.0 },
+  ],
 };
 
 const mockGetImplementation = (data = mockDashboardData) => {
@@ -161,6 +165,74 @@ describe('DashboardPage', () => {
       await waitFor(() => {
         expect(screen.getByText('Saldos por Pessoa')).toBeInTheDocument();
         expect(document.querySelector('.recharts-responsive-container')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Yearly Breakdown', () => {
+    beforeEach(() => {
+      mockGetImplementation();
+    });
+
+    it('should display "Resumo por Ano" section title', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('Resumo por Ano')).toBeInTheDocument();
+      });
+    });
+
+    it('should display table headers Ano, Pendente, and Quitado', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('Ano')).toBeInTheDocument();
+        expect(screen.getByText('Pendente')).toBeInTheDocument();
+        expect(screen.getByText('Quitado')).toBeInTheDocument();
+      });
+    });
+
+    it('should display year numbers in the table', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('2026')).toBeInTheDocument();
+        expect(screen.getByText('2025')).toBeInTheDocument();
+      });
+    });
+
+    it('should display yearly pending values formatted as BRL', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText(/R\$\s*800,00/)).toBeInTheDocument();
+        expect(screen.getByText(/R\$\s*500,00/)).toBeInTheDocument();
+      });
+    });
+
+    it('should display yearly quitado values formatted as BRL', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText(/R\$\s*1\.200,00/)).toBeInTheDocument();
+        expect(screen.getByText(/R\$\s*1\.800,00/)).toBeInTheDocument();
+      });
+    });
+
+    it('should render the correct number of year rows', async () => {
+      renderPage();
+      await waitFor(() => {
+        const rows = document.querySelectorAll('.yearly-breakdown-table tbody tr');
+        expect(rows.length).toBe(2);
+      });
+    });
+
+    it('should show empty state message when no yearly data exists', async () => {
+      mockGetImplementation({
+        totalPending: 0,
+        totalPaid: 0,
+        currentMonthReceipts: 0,
+        personBalances: [],
+        yearlyBreakdown: [],
+      });
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('Nenhum dado por ano')).toBeInTheDocument();
       });
     });
   });
