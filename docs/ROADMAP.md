@@ -388,8 +388,66 @@ Deliverable: ✅ Dashboard shows a "Resumo por Ano" table with pending and quita
 
 ---
 
+👥 PHASE 20: Database Schema & User Registration
+Status: ✅ COMPLETED
+
+Context: The current system is single-tenant. To support multiple users, we need to isolate data and provide a way for new users to join.
+
+Stack: Prisma, PostgreSQL, Express, bcryptjs, Zod[cite: 28].
+
+Task:
+1. Updated `Prisma` schema: Added `userId` (optional, String?) to `Person` and `Order` models for Phase 20.
+2. Defined `User` ↔ `Person` (0..N) and `User` ↔ `Order` (0..N) relations with `ON DELETE SET NULL`.
+3. Created a compound unique constraint `@@unique([orderNumber, userId])` on `Order` to allow numeric overlaps between different users (Phase 21 will make `userId` required).
+4. Implemented `POST /api/auth/register` in `authController.js` and `authRoutes.js` (Zod validation, bcrypt hashing, duplicate username check → 409, returns user without password field).
+5. **TDD**: Wrote `backend/tests/auth.test.js` with 4 tests: success 201 with password excluded, duplicate username 409, short password 400, short username 400.
+
+Deliverable: ✅ Database migrated with `userId` support and a working registration API endpoint.
+- New migration: `20260614000001_add_user_id_fields`
+- New endpoint: `POST /api/auth/register` (Zod validation → 400, duplicate → 409, success → 201)
+- New test file: `backend/tests/auth.test.js` (4 tests)
+- All existing tests pass with zero regressions
+- Backend: 73 tests (14 People + 23 Orders + 27 Payments + 5 Dashboard + 4 Auth)
+- Frontend: 133 tests (no changes needed)
+- **Total: 206 tests passing**
+
+Note: `userId` is nullable for Phase 20 to maintain backward compatibility with existing data. Phase 21 will make it required and enforce data isolation via JWT authentication on all routes.
+
+---
+
+🔒 PHASE 21: Backend Data Isolation & Auth Enforcement
+Status: ⏳ PENDING
+
+Context: Backend endpoints currently access all data globally. We need to enforce authentication and scope all queries to the authenticated user.
+
+Task:
+1. Apply `authenticateToken` middleware to all routes in `peopleRoutes.js` and all CRUD routes in `ordersRoutes.js`.
+2. Update `peopleController`, `ordersController`, `paymentsController`, and `dashboardController` to filter all Prisma queries using `{ where: { userId: req.user.userId } }`.
+3. Ensure payments and items are validated against the owner of the parent order.
+4. **TDD**: Adapt all ~70 existing backend tests to include authentication headers and associate created data with the test user.
+5. Add isolation tests: User A must not be able to see or modify User B's data.
+
+Deliverable: Complete data isolation at the API level. All data operations are securely scoped to the authenticated user.
+
+---
+
+🖥️ PHASE 22: Frontend Registration & User Context
+Status: ⏳ PENDING
+
+Context: Users need a UI to create accounts and the application must handle the registration flow.
+
+Task:
+1. Create `src/pages/RegisterPage.jsx` with a registration form in PT-BR (Usuário, Senha, Confirmar Senha).
+2. Add "Criar uma conta" link to `LoginPage.jsx` for navigation.
+3. Update `AuthContext.jsx` to include a `register(username, password)` function.
+4. **TDD**: Write frontend tests for `RegisterPage` (rendering, validation, success redirect, error handling) and `LoginPage` navigation.
+
+Deliverable: Fully functional multi-user system with self-registration and isolated user data workspaces.
+
+---
 
 ## 🎉 MVP PROJECT COMPLETION
+
 
 **All 16 phases + Phase 17 + Phase 18 + Phase 19 have been successfully completed.** The Receivables Control System is now a fully functional, production-ready financial tracking application with comprehensive test coverage.
 
@@ -417,9 +475,9 @@ Deliverable: ✅ Dashboard shows a "Resumo por Ano" table with pending and quita
 - Decimal(10,2) monetary precision
 
 ✅ **Testing (Vitest + React Testing Library)**
-- Backend: 69 tests (14 People + 23 Orders + 27 Payments + 5 Dashboard)
+- Backend: 73 tests (14 People + 23 Orders + 27 Payments + 5 Dashboard + 4 Auth)
 - Frontend: 133 tests (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel + 10 api)
-- **Total: 202 passing tests with zero regressions**
+- **Total: 206 passing tests with zero regressions**
 - 100% TDD methodology applied
 - Comprehensive edge case coverage (overpayment validation, status transitions, floating-point precision)
 
@@ -443,6 +501,7 @@ Deliverable: ✅ Dashboard shows a "Resumo por Ano" table with pending and quita
 │ Backend - Orders        │ 23 tests passing  │ ✅ Complete  │
 │ Backend - Payments      │ 27 tests passing  │ ✅ Complete  │
 │ Backend - Dashboard     │ 5 tests passing   │ ✅ Complete  │
+│ Backend - Auth          │ 4 tests passing   │ ✅ Complete  │
 │ Frontend - People       │ 14 tests passing  │ ✅ Complete  │
 │ Frontend - Orders       │ 24 tests passing  │ ✅ Complete  │
 │ Frontend - Receivables  │ 27 tests passing  │ ✅ Complete  │
@@ -450,7 +509,7 @@ Deliverable: ✅ Dashboard shows a "Resumo por Ano" table with pending and quita
 │ Frontend - exportExcel  │ 32 tests passing  │ ✅ Complete  │
 │ Frontend - api          │ 10 tests passing  │ ✅ Complete  │
 ├─────────────────────────┼───────────────────┼──────────────┤
-│ TOTAL │ 202 tests passing │ ✅ MVP READY │
+│ TOTAL │ 206 tests passing │ ✅ MVP READY │
 └─────────────────────────┴───────────────────┴──────────────┘
 ```
 

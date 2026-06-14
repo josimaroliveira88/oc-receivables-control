@@ -217,9 +217,11 @@ NODE_ENV=development
 ✅ exportExcel unit test suite: 32 tests covering workbook structure, sheet content (Pedidos, Pessoas, Histórico de Pagamentos, Saldo Pendente), BRL monetary cell formatting, DD/MM/YYYY date formatting, empty data handling, column widths, floating-point precision
 ✅ DashboardPage export integration tests: 7 tests covering export button rendering, disabled state, enabled state, exportExcel call with fetched data, success/error toast feedback, "Exportando..." loading state
 
-## Next Steps (Phase 20)
-When ready to proceed, Phase 20 will involve:
-- TBD (refer to ROADMAP.md for future planning)
+## Next Steps (Phase 20+)
+Planned multi-user isolation and self-registration system:
+- **Phase 20**: Prisma schema update (`userId` in Person/Order), registration API (`POST /api/auth/register`), and TDD setup.
+- **Phase 21**: Backend data isolation (middleware enforcement on all routes, query filtering by `req.user.userId`).
+- **Phase 22**: Frontend registration UI (`RegisterPage.jsx`) and AuthContext integration.
 
 ## Notes for Developers/Agents
 - Backend source is mounted at `/app` inside container for live editing

@@ -97,11 +97,11 @@ Backend only:
 Frontend only:
 - `npm run dev` - Starts frontend Vite dev server
 
-## MVP Project Status
+## Project Status
 
-🎉 **All MVP phases (1-16) have been COMPLETED.**
+🎉 **All MVP phases (1-16) + Phase 17 + Phase 18 + Phase 19 + Phase 20 have been COMPLETED.**
 
-The Receivables Control System is now fully functional with all core features implemented, tested, and production-ready:
+The Receivables Control System is now fully functional with all core features implemented, tested, and production-ready. Phase 20 added multi-user schema foundation with a user registration endpoint.
 
 ### Completed Features:
 ✅ Multi-container Docker environment (backend, frontend, database, admin UI)
@@ -114,15 +114,17 @@ The Receivables Control System is now fully functional with all core features im
 ✅ Receivables tracking dashboard with per-person balance breakdown
 ✅ Analytics dashboard with KPI widgets, Recharts visualizations, and yearly breakdown (Pendente/Quitado por ano)
 ✅ Excel export functionality (4-sheet workbook with BRL formatting)
-✅ Comprehensive test coverage (133 frontend tests + 69 backend tests)
+✅ Comprehensive test coverage (133 frontend tests + 73 backend tests)
 ✅ Financial precision (integer cents arithmetic, no floating-point errors)
 ✅ Complete TDD methodology applied across all phases
 ✅ PT-BR localization for all user-facing content
+✅ Multi-user schema foundation (userId on Person/Order)
+✅ User registration API endpoint (POST /api/auth/register)
 
 ### Test Results:
-- **Backend Tests**: 69 passing (14 People + 23 Orders + 27 Payments + 5 Dashboard)
+- **Backend Tests**: 73 passing (14 People + 23 Orders + 27 Payments + 5 Dashboard + 4 Auth)
 - **Frontend Tests**: 133 passing (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel + 10 api)
-- **Total**: 202 tests passing with zero regressions
+- **Total**: 206 tests passing with zero regressions
 
 ### Key Learnings Documented:
 15 critical lessons learned documented in AGENTS.md (see "Lessons Learned / Pitfalls to Avoid") to guide future development:
