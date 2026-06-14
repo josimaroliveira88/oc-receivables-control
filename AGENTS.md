@@ -14,6 +14,7 @@ Frontend:
 - Recharts
 - SheetJS (xlsx)
 - lucide-react
+- jwt-decode
 
 Database:
 - PostgreSQL 15
@@ -100,9 +101,9 @@ Frontend only:
 
 ## Project Status
 
-🎉 **All MVP phases (1-16) + Phases 17-24 have been COMPLETED.**
+🎉 **All MVP phases (1-16) + Phases 17-25 have been COMPLETED.**
 
-The Receivables Control System is now fully functional with user self-registration, complete backend data isolation, responsive mobile navigation, and a unified design system with dark mode. Phase 24 added a comprehensive design system overhaul: semantic color tokens, border-top accent cards, gradient buttons, lucide-react icons (replacing emojis), unified status badges with colored dots, glassmorphism modals, dark mode with manual toggle (Sun/Moon), and `dark:` variants across every component.
+The Receivables Control System is now fully functional with user self-registration, complete backend data isolation, responsive mobile navigation, and a unified design system with dark mode. Phase 25 added a logged-in user badge displaying the current username in the header and mobile bottom nav, along with `jwt-decode` for client-side JWT payload extraction and a Docker startup fix that runs `npm install` on container start to ensure anonymous volumes receive new dependencies on image rebuild.
 
 ### Completed Features:
 ✅ Multi-container Docker environment (backend, frontend, database, admin UI)
@@ -130,14 +131,18 @@ The Receivables Control System is now fully functional with user self-registrati
 ✅ Desktop horizontal navigation with `<NavLink>` active state highlighting
 ✅ Mobile UX: username inputs default to lowercase (`autoCapitalize="none"`) on virtual keyboards
 ✅ Password visibility toggle (`Eye`/`EyeOff` icon) on login and registration forms
+✅ Logged-in user badge — username displayed as `User` icon + text badge in header (desktop) and as a clickable dropdown menu with Sair option in mobile bottom nav (via `jwt-decode` client-side JWT decoding)
+✅ Docker `npm install` on container start — frontend `CMD` and backend `entrypoint.sh` run `npm install` before starting, ensuring anonymous node_modules volumes receive new dependencies after `docker compose up --build`
 
 ### Test Results:
 - **Backend Tests**: 82 passing (17 People + 27 Orders + 28 Payments + 6 Dashboard + 4 Auth)
-- **Frontend Tests**: 180 passing (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel + 10 api + 20 RegisterPage + 10 LoginPage + 4 Header + 6 MobileBottomNav + 7 ThemeContext)
-- **Total**: 262 tests passing with zero regressions
+- **Frontend Tests**: 183 passing (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel + 10 api + 20 RegisterPage + 10 LoginPage + 6 Header + 7 MobileBottomNav + 7 ThemeContext)
+- **Total**: 265 tests passing with zero regressions
+
+
 
 ### Key Learnings Documented:
-16 critical lessons learned documented in AGENTS.md (see "Lessons Learned / Pitfalls to Avoid") to guide future development:
+17 critical lessons learned documented in AGENTS.md (see "Lessons Learned / Pitfalls to Avoid") to guide future development:
 1. vi.mock hoisting bug in Vitest — arrow-function wrapper solution
 2. HTML5 required attribute blocking form submission in jsdom
 3. Conditional rendering of dynamic list items
@@ -456,3 +461,31 @@ const formatDateBR = (dateStr) => {
    The Vite dev server proxies `/api/*` requests to the backend. In Docker, set `API_URL=http://backend:4000` on the frontend service so the proxy reaches the backend container.
 
 **Result**: The browser sends all requests to the same origin (port 3000), eliminating CORS entirely for development. The proxy runs server-side (inside Vite/Docker), so network identity is irrelevant. Added `morgan` HTTP request logging to the backend for easier debugging of future network issues.
+
+### 17. Docker Anonymous Volume Preserves Old node_modules After Image Rebuild
+
+**Problem**: Docker compose uses anonymous volumes (`- /app/node_modules`) to keep container `node_modules` separate from the host bind mount. When `package.json` adds a new dependency (e.g., `jwt-decode`) and `docker compose up --build` rebuilds the image with `npm install`, the **old anonymous volume persists** and hides the new `node_modules` from the image. The new dependency is never installed.
+
+```yaml
+# docker-compose.yml — anonymous volume hides new node_modules after rebuild
+volumes:
+  - ./frontend:/app       # bind mount overrides /app from image
+  - /app/node_modules     # anonymous volume keeps OLD node_modules
+```
+
+**Fix**: Run `npm install` on every container start, before the application process begins. This updates the anonymous volume with any new dependencies:
+
+```dockerfile
+# frontend/Dockerfile — npm install runs before dev server
+CMD ["sh", "-c", "npm install && npm run dev -- --host 0.0.0.0 --port 3000"]
+```
+
+And for the backend:
+
+```sh
+# backend/entrypoint.sh — npm install runs before migrations
+echo "Installing dependencies..."
+npm install
+```
+
+npm is idempotent and fast when `package.json` hasn't changed (uses local cache), so startup time is minimally affected.

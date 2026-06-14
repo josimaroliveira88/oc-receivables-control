@@ -502,10 +502,38 @@ Deliverable: ✅ Username inputs now default to lowercase on mobile keyboards. P
 
 ---
 
+---
+
+👤 PHASE 25: Logged-in User Badge
+Status: ✅ COMPLETED
+
+Context: The application has multi-user support, but there was no visual indicator of which user is currently logged in. Users needed to see their username displayed in the UI.
+
+Stack: React, jwt-decode, lucide-react (User icon), Docker
+
+Task:
+1. Install jwt-decode in the frontend and modify AuthContext.jsx to decode the JWT token payload (userId, username) on login and page load, exposing a `user` object in the context.
+2. Update Header.jsx to display a username badge with the User icon between the theme toggle and Sair button on desktop (`hidden md:inline-flex`).
+3. Update MobileBottomNav.jsx to display the username badge with a clickable dropdown menu containing the Sair option (prepared for future options), using `useRef` + click-outside detection.
+4. Fix Docker startup to ensure `npm install` runs on container start — add it to frontend CMD and backend entrypoint.sh — so that anonymous volumes receive new dependencies after `docker compose up --build`.
+5. TDD: Write 2 new Header tests (username display when logged in, hidden when not logged in). Update MobileBottomNav tests for dropdown behavior + click-outside close.
+
+Deliverable: ✅ Logged-in user badge in header (desktop) and clickable dropdown with Sair option in mobile bottom nav.
+- Installed jwt-decode v4.0.0
+- AuthContext.jsx: decodes JWT with `jwtDecode()`, exposes `user: { id, username, } | null`
+- Header.jsx: badge `<User icon + username>` between theme toggle and Sair
+- MobileBottomNav.jsx: badge `<User icon + username>` opens dropdown with Sair option (extensible via `userMenuItems` array)
+- Docker: frontend CMD runs `npm install && npm run dev`; backend entrypoint.sh runs `npm install` before migrations
+- Frontend: 183 tests passing (+2 Header tests, +1 MobileBottomNav test, 183 total)
+- Backend: 82 tests passing (zero regressions)
+- Total: 265 tests passing with zero regressions
+
+---
+
 ## 🎉 MVP PROJECT COMPLETION
 
 
-**All 16 phases + Phases 17-24 have been successfully completed.** The Receivables Control System is now a fully functional, production-ready financial tracking application with comprehensive test coverage.
+**All 16 phases + Phases 17-25 have been successfully completed.** The Receivables Control System is now a fully functional, production-ready financial tracking application with comprehensive test coverage.
 
 ### Summary of Deliverables:
 
@@ -534,8 +562,8 @@ Deliverable: ✅ Username inputs now default to lowercase on mobile keyboards. P
 
 ✅ **Testing (Vitest + React Testing Library)**
 - Backend: 82 tests (17 People + 27 Orders + 28 Payments + 6 Dashboard + 4 Auth)
-- Frontend: 173 tests (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel + 10 api + 20 RegisterPage + 10 LoginPage + 4 Header + 6 MobileBottomNav)
-- **Total: 255 tests passing**
+- Frontend: 183 tests (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel + 10 api + 20 RegisterPage + 10 LoginPage + 6 Header + 7 MobileBottomNav + 7 ThemeContext)
+- **Total: 265 tests passing**
 - 100% TDD methodology applied
 - Comprehensive edge case coverage (overpayment validation, status transitions, floating-point precision)
 
@@ -568,10 +596,10 @@ Deliverable: ✅ Username inputs now default to lowercase on mobile keyboards. P
 │ Frontend - RegisterPage  │ 20 tests passing  │ ✅ Complete  │
 │ Frontend - LoginPage     │ 10 tests passing  │ ✅ Complete  │
 │ Frontend - api           │ 10 tests passing  │ ✅ Complete  │
-│ Frontend - Header       │ 4 tests passing   │ ✅ Complete  │
+│ Frontend - Header       │ 6 tests passing   │ ✅ Complete  │
 │ Frontend - MobileBottomNav │ 6 tests passing │ ✅ Complete  │
 ├─────────────────────────┼───────────────────┼──────────────┤
-│ TOTAL │ 255 tests passing │ ✅ MOBILE UX IMPROVEMENTS COMPLETE │
+│ TOTAL │ 265 tests passing │ ✅ LOGGED-IN USER BADGE COMPLETE │
 └─────────────────────────┴───────────────────┴──────────────┘
 ```
 
@@ -688,7 +716,7 @@ Deliverable: ✅ Unified design system with dark mode support across the entire 
 ## 🏆 Project Highlights
 
 - **Zero Floating-Point Errors**: All financial calculations use integer cents arithmetic
-- **100% Test Coverage**: 262 tests covering all critical paths, edge cases, and regressions
+- **100% Test Coverage**: 265 tests covering all critical paths, edge cases, and regressions
 - **Financial Precision**: Decimal(10,2) database fields, proper overpayment rejection, accurate status transitions
 - **User Experience**: PT-BR localization, responsive Tailwind design, toast feedback, loading states
 - **Code Quality**: TDD methodology, clear error messages, proper auth guards, documented pitfalls

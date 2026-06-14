@@ -3,11 +3,11 @@
 ## Overview
 This document describes the current state of the project architecture, file organization, and how to run the system.
 
-**🎉 Project Status: PHASE 24 COMPLETE** — All 16 phases + Phases 17-24 completed with 262 automated tests passing (82 backend + 180 frontend). The Receivables Control System is production-ready with full CRUD operations, payment processing, dashboard analytics (including yearly breakdown), Excel export functionality, custom order date support, custom payment date support, user self-registration, automatic 401/403 redirect to login on session expiry, responsive mobile navigation with bottom tab bar, unified design system with brand gradient/glassmorphism, dark mode with manual toggle, and lucide-react icons throughout.
+**🎉 Project Status: PHASE 25 COMPLETE** — All 16 phases + Phases 17-25 completed with 265 automated tests passing (82 backend + 183 frontend). The Receivables Control System is production-ready with full CRUD operations, payment processing, dashboard analytics (including yearly breakdown), Excel export functionality, custom order date support, custom payment date support, user self-registration, automatic 401/403 redirect to login on session expiry, responsive mobile navigation with bottom tab bar, unified design system with brand gradient/glassmorphism, dark mode with manual toggle, lucide-react icons throughout, and logged-in user dropdown menu with Sair option via client-side JWT decoding.
 
 ## Technology Stack
 - **Backend**: Node.js (Express) with Prisma ORM
-- **Frontend**: React with Vite, Tailwind CSS, and Recharts
+- **Frontend**: React with Vite, Tailwind CSS, Recharts, and jwt-decode
 - **Database**: PostgreSQL 15
 - **Infrastructure**: Docker and Docker Compose
 
@@ -71,11 +71,11 @@ oc-receivables-control/
 │   ├── services/
 │   │   └── api.js              # Axios client with auth interceptor
 │ ├── context/
-│ │ ├── AuthContext.jsx     # Auth state (login/logout/register/token)
+│ │ ├── AuthContext.jsx     # Auth state (login/logout/register/token, user from JWT decode)
 │ │ └── ThemeContext.jsx    # Theme state (dark/light toggle, localStorage persistence)
 │ ├── components/
-│ │ ├── Header.jsx # Responsive desktop header with gradient, theme toggle (Sun/Moon), NavLink + lucide-react
-│ │ ├── MobileBottomNav.jsx # Fixed bottom nav for mobile with theme toggle (lucide-react icons)
+│ │ ├── Header.jsx # Responsive desktop header with gradient, theme toggle (Sun/Moon), NavLink + lucide-react, logged-in user badge
+│ │ ├── MobileBottomNav.jsx # Fixed bottom nav for mobile with theme toggle (lucide-react icons), logged-in user dropdown with Sair option
 │ │ ├── ProtectedRoute.jsx # Route guard for auth
 │ │ └── Toast.jsx # Toast notification provider & component
 │ ├── utils/
@@ -94,8 +94,8 @@ oc-receivables-control/
 │ ├── PeoplePage.test.jsx # 14 PeoplePage tests
 │   ├── OrdersPage.test.jsx # 24 OrdersPage tests
 │   ├── ReceivablesPage.test.jsx # 27 ReceivablesPage tests (badge rendering, payment modal, validation guards, payment date field, toast feedback, FP regression)
-│ ├── Header.test.jsx # 4 Header tests (title, nav links, Sair button, logout function)
-│ ├── MobileBottomNav.test.jsx # 6 MobileBottomNav tests (items, links count, logout, active highlight, fixed position, mobile-only)
+│ ├── Header.test.jsx # 6 Header tests (title, nav links, Sair button, logout function, username display, hidden when not logged in)
+│ ├── MobileBottomNav.test.jsx # 7 MobileBottomNav tests (items, user dropdown toggle, logout, active highlight, fixed position, mobile-only, click outside closes dropdown)
 │ ├── DashboardPage.test.jsx # 26 DashboardPage tests (KPI widgets, chart, yearly breakdown, export button integration, toast feedback)
 │ ├── RegisterPage.test.jsx # 18 RegisterPage tests (rendering, validation, success redirect, error handling, loading, navigation)
 │ ├── LoginPage.test.jsx # 9 LoginPage tests (rendering, registration link, success message, login form)
@@ -122,6 +122,7 @@ Defined in `docker-compose.yml` with network `receivables-network`:
   - Ports: 3000:3000
   - Environment: API_URL=http://backend:4000 (Vite proxy target for /api/* calls)
   - Volumes: ./frontend:/app (live code reload), /app/node_modules
+  - CMD runs `npm install` before dev server to ensure anonymous volume gets new deps on rebuild
 - **adminer**: Database administration UI
   - Image: adminer
   - Ports: 8080:8080
@@ -234,12 +235,13 @@ NODE_ENV=development
 ✅ exportExcel unit test suite: 32 tests covering workbook structure, sheet content (Pedidos, Pessoas, Histórico de Pagamentos, Saldo Pendente), BRL monetary cell formatting, DD/MM/YYYY date formatting, empty data handling, column widths, floating-point precision
 ✅ DashboardPage export integration tests: 7 tests covering export button rendering, disabled state, enabled state, exportExcel call with fetched data, success/error toast feedback, "Exportando..." loading state
 
-## Completed Phases (24)
+## Completed Phases (25)
 - **Phase 20**: ✅ Prisma schema update (`userId` in Person/Order), registration API (`POST /api/auth/register`), and TDD setup. 82 backend tests.
 - **Phase 21**: ✅ Backend data isolation (middleware enforcement on all routes, query filtering by `req.user.userId`). `userId` made required with `ON DELETE CASCADE`.
 - **Phase 22**: ✅ Frontend registration UI (`RegisterPage.jsx`) with PT-BR form, client-side validation, success redirect, and LoginPage navigation. 18 RegisterPage tests + 9 LoginPage tests. 160 frontend tests, 242 total tests.
 - **Phase 23**: ✅ Responsive header with gradient design. Mobile bottom navigation bar with lucide-react icons. 170 frontend tests, 252 total tests.
 - **Phase 24**: ✅ Design system unification + dark mode. Tailwind config with `darkMode: 'class'` and `primary` tokens. `ThemeContext.jsx` with localStorage persistence and system preference detection. All emojis replaced with `lucide-react` icons. Border-top accent on all cards. Gradient buttons (`from-primary-700 to-primary-500`). Unified status badges with colored dots. Glassmorphism modals. `dark:` variants everywhere. 180 frontend tests (173 + 7 new ThemeContext tests), 262 total tests.
+- **Phase 25**: ✅ Logged-in user badge in header (desktop) and clickable dropdown with Sair option in mobile bottom nav. `jwt-decode` added for client-side JWT payload extraction. Docker `npm install` on container start to ensure anonymous volumes receive new dependencies on rebuild. 183 frontend tests (6 Header + 7 MobileBottomNav), 265 total tests.
 
 ## Notes for Developers/Agents
 - Backend source is mounted at `/app` inside container for live editing
