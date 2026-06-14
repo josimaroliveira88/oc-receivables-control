@@ -29,6 +29,7 @@ const updateOrderSchema = z.object({
 const getOrders = async (req, res) => {
   try {
     const orders = await prisma.order.findMany({
+      where: { userId: req.user.userId },
       include: {
         items: {
           include: {
@@ -50,8 +51,8 @@ const getOrders = async (req, res) => {
 const getOrderById = async (req, res) => {
   try {
     const { id } = req.params;
-    const order = await prisma.order.findUnique({
-      where: { id },
+    const order = await prisma.order.findFirst({
+      where: { id, userId: req.user.userId },
       include: {
         items: {
           include: {
@@ -61,11 +62,11 @@ const getOrderById = async (req, res) => {
         payments: true,
       },
     });
-    
+
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
     }
-    
+
     res.status(200).json(order);
   } catch (error) {
     console.error('Error fetching order:', error);
@@ -77,20 +78,20 @@ const getOrderById = async (req, res) => {
 const createOrder = async (req, res) => {
   try {
     const validatedData = createOrderSchema.parse(req.body);
-    
-    // Verify all persons exist
+
+    // Verify all persons exist and belong to user
     const personIds = [...new Set(validatedData.items.map(item => item.personId))];
     const persons = await prisma.person.findMany({
-      where: { id: { in: personIds } },
+      where: { id: { in: personIds }, userId: req.user.userId },
     });
-    
+
     if (persons.length !== personIds.length) {
       return res.status(400).json({ error: 'One or more persons not found' });
     }
-    
+
     // Calculate total value
     const totalValue = validatedData.items.reduce((sum, item) => sum + item.value, 0);
-    
+
     // Create order with items
     const order = await prisma.order.create({
       data: {
@@ -98,6 +99,7 @@ const createOrder = async (req, res) => {
         totalValue: totalValue,
         orderDate: validatedData.orderDate ? parseLocalDate(validatedData.orderDate) : undefined,
         status: 'PENDENTE',
+        userId: req.user.userId,
         items: {
           create: validatedData.items.map(item => ({
             description: item.description,
@@ -114,7 +116,7 @@ const createOrder = async (req, res) => {
         },
       },
     });
-    
+
     res.status(201).json(order);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -131,9 +133,9 @@ const updateOrder = async (req, res) => {
     const { id } = req.params;
   const validatedData = updateOrderSchema.parse(req.body);
 
-  // Check if order exists
-  const existingOrder = await prisma.order.findUnique({
-    where: { id },
+  // Check if order exists and belongs to user
+  const existingOrder = await prisma.order.findFirst({
+    where: { id, userId: req.user.userId },
     include: { items: true },
   });
 
@@ -144,7 +146,7 @@ const updateOrder = async (req, res) => {
   if (validatedData.items) {
     const personIds = [...new Set(validatedData.items.map(item => item.personId))];
     const persons = await prisma.person.findMany({
-      where: { id: { in: personIds } },
+      where: { id: { in: personIds }, userId: req.user.userId },
     });
 
     if (persons.length !== personIds.length) {
@@ -209,20 +211,20 @@ const updateOrder = async (req, res) => {
 const deleteOrder = async (req, res) => {
   try {
     const { id } = req.params;
-    
-    // Check if order exists
-    const existingOrder = await prisma.order.findUnique({
-      where: { id },
+
+    // Check if order exists and belongs to user
+    const existingOrder = await prisma.order.findFirst({
+      where: { id, userId: req.user.userId },
     });
-    
+
     if (!existingOrder) {
       return res.status(404).json({ error: 'Order not found' });
     }
-    
+
     await prisma.order.delete({
       where: { id },
     });
-    
+
     res.status(200).json({ message: 'Order deleted successfully' });
   } catch (error) {
     console.error('Error deleting order:', error);
@@ -235,25 +237,25 @@ const addItemToOrder = async (req, res) => {
   try {
     const { id: orderId } = req.params;
     const validatedData = itemSchema.parse(req.body);
-    
-    // Check if order exists
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
+
+    // Check if order exists and belongs to user
+    const order = await prisma.order.findFirst({
+      where: { id: orderId, userId: req.user.userId },
     });
-    
+
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
     }
-    
-    // Check if person exists
-    const person = await prisma.person.findUnique({
-      where: { id: validatedData.personId },
+
+    // Check if person exists and belongs to user
+    const person = await prisma.person.findFirst({
+      where: { id: validatedData.personId, userId: req.user.userId },
     });
-    
+
     if (!person) {
       return res.status(400).json({ error: 'Person not found' });
     }
-    
+
     // Add item to order
     const item = await prisma.item.create({
       data: {
@@ -266,7 +268,7 @@ const addItemToOrder = async (req, res) => {
         person: true,
       },
     });
-    
+
     // Update order total value
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },
@@ -283,7 +285,7 @@ const addItemToOrder = async (req, res) => {
         },
       },
     });
-    
+
     res.status(201).json(item);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -299,30 +301,34 @@ const updateItem = async (req, res) => {
   try {
     const { id: itemId } = req.params;
     const validatedData = itemSchema.partial().parse(req.body);
-    
-    // Check if item exists
+
+    // Check if item exists and belongs to user's order
     const existingItem = await prisma.item.findUnique({
       where: { id: itemId },
       include: {
         order: true,
       },
     });
-    
+
     if (!existingItem) {
       return res.status(404).json({ error: 'Item not found' });
     }
-    
-    // If updating personId, verify person exists
+
+    if (existingItem.order.userId !== req.user.userId) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+
+    // If updating personId, verify person exists and belongs to user
     if (validatedData.personId) {
-      const person = await prisma.person.findUnique({
-        where: { id: validatedData.personId },
+      const person = await prisma.person.findFirst({
+        where: { id: validatedData.personId, userId: req.user.userId },
       });
-      
+
       if (!person) {
         return res.status(400).json({ error: 'Person not found' });
       }
     }
-    
+
     // Update item
     const item = await prisma.item.update({
       where: { id: itemId },
@@ -331,7 +337,7 @@ const updateItem = async (req, res) => {
         person: true,
       },
     });
-    
+
     // Update order total value if value changed
     if (validatedData.value !== undefined) {
       const valueChange = validatedData.value - existingItem.value;
@@ -344,7 +350,7 @@ const updateItem = async (req, res) => {
         },
       });
     }
-    
+
     res.status(200).json(item);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -359,24 +365,28 @@ const updateItem = async (req, res) => {
 const deleteItem = async (req, res) => {
   try {
     const { id: itemId } = req.params;
-    
-    // Check if item exists
+
+    // Check if item exists and belongs to user's order
     const existingItem = await prisma.item.findUnique({
       where: { id: itemId },
       include: {
         order: true,
       },
     });
-    
+
     if (!existingItem) {
       return res.status(404).json({ error: 'Item not found' });
     }
-    
+
+    if (existingItem.order.userId !== req.user.userId) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+
     // Delete item
     await prisma.item.delete({
       where: { id: itemId },
     });
-    
+
     // Update order total value
     await prisma.order.update({
       where: { id: existingItem.orderId },
@@ -386,7 +396,7 @@ const deleteItem = async (req, res) => {
         },
       },
     });
-    
+
     res.status(200).json({ message: 'Item deleted successfully' });
   } catch (error) {
     console.error('Error deleting item:', error);

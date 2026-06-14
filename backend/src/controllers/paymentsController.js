@@ -23,8 +23,8 @@ const createPayment = async (req, res) => {
     const amountCents = Math.round(validatedData.amount * 100);
 
     const result = await prisma.$transaction(async (tx) => {
-      const order = await tx.order.findUnique({
-        where: { id: orderId },
+      const order = await tx.order.findFirst({
+        where: { id: orderId, userId: req.user.userId },
         include: {
           items: {
             include: {
@@ -39,8 +39,8 @@ const createPayment = async (req, res) => {
         throw new Error('Order not found');
       }
 
-      const person = await tx.person.findUnique({
-        where: { id: validatedData.personId },
+      const person = await tx.person.findFirst({
+        where: { id: validatedData.personId, userId: req.user.userId },
       });
 
       if (!person) {
@@ -150,8 +150,8 @@ const getOrderBalance = async (req, res) => {
   try {
     const { orderId } = req.params;
 
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
+    const order = await prisma.order.findFirst({
+      where: { id: orderId, userId: req.user.userId },
       include: {
         items: {
           include: {
