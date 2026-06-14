@@ -1,5 +1,9 @@
 #!/bin/sh
 
+# Install dependencies to ensure anonymous volume gets new packages on image rebuild
+echo "Installing dependencies..."
+npm install
+
 echo "Waiting for database..."
 until npx prisma migrate deploy; do
   echo "Database not ready yet, retrying in 3s..."
