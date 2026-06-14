@@ -3,7 +3,7 @@
 ## Overview
 This document describes the current state of the project architecture, file organization, and how to run the system.
 
-**🎉 Project Status: MVP COMPLETE** — All 16 phases + Phases 17-22 completed with 242 automated tests passing. The Receivables Control System is production-ready with full CRUD operations, payment processing, dashboard analytics (including yearly breakdown), Excel export functionality, custom order date support, custom payment date support, user self-registration, and automatic 401/403 redirect to login on session expiry. Ready to accept new client feature requests.
+**🎉 Project Status: MVP COMPLETE** — All 16 phases + Phases 17-23 completed with 252 automated tests passing. The Receivables Control System is production-ready with full CRUD operations, payment processing, dashboard analytics (including yearly breakdown), Excel export functionality, custom order date support, custom payment date support, user self-registration, automatic 401/403 redirect to login on session expiry, and responsive mobile navigation with bottom tab bar. Ready to accept new client feature requests.
 
 ## Technology Stack
 - **Backend**: Node.js (Express) with Prisma ORM
@@ -72,6 +72,8 @@ oc-receivables-control/
 │   ├── context/
 │   │   └── AuthContext.jsx     # Auth state (login/logout/register/token)
 │ ├── components/
+│ │ ├── Header.jsx # Responsive desktop header with gradient (NavLink + lucide-react)
+│ │ ├── MobileBottomNav.jsx # Fixed bottom nav for mobile (lucide-react icons)
 │ │ ├── ProtectedRoute.jsx # Route guard for auth
 │ │ └── Toast.jsx # Toast notification provider & component
 │ ├── utils/
@@ -90,6 +92,8 @@ oc-receivables-control/
 │ ├── PeoplePage.test.jsx # 14 PeoplePage tests
 │   ├── OrdersPage.test.jsx # 24 OrdersPage tests
 │   ├── ReceivablesPage.test.jsx # 27 ReceivablesPage tests (badge rendering, payment modal, validation guards, payment date field, toast feedback, FP regression)
+│ ├── Header.test.jsx # 4 Header tests (title, nav links, Sair button, logout function)
+│ ├── MobileBottomNav.test.jsx # 6 MobileBottomNav tests (items, links count, logout, active highlight, fixed position, mobile-only)
 │ ├── DashboardPage.test.jsx # 26 DashboardPage tests (KPI widgets, chart, yearly breakdown, export button integration, toast feedback)
 │ ├── RegisterPage.test.jsx # 18 RegisterPage tests (rendering, validation, success redirect, error handling, loading, navigation)
 │ ├── LoginPage.test.jsx # 9 LoginPage tests (rendering, registration link, success message, login form)
@@ -232,6 +236,7 @@ Multi-user isolation and self-registration system:
 - **Phase 20**: ✅ Prisma schema update (`userId` in Person/Order), registration API (`POST /api/auth/register`), and TDD setup.
 - **Phase 21**: ✅ Backend data isolation (middleware enforcement on all routes, query filtering by `req.user.userId`). `userId` made required with `ON DELETE CASCADE`. 82 backend tests (was 73).
 - **Phase 22**: ✅ Frontend registration UI (`RegisterPage.jsx`) with PT-BR form, client-side validation, success redirect, and LoginPage navigation. 18 RegisterPage tests + 9 LoginPage tests. 160 total frontend tests, 242 total tests.
+- **Phase 23**: ✅ Responsive header with gradient design (`from-blue-800 to-blue-600`). Mobile bottom navigation bar with lucide-react icons. Header extracted to `src/components/Header.jsx`, bottom nav to `src/components/MobileBottomNav.jsx`. `<a href>` replaced with `<NavLink>` for SPA navigation. Added `lucide-react` dependency. 4 Header tests + 6 MobileBottomNav tests. 170 total frontend tests, 252 total tests.
 
 ## Notes for Developers/Agents
 - Backend source is mounted at `/app` inside container for live editing
