@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const morgan = require('morgan');
 const { ZodError } = require('zod');
 
 if (process.env.NODE_ENV !== 'test') {
@@ -8,9 +9,17 @@ if (process.env.NODE_ENV !== 'test') {
 
 const app = express();
 
+// Request logging
+if (process.env.NODE_ENV !== 'test') {
+  app.use(morgan(':method :url :status :res[content-length] - :response-time ms - origin: :req[origin]'));
+}
+
 // Middleware
+const corsOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map(s => s.trim())
+  : true;
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: corsOrigins,
   credentials: true
 }));
 app.use(express.json());
@@ -38,6 +47,14 @@ app.use('/api/dashboard', dashboardRoutes);
 
 // Centralized error handling middleware
 app.use((error, req, res, next) => {
+  console.error('Unhandled error:', {
+    message: error.message,
+    stack: error.stack,
+    method: req.method,
+    url: req.originalUrl,
+    origin: req.get('origin'),
+    ip: req.ip
+  });
   if (error instanceof ZodError) {
     return res.status(400).json({ error: error.errors });
   }
