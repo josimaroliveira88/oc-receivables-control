@@ -99,9 +99,9 @@ Frontend only:
 
 ## Project Status
 
-🎉 **All MVP phases (1-16) + Phase 17 + Phase 18 + Phase 19 + Phase 20 have been COMPLETED.**
+🎉 **All MVP phases (1-16) + Phases 17-21 have been COMPLETED.**
 
-The Receivables Control System is now fully functional with all core features implemented, tested, and production-ready. Phase 20 added multi-user schema foundation with a user registration endpoint.
+The Receivables Control System is now fully functional with complete backend data isolation. Phase 21 enforced authentication on all routes and scoped all data operations to the authenticated user.
 
 ### Completed Features:
 ✅ Multi-container Docker environment (backend, frontend, database, admin UI)
@@ -114,20 +114,37 @@ The Receivables Control System is now fully functional with all core features im
 ✅ Receivables tracking dashboard with per-person balance breakdown
 ✅ Analytics dashboard with KPI widgets, Recharts visualizations, and yearly breakdown (Pendente/Quitado por ano)
 ✅ Excel export functionality (4-sheet workbook with BRL formatting)
-✅ Comprehensive test coverage (133 frontend tests + 73 backend tests)
+✅ Comprehensive test coverage (133 frontend tests + 82 backend tests)
 ✅ Financial precision (integer cents arithmetic, no floating-point errors)
 ✅ Complete TDD methodology applied across all phases
 ✅ PT-BR localization for all user-facing content
 ✅ Multi-user schema foundation (userId on Person/Order)
 ✅ User registration API endpoint (POST /api/auth/register)
+✅ Backend data isolation — all routes JWT-protected, queries filtered by `userId`, cross-user access blocked
+✅ `userId` required on Person/Order with `ON DELETE CASCADE` (migration: `20260614184002_make_user_id_required`)
 
 ### Test Results:
-- **Backend Tests**: 73 passing (14 People + 23 Orders + 27 Payments + 5 Dashboard + 4 Auth)
+- **Backend Tests**: 82 passing (17 People + 27 Orders + 28 Payments + 6 Dashboard + 4 Auth)
 - **Frontend Tests**: 133 passing (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel + 10 api)
-- **Total**: 206 tests passing with zero regressions
+- **Total**: 215 tests passing with zero regressions
 
 ### Key Learnings Documented:
 15 critical lessons learned documented in AGENTS.md (see "Lessons Learned / Pitfalls to Avoid") to guide future development:
+1. vi.mock hoisting bug in Vitest — arrow-function wrapper solution
+2. HTML5 required attribute blocking form submission in jsdom
+3. Conditional rendering of dynamic list items
+4. dotenv.config() overriding test environment variables
+5. Frontend missing "type": "module" in package.json
+6. React Router v6 nested Routes causing bugs — Outlet pattern solution
+7. Prisma Decimal fields returning strings, not numbers
+8. Docker node_modules ownership conflicts
+9. Prisma transaction stale data in status re-evaluation
+10. formatBRL handling string inputs from Prisma
+11. Non-breaking space in BRL currency formatting
+12. Floating-point precision in financial calculations — integer cents solution
+13. vi.hoisted() for mock variables in ES module tests
+14. Backend 403 for expired token — frontend interceptor misses it
+15. Timezone-safe date parsing (YYYY-MM-DD strings)
 1. vi.mock hoisting bug in Vitest — arrow-function wrapper solution
 2. HTML5 required attribute blocking form submission in jsdom
 3. Conditional rendering of dynamic list items
@@ -363,6 +380,7 @@ const { mockRequestUse, mockResponseUse } = vi.hoisted(() => {
 ```
 
 ### 14. Backend 403 for Expired Token — Frontend Interceptor Misses It
+
 **Problem**: The backend `auth.js` middleware returns **403** (`'Invalid or expired token'`) when `jwt.verify` fails, but the frontend axios response interceptor only checked for **401**. On token expiration, the user was never redirected to login — the 403 error bubbled to individual components, some of which didn't handle it, causing broken UI instead of a clean redirect.
 ```js
 // WRONG — only handles 401, ignores 403 from expired token

@@ -218,10 +218,10 @@ NODE_ENV=development
 ✅ DashboardPage export integration tests: 7 tests covering export button rendering, disabled state, enabled state, exportExcel call with fetched data, success/error toast feedback, "Exportando..." loading state
 
 ## Next Steps (Phase 20+)
-Planned multi-user isolation and self-registration system:
-- **Phase 20**: Prisma schema update (`userId` in Person/Order), registration API (`POST /api/auth/register`), and TDD setup.
-- **Phase 21**: Backend data isolation (middleware enforcement on all routes, query filtering by `req.user.userId`).
-- **Phase 22**: Frontend registration UI (`RegisterPage.jsx`) and AuthContext integration.
+Multi-user isolation and self-registration system:
+- **Phase 20**: ✅ Prisma schema update (`userId` in Person/Order), registration API (`POST /api/auth/register`), and TDD setup.
+- **Phase 21**: ✅ Backend data isolation (middleware enforcement on all routes, query filtering by `req.user.userId`). `userId` made required with `ON DELETE CASCADE`. 82 backend tests (was 73).
+- **Phase 22**: ⏳ PENDING Frontend registration UI (`RegisterPage.jsx`) and AuthContext integration.
 
 ## Notes for Developers/Agents
 - Backend source is mounted at `/app` inside container for live editing
