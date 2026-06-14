@@ -257,4 +257,34 @@ describe('RegisterPage', () => {
       expect(loginLink).toHaveAttribute('href', '/login');
     });
   });
+
+  describe('Password Toggle', () => {
+    it('should toggle Senha visibility when eye icon is clicked', () => {
+      renderPage();
+      const passwordInput = screen.getByLabelText('Senha');
+      expect(passwordInput.type).toBe('password');
+
+      const buttons = screen.getAllByRole('button');
+      const toggleButton = buttons[0];
+      fireEvent.click(toggleButton);
+      expect(passwordInput.type).toBe('text');
+
+      fireEvent.click(toggleButton);
+      expect(passwordInput.type).toBe('password');
+    });
+
+    it('should toggle Confirmar Senha visibility when eye icon is clicked', () => {
+      renderPage();
+      const confirmInput = screen.getByLabelText('Confirmar Senha');
+      expect(confirmInput.type).toBe('password');
+
+      const buttons = screen.getAllByRole('button');
+      const toggleButton = buttons[1];
+      fireEvent.click(toggleButton);
+      expect(confirmInput.type).toBe('text');
+
+      fireEvent.click(toggleButton);
+      expect(confirmInput.type).toBe('password');
+    });
+  });
 });

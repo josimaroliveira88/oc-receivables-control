@@ -105,4 +105,19 @@ describe('LoginPage', () => {
       });
     });
   });
+
+  describe('Password Toggle', () => {
+    it('should toggle password visibility when eye icon is clicked', () => {
+      renderPage();
+      const passwordInput = screen.getByLabelText('Senha');
+      expect(passwordInput.type).toBe('password');
+
+      const toggleButton = screen.getAllByRole('button')[0];
+      fireEvent.click(toggleButton);
+      expect(passwordInput.type).toBe('text');
+
+      fireEvent.click(toggleButton);
+      expect(passwordInput.type).toBe('password');
+    });
+  });
 });
