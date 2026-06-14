@@ -1,3 +1,14 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --brand-gradient: linear-gradient(to right, #1e40af, #2563eb);
+    --brand-gradient-soft: linear-gradient(to right, #1d4ed8, #3b82f6);
+  }
+  .dark {
+    --brand-gradient: linear-gradient(to right, #0f172a, #1e293b);
+    --brand-gradient-soft: linear-gradient(to right, #1e3a8a, #2563eb);
+  }
+}

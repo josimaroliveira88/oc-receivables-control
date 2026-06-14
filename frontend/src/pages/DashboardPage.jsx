@@ -3,6 +3,7 @@ import api from '../services/api';
 import { formatBRL } from '../utils/money';
 import { exportExcel } from '../utils/exportExcel';
 import { useToast } from '../components/Toast';
+import { Circle, CheckCircle, DollarSign, Download } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -80,17 +81,19 @@ const DashboardPage = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2 text-gray-500">Carregando...</span>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <span className="ml-2 text-gray-500 dark:text-gray-400">Carregando...</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-sm text-red-600">{error}</p>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border-t-4 border-primary-600 dark:border-primary-400">
+        <div className="p-6">
+          <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md">
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          </div>
         </div>
       </div>
     );
@@ -100,26 +103,30 @@ const DashboardPage = () => {
     {
       label: 'Total Pendente',
       value: data?.totalPending || 0,
-      icon: '🔴',
-      bg: 'bg-red-50',
-      border: 'border-red-200',
-      text: 'text-red-700',
+      icon: Circle,
+      bg: 'bg-red-50 dark:bg-red-900/20',
+      border: 'border-red-200 dark:border-red-800',
+      text: 'text-red-700 dark:text-red-400',
+      iconColor: 'text-red-500 dark:text-red-400',
+      fill: 'fill-red-500 dark:fill-red-400',
     },
     {
       label: 'Total Quitado',
       value: data?.totalPaid || 0,
-      icon: '✅',
-      bg: 'bg-green-50',
-      border: 'border-green-200',
-      text: 'text-green-700',
+      icon: CheckCircle,
+      bg: 'bg-green-50 dark:bg-green-900/20',
+      border: 'border-green-200 dark:border-green-800',
+      text: 'text-green-700 dark:text-green-400',
+      iconColor: 'text-green-500 dark:text-green-400',
     },
     {
       label: 'Recebimentos (Mês Atual)',
       value: data?.currentMonthReceipts || 0,
-      icon: '💰',
-      bg: 'bg-blue-50',
-      border: 'border-blue-200',
-      text: 'text-blue-700',
+      icon: DollarSign,
+      bg: 'bg-blue-50 dark:bg-blue-900/20',
+      border: 'border-blue-200 dark:border-blue-800',
+      text: 'text-blue-700 dark:text-blue-400',
+      iconColor: 'text-blue-500 dark:text-blue-400',
     },
   ];
 
@@ -133,13 +140,13 @@ const DashboardPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow-md">
-        <div className="border-b px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-800">Dashboard</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border-t-4 border-primary-600 dark:border-primary-400">
+        <div className="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Dashboard</h2>
           <button
             onClick={handleExport}
             disabled={exporting || !hasData}
-            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-4 py-2 bg-gradient-to-r from-primary-700 to-primary-500 hover:from-primary-800 hover:to-primary-600 disabled:from-primary-400 disabled:to-primary-300 text-white text-sm font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {exporting ? (
               <>
@@ -147,41 +154,48 @@ const DashboardPage = () => {
                 Exportando...
               </>
             ) : (
-              <>📥 Exportar para Excel</>
+              <><Download className="w-4 h-4" /> Exportar para Excel</>
             )}
           </button>
         </div>
 
         <div className="px-6 py-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            {kpis.map((kpi) => (
-              <div
-                key={kpi.label}
-                className={`p-4 rounded-lg border ${kpi.bg} ${kpi.border}`}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xl">{kpi.icon}</span>
-                  <span className={`text-sm font-medium ${kpi.text}`}>
-                    {kpi.label}
-                  </span>
+            {kpis.map((kpi) => {
+              const Icon = kpi.icon;
+              return (
+                <div
+                  key={kpi.label}
+                  className={`p-4 rounded-lg border ${kpi.bg} ${kpi.border}`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    {kpi.fill ? (
+                      <Icon className={`w-5 h-5 ${kpi.iconColor} ${kpi.fill}`} />
+                    ) : (
+                      <Icon className={`w-5 h-5 ${kpi.iconColor}`} />
+                    )}
+                    <span className={`text-sm font-medium ${kpi.text}`}>
+                      {kpi.label}
+                    </span>
+                  </div>
+                  <p className={`text-2xl font-bold ${kpi.text}`}>
+                    {formatBRL(kpi.value)}
+                  </p>
                 </div>
-                <p className={`text-2xl font-bold ${kpi.text}`}>
-                  {formatBRL(kpi.value)}
-                </p>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {hasChartData ? (
             <div>
-              <h3 className="text-lg font-medium text-gray-700 mb-4">
+              <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-4">
                 Saldos por Pessoa
               </h3>
               <ResponsiveContainer width="100%" height={350}>
                 <BarChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis tickFormatter={brlTickFormatter} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis dataKey="name" stroke="#9CA3AF" />
+                  <YAxis tickFormatter={brlTickFormatter} stroke="#9CA3AF" />
                   <Tooltip formatter={brlTooltipFormatter} />
                   <Legend />
                   <Bar dataKey="Itens" fill="#3b82f6" radius={[4, 4, 0, 0]} />
@@ -191,32 +205,32 @@ const DashboardPage = () => {
             </div>
           ) : (
             <div className="text-center py-12">
-              <p className="text-gray-500">Nenhum saldo por pessoa</p>
+              <p className="text-gray-500 dark:text-gray-400">Nenhum saldo por pessoa</p>
             </div>
           )}
 
           {(data?.yearlyBreakdown && data.yearlyBreakdown.length > 0) ? (
             <div className="mt-8">
-              <h3 className="text-lg font-medium text-gray-700 mb-4">
+              <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-4">
                 Resumo por Ano
               </h3>
               <div className="overflow-x-auto">
-                <table className="yearly-breakdown-table w-full text-sm">
+                <table className="w-full text-sm" data-testid="yearly-breakdown">
                   <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Ano</th>
-                      <th className="text-right py-3 px-4 font-medium text-gray-600">Pendente</th>
-                      <th className="text-right py-3 px-4 font-medium text-gray-600">Quitado</th>
+                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                      <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">Ano</th>
+                      <th className="text-right py-3 px-4 font-medium text-gray-600 dark:text-gray-400">Pendente</th>
+                      <th className="text-right py-3 px-4 font-medium text-gray-600 dark:text-gray-400">Quitado</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.yearlyBreakdown.map((yearData) => (
-                      <tr key={yearData.year} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-3 px-4 font-medium text-gray-800">{yearData.year}</td>
-                        <td className="py-3 px-4 text-right text-red-600 font-medium">
+                      <tr key={yearData.year} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
+                        <td className="py-3 px-4 font-medium text-gray-800 dark:text-gray-200">{yearData.year}</td>
+                        <td className="py-3 px-4 text-right text-red-600 dark:text-red-400 font-medium">
                           {formatBRL(yearData.totalPending)}
                         </td>
-                        <td className="py-3 px-4 text-right text-green-600 font-medium">
+                        <td className="py-3 px-4 text-right text-green-600 dark:text-green-400 font-medium">
                           {formatBRL(yearData.totalQuitado)}
                         </td>
                       </tr>
@@ -227,7 +241,7 @@ const DashboardPage = () => {
             </div>
           ) : (
             <div className="text-center py-12 mt-8">
-              <p className="text-gray-500">Nenhum dado por ano</p>
+              <p className="text-gray-500 dark:text-gray-400">Nenhum dado por ano</p>
             </div>
           )}
         </div>

@@ -34,8 +34,8 @@ export const ToastProvider = ({ children }) => {
             key={toast.id}
             className={`flex items-center px-4 py-3 rounded-md shadow-lg text-sm font-medium transition-all transform translate-x-0 opacity-100 ${
               toast.type === 'success'
-                ? 'bg-green-500 text-white'
-                : 'bg-red-500 text-white'
+                ? 'bg-green-600 text-white'
+                : 'bg-red-600 text-white'
             }`}
           >
             <span className="flex-1">{toast.message}</span>
