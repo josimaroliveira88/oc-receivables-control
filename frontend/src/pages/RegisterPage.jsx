@@ -1,28 +1,46 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const LoginPage = () => {
+const RegisterPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
-  const { login } = useAuth();
-
-  const successMessage = location.state?.message || '';
+  const { register } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (username.length < 3) {
+      setError('Usuário deve ter pelo menos 3 caracteres');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Senha deve ter pelo menos 6 caracteres');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Senhas não conferem');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await login(username, password);
-      navigate('/', { replace: true });
+      await register(username, password);
+      navigate('/login', { state: { message: 'Conta criada com sucesso! Faça login.' } });
     } catch (err) {
-      setError('Usuário ou senha inválidos. Tente novamente.');
+      if (err.response && err.response.status === 409) {
+        setError('Usuário já existe');
+      } else {
+        setError('Erro ao cadastrar. Tente novamente.');
+      }
     } finally {
       setLoading(false);
     }
@@ -36,18 +54,12 @@ const LoginPage = () => {
             <h1 className="text-2xl font-bold text-gray-800">
               Controle de Recebíveis
             </h1>
-            <p className="text-gray-500 mt-2">Entrar no Sistema</p>
+            <p className="text-gray-500 mt-2">Criar Conta</p>
           </div>
 
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
               <p className="text-sm text-red-600">{error}</p>
-            </div>
-          )}
-
-          {successMessage && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
-              <p className="text-sm text-green-600">{successMessage}</p>
             </div>
           )}
 
@@ -64,13 +76,12 @@ const LoginPage = () => {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Digite seu usuário"
               />
             </div>
 
-            <div className="mb-6">
+            <div className="mb-4">
               <label
                 htmlFor="password"
                 className="block text-sm font-medium text-gray-700 mb-1"
@@ -82,9 +93,25 @@ const LoginPage = () => {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Digite sua senha"
+              />
+            </div>
+
+            <div className="mb-6">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Confirmar Senha
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Confirme sua senha"
               />
             </div>
 
@@ -93,14 +120,14 @@ const LoginPage = () => {
               disabled={loading}
               className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-medium rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
-              {loading ? 'Acessando...' : 'Acessar'}
+              {loading ? 'Cadastrando...' : 'Cadastrar'}
             </button>
           </form>
 
           <p className="mt-4 text-center text-sm text-gray-600">
-            Ainda não tem conta?{' '}
-            <Link to="/register" className="text-blue-600 hover:text-blue-700 font-medium">
-              Criar uma conta
+            Já tem uma conta?{' '}
+            <Link to="/login" className="text-blue-600 hover:text-blue-700 font-medium">
+              Faça login
             </Link>
           </p>
         </div>
@@ -109,4 +136,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default RegisterPage;

@@ -31,13 +31,18 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
+  const register = async (username, password) => {
+    const response = await api.post('/auth/register', { username, password });
+    return response.data;
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     setIsAuthenticated(false);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, loading, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
