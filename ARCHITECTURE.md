@@ -12,8 +12,8 @@ This document describes the current state of the project architecture, file orga
 - **Infrastructure**: Docker and Docker Compose
 
 ## Ports Configuration
-- **Backend API**: http://localhost:4000
-- **Frontend Application**: http://localhost:3000
+- **Backend API**: http://localhost:4000 (internal; accessed via Vite proxy from frontend)
+- **Frontend Application**: http://localhost:3000 (use this from any device on same network; API calls are proxied through Vite)
 - **PostgreSQL Database**: localhost:5432 (internal to Docker network)
 - **Adminer Database UI**: http://localhost:8080
 
@@ -113,6 +113,7 @@ Defined in `docker-compose.yml` with network `receivables-network`:
 - **frontend**: Vite React service
   - Builds from ./frontend/Dockerfile
   - Ports: 3000:3000
+  - Environment: API_URL=http://backend:4000 (Vite proxy target for /api/* calls)
   - Volumes: ./frontend:/app (live code reload), /app/node_modules
 - **adminer**: Database administration UI
   - Image: adminer
@@ -131,7 +132,13 @@ JWT_EXPIRES_IN="24h"
 # Server Configuration
 PORT=4000
 NODE_ENV=development
+
+# CORS (optional — if unset, reflects request origin for development)
+# CORS_ORIGIN=https://meusite.com
 ```
+
+## Frontend Configuration (environment variables)
+- `API_URL` — Vite proxy target for `/api` requests (defaults to `http://localhost:4000`). In Docker, set to `http://backend:4000`.
 
 ## Available npm Scripts
 ### Backend (`backend/package.json`)
@@ -231,6 +238,6 @@ Multi-user isolation and self-registration system:
 - Frontend source similarly mounted for hot module replacement
 - Node modules are installed within containers (separate from host)
 - Environment variables are loaded via `.env` file for backend
-- Frontend assumes backend API at `http://localhost:4000` (adjust in future API service)
+- Frontend uses Vite proxy (`/api` → backend) so all requests go to the same origin, eliminating CORS issues. See lesson #16 in AGENTS.md.
 - All financial calculations use integer cents via `src/utils/money.js` to avoid IEEE 754 floating-point errors
 - Date strings (YYYY-MM-DD) must be parsed as local dates using `parseLocalDate()` (backend) or split-extracted (frontend) to avoid UTC timezone shifts

@@ -131,7 +131,7 @@ The Receivables Control System is now fully functional with user self-registrati
 - **Total**: 242 tests passing with zero regressions
 
 ### Key Learnings Documented:
-15 critical lessons learned documented in AGENTS.md (see "Lessons Learned / Pitfalls to Avoid") to guide future development:
+16 critical lessons learned documented in AGENTS.md (see "Lessons Learned / Pitfalls to Avoid") to guide future development:
 1. vi.mock hoisting bug in Vitest — arrow-function wrapper solution
 2. HTML5 required attribute blocking form submission in jsdom
 3. Conditional rendering of dynamic list items
@@ -147,20 +147,7 @@ The Receivables Control System is now fully functional with user self-registrati
 13. vi.hoisted() for mock variables in ES module tests
 14. Backend 403 for expired token — frontend interceptor misses it
 15. Timezone-safe date parsing (YYYY-MM-DD strings)
-1. vi.mock hoisting bug in Vitest — arrow-function wrapper solution
-2. HTML5 required attribute blocking form submission in jsdom
-3. Conditional rendering of dynamic list items
-4. dotenv.config() overriding test environment variables
-5. Frontend missing "type": "module" in package.json
-6. React Router v6 nested Routes causing bugs — Outlet pattern solution
-7. Prisma Decimal fields returning strings, not numbers
-8. Docker node_modules ownership conflicts
-9. Prisma transaction stale data in status re-evaluation
-10. formatBRL handling string inputs from Prisma
-11. Non-breaking space in BRL currency formatting
-12. Floating-point precision in financial calculations — integer cents solution
-13. vi.hoisted() for mock variables in ES module tests
-14. Backend 403 for expired token — frontend interceptor misses it
+16. CORS + Vite proxy for mobile/network access
 
 ## Next Steps for Client Requests
 
@@ -428,3 +415,38 @@ const formatDateBR = (dateStr) => {
   return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
 };
 ```
+
+### 16. CORS + Vite Proxy for Mobile/Network Access
+**Problem**: The backend CORS was hardcoded to `origin: 'http://localhost:3000'`, and the frontend API baseURL was hardcoded to `http://localhost:4000/api`. When accessing from another device on the same network (e.g., phone at `http://192.168.x.x:3000`), two failures occurred:
+- CORS rejected the request because the origin (`http://192.168.x.x:3000`) didn't match `http://localhost:3000`
+- The API call targeted `http://localhost:4000/api` from the phone's browser, which resolves to the phone itself (nothing listening on port 4000)
+
+**Fix**: Two changes were made:
+
+1. **Dynamic CORS origin** (`backend/src/app.js`):
+   ```js
+   const corsOrigins = process.env.CORS_ORIGIN
+     ? process.env.CORS_ORIGIN.split(',').map(s => s.trim())
+     : true; // true = reflect request origin
+   app.use(cors({ origin: corsOrigins, credentials: true }));
+   ```
+   When `CORS_ORIGIN` is not set, it reflects any origin (safe for development). In production, set `CORS_ORIGIN=https://meusite.com` in `.env`.
+
+2. **Vite proxy for API calls** (`frontend/vite.config.js` + `frontend/src/services/api.js`):
+   ```js
+   // vite.config.js
+   server: {
+     proxy: {
+       '/api': {
+         target: process.env.API_URL || 'http://localhost:4000',
+         changeOrigin: true,
+       }
+     }
+   }
+
+   // api.js — use relative URL instead of hardcoded localhost
+   const api = axios.create({ baseURL: '/api', ... });
+   ```
+   The Vite dev server proxies `/api/*` requests to the backend. In Docker, set `API_URL=http://backend:4000` on the frontend service so the proxy reaches the backend container.
+
+**Result**: The browser sends all requests to the same origin (port 3000), eliminating CORS entirely for development. The proxy runs server-side (inside Vite/Docker), so network identity is irrelevant. Added `morgan` HTTP request logging to the backend for easier debugging of future network issues.
