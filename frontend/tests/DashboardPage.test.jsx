@@ -217,7 +217,7 @@ describe('DashboardPage', () => {
     it('should render the correct number of year rows', async () => {
       renderPage();
       await waitFor(() => {
-        const rows = document.querySelectorAll('.yearly-breakdown-table tbody tr');
+        const rows = document.querySelectorAll('[data-testid="yearly-breakdown"] tbody tr');
         expect(rows.length).toBe(2);
       });
     });

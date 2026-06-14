@@ -7,6 +7,9 @@ const mockLogout = vi.fn();
 vi.mock('../src/context/AuthContext', () => ({
   useAuth: () => ({ logout: (...args) => mockLogout(...args) }),
 }));
+vi.mock('../src/context/ThemeContext', () => ({
+  useTheme: () => ({ theme: 'light', toggleTheme: vi.fn() }),
+}));
 
 const renderBottomNav = (initialEntries = ['/']) => {
   return render(
@@ -35,7 +38,7 @@ describe('MobileBottomNav', () => {
     const links = screen.getAllByRole('link');
     expect(links).toHaveLength(4);
     const buttons = screen.getAllByRole('button');
-    expect(buttons).toHaveLength(1);
+    expect(buttons).toHaveLength(2);
   });
 
   it('should call logout when Sair is clicked', () => {

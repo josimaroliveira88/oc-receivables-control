@@ -7,6 +7,9 @@ const mockLogout = vi.fn();
 vi.mock('../src/context/AuthContext', () => ({
   useAuth: () => ({ logout: (...args) => mockLogout(...args) }),
 }));
+vi.mock('../src/context/ThemeContext', () => ({
+  useTheme: () => ({ theme: 'light', toggleTheme: vi.fn() }),
+}));
 
 const renderHeader = (initialEntries = ['/']) => {
   return render(
