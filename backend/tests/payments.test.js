@@ -8,6 +8,7 @@ function uniqueOrderNumber(prefix) {
 
 describe('Payments & Balance', () => {
   let authToken;
+  let userId;
 
   let createdOrderIds = [];
   let createdPersonIds = [];
@@ -15,16 +16,24 @@ describe('Payments & Balance', () => {
   beforeAll(async () => {
     await prisma.$connect();
 
+    const username = `payments_test_${Date.now()}`;
+    const regRes = await request(app)
+      .post('/api/auth/register')
+      .send({ username, password: 'testpass123' });
+    userId = regRes.body.id;
+
     const loginRes = await request(app)
       .post('/api/auth/login')
-      .send({ username: 'admin', password: 'admin123' });
+      .send({ username, password: 'testpass123' });
 
     authToken = loginRes.body.token;
     expect(authToken).toBeDefined();
   });
 
   afterAll(async () => {
-    await prisma.$disconnect();
+    if (userId) {
+      await prisma.user.delete({ where: { id: userId } }).catch(() => {});
+    }
   });
 
   afterEach(async () => {
@@ -46,13 +55,13 @@ describe('Payments & Balance', () => {
 
     beforeEach(async () => {
       const person1 = await prisma.person.create({
-        data: { name: 'Payment Person 1', contact: 'pay1@test.com' },
+        data: { name: 'Payment Person 1', contact: 'pay1@test.com', userId },
       });
       testPersonId = person1.id;
       createdPersonIds.push(person1.id);
 
       const person2 = await prisma.person.create({
-        data: { name: 'Payment Person 2', contact: 'pay2@test.com' },
+        data: { name: 'Payment Person 2', contact: 'pay2@test.com', userId },
       });
       testPerson2Id = person2.id;
       createdPersonIds.push(person2.id);
@@ -61,6 +70,7 @@ describe('Payments & Balance', () => {
         data: {
           orderNumber: uniqueOrderNumber('ORD-PAY'),
           totalValue: 400.00,
+          userId,
           items: {
             create: [
               { description: 'Item for Person 1', value: 150.00, personId: testPersonId },
@@ -90,7 +100,7 @@ describe('Payments & Balance', () => {
 
     it('should create a full payment for a single-person order and update status to QUITADO', async () => {
       const person = await prisma.person.create({
-        data: { name: 'Single Person', contact: 'single@test.com' },
+        data: { name: 'Single Person', contact: 'single@test.com', userId },
       });
       createdPersonIds.push(person.id);
 
@@ -98,6 +108,7 @@ describe('Payments & Balance', () => {
         data: {
           orderNumber: uniqueOrderNumber('ORD-SINGLE'),
           totalValue: 300.00,
+          userId,
           items: {
             create: [
               { description: 'Item for Single Person', value: 300.00, personId: person.id },
@@ -288,6 +299,29 @@ describe('Payments & Balance', () => {
       expect(paidAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
       expect(paidAt.getTime()).toBeLessThanOrEqual(after.getTime());
     });
+
+    it('should reject payment for another user\'s order', async () => {
+      const otherUser = `other_pay_${Date.now()}`;
+      const regRes = await request(app)
+        .post('/api/auth/register')
+        .send({ username: otherUser, password: 'testpass123' });
+      const otherUserId = regRes.body.id;
+
+      const loginRes = await request(app)
+        .post('/api/auth/login')
+        .send({ username: otherUser, password: 'testpass123' });
+      const otherToken = loginRes.body.token;
+
+      const response = await request(app)
+        .post(`/api/orders/${testOrderId}/payments`)
+        .set('Authorization', `Bearer ${otherToken}`)
+        .send({ amount: 50, personId: testPersonId });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Order not found');
+
+      await prisma.user.delete({ where: { id: otherUserId } }).catch(() => {});
+    });
   });
 
   describe('GET /api/orders/:orderId/balance', () => {
@@ -297,13 +331,13 @@ describe('Payments & Balance', () => {
 
     beforeEach(async () => {
       const person1 = await prisma.person.create({
-        data: { name: 'Balance Person 1', contact: 'bal1@test.com' },
+        data: { name: 'Balance Person 1', contact: 'bal1@test.com', userId },
       });
       balancePersonId = person1.id;
       createdPersonIds.push(person1.id);
 
       const person2 = await prisma.person.create({
-        data: { name: 'Balance Person 2', contact: 'bal2@test.com' },
+        data: { name: 'Balance Person 2', contact: 'bal2@test.com', userId },
       });
       balancePerson2Id = person2.id;
       createdPersonIds.push(person2.id);
@@ -312,6 +346,7 @@ describe('Payments & Balance', () => {
         data: {
           orderNumber: uniqueOrderNumber('ORD-BAL'),
           totalValue: 500.00,
+          userId,
           items: {
             create: [
               { description: 'Item 1', value: 300.00, personId: balancePersonId },
@@ -428,12 +463,50 @@ describe('Payments & Balance', () => {
       expect(response.status).toBe(403);
       expect(response.body.error).toBe('Invalid or expired token');
     });
+  });
 });
 
 describe('Floating point precision (cents)', () => {
+  let authToken;
+  let userId;
+  let createdOrderIds = [];
+  let createdPersonIds = [];
+
+  beforeAll(async () => {
+    await prisma.$connect();
+    const username = `cents_test_${Date.now()}`;
+    const regRes = await request(app)
+      .post('/api/auth/register')
+      .send({ username, password: 'testpass123' });
+    userId = regRes.body.id;
+
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ username, password: 'testpass123' });
+    authToken = loginRes.body.token;
+  });
+
+  afterAll(async () => {
+    if (userId) {
+      await prisma.user.delete({ where: { id: userId } }).catch(() => {});
+    }
+  });
+
+  afterEach(async () => {
+    for (const id of createdOrderIds) {
+      await prisma.order.delete({ where: { id } }).catch(() => {});
+    }
+    createdOrderIds = [];
+
+    for (const id of createdPersonIds) {
+      await prisma.person.delete({ where: { id } }).catch(() => {});
+    }
+    createdPersonIds = [];
+  });
+
     it('should accept exact remaining balance without floating point errors', async () => {
       const person = await prisma.person.create({
-        data: { name: 'Cents Test', contact: 'cents@test.com' },
+        data: { name: 'Cents Test', contact: 'cents@test.com', userId },
       });
       createdPersonIds.push(person.id);
 
@@ -441,6 +514,7 @@ describe('Floating point precision (cents)', () => {
         data: {
           orderNumber: uniqueOrderNumber('ORD-CENTS'),
           totalValue: 1234.56,
+          userId,
           items: {
             create: [
               { description: 'Item 1234.56', value: 1234.56, personId: person.id },
@@ -477,7 +551,7 @@ describe('Floating point precision (cents)', () => {
 
     it('should still reject overpayment with cents-based calculation', async () => {
       const person = await prisma.person.create({
-        data: { name: 'Cents Over Test', contact: 'centsover@test.com' },
+        data: { name: 'Cents Over Test', contact: 'centsover@test.com', userId },
       });
       createdPersonIds.push(person.id);
 
@@ -485,6 +559,7 @@ describe('Floating point precision (cents)', () => {
         data: {
           orderNumber: uniqueOrderNumber('ORD-CENTS-OVER'),
           totalValue: 1234.56,
+          userId,
           items: {
             create: [
               { description: 'Item 1234.56', value: 1234.56, personId: person.id },
@@ -511,16 +586,53 @@ describe('Floating point precision (cents)', () => {
   });
 
   describe('Transactional consistency', () => {
+    let tAuthToken;
+    let tUserId;
+    let tCreatedOrderIds = [];
+    let tCreatedPersonIds = [];
+
+    beforeAll(async () => {
+      const username = `trans_test_${Date.now()}`;
+      const regRes = await request(app)
+        .post('/api/auth/register')
+        .send({ username, password: 'testpass123' });
+      tUserId = regRes.body.id;
+
+      const loginRes = await request(app)
+        .post('/api/auth/login')
+        .send({ username, password: 'testpass123' });
+      tAuthToken = loginRes.body.token;
+    });
+
+    afterAll(async () => {
+      if (tUserId) {
+        await prisma.user.delete({ where: { id: tUserId } }).catch(() => {});
+      }
+    });
+
+    afterEach(async () => {
+      for (const id of tCreatedOrderIds) {
+        await prisma.order.delete({ where: { id } }).catch(() => {});
+      }
+      tCreatedOrderIds = [];
+
+      for (const id of tCreatedPersonIds) {
+        await prisma.person.delete({ where: { id } }).catch(() => {});
+      }
+      tCreatedPersonIds = [];
+    });
+
     it('should update order status atomically within the payment transaction', async () => {
       const person = await prisma.person.create({
-        data: { name: 'Transactional Test', contact: 'trans@test.com' },
+        data: { name: 'Transactional Test', contact: 'trans@test.com', userId: tUserId },
       });
-      createdPersonIds.push(person.id);
+      tCreatedPersonIds.push(person.id);
 
       const order = await prisma.order.create({
         data: {
           orderNumber: uniqueOrderNumber('ORD-TRANS'),
           totalValue: 100.00,
+          userId: tUserId,
           items: {
             create: [
               { description: 'Test Item', value: 100.00, personId: person.id },
@@ -529,14 +641,14 @@ describe('Floating point precision (cents)', () => {
         },
         include: { items: true },
       });
-      createdOrderIds.push(order.id);
+      tCreatedOrderIds.push(order.id);
 
       const currentOrder = await prisma.order.findUnique({ where: { id: order.id } });
       expect(currentOrder.status).toBe('PENDENTE');
 
       const paymentRes = await request(app)
         .post(`/api/orders/${order.id}/payments`)
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer ${tAuthToken}`)
         .send({ amount: 100, personId: person.id });
 
       expect(paymentRes.status).toBe(201);
@@ -544,7 +656,7 @@ describe('Floating point precision (cents)', () => {
 
       const balanceRes = await request(app)
         .get(`/api/orders/${order.id}/balance`)
-        .set('Authorization', `Bearer ${authToken}`);
+        .set('Authorization', `Bearer ${tAuthToken}`);
 
       expect(balanceRes.status).toBe(200);
       expect(balanceRes.body.orderStatus).toBe('QUITADO');
@@ -553,14 +665,15 @@ describe('Floating point precision (cents)', () => {
 
     it('should not persist payment when validation fails inside transaction', async () => {
       const person = await prisma.person.create({
-        data: { name: 'Rollback Test', contact: 'rollback@test.com' },
+        data: { name: 'Rollback Test', contact: 'rollback@test.com', userId: tUserId },
       });
-      createdPersonIds.push(person.id);
+      tCreatedPersonIds.push(person.id);
 
       const order = await prisma.order.create({
         data: {
           orderNumber: uniqueOrderNumber('ORD-ROLLBACK'),
           totalValue: 50.00,
+          userId: tUserId,
           items: {
             create: [
               { description: 'Cheap Item', value: 50.00, personId: person.id },
@@ -569,11 +682,11 @@ describe('Floating point precision (cents)', () => {
         },
         include: { items: true },
       });
-      createdOrderIds.push(order.id);
+      tCreatedOrderIds.push(order.id);
 
       const overpaymentRes = await request(app)
         .post(`/api/orders/${order.id}/payments`)
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer ${tAuthToken}`)
         .send({ amount: 200, personId: person.id });
 
       expect(overpaymentRes.status).toBe(400);
@@ -587,4 +700,3 @@ describe('Floating point precision (cents)', () => {
       expect(orderAfter.status).toBe('PENDENTE');
     });
   });
-});

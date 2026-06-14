@@ -1,12 +1,6 @@
 const request = require('supertest');
 const app = require('../src/app');
 const prisma = require('../src/config/database');
-const jwt = require('jsonwebtoken');
-const { JWT_SECRET } = require('../src/config');
-
-function generateToken() {
-  return jwt.sign({ userId: 'test-user', username: 'admin' }, JWT_SECRET);
-}
 
 function uniqueOrderNumber(prefix) {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
@@ -18,16 +12,29 @@ const parseLocalDate = (dateStr) => {
 };
 
 describe('Dashboard Yearly Breakdown', () => {
-  let token;
+  let authToken;
+  let userId;
   let testPersonId;
   let createdOrderIds = [];
 
   beforeAll(async () => {
     await prisma.$connect();
-    token = generateToken();
+    const username = `dashboard_test_${Date.now()}`;
+    const regRes = await request(app)
+      .post('/api/auth/register')
+      .send({ username, password: 'testpass123' });
+    userId = regRes.body.id;
+
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ username, password: 'testpass123' });
+    authToken = loginRes.body.token;
   });
 
   afterAll(async () => {
+    if (userId) {
+      await prisma.user.delete({ where: { id: userId } }).catch(() => {});
+    }
     await prisma.$disconnect();
   });
 
@@ -44,7 +51,7 @@ describe('Dashboard Yearly Breakdown', () => {
 
   beforeEach(async () => {
     const person = await prisma.person.create({
-      data: { name: 'Dashboard Year Test Person', contact: 'year@test.com' },
+      data: { name: 'Dashboard Year Test Person', contact: 'year@test.com', userId },
     });
     testPersonId = person.id;
   });
@@ -52,7 +59,7 @@ describe('Dashboard Yearly Breakdown', () => {
   it('should return yearlyBreakdown as an array with year, totalPending, and totalQuitado fields', async () => {
     const response = await request(app)
       .get('/api/dashboard')
-      .set('Authorization', `Bearer ${token}`);
+      .set('Authorization', `Bearer ${authToken}`);
 
     expect(response.status).toBe(200);
     expect(response.body.yearlyBreakdown).toBeDefined();
@@ -75,6 +82,7 @@ describe('Dashboard Yearly Breakdown', () => {
         totalValue: 777.00,
         orderDate: parseLocalDate('2022-06-15'),
         status: 'QUITADO',
+        userId,
         items: {
           create: [{ description: 'Item Quitado', value: 777.00, personId: testPersonId }],
         },
@@ -85,7 +93,7 @@ describe('Dashboard Yearly Breakdown', () => {
 
     const response = await request(app)
       .get('/api/dashboard')
-      .set('Authorization', `Bearer ${token}`);
+      .set('Authorization', `Bearer ${authToken}`);
 
     expect(response.status).toBe(200);
     const breakdown2022 = response.body.yearlyBreakdown.find((y) => y.year === 2022);
@@ -100,6 +108,7 @@ describe('Dashboard Yearly Breakdown', () => {
         totalValue: 555.00,
         orderDate: parseLocalDate('2021-03-10'),
         status: 'PENDENTE',
+        userId,
         items: {
           create: [{ description: 'Item Pendente', value: 555.00, personId: testPersonId }],
         },
@@ -112,6 +121,7 @@ describe('Dashboard Yearly Breakdown', () => {
         totalValue: 444.00,
         orderDate: parseLocalDate('2021-07-20'),
         status: 'PARCIAL',
+        userId,
         items: {
           create: [{ description: 'Item Parcial', value: 444.00, personId: testPersonId }],
         },
@@ -122,7 +132,7 @@ describe('Dashboard Yearly Breakdown', () => {
 
     const response = await request(app)
       .get('/api/dashboard')
-      .set('Authorization', `Bearer ${token}`);
+      .set('Authorization', `Bearer ${authToken}`);
 
     expect(response.status).toBe(200);
     const breakdown2021 = response.body.yearlyBreakdown.find((y) => y.year === 2021);
@@ -134,7 +144,7 @@ describe('Dashboard Yearly Breakdown', () => {
   it('should be sorted by year descending', async () => {
     const response = await request(app)
       .get('/api/dashboard')
-      .set('Authorization', `Bearer ${token}`);
+      .set('Authorization', `Bearer ${authToken}`);
 
     expect(response.status).toBe(200);
     const years = response.body.yearlyBreakdown.map((y) => y.year);
@@ -150,6 +160,7 @@ describe('Dashboard Yearly Breakdown', () => {
         totalValue: 666.00,
         orderDate: parseLocalDate('2023-12-01'),
         status: 'QUITADO',
+        userId,
         items: {
           create: [{ description: 'Item Dec 2023', value: 666.00, personId: testPersonId }],
         },
@@ -169,7 +180,7 @@ describe('Dashboard Yearly Breakdown', () => {
 
     const response = await request(app)
       .get('/api/dashboard')
-      .set('Authorization', `Bearer ${token}`);
+      .set('Authorization', `Bearer ${authToken}`);
 
     expect(response.status).toBe(200);
     const breakdown2023 = response.body.yearlyBreakdown.find((y) => y.year === 2023);
@@ -179,5 +190,12 @@ describe('Dashboard Yearly Breakdown', () => {
     expect(parseFloat(breakdown2023.totalQuitado)).toBeGreaterThanOrEqual(666.00);
 
     expect(breakdown2027).toBeUndefined();
+  });
+
+  it('should return 401 when no authentication token is provided', async () => {
+    const response = await request(app).get('/api/dashboard');
+
+    expect(response.status).toBe(401);
+    expect(response.body.error).toBe('Access token required');
   });
 });
