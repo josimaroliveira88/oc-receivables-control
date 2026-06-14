@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LayoutDashboard, Users, ClipboardList, DollarSign, LogOut, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, Users, ClipboardList, DollarSign, LogOut, Sun, Moon, User } from 'lucide-react';
 
 const navLinks = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -11,7 +11,7 @@ const navLinks = [
 ];
 
 const Header = () => {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   return (
     <header className="bg-gradient-to-r from-primary-800 to-primary-600 shadow-md">
@@ -45,6 +45,12 @@ const Header = () => {
           >
             {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
+          {user && (
+            <span className="hidden md:inline-flex items-center px-3 py-1.5 text-sm text-white/80 bg-white/10 rounded-md">
+              <User className="w-4 h-4 mr-1.5" />
+              {user.username}
+            </span>
+          )}
           <button
             onClick={logout}
             className="hidden md:inline-flex items-center px-4 py-2 text-sm font-medium text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-md transition-colors"

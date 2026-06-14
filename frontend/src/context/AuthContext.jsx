@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { jwtDecode } from 'jwt-decode';
 import api from '../services/api';
 
 const AuthContext = createContext(null);
@@ -11,14 +12,27 @@ export const useAuth = () => {
   return context;
 };
 
+const getUserFromToken = () => {
+  const token = localStorage.getItem('token');
+  if (!token) return null;
+  try {
+    const decoded = jwtDecode(token);
+    return { id: decoded.userId, username: decoded.username };
+  } catch {
+    return null;
+  }
+};
+
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
       setIsAuthenticated(true);
+      setUser(getUserFromToken());
     }
     setLoading(false);
   }, []);
@@ -28,6 +42,7 @@ export const AuthProvider = ({ children }) => {
     const { token } = response.data;
     localStorage.setItem('token', token);
     setIsAuthenticated(true);
+    setUser(getUserFromToken());
     return response.data;
   };
 
@@ -36,13 +51,14 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('token');
     setIsAuthenticated(false);
-  };
+    setUser(null);
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, loading, login, register, logout, user }}>
       {children}
     </AuthContext.Provider>
   );

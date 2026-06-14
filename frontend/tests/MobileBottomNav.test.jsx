@@ -3,9 +3,14 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import MobileBottomNav from '../src/components/MobileBottomNav';
 
-const mockLogout = vi.fn();
+const { mockLogout, mockUserRef } = vi.hoisted(() => {
+  const logoutFn = vi.fn();
+  const userRef = { value: { id: 1, username: 'joao' } };
+  return { mockLogout: logoutFn, mockUserRef: userRef };
+});
+
 vi.mock('../src/context/AuthContext', () => ({
-  useAuth: () => ({ logout: (...args) => mockLogout(...args) }),
+  useAuth: () => ({ logout: mockLogout, user: mockUserRef.value }),
 }));
 vi.mock('../src/context/ThemeContext', () => ({
   useTheme: () => ({ theme: 'light', toggleTheme: vi.fn() }),
@@ -22,29 +27,47 @@ const renderBottomNav = (initialEntries = ['/']) => {
 describe('MobileBottomNav', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUserRef.value = { id: 1, username: 'joao' };
   });
 
-  it('should render all navigation items', () => {
+  it('should render all navigation items and open dropdown with Sair on user click', () => {
     renderBottomNav();
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Pessoas')).toBeInTheDocument();
     expect(screen.getByText('Pedidos')).toBeInTheDocument();
     expect(screen.getByText('Recebíveis')).toBeInTheDocument();
+    expect(screen.getByText('joao')).toBeInTheDocument();
+    expect(screen.queryByText('Sair')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('joao'));
+    expect(screen.getByText('joao')).toBeInTheDocument();
     expect(screen.getByText('Sair')).toBeInTheDocument();
   });
 
-  it('should have 4 links and 1 button', () => {
+  it('should have 4 links and show dropdown with Sair on user click', () => {
     renderBottomNav();
     const links = screen.getAllByRole('link');
     expect(links).toHaveLength(4);
-    const buttons = screen.getAllByRole('button');
+    let buttons = screen.getAllByRole('button');
     expect(buttons).toHaveLength(2);
+    fireEvent.click(screen.getByText('joao'));
+    buttons = screen.getAllByRole('button');
+    expect(buttons).toHaveLength(3);
+    expect(screen.getByText('Sair')).toBeInTheDocument();
   });
 
-  it('should call logout when Sair is clicked', () => {
+  it('should call logout when Sair is clicked in the dropdown', () => {
     renderBottomNav();
+    fireEvent.click(screen.getByText('joao'));
     fireEvent.click(screen.getByText('Sair'));
     expect(mockLogout).toHaveBeenCalledTimes(1);
+  });
+
+  it('should close dropdown when clicking outside', () => {
+    renderBottomNav();
+    fireEvent.click(screen.getByText('joao'));
+    expect(screen.getByText('Sair')).toBeInTheDocument();
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByText('Sair')).not.toBeInTheDocument();
   });
 
   it('should highlight the active link', () => {
