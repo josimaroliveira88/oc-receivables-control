@@ -8,17 +8,21 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  username  String   @unique
+  id        String    @id @default(uuid())
+  username  String    @unique
   password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  people    Person[]
+  orders    Order[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model Person {
   id        String    @id @default(uuid())
   name      String
   contact   String?
+  user      User?     @relation(fields: [userId], references: [id])
+  userId    String?
   items     Item[]
   payments  Payment[]
   createdAt DateTime  @default(now())
@@ -26,15 +30,19 @@ model Person {
 }
 
 model Order {
-  id         String      @id @default(uuid())
-  orderNumber String      @unique
-  totalValue Decimal     @db.Decimal(10, 2)
-  orderDate  DateTime    @default(now())
-  status     OrderStatus @default(PENDENTE)
-  items      Item[]
-  payments   Payment[]
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id          String      @id @default(uuid())
+  orderNumber String
+  totalValue  Decimal     @db.Decimal(10, 2)
+  orderDate   DateTime    @default(now())
+  status      OrderStatus @default(PENDENTE)
+  user        User?       @relation(fields: [userId], references: [id])
+  userId      String?
+  items       Item[]
+  payments    Payment[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([orderNumber, userId])
 }
 
 enum OrderStatus {
