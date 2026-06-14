@@ -483,10 +483,29 @@ Deliverable: ✅ Fully responsive header with gradient design on both desktop an
 
 ---
 
+🔤 PHASE 24: Mobile UX Improvements — Username Lowercase Default & Password Visibility Toggle
+Status: ✅ COMPLETED
+
+Context: On mobile, the virtual keyboard auto-capitalizes the first letter of text inputs, forcing users to manually correct when typing lowercase usernames. Additionally, password fields hide what was typed without any way to visually confirm correctness.
+
+Stack: React, Tailwind CSS, lucide-react
+
+Task:
+1. **Username fields**: Added `autoCapitalize="none"` and `autoCorrect="off"` attributes to username inputs on both LoginPage and RegisterPage to prevent mobile virtual keyboards from auto-capitalizing the first letter.
+2. **Password toggle**: Added `Eye`/`EyeOff` icon buttons (from lucide-react) to password and confirm password fields on both pages. Clicking the button toggles the input type between `"password"` and `"text"`, allowing the user to see what they typed.
+3. **Tests**: Added 3 new tests — 1 for LoginPage password toggle, 2 for RegisterPage (password + confirm password toggle). All existing tests continue to pass.
+
+Deliverable: ✅ Username inputs now default to lowercase on mobile keyboards. Password fields have a visibility toggle (eye icon) for user confirmation.
+- Backend: 82 tests passing (unchanged)
+- Frontend: 173 tests passing (170 + 3 new)
+- **Total: 255 tests passing with zero regressions**
+
+---
+
 ## 🎉 MVP PROJECT COMPLETION
 
 
-**All 16 phases + Phases 17-22 have been successfully completed.** The Receivables Control System is now a fully functional, production-ready financial tracking application with comprehensive test coverage.
+**All 16 phases + Phases 17-24 have been successfully completed.** The Receivables Control System is now a fully functional, production-ready financial tracking application with comprehensive test coverage.
 
 ### Summary of Deliverables:
 
@@ -515,8 +534,8 @@ Deliverable: ✅ Fully responsive header with gradient design on both desktop an
 
 ✅ **Testing (Vitest + React Testing Library)**
 - Backend: 82 tests (17 People + 27 Orders + 28 Payments + 6 Dashboard + 4 Auth)
-- Frontend: 170 tests (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel + 10 api + 18 RegisterPage + 9 LoginPage + 4 Header + 6 MobileBottomNav)
-- **Total: 252 tests passing**
+- Frontend: 173 tests (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel + 10 api + 20 RegisterPage + 10 LoginPage + 4 Header + 6 MobileBottomNav)
+- **Total: 255 tests passing**
 - 100% TDD methodology applied
 - Comprehensive edge case coverage (overpayment validation, status transitions, floating-point precision)
 
@@ -546,13 +565,13 @@ Deliverable: ✅ Fully responsive header with gradient design on both desktop an
 │ Frontend - Receivables  │ 27 tests passing  │ ✅ Complete  │
 │ Frontend - Dashboard    │ 26 tests passing  │ ✅ Complete  │
 │ Frontend - exportExcel  │ 32 tests passing  │ ✅ Complete  │
-│ Frontend - RegisterPage  │ 18 tests passing  │ ✅ Complete  │
-│ Frontend - LoginPage     │ 9 tests passing   │ ✅ Complete  │
+│ Frontend - RegisterPage  │ 20 tests passing  │ ✅ Complete  │
+│ Frontend - LoginPage     │ 10 tests passing  │ ✅ Complete  │
 │ Frontend - api           │ 10 tests passing  │ ✅ Complete  │
 │ Frontend - Header       │ 4 tests passing   │ ✅ Complete  │
 │ Frontend - MobileBottomNav │ 6 tests passing │ ✅ Complete  │
 ├─────────────────────────┼───────────────────┼──────────────┤
-│ TOTAL │ 252 tests passing │ ✅ RESPONSIVE NAV COMPLETE │
+│ TOTAL │ 255 tests passing │ ✅ MOBILE UX IMPROVEMENTS COMPLETE │
 └─────────────────────────┴───────────────────┴──────────────┘
 ```
 
@@ -643,7 +662,7 @@ Deliverable: ✅ [What users will have] - [Backend tests passing] backend tests,
 ## 🏆 Project Highlights
 
 - **Zero Floating-Point Errors**: All financial calculations use integer cents arithmetic
-- **100% Test Coverage**: 252 tests covering all critical paths, edge cases, and regressions
+- **100% Test Coverage**: 255 tests covering all critical paths, edge cases, and regressions
 - **Financial Precision**: Decimal(10,2) database fields, proper overpayment rejection, accurate status transitions
 - **User Experience**: PT-BR localization, responsive Tailwind design, toast feedback, loading states
 - **Code Quality**: TDD methodology, clear error messages, proper auth guards, documented pitfalls
