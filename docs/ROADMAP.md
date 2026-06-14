@@ -383,8 +383,8 @@ Implement a yearly breakdown section in the dashboard that groups orders by thei
 
 Deliverable: ✅ Dashboard shows a "Resumo por Ano" table with pending and quitado totals per year, sorted descending. Orders are grouped by their `orderDate` year regardless of when payments occur. All existing tests pass with zero regressions.
 - Backend: 69 tests passing (14 People + 23 Orders + 27 Payments + 5 Dashboard)
-- Frontend: 123 tests passing (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel)
-- **Total: 192 tests passing with zero regressions**
+- Frontend: 133 tests passing (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel + 10 api)
+- **Total: 202 tests passing with zero regressions**
 
 ---
 
@@ -418,8 +418,8 @@ Deliverable: ✅ Dashboard shows a "Resumo por Ano" table with pending and quita
 
 ✅ **Testing (Vitest + React Testing Library)**
 - Backend: 69 tests (14 People + 23 Orders + 27 Payments + 5 Dashboard)
-- Frontend: 123 tests (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel)
-- **Total: 192 passing tests with zero regressions**
+- Frontend: 133 tests (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel + 10 api)
+- **Total: 202 passing tests with zero regressions**
 - 100% TDD methodology applied
 - Comprehensive edge case coverage (overpayment validation, status transitions, floating-point precision)
 
@@ -448,8 +448,9 @@ Deliverable: ✅ Dashboard shows a "Resumo por Ano" table with pending and quita
 │ Frontend - Receivables  │ 27 tests passing  │ ✅ Complete  │
 │ Frontend - Dashboard    │ 26 tests passing  │ ✅ Complete  │
 │ Frontend - exportExcel  │ 32 tests passing  │ ✅ Complete  │
+│ Frontend - api          │ 10 tests passing  │ ✅ Complete  │
 ├─────────────────────────┼───────────────────┼──────────────┤
-│ TOTAL │ 192 tests passing │ ✅ MVP READY │
+│ TOTAL │ 202 tests passing │ ✅ MVP READY │
 └─────────────────────────┴───────────────────┴──────────────┘
 ```
 
@@ -467,8 +468,8 @@ Deliverable: ✅ Dashboard shows a "Resumo por Ano" table with pending and quita
 10. **formatBRL string handling** — Parse to number before toLocaleString()
 11. **Non-breaking space in BRL** — Use `\s*` regex to match any whitespace
 12. **Floating-point precision** — Use integer cents arithmetic throughout
-
----
+13. **vi.hoisted() for mock variables** — Use `vi.hoisted()` when ES module imports are hoisted above `const` declarations
+14. **Backend 403 for expired token** — Frontend interceptor must handle both 401 and 403
 
 ## 🚀 Next Steps: Handling New Client Requests
 

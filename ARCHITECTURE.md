@@ -3,7 +3,7 @@
 ## Overview
 This document describes the current state of the project architecture, file organization, and how to run the system.
 
-**🎉 Project Status: MVP COMPLETE** — All 16 phases + Phase 17 + Phase 18 + Phase 19 completed with 192 automated tests passing. The Receivables Control System is production-ready with full CRUD operations, payment processing, dashboard analytics (including yearly breakdown), Excel export functionality, custom order date support, and custom payment date support. Ready to accept new client feature requests.
+**🎉 Project Status: MVP COMPLETE** — All 16 phases + Phase 17 + Phase 18 + Phase 19 completed with 202 automated tests passing. The Receivables Control System is production-ready with full CRUD operations, payment processing, dashboard analytics (including yearly breakdown), Excel export functionality, custom order date support, custom payment date support, and automatic 401/403 redirect to login on session expiry. Ready to accept new client feature requests.
 
 ## Technology Stack
 - **Backend**: Node.js (Express) with Prisma ORM
@@ -84,7 +84,8 @@ oc-receivables-control/
 │   │   ├── OrdersPage.jsx # Orders CRUD with dynamic item rows and custom order date (PT-BR)
 │ │   └── ReceivablesPage.jsx # Payment tracking with status badges & payment modal with custom date (PT-BR)
 │ └── tests/
- │ ├── setup.js # @testing-library/jest-dom import
+  │ ├── setup.js # @testing-library/jest-dom import
+│ ├── api.test.js # 10 API interceptor tests (request/response, 401 + 403 redirect, other errors)
 │ ├── PeoplePage.test.jsx # 14 PeoplePage tests
 │   ├── OrdersPage.test.jsx # 24 OrdersPage tests
 │   ├── ReceivablesPage.test.jsx # 27 ReceivablesPage tests (badge rendering, payment modal, validation guards, payment date field, toast feedback, FP regression)
@@ -178,7 +179,7 @@ NODE_ENV=development
 ✅ Proper relationships and cascade rules established
 ✅ Working JWT authentication system with bcrypt password hashing
 ✅ Admin user seeded in database
-✅ Axios client with automatic Bearer token injection from localStorage (`src/services/api.js`)
+✅ Axios client with automatic Bearer token injection from localStorage and 401/403 redirect to `/login` on session expiry (`src/services/api.js`)
 ✅ Auth context provider managing login, logout, and token validation (`src/context/AuthContext.jsx`)
 ✅ Tailwind CSS setup with PostCSS and Vite integration
 ✅ Login page with PT-BR labels and error messages (`src/pages/LoginPage.jsx`)

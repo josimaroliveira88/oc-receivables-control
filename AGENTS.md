@@ -114,18 +114,18 @@ The Receivables Control System is now fully functional with all core features im
 ✅ Receivables tracking dashboard with per-person balance breakdown
 ✅ Analytics dashboard with KPI widgets, Recharts visualizations, and yearly breakdown (Pendente/Quitado por ano)
 ✅ Excel export functionality (4-sheet workbook with BRL formatting)
-✅ Comprehensive test coverage (123 frontend tests + 69 backend tests)
+✅ Comprehensive test coverage (133 frontend tests + 69 backend tests)
 ✅ Financial precision (integer cents arithmetic, no floating-point errors)
 ✅ Complete TDD methodology applied across all phases
 ✅ PT-BR localization for all user-facing content
 
 ### Test Results:
 - **Backend Tests**: 69 passing (14 People + 23 Orders + 27 Payments + 5 Dashboard)
-- **Frontend Tests**: 123 passing (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel)
-- **Total**: 192 tests passing with zero regressions
+- **Frontend Tests**: 133 passing (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel + 10 api)
+- **Total**: 202 tests passing with zero regressions
 
 ### Key Learnings Documented:
-13 critical lessons learned documented in AGENTS.md (see "Lessons Learned / Pitfalls to Avoid") to guide future development:
+15 critical lessons learned documented in AGENTS.md (see "Lessons Learned / Pitfalls to Avoid") to guide future development:
 1. vi.mock hoisting bug in Vitest — arrow-function wrapper solution
 2. HTML5 required attribute blocking form submission in jsdom
 3. Conditional rendering of dynamic list items
@@ -138,6 +138,8 @@ The Receivables Control System is now fully functional with all core features im
 10. formatBRL handling string inputs from Prisma
 11. Non-breaking space in BRL currency formatting
 12. Floating-point precision in financial calculations — integer cents solution
+13. vi.hoisted() for mock variables in ES module tests
+14. Backend 403 for expired token — frontend interceptor misses it
 
 ## Next Steps for Client Requests
 
@@ -148,7 +150,7 @@ When the client requests new functionality:
 3. **Plan Test Coverage**: Identify which tests need to be written (backend/frontend)
 4. **Implement with TDD**: Follow the TDD methodology used in phases 5+
 5. **Update Documentation**: Ensure ARCHITECTURE.md, AGENTS.md, and ROADMAP.md reflect changes
-6. **Run Full Test Suite**: Verify all 180+ tests pass with zero regressions
+6. **Run Full Test Suite**: Verify all 200+ tests pass with zero regressions
 
 The codebase is well-structured, documented, and ready to accept new features without breaking existing functionality.
 
@@ -311,7 +313,84 @@ function fromCents(cents) { return cents / 100; }
 // 156 === 123456 - 123300 === 156 ✓
 ```
 
-### 13. Timezone-Safe Date Parsing (YYYY-MM-DD strings)
+### 13. vi.hoisted() for Mock Variables in ES Module Tests (Vitest)
+**Problem**: When testing a module that calls a mocked dependency at import time (e.g., `axios.create()` in `api.js`), the mock function must be available before the `import` statement executes. ES module `import` is hoisted above any `const` declarations, so even `vi.mock(...)` with arrow-function wrappers fails — the variable is still in the temporal dead zone when the intercepted module evaluates.
+```js
+// WRONG — mockCreate is in temporal dead zone when api.js imports axios
+const mockCreate = vi.fn();
+vi.mock('axios', () => ({
+  default: { create: (...args) => mockCreate(...args) },
+}));
+import api from '../src/services/api';  // mockCreate not yet initialized!
+```
+**Fix**: Use `vi.hoisted()` to make mock variables available before any module imports:
+```js
+// CORRECT — vi.hoisted() runs before all other code
+const { mockCreate, mockRequestUse, mockResponseUse } = vi.hoisted(() => ({
+  mockCreate: vi.fn(),
+  mockRequestUse: vi.fn(),
+  mockResponseUse: vi.fn(),
+}));
+
+vi.mock('axios', () => ({
+  default: { create: (...args) => mockCreate(...args) },
+}));
+
+import api from '../src/services/api';  // mockCreate is ready ✓
+```
+Add a `beforeAll` (or setup in `vi.hoisted`) to configure the mock return value before import:
+```js
+const { mockRequestUse, mockResponseUse } = vi.hoisted(() => {
+  const requestUse = vi.fn();
+  const responseUse = vi.fn();
+
+  // Set up axios.create() return value inside hoisted block
+  vi.mock('axios', () => ({
+    default: {
+      create: vi.fn(() => ({
+        interceptors: {
+          request: { use: requestUse },
+          response: { use: responseUse },
+        },
+      })),
+    },
+  }));
+
+  return { mockRequestUse: requestUse, mockResponseUse: responseUse };
+});
+```
+
+### 14. Backend 403 for Expired Token — Frontend Interceptor Misses It
+**Problem**: The backend `auth.js` middleware returns **403** (`'Invalid or expired token'`) when `jwt.verify` fails, but the frontend axios response interceptor only checked for **401**. On token expiration, the user was never redirected to login — the 403 error bubbled to individual components, some of which didn't handle it, causing broken UI instead of a clean redirect.
+```js
+// WRONG — only handles 401, ignores 403 from expired token
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {  // 403 ignored!
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+```
+**Fix**: Treat both 401 and 403 as authentication failures in the interceptor:
+```js
+// CORRECT — handles both missing token (401) and expired token (403)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+```
+
+### 15. Timezone-Safe Date Parsing (YYYY-MM-DD strings)
 **Problem**: `new Date('2026-05-15')` interprets the string as UTC midnight. In timezones like UTC-3 (Brazil), the local date shifts back to May 14, causing `getDate()` to return 14 instead of 15. This causes backend tests to fail and frontend `formatDateBR()` to display the wrong day.
 **Fix**: Parse date strings manually to create local Date objects, and extract date parts directly from the ISO string for display:
 ```js
