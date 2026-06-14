@@ -4,6 +4,9 @@ const ordersController = require('../controllers/ordersController');
 const paymentsController = require('../controllers/paymentsController');
 const { authenticateToken } = require('../middlewares/auth');
 
+// All routes require authentication
+router.use(authenticateToken);
+
 // GET /api/orders
 router.get('/', ordersController.getOrders);
 
@@ -29,9 +32,9 @@ router.put('/items/:id', ordersController.updateItem);
 router.delete('/items/:id', ordersController.deleteItem);
 
 // POST /api/orders/:orderId/payments
-router.post('/:orderId/payments', authenticateToken, paymentsController.createPayment);
+router.post('/:orderId/payments', paymentsController.createPayment);
 
 // GET /api/orders/:orderId/balance
-router.get('/:orderId/balance', authenticateToken, paymentsController.getOrderBalance);
+router.get('/:orderId/balance', paymentsController.getOrderBalance);
 
 module.exports = router;
