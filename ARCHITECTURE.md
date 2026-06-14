@@ -3,7 +3,7 @@
 ## Overview
 This document describes the current state of the project architecture, file organization, and how to run the system.
 
-**🎉 Project Status: MVP COMPLETE** — All 16 phases + Phase 17 + Phase 18 + Phase 19 completed with 202 automated tests passing. The Receivables Control System is production-ready with full CRUD operations, payment processing, dashboard analytics (including yearly breakdown), Excel export functionality, custom order date support, custom payment date support, and automatic 401/403 redirect to login on session expiry. Ready to accept new client feature requests.
+**🎉 Project Status: MVP COMPLETE** — All 16 phases + Phases 17-22 completed with 242 automated tests passing. The Receivables Control System is production-ready with full CRUD operations, payment processing, dashboard analytics (including yearly breakdown), Excel export functionality, custom order date support, custom payment date support, user self-registration, and automatic 401/403 redirect to login on session expiry. Ready to accept new client feature requests.
 
 ## Technology Stack
 - **Backend**: Node.js (Express) with Prisma ORM
@@ -40,7 +40,7 @@ oc-receivables-control/
 │       ├── middlewares/
 │       │   └── auth.js         # JWT authentication middleware
 │   ├── controllers/
-│   │   ├── authController.js # Auth login controller
+│   │   ├── authController.js # Auth login + register controllers
 │   │   ├── peopleController.js # People CRUD with Zod validation
 │   │   ├── ordersController.js # Orders + Items CRUD with Zod validation, custom orderDate support
 │ │ ├── paymentsController.js # Payments + balance with transactional status engine, custom paidAt support
@@ -48,7 +48,7 @@ oc-receivables-control/
 │   ├── utils/
 │   │ └── money.js # toCents, fromCents, formatBRL (integer cents arithmetic)
 │   └── routes/
-│       ├── authRoutes.js # Auth route definitions (/api/auth/login)
+│       ├── authRoutes.js # Auth route definitions (/api/auth/login, /api/auth/register)
 │       ├── peopleRoutes.js # People CRUD routes (/api/people)
 │       ├── ordersRoutes.js # Orders + Items + Payments routes (/api/orders, /api/orders/items/:id, /api/orders/:orderId/payments, /api/orders/:orderId/balance)
 │       └── dashboardRoutes.js # Dashboard route (/api/dashboard)
@@ -70,7 +70,7 @@ oc-receivables-control/
 │   ├── services/
 │   │   └── api.js              # Axios client with auth interceptor
 │   ├── context/
-│   │   └── AuthContext.jsx     # Auth state (login/logout/token)
+│   │   └── AuthContext.jsx     # Auth state (login/logout/register/token)
 │ ├── components/
 │ │ ├── ProtectedRoute.jsx # Route guard for auth
 │ │ └── Toast.jsx # Toast notification provider & component
@@ -78,7 +78,8 @@ oc-receivables-control/
 │ │ ├── money.js # toCents, fromCents, formatBRL (integer cents arithmetic, string-safe)
 │ │ └── exportExcel.js # XLSX workbook generation (4 sheets, BRL formatting)
 │   ├── pages/
-│   │   ├── LoginPage.jsx # Login form (PT-BR)
+│   │   ├── LoginPage.jsx # Login form (PT-BR) with "Criar uma conta" link and registration success message
+│   │   ├── RegisterPage.jsx # Registration form (PT-BR) with validation
 │ │ ├── DashboardPage.jsx # Dashboard with KPI widgets, Recharts bar chart, yearly breakdown "Resumo por Ano" table & XLSX export button
 │ │ ├── PeoplePage.jsx # People CRUD with modals (PT-BR)
 │   │   ├── OrdersPage.jsx # Orders CRUD with dynamic item rows and custom order date (PT-BR)
@@ -90,6 +91,8 @@ oc-receivables-control/
 │   ├── OrdersPage.test.jsx # 24 OrdersPage tests
 │   ├── ReceivablesPage.test.jsx # 27 ReceivablesPage tests (badge rendering, payment modal, validation guards, payment date field, toast feedback, FP regression)
 │ ├── DashboardPage.test.jsx # 26 DashboardPage tests (KPI widgets, chart, yearly breakdown, export button integration, toast feedback)
+│ ├── RegisterPage.test.jsx # 18 RegisterPage tests (rendering, validation, success redirect, error handling, loading, navigation)
+│ ├── LoginPage.test.jsx # 9 LoginPage tests (rendering, registration link, success message, login form)
 │ └── exportExcel.test.js # 32 exportExcel utility tests (workbook structure, sheet content, BRL formatting, empty data, column widths, FP precision)
 ```
 
@@ -221,7 +224,7 @@ NODE_ENV=development
 Multi-user isolation and self-registration system:
 - **Phase 20**: ✅ Prisma schema update (`userId` in Person/Order), registration API (`POST /api/auth/register`), and TDD setup.
 - **Phase 21**: ✅ Backend data isolation (middleware enforcement on all routes, query filtering by `req.user.userId`). `userId` made required with `ON DELETE CASCADE`. 82 backend tests (was 73).
-- **Phase 22**: ⏳ PENDING Frontend registration UI (`RegisterPage.jsx`) and AuthContext integration.
+- **Phase 22**: ✅ Frontend registration UI (`RegisterPage.jsx`) with PT-BR form, client-side validation, success redirect, and LoginPage navigation. 18 RegisterPage tests + 9 LoginPage tests. 160 total frontend tests, 242 total tests.
 
 ## Notes for Developers/Agents
 - Backend source is mounted at `/app` inside container for live editing

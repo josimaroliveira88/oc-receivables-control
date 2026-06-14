@@ -99,9 +99,9 @@ Frontend only:
 
 ## Project Status
 
-🎉 **All MVP phases (1-16) + Phases 17-21 have been COMPLETED.**
+🎉 **All MVP phases (1-16) + Phases 17-22 have been COMPLETED.**
 
-The Receivables Control System is now fully functional with complete backend data isolation. Phase 21 enforced authentication on all routes and scoped all data operations to the authenticated user.
+The Receivables Control System is now fully functional with user self-registration and complete backend data isolation. Phase 22 added a registration page with PT-BR form, client-side validation, and navigation between login and register pages.
 
 ### Completed Features:
 ✅ Multi-container Docker environment (backend, frontend, database, admin UI)
@@ -120,13 +120,15 @@ The Receivables Control System is now fully functional with complete backend dat
 ✅ PT-BR localization for all user-facing content
 ✅ Multi-user schema foundation (userId on Person/Order)
 ✅ User registration API endpoint (POST /api/auth/register)
+✅ User registration page (RegisterPage.jsx with PT-BR form, client-side validation, navigation)
+✅ Login page with "Criar uma conta" link and registration success message
 ✅ Backend data isolation — all routes JWT-protected, queries filtered by `userId`, cross-user access blocked
 ✅ `userId` required on Person/Order with `ON DELETE CASCADE` (migration: `20260614184002_make_user_id_required`)
 
 ### Test Results:
 - **Backend Tests**: 82 passing (17 People + 27 Orders + 28 Payments + 6 Dashboard + 4 Auth)
-- **Frontend Tests**: 133 passing (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel + 10 api)
-- **Total**: 215 tests passing with zero regressions
+- **Frontend Tests**: 160 passing (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel + 10 api + 18 RegisterPage + 9 LoginPage)
+- **Total**: 242 tests passing with zero regressions
 
 ### Key Learnings Documented:
 15 critical lessons learned documented in AGENTS.md (see "Lessons Learned / Pitfalls to Avoid") to guide future development:
