@@ -659,10 +659,36 @@ Deliverable: ✅ [What users will have] - [Backend tests passing] backend tests,
 
 ---
 
+🎨 PHASE 24: Design System Unification + Dark Mode
+Status: ✅ COMPLETED
+
+Context: The header already had a modern gradient design (from-blue-800 to-blue-600), but the rest of the application was visually inconsistent: emojis mixed with lucide-react icons, different shadow levels, inconsistent badge styles, plain buttons, and no dark mode support.
+Stack: Tailwind CSS, lucide-react, React Context
+
+Task:
+Implemented a comprehensive design system unification that:
+1. Added `darkMode: 'class'` strategy to tailwind.config.js for manual dark mode toggling
+2. Created semantic `primary` color tokens (50–900) mapped to blue palette in tailwind.config.js
+3. Added CSS custom properties for brand gradient with dark mode overrides in index.css
+4. Created ThemeContext with localStorage persistence, system preference detection, and manual toggle via Sun/Moon icons
+5. Added inline blocking script in main.jsx to prevent flash of wrong theme before React renders
+6. Applied border-t-4 border-primary-600 accent to all cards, modals, and auth forms
+7. Replaced all emoji icons (🔴✅💰📥) with lucide-react components (Circle, CheckCircle, DollarSign, Download)
+8. Unified status badges across OrdersPage and ReceivablesPage with colored dot indicators (amber/blue/emerald)
+9. Replaced bg-blue-600 solid primary buttons with bg-gradient-to-r from-primary-700 to-primary-500 gradient
+10. Added glassmorphism overlay (bg-black/40 backdrop-blur-sm) to all modals
+11. Added dark: variants to every component (headers, cards, tables, inputs, badges, modals, buttons)
+12. Standardized input focus rings to use primary-500 with focus:border-primary-500 everywhere
+13. Changed action links from indigo-600 to primary-600 for consistency
+14. Removed dead CSS class `.yearly-breakdown-table`, replaced with `data-testid="yearly-breakdown"`
+15. Added ThemeContext test suite (7 tests) verifying toggle, persistence, dark class management, and provider guard
+
+Deliverable: ✅ Unified design system with dark mode support across the entire app - 180 frontend tests passing (+7 new), 82 backend tests passing (262 total)
+
 ## 🏆 Project Highlights
 
 - **Zero Floating-Point Errors**: All financial calculations use integer cents arithmetic
-- **100% Test Coverage**: 255 tests covering all critical paths, edge cases, and regressions
+- **100% Test Coverage**: 262 tests covering all critical paths, edge cases, and regressions
 - **Financial Precision**: Decimal(10,2) database fields, proper overpayment rejection, accurate status transitions
 - **User Experience**: PT-BR localization, responsive Tailwind design, toast feedback, loading states
 - **Code Quality**: TDD methodology, clear error messages, proper auth guards, documented pitfalls

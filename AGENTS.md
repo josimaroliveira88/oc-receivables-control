@@ -100,9 +100,9 @@ Frontend only:
 
 ## Project Status
 
-🎉 **All MVP phases (1-16) + Phases 17-23 have been COMPLETED.**
+🎉 **All MVP phases (1-16) + Phases 17-24 have been COMPLETED.**
 
-The Receivables Control System is now fully functional with user self-registration, complete backend data isolation, and responsive mobile navigation. Phase 23 added a responsive header with gradient design and a fixed bottom navigation bar with icons on mobile.
+The Receivables Control System is now fully functional with user self-registration, complete backend data isolation, responsive mobile navigation, and a unified design system with dark mode. Phase 24 added a comprehensive design system overhaul: semantic color tokens, border-top accent cards, gradient buttons, lucide-react icons (replacing emojis), unified status badges with colored dots, glassmorphism modals, dark mode with manual toggle (Sun/Moon), and `dark:` variants across every component.
 
 ### Completed Features:
 ✅ Multi-container Docker environment (backend, frontend, database, admin UI)
@@ -133,8 +133,8 @@ The Receivables Control System is now fully functional with user self-registrati
 
 ### Test Results:
 - **Backend Tests**: 82 passing (17 People + 27 Orders + 28 Payments + 6 Dashboard + 4 Auth)
-- **Frontend Tests**: 173 passing (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel + 10 api + 20 RegisterPage + 10 LoginPage + 4 Header + 6 MobileBottomNav)
-- **Total**: 255 tests passing with zero regressions
+- **Frontend Tests**: 180 passing (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel + 10 api + 20 RegisterPage + 10 LoginPage + 4 Header + 6 MobileBottomNav + 7 ThemeContext)
+- **Total**: 262 tests passing with zero regressions
 
 ### Key Learnings Documented:
 16 critical lessons learned documented in AGENTS.md (see "Lessons Learned / Pitfalls to Avoid") to guide future development:
