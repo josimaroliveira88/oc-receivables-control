@@ -10,7 +10,7 @@ To implement a new client feature as a new phase:
 - Technology specs: `AGENTS.md` (root)
 - Architecture docs: `ARCHITECTURE.md` (root)
 - Phase roadmap: `docs/ROADMAP.md`
-- Skills & patterns: `skills/` directory
+- Skills & patterns: `.opencode/skills/` directory
 
 ## Implementation Process for New Features
 1. **Verify current state**:
@@ -36,7 +36,7 @@ To implement a new client feature as a new phase:
    - Priority scenarios: validation, edge cases, error handling, PT-BR labels, financial precision
 
 4. **Implement strictly within phase scope**:
-   - Follow existing code conventions (see `skills/` directory for style guides)
+   - Follow existing code conventions (see `.opencode/skills/` directory for style guides)
    - Use only approved technologies from the tech stack (Node.js, Express, React, Prisma, etc.)
    - Do NOT implement features from subsequent phases
    - Use existing utilities when possible (money.js for BRL calculations, etc.)
