@@ -736,6 +736,50 @@ Implemented a comprehensive design system unification that:
 
 Deliverable: ✅ Unified design system with dark mode support across the entire app - 180 frontend tests passing (+7 new), 82 backend tests passing (262 total)
 
+---
+
+## 🎯 Phase 26: Interactive User Onboarding Tour
+Status: ✅ COMPLETED
+
+Context: New users need guidance to understand the system's features. Phase 26 adds an interactive step-by-step tutorial that introduces key sections (Dashboard, People, Orders, Receivables) in a guided modal tour.
+
+Stack: React, lucide-react, localStorage, window CustomEvent.
+
+Task:
+- Created `frontend/src/components/OnboardingTour.jsx` with:
+  - 8 tour steps covering all major features (Welcome → KPIs → Charts → People → Orders → Receivables → Navigation → Completion)
+  - Custom modal overlay with backdrop (z-[70]), icon, title, description, progress dots, and step counter
+  - Navigation between steps with "Anterior"/"Próximo"/"Pular Tutorial"/"Começar a Usar!" buttons
+  - Cross-page navigation via `useNavigate()` on appropriate steps
+  - localStorage flags: `show_onboarding` (auto-trigger after registration), `onboarding_complete` (persist completion)
+  - Custom event `start-onboarding-tour` for external triggers
+  - Consistent dark mode with rest of the app
+
+- Modified `frontend/src/pages/RegisterPage.jsx`:
+  - Sets `localStorage.setItem('show_onboarding', 'true')` after successful registration
+
+- Modified `frontend/src/App.jsx`:
+  - Renders `<OnboardingTour />` inside `AppLayout` (after `MobileBottomNav`)
+
+- Modified `frontend/src/components/Header.jsx`:
+  - Added `HelpCircle` button with `title="Tutorial"` between theme toggle and user badge
+
+- Modified `frontend/src/components/MobileBottomNav.jsx`:
+  - Added "Tutorial" item in the user dropdown (above "Sair")
+  - Both trigger `window.dispatchEvent(new Event('start-onboarding-tour'))`
+
+- Updated `tests/MobileBottomNav.test.jsx`:
+  - Adjusted button count assertion (2 → 4 in dropdown) to account for new Tutorial button
+  - Added assertion for `screen.getByText('Tutorial')`
+
+Key Design Decisions:
+- Custom component (no external dependencies like react-joyride/driver.js) — lighter bundle, full control
+- Modal-based (not spotlight/pointer-to-element) — robust against DOM changes, works across page navigations
+- Window CustomEvent pattern — clean inter-component communication without context pollution or prop drilling
+- z-[70] overlay hierarchy — follows existing convention (z-50 nav → z-[60] modals → z-[70] tour overlay → z-[80] toasts)
+
+Deliverable: ✅ Interactive 8-step onboarding tour with auto-trigger on first login after registration and manual restart via header/mobile nav — 183 frontend tests passing (no regressions), 265 total tests
+
 ## 🏆 Project Highlights
 
 - **Zero Floating-Point Errors**: All financial calculations use integer cents arithmetic

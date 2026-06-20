@@ -101,9 +101,9 @@ Frontend only:
 
 ## Project Status
 
-🎉 **All MVP phases (1-16) + Phases 17-25 have been COMPLETED.**
+🎉 **All MVP phases (1-16) + Phases 17-26 have been COMPLETED.**
 
-The Receivables Control System is now fully functional with user self-registration, complete backend data isolation, responsive mobile navigation, and a unified design system with dark mode. Phase 25 added a logged-in user badge displaying the current username in the header and mobile bottom nav, along with `jwt-decode` for client-side JWT payload extraction and a Docker startup fix that runs `npm install` on container start to ensure anonymous volumes receive new dependencies on image rebuild.
+The Receivables Control System is now fully functional with user self-registration, complete backend data isolation, responsive mobile navigation, a unified design system with dark mode, and an interactive onboarding tour. Phase 25 added a logged-in user badge displaying the current username in the header and mobile bottom nav, along with `jwt-decode` for client-side JWT payload extraction and a Docker startup fix that runs `npm install` on container start to ensure anonymous volumes receive new dependencies on image rebuild. Phase 26 added an 8-step interactive onboarding tour triggered on first login after registration, with manual restart via HelpCircle button in header and Tutorial option in mobile bottom nav dropdown.
 
 ### Completed Features:
 ✅ Multi-container Docker environment (backend, frontend, database, admin UI)
@@ -133,6 +133,7 @@ The Receivables Control System is now fully functional with user self-registrati
 ✅ Password visibility toggle (`Eye`/`EyeOff` icon) on login and registration forms
 ✅ Logged-in user badge — username displayed as `User` icon + text badge in header (desktop) and as a clickable dropdown menu with Sair option in mobile bottom nav (via `jwt-decode` client-side JWT decoding)
 ✅ Docker `npm install` on container start — frontend `CMD` and backend `entrypoint.sh` run `npm install` before starting, ensuring anonymous node_modules volumes receive new dependencies after `docker compose up --build`
+✅ Interactive User Onboarding Tour — step-by-step modal tutorial (8 steps, PT-BR) triggered on first login after registration, with manual restart via `HelpCircle` button in header and "Tutorial" option in mobile bottom nav dropdown
 
 ### Test Results:
 - **Backend Tests**: 82 passing (17 People + 27 Orders + 28 Payments + 6 Dashboard + 4 Auth)
@@ -169,7 +170,7 @@ When the client requests new functionality:
 3. **Plan Test Coverage**: Identify which tests need to be written (backend/frontend)
 4. **Implement with TDD**: Follow the TDD methodology used in phases 5+
 5. **Update Documentation**: Ensure ARCHITECTURE.md, AGENTS.md, and ROADMAP.md reflect changes
-6. **Run Full Test Suite**: Verify all 255+ tests pass with zero regressions
+6. **Run Full Test Suite**: Verify all 265 tests pass with zero regressions
 
 The codebase is well-structured, documented, and ready to accept new features without breaking existing functionality.
 
