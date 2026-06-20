@@ -37,6 +37,7 @@ const RegisterPage = () => {
 
     try {
       await register(username, password);
+      localStorage.setItem('show_onboarding', 'true');
       navigate('/login', { state: { message: 'Conta criada com sucesso! Faça login.' } });
     } catch (err) {
       if (err.response && err.response.status === 409) {

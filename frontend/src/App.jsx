@@ -10,6 +10,7 @@ import ReceivablesPage from './pages/ReceivablesPage';
 import ToastProvider from './components/Toast';
 import Header from './components/Header';
 import MobileBottomNav from './components/MobileBottomNav';
+import OnboardingTour from './components/OnboardingTour';
 
 const AppLayout = () => {
   return (
@@ -19,6 +20,7 @@ const AppLayout = () => {
         <Outlet />
       </main>
       <MobileBottomNav />
+      <OnboardingTour />
     </div>
   );
 };

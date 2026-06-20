@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LayoutDashboard, Users, ClipboardList, DollarSign, LogOut, Sun, Moon, User } from 'lucide-react';
+import { LayoutDashboard, Users, ClipboardList, DollarSign, LogOut, Sun, Moon, User, HelpCircle } from 'lucide-react';
 
 const navLinks = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -38,6 +38,14 @@ const Header = () => {
               </NavLink>
             ))}
           </nav>
+          <button
+            onClick={() => window.dispatchEvent(new Event('start-onboarding-tour'))}
+            className="hidden md:inline-flex items-center p-2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-md transition-colors"
+            aria-label="Tutorial"
+            title="Tutorial"
+          >
+            <HelpCircle className="w-4 h-4" />
+          </button>
           <button
             onClick={toggleTheme}
             className="hidden md:inline-flex items-center p-2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-md transition-colors"

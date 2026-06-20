@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LayoutDashboard, Users, ClipboardList, DollarSign, LogOut, Sun, Moon, User } from 'lucide-react';
+import { LayoutDashboard, Users, ClipboardList, DollarSign, LogOut, Sun, Moon, User, HelpCircle } from 'lucide-react';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -12,6 +12,7 @@ const navItems = [
 ];
 
 const userMenuItems = [
+  { icon: HelpCircle, label: 'Tutorial' },
   { icon: LogOut, label: 'Sair' },
 ];
 
@@ -35,6 +36,7 @@ const MobileBottomNav = () => {
   const handleMenuItemClick = (label) => {
     setShowDropdown(false);
     if (label === 'Sair') logout();
+    if (label === 'Tutorial') window.dispatchEvent(new Event('start-onboarding-tour'));
   };
 
   return (
