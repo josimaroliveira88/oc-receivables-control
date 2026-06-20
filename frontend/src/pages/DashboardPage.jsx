@@ -225,7 +225,7 @@ const DashboardPage = () => {
                   </thead>
                   <tbody>
                     {data.yearlyBreakdown.map((yearData) => (
-                      <tr key={yearData.year} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
+                      <tr key={yearData.year} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                         <td className="py-3 px-4 font-medium text-gray-800 dark:text-gray-200">{yearData.year}</td>
                         <td className="py-3 px-4 text-right text-red-600 dark:text-red-400 font-medium">
                           {formatBRL(yearData.totalPending)}
