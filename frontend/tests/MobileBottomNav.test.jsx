@@ -51,8 +51,9 @@ describe('MobileBottomNav', () => {
     expect(buttons).toHaveLength(2);
     fireEvent.click(screen.getByText('joao'));
     buttons = screen.getAllByRole('button');
-    expect(buttons).toHaveLength(3);
+    expect(buttons).toHaveLength(4);
     expect(screen.getByText('Sair')).toBeInTheDocument();
+    expect(screen.getByText('Tutorial')).toBeInTheDocument();
   });
 
   it('should call logout when Sair is clicked in the dropdown', () => {
