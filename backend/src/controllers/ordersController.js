@@ -36,7 +36,11 @@ const getOrders = async (req, res) => {
             person: true,
           },
         },
-        payments: true,
+        payments: {
+          include: {
+            person: true,
+          },
+        },
       },
       orderBy: [{ orderDate: 'desc' }, { createdAt: 'desc' }],
     });
@@ -59,7 +63,11 @@ const getOrderById = async (req, res) => {
             person: true,
           },
         },
-        payments: true,
+        payments: {
+          include: {
+            person: true,
+          },
+        },
       },
     });
 
