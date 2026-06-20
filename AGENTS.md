@@ -73,7 +73,7 @@ After completing each phase of development, the implementing agent must:
 2. Ensure ARCHITECTURE.md is current with the latest file structure and setup instructions
 3. Update AGENTS.md if any technical specifications or rules change
 4. Document any environment variables, configuration changes, or new dependencies
-5. Make sure ROADMAP.md accurately reflects completed and pending work
+5. Make sure `docs/ROADMAP.md` (located in `docs/` folder, not project root) accurately reflects completed and pending work
 6. Document test files and coverage under "## Available Test Scripts"
 
 This ensures future agents can understand the project state and continue development seamlessly.
@@ -142,7 +142,7 @@ The Receivables Control System is now fully functional with user self-registrati
 
 
 ### Key Learnings Documented:
-17 critical lessons learned documented in AGENTS.md (see "Lessons Learned / Pitfalls to Avoid") to guide future development:
+18 critical lessons learned documented in AGENTS.md (see "Lessons Learned / Pitfalls to Avoid") to guide future development:
 1. vi.mock hoisting bug in Vitest — arrow-function wrapper solution
 2. HTML5 required attribute blocking form submission in jsdom
 3. Conditional rendering of dynamic list items
@@ -489,3 +489,30 @@ npm install
 ```
 
 npm is idempotent and fast when `package.json` hasn't changed (uses local cache), so startup time is minimally affected.
+
+### 18. `z-index` Conflict Between Modals and MobileBottomNav
+
+**Problem**: Modals (`fixed inset-0 z-50`) and the mobile bottom nav (`fixed bottom-0 z-50`) both used `z-50`. Since the `MobileBottomNav` component is rendered after page content in the DOM (inside `AppLayout` in `App.jsx`), it appeared on top of modals regardless of source order. On mobile, the Cancelar/Salvar buttons at the bottom of modal forms were hidden behind the bottom nav bar, making them inaccessible even when scrolling.
+
+```jsx
+// WRONG — same z-index, bottom nav wins due to DOM order
+// MobileBottomNav.jsx
+<nav className="fixed bottom-0 left-0 right-0 z-50 ..." />
+
+// PeoplePage.jsx, OrdersPage.jsx, ReceivablesPage.jsx
+<div className="fixed inset-0 z-50 ..." />  // hidden behind bottom nav
+```
+
+**Fix**: Increase the modal z-index to `z-[60]` (higher than the bottom nav's `z-50`) on all modal overlays:
+
+```jsx
+// CORRECT — modal stays above bottom nav
+<div className="fixed inset-0 z-[60] ..." />
+```
+
+This was applied to all modal overlays across:
+- `frontend/src/pages/OrdersPage.jsx:250`
+- `frontend/src/pages/PeoplePage.jsx:174, 216`
+- `frontend/src/pages/ReceivablesPage.jsx:221`
+
+Use `z-[60]` consistently for modals and reserve `z-[70]` for toast notifications so there is a clear z-index hierarchy: nav → modals → toasts.

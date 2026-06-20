@@ -530,6 +530,29 @@ Deliverable: ✅ Logged-in user badge in header (desktop) and clickable dropdown
 
 ---
 
+🛠️ PHASE 26: Z-Index Bug Fix — Modals Hidden Behind Mobile Bottom Nav
+Status: ✅ COMPLETED
+
+Context: On mobile devices, when opening modals (create/edit person, create/edit order, register payment), the modal overlay had `z-50` — the same z-index as the fixed mobile bottom navigation bar. Since `MobileBottomNav` is rendered after page content in the DOM (inside `AppLayout` in `App.jsx`), it appeared on top of modals, hiding Cancelar/Salvar buttons at the bottom.
+
+Stack: Tailwind CSS
+
+Task:
+Identified and fixed the z-index conflict between modals and the mobile bottom navigation:
+
+1. Changed all modal overlay z-index values from `z-50` to `z-[60]` across 3 files (4 modals total):
+   - `frontend/src/pages/OrdersPage.jsx:250` — create/edit order modal
+   - `frontend/src/pages/PeoplePage.jsx:174, 216` — create and edit person modals
+   - `frontend/src/pages/ReceivablesPage.jsx:221` — payment registration modal
+
+2. Documented the lesson learned in AGENTS.md as lesson #18 with example code and z-index hierarchy recommendation (nav `z-50` → modals `z-[60]` → toasts `z-[70]`).
+
+Deliverable: ✅ All modals now render above the mobile bottom navigation bar, making Cancelar/Salvar buttons accessible on mobile devices regardless of form length.
+- No test changes needed (purely CSS fix, no behavioral change)
+- All existing 265 tests continue to pass
+
+---
+
 ## 🎉 MVP PROJECT COMPLETION
 
 
