@@ -2,6 +2,8 @@
 
 Sistema de controle de recebíveis desenvolvido com **Node.js**, **Express**, **React** e **PostgreSQL**. Permite gerenciar pessoas, pedidos, itens e pagamentos com atualização automática de status e dashboard de analytics.
 
+> 🤖 **Desenvolvido com auxílio de IA**: Este projeto foi construído com assistência de inteligência artificial (opencode), seguindo metodologia TDD e boas práticas de desenvolvimento.
+
 > ⚠️ **Projeto local**: Este sistema foi desenvolvido exclusivamente para execução em ambiente de desenvolvimento local. Não inclui configurações de produção como HTTPS, load balancing ou orquestração em nuvem.
 
 ---

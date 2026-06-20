@@ -2,7 +2,9 @@
 
 A receivables management system built with **Node.js**, **Express**, **React**, and **PostgreSQL**. Manage people, orders, items, and payments with automatic status transitions and an analytics dashboard.
 
-> ⚠️ **Local-only project**: This system is designed exclusively for local development. It does not include production configurations such as HTTPS, load balancing, or cloud orchestration.
+> 🤖 **AI-assisted development**: This project was built with assistance from artificial intelligence (opencode), following TDD methodology and software engineering best practices.
+
+> ⚠️ **Local-only project**: This system is designed exclusively for local development. It does not include production configurations such HTTPS, load balancing, or cloud orchestration.
 
 ---
 
