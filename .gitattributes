@@ -1,0 +1,29 @@
+# Windows batch/cmd files MUST always use CRLF
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+# Shell scripts MUST always use LF
+*.sh    text eol=lf
+
+# Text files use native line endings on checkout
+*.js    text
+*.jsx   text
+*.ts    text
+*.tsx   text
+*.json  text
+*.md    text
+*.css   text
+*.html  text
+*.yml   text
+*.yaml  text
+*.env   text
+*.csv   text
+
+# Binary files
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.pdf   binary
+*.xlsx  binary
