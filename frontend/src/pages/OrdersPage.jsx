@@ -2,7 +2,16 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { toCents, formatBRL } from '../utils/money';
 
-const emptyItem = () => ({ id: Date.now(), description: '', value: '', personId: '' });
+const emptyItem = () => ({
+  id: Date.now(),
+  description: '',
+  chargedValue: '',
+  personId: '',
+  productId: '',
+  memberPrice: '',
+  pv: '',
+  details: '',
+});
 
 const getTodayString = () => {
   const d = new Date();
@@ -33,9 +42,85 @@ const statusBadge = (status) => {
   );
 };
 
+const ProductCombobox = ({ products, value, onChange }) => {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const selected = products.find((p) => p.id === value) || null;
+
+  const filtered = products
+    .filter((p) =>
+      p.name.toLowerCase().includes(query.toLowerCase()) ||
+      p.code.toLowerCase().includes(query.toLowerCase())
+    )
+    .slice(0, 100);
+
+  const handleSelect = (id) => {
+    onChange(id);
+    setQuery('');
+    setOpen(false);
+  };
+
+  const handleClear = () => {
+    onChange('');
+    setQuery('');
+    setOpen(false);
+  };
+
+  const handleType = (e) => {
+    setQuery(e.target.value);
+    setOpen(true);
+  };
+
+  return (
+    <div className="relative">
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <input
+            type="text"
+            value={selected ? `${selected.name} (${selected.code})` : query}
+            onChange={handleType}
+            onFocus={() => setOpen(true)}
+            placeholder="Busque um produto..."
+            className="w-full px-3 py-2 pr-8 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-sm"
+          />
+          {open && (
+            <>
+              <div className="fixed inset-0 z-[60]" onClick={() => setOpen(false)} />
+              <ul className="absolute z-[70] mt-1 max-h-60 w-full overflow-auto bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg">
+                {filtered.length === 0 && (
+                  <li className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">Nenhum produto encontrado</li>
+                )}
+                {filtered.map((p) => (
+                  <li
+                    key={p.id}
+                    onMouseDown={() => handleSelect(p.id)}
+                    className="cursor-pointer px-3 py-2 text-sm text-gray-900 dark:text-gray-100 hover:bg-primary-50 dark:hover:bg-primary-900/40 transition-colors"
+                  >
+                    <span className="font-medium">{p.name}</span> ({p.code}) — {formatBRL(parseFloat(p.memberPrice) || 0)}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+        {selected && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="px-3 py-2 text-xs font-medium text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-md transition-colors whitespace-nowrap"
+          >
+            Limpar produto
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const OrdersPage = () => {
   const [orders, setOrders] = useState([]);
   const [people, setPeople] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -48,12 +133,14 @@ const OrdersPage = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [ordersRes, peopleRes] = await Promise.all([
+      const [ordersRes, peopleRes, productsRes] = await Promise.all([
         api.get('/orders'),
         api.get('/people'),
+        api.get('/products?active=true&pageSize=all'),
       ]);
       setOrders(ordersRes.data);
       setPeople(peopleRes.data);
+      setProducts(productsRes.data.data);
     } catch (err) {
       setError('Erro ao carregar dados. Tente novamente.');
     } finally {
@@ -76,8 +163,23 @@ const OrdersPage = () => {
     ));
   };
 
+  const onProductSelect = (index, productId) => {
+    const product = products.find((p) => p.id === productId);
+    setItems(items.map((item, i) =>
+      i === index
+        ? {
+            ...item,
+            productId,
+            description: product ? product.name : '',
+            memberPrice: product && product.memberPrice != null ? parseFloat(product.memberPrice).toString() : '',
+            pv: product && product.pv != null ? parseFloat(product.pv).toString() : '',
+          }
+        : item
+    ));
+  };
+
   const calculateTotal = () => {
-    const totalCents = items.reduce((total, item) => total + (toCents(parseFloat(item.value)) || 0), 0);
+    const totalCents = items.reduce((total, item) => total + (toCents(parseFloat(item.chargedValue)) || 0), 0);
     return totalCents / 100;
   };
 
@@ -90,6 +192,16 @@ const OrdersPage = () => {
     setEditOrderId(null);
   };
 
+  const itemPayload = (item) => ({
+    description: item.description.trim() || null,
+    chargedValue: parseFloat(item.chargedValue),
+    personId: item.personId,
+    productId: item.productId || null,
+    memberPrice: item.memberPrice !== '' && item.memberPrice != null ? parseFloat(item.memberPrice) : null,
+    pv: item.pv !== '' && item.pv != null ? parseFloat(item.pv) : null,
+    details: item.details.trim() || null,
+  });
+
   const handleCreateOrder = async (e) => {
     e.preventDefault();
     if (!orderNumber.trim()) {
@@ -97,7 +209,7 @@ const OrdersPage = () => {
       return;
     }
     const invalidItems = items.filter(item =>
-      !item.description.trim() || !item.value || parseFloat(item.value) <= 0 || !item.personId
+      !item.chargedValue || parseFloat(item.chargedValue) <= 0 || !item.personId
     );
     if (invalidItems.length > 0) {
       setError('Preencha todos os campos dos itens corretamente');
@@ -107,11 +219,7 @@ const OrdersPage = () => {
       await api.post('/orders', {
         orderNumber: orderNumber.trim(),
         orderDate: orderDate || undefined,
-        items: items.map(item => ({
-          description: item.description.trim(),
-          value: parseFloat(item.value),
-          personId: item.personId,
-        })),
+        items: items.map(itemPayload),
       });
       resetForm();
       fetchData();
@@ -126,9 +234,13 @@ const OrdersPage = () => {
     setOrderDate(order.orderDate ? order.orderDate.split('T')[0] : getTodayString());
     setItems(order.items.map(item => ({
       id: item.id,
-      description: item.description,
-      value: parseFloat(item.value).toString(),
+      description: item.description || '',
+      chargedValue: item.chargedValue != null ? parseFloat(item.chargedValue).toString() : '',
       personId: item.personId || '',
+      productId: item.productId || '',
+      memberPrice: item.memberPrice != null ? parseFloat(item.memberPrice).toString() : '',
+      pv: item.pv != null ? parseFloat(item.pv).toString() : '',
+      details: item.details || '',
     })));
     setShowEditModal(true);
   };
@@ -140,7 +252,7 @@ const OrdersPage = () => {
       return;
     }
     const invalidItems = items.filter(item =>
-      !item.description.trim() || !item.value || parseFloat(item.value) <= 0 || !item.personId
+      !item.chargedValue || parseFloat(item.chargedValue) <= 0 || !item.personId
     );
     if (invalidItems.length > 0) {
       setError('Preencha todos os campos dos itens corretamente');
@@ -150,11 +262,7 @@ const OrdersPage = () => {
       await api.put(`/orders/${editOrderId}`, {
         orderNumber: orderNumber.trim(),
         orderDate: orderDate || undefined,
-        items: items.map(item => ({
-          description: item.description.trim(),
-          value: parseFloat(item.value),
-          personId: item.personId,
-        })),
+        items: items.map(itemPayload),
       });
       resetForm();
       fetchData();
@@ -303,29 +411,7 @@ const OrdersPage = () => {
                       )}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Descrição</label>
-                        <input
-                          type="text"
-                          value={item.description}
-                          onChange={(e) => updateItemField(index, 'description', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-sm"
-                          placeholder="Descrição do item"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Valor (R$)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0.01"
-                          value={item.value}
-                          onChange={(e) => updateItemField(index, 'value', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-sm"
-                          placeholder="0.00"
-                        />
-                      </div>
-                      <div>
+                      <div className="md:col-span-3">
                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Pessoa</label>
                         <select
                           value={item.personId}
@@ -339,6 +425,65 @@ const OrdersPage = () => {
                             </option>
                           ))}
                         </select>
+                      </div>
+
+                      <div className="md:col-span-3">
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Produto</label>
+                        <ProductCombobox
+                          products={products}
+                          value={item.productId}
+                          onChange={(productId) => onProductSelect(index, productId)}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Valor Membro (R$)</label>
+                        <input
+                          type="text"
+                          value={item.memberPrice !== '' ? formatBRL(parseFloat(item.memberPrice) || 0) : ''}
+                          readOnly
+                          tabIndex={-1}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md shadow-sm cursor-not-allowed text-sm"
+                          placeholder="—"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Valor Cobrado (R$)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          value={item.chargedValue}
+                          onChange={(e) => updateItemField(index, 'chargedValue', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-sm"
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">PV</label>
+                        <input
+                          type="text"
+                          value={item.pv !== '' ? parseFloat(item.pv) : ''}
+                          readOnly
+                          tabIndex={-1}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md shadow-sm cursor-not-allowed text-sm"
+                          placeholder="—"
+                        />
+                      </div>
+
+                      <div className="md:col-span-3">
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Detalhes do Item</label>
+                        <textarea
+                          value={item.details}
+                          onChange={(e) => updateItemField(index, 'details', e.target.value)}
+                          maxLength={500}
+                          rows={2}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-sm"
+                          placeholder="Adicione detalhes do item (até 500 caracteres)"
+                        />
+                        <div className="mt-1 text-right text-xs text-gray-400 dark:text-gray-500">
+                          {item.details.length}/500
+                        </div>
                       </div>
                     </div>
                   </div>

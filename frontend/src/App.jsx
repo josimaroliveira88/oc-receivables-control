@@ -7,19 +7,20 @@ import DashboardPage from './pages/DashboardPage';
 import PeoplePage from './pages/PeoplePage';
 import OrdersPage from './pages/OrdersPage';
 import ReceivablesPage from './pages/ReceivablesPage';
+import ProductsPage from './pages/ProductsPage';
 import ToastProvider from './components/Toast';
 import Header from './components/Header';
-import MobileBottomNav from './components/MobileBottomNav';
+import MobileDrawer from './components/MobileDrawer';
 import OnboardingTour from './components/OnboardingTour';
 
 const AppLayout = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       <Header />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-20 md:pb-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 md:pt-6 pb-6">
         <Outlet />
       </main>
-      <MobileBottomNav />
+      <MobileDrawer />
       <OnboardingTour />
     </div>
   );
@@ -42,6 +43,7 @@ const App = () => {
           <Route path="/people" element={<PeoplePage />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/receivables" element={<ReceivablesPage />} />
+          <Route path="/products" element={<ProductsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

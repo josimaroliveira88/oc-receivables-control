@@ -7,6 +7,7 @@ import {
   Users,
   ClipboardList,
   DollarSign,
+  Package,
   Navigation,
   CheckCircle,
   ChevronLeft,
@@ -48,6 +49,13 @@ const steps = [
       'Crie pedidos com itens dinâmicos. Cada item pode ter um valor e ser atribuído a uma pessoa diferente. O valor total é calculado automaticamente em centavos para evitar erros de arredondamento.',
     icon: ClipboardList,
     route: '/orders',
+  },
+  {
+    title: 'Catálogo de Produtos',
+    description:
+      'Consulte o catálogo de produtos dōTERRA com preços atualizados. Você pode cadastrar, editar e ativar/desativar itens da lista.',
+    icon: Package,
+    route: '/products',
   },
   {
     title: 'Registro de Pagamentos',

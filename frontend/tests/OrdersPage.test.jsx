@@ -25,8 +25,26 @@ const mockOrders = [
     totalValue: '300.00',
     status: 'PENDENTE',
     items: [
-      { id: 'i1', description: 'Item 1', value: '100.00', personId: 'p1', person: { name: 'João' } },
-      { id: 'i2', description: 'Item 2', value: '200.00', personId: 'p1', person: { name: 'João' } },
+      {
+        id: 'i1',
+        description: 'Item 1',
+        chargedValue: '100.00',
+        personId: 'p1',
+        person: { name: 'João' },
+        productId: 'prod-1',
+        memberPrice: '90.00',
+        pv: '15',
+      },
+      {
+        id: 'i2',
+        description: 'Item 2',
+        chargedValue: '200.00',
+        personId: 'p1',
+        person: { name: 'João' },
+        productId: 'prod-2',
+        memberPrice: '180.00',
+        pv: '30',
+      },
     ],
   },
   {
@@ -36,7 +54,16 @@ const mockOrders = [
     totalValue: '500.00',
     status: 'QUITADO',
     items: [
-      { id: 'i3', description: 'Item 3', value: '500.00', personId: 'p2', person: { name: 'Maria' } },
+      {
+        id: 'i3',
+        description: 'Item 3',
+        chargedValue: '500.00',
+        personId: 'p2',
+        person: { name: 'Maria' },
+        productId: null,
+        memberPrice: null,
+        pv: null,
+      },
     ],
   },
 ];
@@ -46,10 +73,17 @@ const mockPeople = [
   { id: 'p2', name: 'Maria Santos', contact: 'maria@email.com' },
 ];
 
+const mockProducts = [
+  { id: 'prod-1', name: 'Adaptiv Pastilhas', code: '60226006', memberPrice: '90.00', pv: '15' },
+  { id: 'prod-2', name: 'Óleo de Lavanda', code: '60226007', memberPrice: '180.00', pv: '30' },
+  { id: 'prod-3', name: 'Menta Verde', code: '60226008', memberPrice: '50.00', pv: '8' },
+];
+
 const mockGetImplementation = (ordersData = [], peopleData = mockPeople) => {
   mockGet.mockImplementation((url) => {
     if (url === '/orders') return Promise.resolve({ data: ordersData });
     if (url === '/people') return Promise.resolve({ data: peopleData });
+    if (url.startsWith('/products')) return Promise.resolve({ data: { data: mockProducts } });
     return Promise.resolve({ data: [] });
   });
 };
@@ -337,8 +371,6 @@ describe('OrdersPage', () => {
       fireEvent.change(screen.getByPlaceholderText('Digite o número do pedido'), { target: { value: 'ORD-NEW' } });
       fireEvent.change(screen.getByLabelText('Data do Pedido'), { target: { value: '2026-03-10' } });
 
-      const descInput = screen.getByPlaceholderText('Descrição do item');
-      fireEvent.change(descInput, { target: { value: 'Test Item' } });
       const valueInput = screen.getByPlaceholderText('0.00');
       fireEvent.change(valueInput, { target: { value: '150' } });
       const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
@@ -351,6 +383,170 @@ describe('OrdersPage', () => {
         expect(mockPost).toHaveBeenCalledWith('/orders', expect.objectContaining({
           orderDate: '2026-03-10',
         }));
+      });
+    });
+  });
+
+  describe('Product combobox in item row', () => {
+    beforeEach(() => {
+      mockGetImplementation([]);
+    });
+
+    const openModal = async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByText('Novo Pedido'));
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Busque um produto...')).toBeInTheDocument();
+      });
+    };
+
+    it('should display product combobox in item row', async () => {
+      await openModal();
+      expect(screen.getByPlaceholderText('Busque um produto...')).toBeInTheDocument();
+    });
+
+    it('should filter products by name in combobox', async () => {
+      await openModal();
+      const combobox = screen.getByPlaceholderText('Busque um produto...');
+      fireEvent.change(combobox, { target: { value: 'Lavanda' } });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Óleo de Lavanda/)).toBeInTheDocument();
+      });
+      expect(screen.queryByText(/Adaptiv Pastilhas/)).not.toBeInTheDocument();
+    });
+
+    it('should not show "Limpar produto" before selecting a product', async () => {
+      await openModal();
+      expect(screen.queryByText('Limpar produto')).not.toBeInTheDocument();
+    });
+
+    it('should auto-fill member price and PV when selecting a product', async () => {
+      await openModal();
+      const combobox = screen.getByPlaceholderText('Busque um produto...');
+      fireEvent.change(combobox, { target: { value: 'Lavanda' } });
+      fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue(/R\$\s*180,00/)).toBeInTheDocument();
+      });
+      expect(screen.getByDisplayValue('30')).toBeInTheDocument();
+      expect(screen.getByText('Limpar produto')).toBeInTheDocument();
+    });
+
+    it('should clear product and its snapshot fields when clicking "Limpar produto"', async () => {
+      await openModal();
+      const combobox = screen.getByPlaceholderText('Busque um produto...');
+      fireEvent.change(combobox, { target: { value: 'Lavanda' } });
+      fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
+
+      await waitFor(() => {
+        expect(screen.getByText('Limpar produto')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Limpar produto'));
+
+      await waitFor(() => {
+        expect(screen.queryByText('Limpar produto')).not.toBeInTheDocument();
+      });
+      expect(screen.getByPlaceholderText('Busque um produto...').value).toBe('');
+    });
+
+    it('should send productId, chargedValue, memberPrice, pv and details in payload', async () => {
+      mockPost.mockResolvedValue({ data: { id: '3', orderNumber: 'ORD-ENH' } });
+      await openModal();
+
+      fireEvent.change(screen.getByPlaceholderText('Digite o número do pedido'), { target: { value: 'ORD-ENH' } });
+
+      const combobox = screen.getByPlaceholderText('Busque um produto...');
+      fireEvent.change(combobox, { target: { value: 'Lavanda' } });
+      fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('30')).toBeInTheDocument();
+      });
+
+      const valueInput = screen.getByPlaceholderText('0.00');
+      fireEvent.change(valueInput, { target: { value: '175' } });
+      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
+      fireEvent.change(personSelect, { target: { value: 'p1' } });
+      const detailsArea = screen.getByPlaceholderText('Adicione detalhes do item (até 500 caracteres)');
+      fireEvent.change(detailsArea, { target: { value: 'Pedido urgente' } });
+
+      const form = screen.getByPlaceholderText('Digite o número do pedido').closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith('/orders', expect.objectContaining({
+          items: [
+            expect.objectContaining({
+              productId: 'prod-2',
+              chargedValue: 175,
+              memberPrice: 180,
+              pv: 30,
+              details: 'Pedido urgente',
+              personId: 'p1',
+            }),
+          ],
+        }));
+      });
+    });
+
+    it('should send item without product fields when no product selected', async () => {
+      mockPost.mockResolvedValue({ data: { id: '3', orderNumber: 'ORD-STANDALONE' } });
+      await openModal();
+
+      fireEvent.change(screen.getByPlaceholderText('Digite o número do pedido'), { target: { value: 'ORD-STANDALONE' } });
+
+      const valueInput = screen.getByPlaceholderText('0.00');
+      fireEvent.change(valueInput, { target: { value: '50' } });
+      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
+      fireEvent.change(personSelect, { target: { value: 'p1' } });
+
+      const form = screen.getByPlaceholderText('Digite o número do pedido').closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith('/orders', expect.objectContaining({
+          items: [
+            expect.objectContaining({
+              productId: null,
+              memberPrice: null,
+              pv: null,
+              chargedValue: 50,
+              personId: 'p1',
+            }),
+          ],
+        }));
+      });
+    });
+
+    it('should display details character counter', async () => {
+      await openModal();
+      const form = screen.getByPlaceholderText('Digite o número do pedido').closest('form');
+      const detailsArea = screen.getByPlaceholderText('Adicione detalhes do item (até 500 caracteres)');
+      fireEvent.change(detailsArea, { target: { value: 'abc' } });
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(screen.getByText('3/500')).toBeInTheDocument();
+      });
+    });
+
+    it('should show validation error when charged value is empty', async () => {
+      await openModal();
+      fireEvent.change(screen.getByPlaceholderText('Digite o número do pedido'), { target: { value: 'ORD-VAL' } });
+      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
+      fireEvent.change(personSelect, { target: { value: 'p1' } });
+
+      const form = screen.getByPlaceholderText('Digite o número do pedido').closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(screen.getByText('Preencha todos os campos dos itens corretamente')).toBeInTheDocument();
       });
     });
   });
@@ -390,6 +586,65 @@ describe('OrdersPage', () => {
         expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
         const dateInput = screen.getByLabelText('Data do Pedido');
         expect(dateInput.value).toBe('2026-05-15');
+      });
+    });
+
+    it('should pre-fill product snapshot fields in edit modal', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+
+      const editButtons = screen.getAllByText('Editar');
+      fireEvent.click(editButtons[0]);
+
+      await waitFor(() => {
+        expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
+      });
+
+      expect(screen.getByDisplayValue('Adaptiv Pastilhas (60226006)')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('15')).toBeInTheDocument();
+    });
+
+    it('should send chargedValue, pv and details when updating an order', async () => {
+      mockPut.mockResolvedValue({ data: { id: '1', orderNumber: 'ORD-001' } });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+
+      const editButtons = screen.getAllByText('Editar');
+      fireEvent.click(editButtons[0]);
+
+      await waitFor(() => {
+        expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
+      });
+
+      const valueInputs = screen.getAllByPlaceholderText('0.00');
+      fireEvent.change(valueInputs[0], { target: { value: '95' } });
+
+      const form = screen.getByDisplayValue('ORD-001').closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPut).toHaveBeenCalledWith('/orders/1', expect.objectContaining({
+          items: [
+            expect.objectContaining({
+              productId: 'prod-1',
+              chargedValue: 95,
+              memberPrice: 90,
+              pv: 15,
+            }),
+            expect.objectContaining({
+              productId: 'prod-2',
+              chargedValue: 200,
+              memberPrice: 180,
+              pv: 30,
+            }),
+          ],
+        }));
       });
     });
   });

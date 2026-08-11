@@ -102,9 +102,9 @@ Frontend only:
 
 ## Project Status
 
-🎉 **All MVP phases (1-16) + Phases 17-26 have been COMPLETED.**
+🎉 **All MVP phases (1-16) + Phases 17-31 have been COMPLETED.**
 
-The Receivables Control System is now fully functional with user self-registration, complete backend data isolation, responsive mobile navigation, a unified design system with dark mode, and an interactive onboarding tour. Phase 25 added a logged-in user badge displaying the current username in the header and mobile bottom nav, along with `jwt-decode` for client-side JWT payload extraction and a Docker startup fix that runs `npm install` on container start to ensure anonymous volumes receive new dependencies on image rebuild. Phase 26 added an 8-step interactive onboarding tour triggered on first login after registration, with manual restart via HelpCircle button in header and Tutorial option in mobile bottom nav dropdown.
+The Receivables Control System is now fully functional with user self-registration, complete backend data isolation, responsive navigation (desktop top nav + mobile hamburger drawer), a unified design system with dark mode, an interactive onboarding tour, and a full Product CRUD screen. Phase 27 added the global dōTERRA Product catalog with price history and an idempotent diff loader. Phase 28 added the Product CRUD API + ProductsPage UI, and replaced the mobile bottom nav with a hamburger/drawer menu (`MobileDrawer.jsx`) since the menu grew to 5 sections. The onboarding tour now has 9 steps. Phase 29 added product search (name/code), pagination with infinite scroll, sorting by prices/PV, and an active/inactive status filter. Phase 30 moved search/filter/sort fully **client-side**: the frontend loads the entire catalog once (`pageSize=all`) into browser memory and applies search, status filter and sorting in-memory — no new backend call per keystroke or filter change (the catalog is rarely updated). Phase 31 reworked the order item sub-form: each item is now linked to a product from the catalog (filterable combobox), auto-fills the **member price** and **PV** snapshots (read-only), lets the user type the negotiated **Valor Cobrado** (`chargedValue`) and free-text **Detalhes** (up to 500 chars) — the old `value` field was renamed to `chargedValue` and `description` is now optional (auto-filled from the product name).
 
 ### Completed Features:
 ✅ Multi-container Docker environment (backend, frontend, database, admin UI)
@@ -117,7 +117,7 @@ The Receivables Control System is now fully functional with user self-registrati
 ✅ Receivables tracking dashboard with per-person balance breakdown
 ✅ Analytics dashboard with KPI widgets, Recharts visualizations, and yearly breakdown (Pendente/Quitado por ano)
 ✅ Excel export functionality (4-sheet workbook with BRL formatting)
-✅ Comprehensive test coverage (183 frontend tests + 98 backend tests)
+✅ Comprehensive test coverage (221 frontend tests + 135 backend tests)
 ✅ Financial precision (integer cents arithmetic, no floating-point errors)
 ✅ Complete TDD methodology applied across all phases
 ✅ PT-BR localization for all user-facing content
@@ -128,24 +128,29 @@ The Receivables Control System is now fully functional with user self-registrati
 ✅ Backend data isolation — all routes JWT-protected, queries filtered by `userId`, cross-user access blocked
 ✅ `userId` required on Person/Order with `ON DELETE CASCADE` (migration: `20260614184002_make_user_id_required`)
 ✅ Responsive header with gradient design (`from-blue-800 to-blue-600`)
-✅ Mobile bottom navigation bar with lucide-react icons (Dashboard, Pessoas, Pedidos, Recebíveis, Sair)
-✅ Desktop horizontal navigation with `<NavLink>` active state highlighting
+✅ Mobile hamburger drawer navigation (`MobileDrawer.jsx`) — fixed top bar with hamburger button + slide-in drawer listing all 5 sections (Dashboard, Pessoas, Pedidos, Recebíveis, Produtos), Tutorial, theme toggle and Sair. Scales to any number of menu items (replaces the old fixed bottom nav)
+✅ Desktop horizontal navigation with `<NavLink>` active state highlighting (incl. Produtos link)
 ✅ Mobile UX: username inputs default to lowercase (`autoCapitalize="none"`) on virtual keyboards
 ✅ Password visibility toggle (`Eye`/`EyeOff` icon) on login and registration forms
-✅ Logged-in user badge — username displayed as `User` icon + text badge in header (desktop) and as a clickable dropdown menu with Sair option in mobile bottom nav (via `jwt-decode` client-side JWT decoding)
+✅ Logged-in user badge — username displayed as `User` icon + text badge in header (desktop) via `jwt-decode` client-side JWT decoding
 ✅ Docker `npm install` on container start — frontend `CMD` and backend `entrypoint.sh` run `npm install` before starting, ensuring anonymous node_modules volumes receive new dependencies after `docker compose up --build`
-✅ Interactive User Onboarding Tour — step-by-step modal tutorial (8 steps, PT-BR) triggered on first login after registration, with manual restart via `HelpCircle` button in header and "Tutorial" option in mobile bottom nav dropdown
-✅ Product Catalog (dōTERRA) — global `Product` + `ProductPrice` tables with price history (`validFrom`/`validTo`), idempotent diff loader (`npm run load:products`, supports `--date` retroactive validity and `--dry-run` preview), CSV parser, and 219 products loaded from `docs/tabela_produtos_doterra_2026.csv`. CRUD screen + order-item integration planned for a future phase.
+✅ Interactive User Onboarding Tour — step-by-step modal tutorial (9 steps, PT-BR) triggered on first login after registration, with manual restart via `HelpCircle` button in header and "Tutorial" in mobile drawer
+✅ Product Catalog (dōTERRA) — global `Product` + `ProductPrice` tables with price history (`validFrom`/`validTo`), idempotent diff loader (`npm run load:products`, supports `--date` retroactive validity and `--dry-run` preview), CSV parser, and 219 products loaded from `docs/tabela_produtos_doterra_2026.csv`
+✅ Product CRUD — full backend API at `/api/products` (GET list with `?active=true` filter + current price projection, GET by id, POST create with 409 on duplicate code, PUT update, DELETE soft-delete) + ProductsPage UI with create/edit modals, status badges and Desativar/Ativar actions. **The `code` field is immutable on edit** (disabled input in the UI AND omitted from the update Zod schema — enforced at both layers). Price edits preserve history (old record closed with `validTo`, new record opened). Order-item integration planned for a future phase.
+✅ Product search & pagination — `GET /api/products` supports `q` (partial name/code, case-insensitive), `sortBy` (name/code/regularPrice/memberPrice/pv) + `sortDir`, `page`/`pageSize` (default 20, max 100, plus `pageSize=all` to return the entire list), returning `{ data, pagination }`. ProductsPage has a search box with icon, sort dropdown, active/inactive status filter and product count. **Search, status filter and sorting are applied 100% client-side**: the page fetches the whole catalog once (`/products?pageSize=all`) into browser memory, filters/sorts with `useMemo`, and only reveals more rows via **infinite scroll** (IntersectionObserver sentinel slicing 20 at a time) — no new API call per keystroke, filter change or sort change. The backend refetches only after create/edit/deactivate mutations.
+✅ Enhanced order item sub-form — each item now links to a product from the dōTERRA catalog via a filterable `ProductCombobox` (client-side name/code search, load-once `GET /products?active=true&pageSize=all`). Selecting a product auto-fills read-only **Valor Membro (R$)** and **PV** snapshot fields; the user types the negotiated **Valor Cobrado (R$)** (`chargedValue`) and free-text **Detalhes** (≤ 500 chars, live `N/500` counter). A **"Limpar produto"** button unlinks the item and clears its snapshot fields. Field order per item: Pessoa → Produto → Valor Membro → Valor Cobrado → PV → Detalhes. On the `Item` model, `value` was renamed to `chargedValue`, `description` is now optional (auto-filled with the product name) and new nullable columns `memberPrice`, `pv`, `details VARCHAR(500)` and `productId` (FK → `Product`, `ON DELETE SET NULL`) were added (migration `20260811190000_extend_item_fields`). `Order.totalValue`, payments and dashboard sums all read `chargedValue`.
 
 ### Test Results:
-- **Backend Tests**: 98 passing (17 People + 27 Orders + 28 Payments + 6 Dashboard + 4 Auth + 16 ProductLoader)
-- **Frontend Tests**: 183 passing (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel + 10 api + 20 RegisterPage + 10 LoginPage + 6 Header + 7 MobileBottomNav + 7 ThemeContext)
-- **Total**: 281 tests passing with zero regressions
+- **Backend Tests**: 135 passing (17 People + 33 Orders + 28 Payments + 6 Dashboard + 4 Auth + 16 ProductLoader + 31 Products)
+- **Frontend Tests**: 221 passing (14 PeoplePage + 35 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel + 10 api + 20 RegisterPage + 10 LoginPage + 6 Header + 11 MobileDrawer + 23 ProductsPage + 7 ThemeContext)
+- **Total**: 356 tests passing with zero regressions
+
+Backend note: `vitest.config.js` sets `fileParallelism: false` — test files run serially because they share one database (products.test.js creates active `TESTCRUD` products that would race with the productLoader's deactivation logic under parallelism).
 
 
 
 ### Key Learnings Documented:
-20 critical lessons learned documented in AGENTS.md (see "Lessons Learned / Pitfalls to Avoid") to guide future development:
+21 critical lessons learned documented in AGENTS.md (see "Lessons Learned / Pitfalls to Avoid") to guide future development:
 1. vi.mock hoisting bug in Vitest — arrow-function wrapper solution
 2. HTML5 required attribute blocking form submission in jsdom
 3. Conditional rendering of dynamic list items
@@ -162,6 +167,11 @@ The Receivables Control System is now fully functional with user self-registrati
 14. Backend 403 for expired token — frontend interceptor misses it
 15. Timezone-safe date parsing (YYYY-MM-DD strings)
 16. CORS + Vite proxy for mobile/network access
+17. Docker anonymous volume hides new node_modules after rebuild
+18. z-index conflict between modals and mobile navigation
+19. Host Prisma client goes stale after schema changes
+20. Catalog loader deactivates everything absent from the CSV
+21. Vitest runs test files in parallel — shared DB test files must run serially (`fileParallelism: false`)
 
 ## Next Steps for Client Requests
 
@@ -172,7 +182,7 @@ When the client requests new functionality:
 3. **Plan Test Coverage**: Identify which tests need to be written (backend/frontend)
 4. **Implement with TDD**: Follow the TDD methodology used in phases 5+
 5. **Update Documentation**: Ensure ARCHITECTURE.md, AGENTS.md, and ROADMAP.md reflect changes
-6. **Run Full Test Suite**: Verify all 281 tests pass with zero regressions
+6. **Run Full Test Suite**: Verify all 356 tests pass with zero regressions
 
 The codebase is well-structured, documented, and ready to accept new features without breaking existing functionality.
 
@@ -493,23 +503,23 @@ npm install
 
 npm is idempotent and fast when `package.json` hasn't changed (uses local cache), so startup time is minimally affected.
 
-### 18. `z-index` Conflict Between Modals and MobileBottomNav
+### 18. `z-index` Conflict Between Modals and Mobile Navigation
 
-**Problem**: Modals (`fixed inset-0 z-50`) and the mobile bottom nav (`fixed bottom-0 z-50`) both used `z-50`. Since the `MobileBottomNav` component is rendered after page content in the DOM (inside `AppLayout` in `App.jsx`), it appeared on top of modals regardless of source order. On mobile, the Cancelar/Salvar buttons at the bottom of modal forms were hidden behind the bottom nav bar, making them inaccessible even when scrolling.
+**Problem**: Modals (`fixed inset-0 z-50`) and the fixed mobile navigation bar (previously the bottom nav `fixed bottom-0 z-50`) both used `z-50`. Since the nav component is rendered after page content in the DOM (inside `AppLayout` in `App.jsx`), it appeared on top of modals regardless of source order. On mobile, the Cancelar/Salvar buttons at the bottom of modal forms were hidden behind the nav bar, making them inaccessible even when scrolling.
 
 ```jsx
-// WRONG — same z-index, bottom nav wins due to DOM order
-// MobileBottomNav.jsx
+// WRONG — same z-index, nav wins due to DOM order
+// (historically MobileBottomNav.jsx; today MobileDrawer.jsx uses a z-50 drawer + z-40 top bar)
 <nav className="fixed bottom-0 left-0 right-0 z-50 ..." />
 
-// PeoplePage.jsx, OrdersPage.jsx, ReceivablesPage.jsx
-<div className="fixed inset-0 z-50 ..." />  // hidden behind bottom nav
+// PeoplePage.jsx, OrdersPage.jsx, ReceivablesPage.jsx, ProductsPage.jsx
+<div className="fixed inset-0 z-50 ..." />  // hidden behind nav
 ```
 
-**Fix**: Increase the modal z-index to `z-[60]` (higher than the bottom nav's `z-50`) on all modal overlays:
+**Fix**: Increase the modal z-index to `z-[60]` (higher than the nav's `z-50`) on all modal overlays:
 
 ```jsx
-// CORRECT — modal stays above bottom nav
+// CORRECT — modal stays above nav
 <div className="fixed inset-0 z-[60] ..." />
 ```
 
@@ -517,6 +527,7 @@ This was applied to all modal overlays across:
 - `frontend/src/pages/OrdersPage.jsx:250`
 - `frontend/src/pages/PeoplePage.jsx:174, 216`
 - `frontend/src/pages/ReceivablesPage.jsx:221`
+- `frontend/src/pages/ProductsPage.jsx`
 
 Use `z-[60]` consistently for modals and reserve `z-[70]` for toast notifications so there is a clear z-index hierarchy: nav → modals → toasts.
 
@@ -552,3 +563,27 @@ npm run load:products -- partial.csv   # → 218 products deactivated
    - `beforeEach` deactivates all non-TEST products (so deactivation counts are deterministic and only TEST products are asserted).
    - `beforeAll` snapshots `{ id, active }` of every product.
    - `afterAll` restores each real product's `active` flag to the snapshot and deletes leftover TEST products.
+
+### 21. Vitest Runs Test Files in Parallel — Shared DB Test Files Must Run Serially
+
+**Problem**: Vitest by default runs each test file in its own worker concurrently. All backend test files share the same PostgreSQL database. When `products.test.js` (Phase 28) created **active** products with the `TESTCRUD` prefix, the `productLoader` test's deactivation logic raced against them: the loader's `findMany({ where: { active: true } })` picked up a `TESTCRUD` product that was concurrently deleted by the products test's `afterEach`, producing `P2025: Record to update not found`.
+
+```
+ FAIL tests/productLoader.test.js > should not persist any change when dryRun is true
+ PrismaClientKnownRequestError: P2025 ... Record to update not found
+```
+
+**Fix**: Set `fileParallelism: false` in `backend/vitest.config.js` so test files execute serially against the shared database:
+
+```js
+export default defineConfig({
+  test: {
+    globals: true,
+    environment: 'node',
+    setupFiles: ['./tests/setup.js'],
+    fileParallelism: false,   // shared DB — avoid cross-file races
+  },
+});
+```
+
+Also keep test data namespaced by file (e.g., `TESTCRUD` for CRUD tests, `TEST0001` for loader tests) so cleanup is deterministic.

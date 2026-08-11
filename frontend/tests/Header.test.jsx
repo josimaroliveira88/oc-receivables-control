@@ -41,6 +41,7 @@ describe('Header', () => {
     expect(screen.getByText('Pessoas')).toBeInTheDocument();
     expect(screen.getByText('Pedidos')).toBeInTheDocument();
     expect(screen.getByText('Recebíveis')).toBeInTheDocument();
+    expect(screen.getByText('Produtos')).toBeInTheDocument();
   });
 
   it('should render Sair button', () => {

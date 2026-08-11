@@ -48,7 +48,8 @@ oc-receivables-control/
 │   │   ├── peopleController.js # People CRUD with Zod validation
 │   │   ├── ordersController.js # Orders + Items CRUD with Zod validation, custom orderDate support
 │ │ ├── paymentsController.js # Payments + balance with transactional status engine, custom paidAt support
-│   │   └── dashboardController.js # Dashboard aggregation (KPIs + person balances + yearly breakdown)
+│   │   ├── dashboardController.js # Dashboard aggregation (KPIs + person balances + yearly breakdown)
+│   │   └── productController.js # Product CRUD (code immutable on update, price history on change, soft-delete; GET list with search/sort/pagination + pageSize=all)
 │   ├── utils/
 │   │   ├── money.js # toCents, fromCents, formatBRL (integer cents arithmetic)
 │   │   ├── csvParser.js # parseProductCsv / parseProductCsvFile (';' delimiter, strings kept for precision)
@@ -57,16 +58,18 @@ oc-receivables-control/
 │       ├── authRoutes.js # Auth route definitions (/api/auth/login, /api/auth/register)
 │       ├── peopleRoutes.js # People CRUD routes (/api/people)
 │       ├── ordersRoutes.js # Orders + Items + Payments routes (/api/orders, /api/orders/items/:id, /api/orders/:orderId/payments, /api/orders/:orderId/balance)
-│       └── dashboardRoutes.js # Dashboard route (/api/dashboard)
-│ ├── vitest.config.js # Vitest config for backend (node environment)
+│       ├── dashboardRoutes.js # Dashboard route (/api/dashboard)
+│       └── productRoutes.js # Product CRUD routes (/api/products)
+│ ├── vitest.config.js # Vitest config for backend (node environment, serial test files)
 │ └── tests/
 │ ├── setup.js # Test environment setup (NODE_ENV, DATABASE_URL, JWT_SECRET)
 │ ├── people.test.js # 17 People CRUD tests
-│   ├── orders.test.js # 27 Orders + Items CRUD tests (incl. orderDate)
+│   ├── orders.test.js # 33 Orders + Items CRUD tests (incl. product/chargedValue/orderDate)
 │   ├── payments.test.js # 28 Payments & Balance tests (incl. 2 floating-point regression tests + 2 custom paidAt tests)
 │   ├── dashboard.test.js # 6 Dashboard yearly breakdown tests
 │   ├── auth.test.js # 4 Auth tests
-│   └── productLoader.test.js # 16 CSV parsing + catalog loader (idempotent diff, price history, retroactive date, dry-run) tests
+│   ├── productLoader.test.js # 16 CSV parsing + catalog loader (idempotent diff, price history, retroactive date, dry-run) tests
+│   └── products.test.js # 31 Product CRUD tests (create/duplicate 409, list+search+sort+pagination incl. pageSize=all, update w/ immutable code + price history, soft-delete)
 ├── frontend/
 │   ├── Dockerfile              # Frontend container definition
 │   ├── package.json            # Frontend dependencies & scripts
@@ -81,8 +84,8 @@ oc-receivables-control/
 │ │ ├── AuthContext.jsx     # Auth state (login/logout/register/token, user from JWT decode)
 │ │ └── ThemeContext.jsx    # Theme state (dark/light toggle, localStorage persistence)
 │ ├── components/
-│ │ ├── Header.jsx # Responsive desktop header with gradient, theme toggle (Sun/Moon), NavLink + lucide-react, logged-in user badge
-│ │ ├── MobileBottomNav.jsx # Fixed bottom nav for mobile with theme toggle (lucide-react icons), logged-in user dropdown with Sair option
+│ │ ├── Header.jsx # Responsive desktop header (hidden on mobile) with gradient, theme toggle (Sun/Moon), NavLink + lucide-react, logged-in user badge
+│ │ ├── MobileDrawer.jsx # Mobile-only (md:hidden) hamburger top bar + slide-in drawer with all 5 nav items, Tutorial, theme toggle and Sair
 │ │ ├── ProtectedRoute.jsx # Route guard for auth
 │ │ └── Toast.jsx # Toast notification provider & component
 │ ├── utils/
@@ -94,15 +97,17 @@ oc-receivables-control/
 │ │ ├── DashboardPage.jsx # Dashboard with KPI widgets, Recharts bar chart, yearly breakdown "Resumo por Ano" table & XLSX export button
 │ │ ├── PeoplePage.jsx # People CRUD with modals (PT-BR)
 │   │   ├── OrdersPage.jsx # Orders CRUD with dynamic item rows and custom order date (PT-BR)
-│ │   └── ReceivablesPage.jsx # Payment tracking with status badges & payment modal with custom date (PT-BR)
+│ │   ├── ReceivablesPage.jsx # Payment tracking with status badges & payment modal with custom date (PT-BR)
+│ │   └── ProductsPage.jsx # Product CRUD — loads the full catalog once (pageSize=all) and does search (name/code), sort (prices/PV) and status filter 100% client-side; infinite scroll slices the in-memory list (20 at a time); create/edit modals (code locked on edit), status toggle
 │ └── tests/
 │ ├── setup.js # @testing-library/jest-dom + window.matchMedia mock
 │ ├── api.test.js # 10 API interceptor tests (request/response, 401 + 403 redirect, other errors)
 │ ├── PeoplePage.test.jsx # 14 PeoplePage tests
 │   ├── OrdersPage.test.jsx # 24 OrdersPage tests
 │   ├── ReceivablesPage.test.jsx # 27 ReceivablesPage tests (badge rendering, payment modal, validation guards, payment date field, toast feedback, FP regression)
-│ ├── Header.test.jsx # 6 Header tests (title, nav links, Sair button, logout function, username display, hidden when not logged in)
-│ ├── MobileBottomNav.test.jsx # 7 MobileBottomNav tests (items, user dropdown toggle, logout, active highlight, fixed position, mobile-only, click outside closes dropdown)
+│ ├── Header.test.jsx # 6 Header tests (title, nav links incl. Produtos, Sair button, logout function, username display, hidden when not logged in)
+│ ├── MobileDrawer.test.jsx # 11 MobileDrawer tests (title, hamburger open/close, 5 nav items, active highlight, logout, tutorial event, backdrop close, mobile-only)
+│ ├── ProductsPage.test.jsx # 23 ProductsPage tests (rendering, table, status badges, count, client-side search/filter/sort with no extra API calls, in-memory infinite scroll, create flow + validation, edit with disabled code, PUT payload, deactivate/activate with confirm)
 │ ├── DashboardPage.test.jsx # 26 DashboardPage tests (KPI widgets, chart, yearly breakdown, export button integration, toast feedback)
 │ ├── RegisterPage.test.jsx # 18 RegisterPage tests (rendering, validation, success redirect, error handling, loading, navigation)
 │ ├── LoginPage.test.jsx # 9 LoginPage tests (rendering, registration link, success message, login form)
@@ -195,7 +200,8 @@ NODE_ENV=development
 ✅ Orders + Items routes implemented (`src/routes/ordersRoutes.js`) at `/api/orders` and `/api/orders/items/:id`
 ✅ Centralized error handling middleware for Zod validation errors
 ✅ Frontend React entry point with AppLayout + Outlet pattern
-✅ AppLayout with header, navigation links (Dashboard/Pessoas/Pedidos/Recebíveis), and logout button
+✅ AppLayout with header, navigation links (Dashboard/Pessoas/Pedidos/Recebíveis/Produtos), and logout button
+✅ MobileDrawer — mobile-only (md:hidden) hamburger top bar + slide-in drawer with all 5 nav items, Tutorial, theme toggle and Sair (replaces the old bottom-nav bar)
 ✅ Protected route component blocking unauthenticated access (`src/components/ProtectedRoute.jsx`)
 ✅ PeoplePage component with table listing, create/edit modals, delete confirmation (PT-BR)
 ✅ OrdersPage component with table listing, status badges, dynamic multi-row item sub-form, custom order date field (PT-BR)
@@ -206,6 +212,9 @@ NODE_ENV=development
 ✅ Product + ProductPrice entities — global dōTERRA catalog with price history (`validFrom`/`validTo` interval), `pv` as Decimal(10,2), `active` flag
 ✅ Idempotent diff catalog loader (`src/utils/productLoader.js` + `scripts/loadProducts.js`) — creates new products, syncs metadata, closes/reopens price records on change, deactivates removed products; 219 products loaded from 2026 CSV
 ✅ Product loader test suite: 16 tests covering CSV parsing, idempotency, price-change history, metadata sync, deactivate/reactivate, new-product insertion, retroactive `validFrom`, and dry-run (tests snapshot/restore the real catalog so the suite never disables real products)
+✅ Product CRUD controller + routes (`src/controllers/productController.js`, `src/routes/productRoutes.js`) at `/api/products` — GET list (`?active=true`, `q` partial name/code search, `sortBy` name/code/regularPrice/memberPrice/pv + `sortDir`, `page`/`pageSize` pagination returning `{ data, pagination }`, plus `pageSize=all` to return the full list), GET by id, POST create (409 on duplicate code), PUT update (**code immutable** via update Zod schema; price changes close current `validTo` and open a new price record), DELETE soft-delete (`active = false`)
+✅ ProductsPage component that loads the whole catalog once (`/products?pageSize=all`) and applies search (name/code), sort dropdown and active/inactive status filter 100% client-side via `useMemo`; infinite scroll (IntersectionObserver sentinel) slices the in-memory list 20 rows at a time with no extra API calls; create/edit modals (code field disabled on edit with "O código não pode ser alterado"), status badges, and Desativar/Ativar actions (`src/pages/ProductsPage.jsx`)
+✅ Product CRUD test suite: 31 backend tests (create/duplicate 409/auth 401-403, list + active filter + search + sort + pagination incl. `pageSize=all`, get by id, update metadata/code immutability/price history, soft-delete) + 23 frontend tests
 ✅ Database migration completed and tables created
 ✅ Proper relationships and cascade rules established
 ✅ Working JWT authentication system with bcrypt password hashing
@@ -248,7 +257,7 @@ NODE_ENV=development
 ✅ exportExcel unit test suite: 32 tests covering workbook structure, sheet content (Pedidos, Pessoas, Histórico de Pagamentos, Saldo Pendente), BRL monetary cell formatting, DD/MM/YYYY date formatting, empty data handling, column widths, floating-point precision
 ✅ DashboardPage export integration tests: 7 tests covering export button rendering, disabled state, enabled state, exportExcel call with fetched data, success/error toast feedback, "Exportando..." loading state
 
-## Completed Phases (27)
+## Completed Phases (30)
 - **Phase 20**: ✅ Prisma schema update (`userId` in Person/Order), registration API (`POST /api/auth/register`), and TDD setup. 82 backend tests.
 - **Phase 21**: ✅ Backend data isolation (middleware enforcement on all routes, query filtering by `req.user.userId`). `userId` made required with `ON DELETE CASCADE`.
 - **Phase 22**: ✅ Frontend registration UI (`RegisterPage.jsx`) with PT-BR form, client-side validation, success redirect, and LoginPage navigation. 18 RegisterPage tests + 9 LoginPage tests. 160 frontend tests, 242 total tests.
@@ -257,6 +266,10 @@ NODE_ENV=development
 - **Phase 25**: ✅ Logged-in user badge in header (desktop) and clickable dropdown with Sair option in mobile bottom nav. `jwt-decode` added for client-side JWT payload extraction. Docker `npm install` on container start to ensure anonymous volumes receive new dependencies on rebuild. 183 frontend tests (6 Header + 7 MobileBottomNav), 265 total tests.
 - **Phase 26**: ✅ Interactive 8-step onboarding tour with auto-trigger on first login after registration and manual restart via header/mobile nav. 183 frontend tests, 265 total tests.
 - **Phase 27**: ✅ Product Catalog (dōTERRA) — global `Product` + `ProductPrice` tables with price history, idempotent diff loader (`npm run load:products`, `--date` retroactive + `--dry-run`), CSV parser, 16 new backend tests, 219 products loaded. 98 backend tests, 281 total tests.
+- **Phase 28**: ✅ Product CRUD API (`/api/products`) with immutable code, price-history-preserving updates and soft-delete; ProductsPage UI; mobile bottom nav replaced by a hamburger/drawer menu (`MobileDrawer.jsx`) and Produtos link added to desktop header; onboarding tour updated to 9 steps. 21 new backend tests + 11 MobileDrawer tests + 14 ProductsPage tests. 119 backend tests, 201 frontend tests, 320 total tests.
+- **Phase 29**: ✅ Product search & infinite scroll — `GET /api/products` extended with `q` (partial name/code, case-insensitive), `sortBy`/`sortDir` (name/code/regularPrice/memberPrice/pv) and `page`/`pageSize` pagination returning `{ data, pagination }`; ProductsPage gained a search box with icon, sort dropdown, active/inactive status filter, product count and IntersectionObserver infinite scroll (20 per page). 9 new backend tests + 6 new frontend tests. 128 backend tests, 207 frontend tests, 335 total tests.
+- **Phase 30**: ✅ Client-side search/sort/filter — `GET /api/products` accepts `pageSize=all` to return the full list; ProductsPage loads the catalog once into browser memory and applies search (name/code), active/inactive status filter and sorting in-memory via `useMemo`, with infinite scroll slicing the in-memory list (no per-filter API calls). 1 new backend test + 3 new frontend tests. 129 backend tests, 210 frontend tests, 339 total tests.
+- **Phase 31**: ✅ Order item sub-form — each item links to a catalog product (`productId` FK → `Product`, `ON DELETE SET NULL`) via a filterable `ProductCombobox` that auto-fills read-only member-price and PV snapshots, plus an editable `chargedValue` (renamed from `value`) and free-text `details VARCHAR(500)`. Field order per item: Pessoa → Produto → Valor Membro → Valor Cobrado → PV → Detalhes, with a "Limpar produto" unlink button. `description` became optional (auto-filled from product name). Backend: new `validateProducts` helper (active products only), `itemSchema` extended, payments/dashboard sums read `chargedValue`. Migration `20260811190000_extend_item_fields`. 6 new backend tests + 11 new frontend tests. 135 backend tests, 221 frontend tests, 356 total tests.
 
 ## Notes for Developers/Agents
 - Backend source is mounted at `/app` inside container for live editing

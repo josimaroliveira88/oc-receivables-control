@@ -831,10 +831,165 @@ Usage:
 
 Deliverable: ✅ Product + ProductPrice tables with price history, an idempotent diff loader, retroactive `--date` support and safe `--dry-run` preview — 98 backend tests passing (82 + 16 new), 281 total tests
 
+---
+
+## 🎯 Phase 28: Product CRUD + Navigation Redesign (Mobile Drawer)
+Status: ✅ COMPLETED
+
+Context: The Product catalog tables from Phase 27 needed CRUD functionality. With 5 menu sections now (Dashboard, Pessoas, Pedidos, Recebíveis, Produtos), the mobile bottom navigation bar became overcrowded. The navigation was redesigned to use a hamburger/drawer pattern on mobile while keeping the desktop top nav.
+
+Stack: Express, Prisma ORM, React, Tailwind CSS, lucide-react.
+
+Task (Backend):
+- Created `backend/src/controllers/productController.js` + `backend/src/routes/productRoutes.js`:
+  - `GET /api/products` — list all products (optional `?active=true`), ordered by name, with current price projected to top-level fields
+  - `GET /api/products/:id` — single product with current price (404 if not found)
+  - `POST /api/products` — create product + initial `ProductPrice` in a transaction; 409 on duplicate `code`
+  - `PUT /api/products/:id` — update name/size/active; price changes close the current price record (`validTo`) and open a new one, preserving history; **`code` is deliberately absent from the update Zod schema — it can never be changed via the API**
+  - `DELETE /api/products/:id` — soft-delete (sets `active = false`), preserving referential integrity for future order-item integration
+- Registered `/api/products` in `backend/src/app.js`
+- `updateProduct` runs inside `prisma.$transaction`; price comparisons use `toCents` (integer cents) to avoid floating-point drift
+- Tests: `backend/tests/products.test.js` — 21 tests covering create (validation, duplicate 409, auth 401/403), list (projection, active filter), get by id (404), update (metadata, code immutability, price history, unchanged-price no-op, 404, invalid data), and soft-delete
+
+Task (Frontend — Navigation):
+- Replaced `frontend/src/components/MobileBottomNav.jsx` with `frontend/src/components/MobileDrawer.jsx`:
+  - Fixed mobile top bar (hamburger button, app title, theme toggle, user icon)
+  - Slide-in drawer from the left with all 5 nav items, Tutorial, theme toggle area and Sair
+  - Backdrop overlay that closes the drawer; `Escape` key support
+  - `md:hidden` on all mobile elements — desktop uses the Header top nav
+- Updated `frontend/src/App.jsx`: renders `<MobileDrawer />`, added `/products` route, adjusted main padding for the top-fixed mobile bar
+- Updated `frontend/src/components/Header.jsx`: added Produtos link, hidden on mobile (`hidden md:block`)
+- Updated `frontend/src/components/OnboardingTour.jsx`: added a "Catálogo de Produtos" step (tour now 9 steps)
+- Tests: `frontend/tests/MobileDrawer.test.jsx` — 11 tests (title/hamburger, closed by default, open/close, 5 nav items, active highlight, logout, tutorial event, backdrop close, mobile-only)
+
+Task (Frontend — ProductsPage):
+- Created `frontend/src/pages/ProductsPage.jsx` mirroring the People CRUD pattern:
+  - Table with Código, Produto, Tamanho, Preço Regular, Preço Membro, PV, Status (Ativo/Inativo badge), Ações
+  - Create modal: editable `code` field + name, size, regular price, member price, PV
+  - Edit modal: **`code` field disabled with "O código não pode ser alterado" helper** — name, size and status (Ativo/Inativo) editable
+  - Desativar/Ativar actions per row via `PUT /api/products/:id` with `{ active }`
+  - Dark mode support, `z-[60]` modal overlay per z-index convention
+- Tests: `frontend/tests/ProductsPage.test.jsx` — 14 tests (rendering, table, status badges, create flow, validation, edit with disabled code, PUT payload, deactivate/activate with confirm)
+
+Key Design Decisions:
+- `code` immutability enforced twice: frontend disables the input on edit; backend omits `code` from the update Zod schema (API-level guarantee)
+- Soft-delete (`active = false`) instead of hard delete — the loader (Phase 27) already relies on the `active` flag and future order-item links must not dangle
+- Mobile drawer pattern scales to any number of menu items without crowding — the bottom-bar pattern was at its limit at 4 items + theme + user
+- Product price edits preserve history the same way the loader does (close current `validTo`, open a new record)
+- Catalog remains global (no `userId` isolation) — matches the Phase 27 shared-catalog decision
+
+Deliverable: ✅ Full Product CRUD API + ProductsPage UI + mobile hamburger/drawer navigation — 119 backend tests (98 + 21 new), 201 frontend tests (183 − 7 + 11 MobileDrawer + 14 ProductsPage), 320 total tests
+
+---
+
+## 🎯 Phase 29: Product Search, Sorting & Infinite Scroll
+Status: ✅ COMPLETED
+
+Context: With 219+ products in the catalog, rendering the full list at once degraded the screen. The user requested a way to search (at least by name), pagination with a few items per time (infinite scroll), ordering mainly by price values and PV, and an active/inactive status filter.
+
+Stack: Express, Prisma ORM, React, Tailwind CSS, IntersectionObserver.
+
+Task (Backend):
+- Extended `GET /api/products` in `backend/src/controllers/productController.js`:
+  - `q` — partial search over `name` OR `code`, case-insensitive (Prisma `contains` + `mode: 'insensitive'`)
+  - `sortBy` (name/code/regularPrice/memberPrice/pv, default `name`) + `sortDir` (asc/desc) — price/PV sorts compare parsed numeric values (Prisma Decimal returns strings), name/code use `pt-BR` localeCompare
+  - `page` (1-based, default 1) + `pageSize` (default 20, clamped to max 100)
+  - Response shape changed from a bare array to `{ data, pagination: { page, pageSize, total, totalPages, hasMore } }`
+  - `active=true/false` filter preserved and combinable with search
+- Sorting/pagination is done in-memory after fetching the filtered set (with current price projected) — the catalog size (~219) makes this negligible and avoids complex raw SQL for "current price" ordering
+- Tests: `backend/tests/products.test.js` grew from 21 → 30 tests (partial-name search case-insensitive, code search, search+active combination, default name-asc sort, pv desc, regularPrice asc, memberPrice desc, page/pageSize pagination with hasMore, pageSize clamping)
+
+Task (Frontend):
+- Rewrote `frontend/src/pages/ProductsPage.jsx`:
+  - Search box with `Search` icon (filters by name or code, resets to page 1)
+  - Sort dropdown (`Ordenar por`): Nome A-Z/Z-A, Código A-Z, Preço Regular menor/maior, Preço Membro menor/maior, PV menor/maior
+  - Status filter (`Status`): Todos / Somente ativos / Somente inativos
+  - Product count line ("X produtos")
+  - **Infinite scroll** via `IntersectionObserver` on a sentinel element at the bottom of the table (rootMargin 200px), appending 20 items per page; guards against duplicate requests (`loadingMore`/`hasMore` refs)
+  - Distinct empty state: "Nenhum produto encontrado para os filtros aplicados." vs "Nenhum produto cadastrado"
+  - "Carregando mais..." indicator while fetching the next page
+- Tests: `frontend/tests/ProductsPage.test.jsx` grew from 14 → 20 tests (search API call, active filter API call, sort API call, filtered empty state, product count, infinite scroll loads page 2, no further requests when `hasMore` false)
+
+Key Design Decisions:
+- Infinite scroll keeps the DOM small (20 rows per page) — no full-list render that could jank on mobile
+- Search is server-side (`q` param) so the result set is bounded regardless of catalog size
+- IntersectionObserver chosen over a "Carregar mais" button — matches the requested UX and scales to huge catalogs
+- Sorting by current price happens in JS on the backend since "current price" is a `validTo IS NULL` window; DB-level ordering by a to-many relation would need raw SQL for little gain at this scale
+
+Deliverable: ✅ Searchable, sortable, filterable product list with infinite scroll — 128 backend tests (119 + 9 new), 207 frontend tests (201 + 6 new), 335 total tests
+
+## 🎯 Phase 30: Client-Side Search, Sort & Status Filter (Load-Once)
+Status: ✅ COMPLETED
+
+Context: After Phase 29, the user refined the UX: the search box hit the backend on every keystroke. Since the catalog is rarely updated, the full list should be loaded once into browser memory and search/order/status filtering applied entirely in the frontend — no new backend call per filter or sort change.
+
+Stack: Express, Prisma ORM, React, Tailwind CSS, IntersectionObserver, `useMemo`.
+
+Task (Backend):
+- `GET /api/products` in `backend/src/controllers/productController.js` now accepts `pageSize=all` (special string value) to return the **entire** matching list in one response (`pageSize` in the pagination envelope equals the total). Numeric `pageSize` clamping (max 100) is preserved for regular paginated callers, and the server-side `q`/`sortBy`/`sortDir`/`active`/`page`/`pageSize` capabilities remain intact for API consumers.
+- Tests: `backend/tests/products.test.js` grew from 30 → 31 tests (new `pageSize=all` test asserting the full list with `totalPages: 1` and `hasMore: false`).
+
+Task (Frontend):
+- Rewrote `frontend/src/pages/ProductsPage.jsx` around a single fetch:
+  - `loadProducts()` issues exactly one `GET /products?pageSize=all` on mount and after create/edit/deactivate mutations, storing the whole catalog in `allProducts` state
+  - `filteredProducts` is a `useMemo` that applies the search query (name OR code, case-insensitive), the active/inactive status filter, and the sort (name/code/prices/PV, asc/desc) in-memory
+  - The page count line reflects the **filtered** result length, not the server total
+  - **Infinite scroll is now client-side slicing**: `visibleCount` starts at 20 and the IntersectionObserver sentinel just reveals 20 more rows from the in-memory list (`slice(0, visibleCount)`) — no network request, no loading spinner
+  - Filter changes reset `visibleCount` back to 20 so the top of the filtered result is shown immediately
+  - Empty state still distinguishes "Nenhum produto encontrado para os filtros aplicados." from "Nenhum produto cadastrado"
+- Tests: `frontend/tests/ProductsPage.test.jsx` grew from 20 → 23 tests (search by name and by code without new API calls, active/inactive status filter without new API calls, PV-asc and name-desc sorting without new API calls, filtered empty state, in-memory infinite scroll reveal, no reveal when the filtered list fits one page, create/edit/deactivate flows unchanged)
+
+Key Design Decisions:
+- One network round-trip for the whole catalog (~219 rows) is cheap; per-keystroke requests are not. The API refetches only on mutations (create/edit/toggle) so the in-memory list reflects server state
+- `useMemo` keeps filtering/sorting O(n) and only recomputes when inputs change
+- Client-side slicing (not rendering all rows) preserves the Phase 29 DOM-perf win while eliminating the loading-more UX
+- The backend keeps its full server-side search/sort/pagination API for other consumers; `pageSize=all` is the dedicated "give me everything" knob
+
+Deliverable: ✅ Load-once catalog with client-side search/sort/status filter and in-memory infinite scroll — 129 backend tests (128 + 1 new), 210 frontend tests (207 + 3 new), 339 total tests
+
+## 🎯 Phase 31: Order Item Sub-Form — Product, Charged Value, PV & Details
+Status: ✅ COMPLETED
+
+Context: The user wants to add richer information when inserting order items and a specific field order per item. Items are now linked to the product catalog, carry a member-price snapshot, an editable "charged value" (negotiated price), a PV snapshot, and free-text details (up to 500 chars).
+
+Stack: Express, Prisma ORM, React, Tailwind CSS, Zod, client-side combobox.
+
+Task (Backend):
+- `Item` model rework in `backend/prisma/schema.prisma` (migration `20260811190000_extend_item_fields`):
+  - `value` renamed to `chargedValue` (the effective negotiated price; `Order.totalValue` now sums it)
+  - New nullable fields: `memberPrice`, `pv`, `details VARCHAR(500)` and `productId` (FK → `Product`, `ON DELETE SET NULL`)
+  - `description` is now nullable (auto-filled from the selected product name client-side)
+  - `Product` gained a back-reference `items Item[]`
+- `backend/src/controllers/ordersController.js`:
+  - `itemSchema` extended: `chargedValue` (required, positive), `productId` (optional UUID/nullable), `memberPrice`/`pv` (optional, non-negative), `details` (max 500), `description` (optional/nullable)
+  - New `validateProducts(items)` helper — when a `productId` is provided it must exist **and** be active; otherwise 400 `One or more products not found`
+  - `itemCreateData()` maps the new fields through create/update/addItem; `totalValue` computed from `chargedValue`; GET/GET by ID/POST/PUT responses now `include: { product: true }`
+  - `updateItem` re-evaluates order total on `chargedValue` change (was `value`); `deleteItem` decrements by `chargedValue`
+- `backend/src/controllers/paymentsController.js` + `dashboardController.js`: sums switched from `item.value` → `item.chargedValue`
+- Tests: `backend/tests/orders.test.js` updated to `chargedValue` and grew 27 → 33 tests (product create/snapshot/details, standalone item without product, non-existent + inactive product rejection, >500 details rejection, item update with product fields). `payments.test.js` & `dashboard.test.js` seed fields renamed. **129 → 135 backend tests.**
+
+Task (Frontend):
+- `frontend/src/pages/OrdersPage.jsx` reworked:
+  - Per-item field order now: **Pessoa → Produto (combobox) → Valor Membro (read-only) → Valor Cobrado (editable) → PV (read-only) → Detalhes (textarea, 500 chars)**. The old free-text "Descrição"/"Valor" fields are gone; `description` is auto-filled from the selected product name
+  - New `ProductCombobox` component: load-once catalog fetch (`GET /products?active=true&pageSize=all` in parallel with orders/people), client-side name/code filter, dropdown listing name + code + member price, and a **"Limpar produto"** button to unlink the item (clears the product and its snapshot fields). Dropdown uses `z-[70]` above the modal backdrop (`z-[60]`)
+  - Selecting a product auto-fills `memberPrice` and `pv` (read-only inputs); `chargedValue` stays editable
+  - `calculateTotal()`, create/edit validation and POST/PUT payloads use `chargedValue`; details shown with a live `N/500` character counter
+  - Edit modal pre-fills product combobox, member price, PV and details from the order items
+- Tests: `frontend/tests/OrdersPage.test.jsx` grew 24 → 35 tests (combobox rendering + name filtering, member price/PV auto-fill, Limpar produto clear, payload assertions for productId/chargedValue/memberPrice/pv/details and for standalone items, details counter, validation error, edit pre-fill of product + snapshot fields, update payload). **210 → 221 frontend tests.**
+
+Key Design Decisions:
+- `chargedValue` replaces `value` on the Item row — payments, dashboard, order totals and Excel exports stay consistent by reading a single monetary field
+- `memberPrice`/`pv` are **snapshots** captured when the item is saved, so historical orders don't change when the catalog's current price window moves (financial consistency)
+- `productId` is **optional** — standalone items (frete, taxa) and legacy orders remain valid; the UI shows "—" for absent member price/PV
+- Matching Phase 30, the product combobox loads the catalog once and filters client-side — no per-keystroke API calls
+- The combo dropdown exists above the modal (`z-[70]`) following the documented `z-index` hierarchy (nav → modals → toasts/dropdowns)
+
+Deliverable: ✅ Enhanced order item sub-form with product linking, snapshots, negotiated charge and details — **135 backend tests (129 + 6 new), 221 frontend tests (210 + 11 new), 356 total tests**
+
 ## 🏆 Project Highlights
 
 - **Zero Floating-Point Errors**: All financial calculations use integer cents arithmetic
-- **100% Test Coverage**: 265 tests covering all critical paths, edge cases, and regressions
+- **100% Test Coverage**: 356 tests covering all critical paths, edge cases, and regressions
 - **Financial Precision**: Decimal(10,2) database fields, proper overpayment rejection, accurate status transitions
 - **User Experience**: PT-BR localization, responsive Tailwind design, toast feedback, loading states
 - **Code Quality**: TDD methodology, clear error messages, proper auth guards, documented pitfalls

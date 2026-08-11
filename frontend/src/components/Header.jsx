@@ -1,20 +1,21 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LayoutDashboard, Users, ClipboardList, DollarSign, LogOut, Sun, Moon, User, HelpCircle } from 'lucide-react';
+import { LayoutDashboard, Users, ClipboardList, DollarSign, Package, LogOut, Sun, Moon, User, HelpCircle } from 'lucide-react';
 
 const navLinks = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/people', icon: Users, label: 'Pessoas' },
   { to: '/orders', icon: ClipboardList, label: 'Pedidos' },
   { to: '/receivables', icon: DollarSign, label: 'Recebíveis' },
+  { to: '/products', icon: Package, label: 'Produtos' },
 ];
 
 const Header = () => {
   const { logout, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   return (
-    <header className="bg-gradient-to-r from-primary-800 to-primary-600 shadow-md">
+    <header className="hidden md:block bg-gradient-to-r from-primary-800 to-primary-600 shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-white">
           Controle de Recebíveis
