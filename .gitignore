@@ -8,3 +8,4 @@ backend/dist
 frontend/screenshot.mjs
 docs/*.csv
 .opencode/oldagents/lgpd-auditor.md
+node_modules
