@@ -9,6 +9,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name init",
     "prisma:studio": "prisma studio",
+    "load:products": "node scripts/loadProducts.js",
     "postinstall": "prisma generate",
     "test": "vitest run",
     "test:watch": "vitest"
