@@ -986,6 +986,40 @@ Key Design Decisions:
 
 Deliverable: ✅ Enhanced order item sub-form with product linking, snapshots, negotiated charge and details — **135 backend tests (129 + 6 new), 221 frontend tests (210 + 11 new), 356 total tests**
 
+## 🎯 Phase 32: Order Descriptive Fields — Tracking Link, Account Owner, Payment Type & Notes
+Status: ✅ COMPLETED
+
+Context: The user wants to enrich the order form with descriptive (non-financial) order-level fields: the dōTERRA order number must show a clickable tracking link to `https://status.ondeestameupedido.com/tracking/{numero}/`, plus a free-text field for the account owner (dōTERRA ID or name), the payment method used (PIX, Boleto, Cartão de Crédito), a free-text order description (motivo do pedido, promoções, encomendas, etc.), and a live summary of the summed product value and summed PV placed before the items section.
+
+Stack: Express, Prisma ORM, React, Tailwind CSS, Zod, lucide-react.
+
+Task (Backend):
+- `backend/prisma/schema.prisma` (migration `20260811193000_add_order_descriptive_fields`):
+  - New enum `PaymentType` (`PIX` | `BOLETO` | `CARTAO_CREDITO`)
+  - `Order` gained three nullable fields: `accountOwner VARCHAR(120)`, `paymentType PaymentType?`, `orderNotes VARCHAR(500)` — all optional so existing orders stay valid
+- `backend/src/controllers/ordersController.js`:
+  - `createOrderSchema`/`updateOrderSchema` extended with `accountOwner` (max 120), `paymentType` (Zod enum `['PIX','BOLETO','CARTAO_CREDITO']`) and `orderNotes` (max 500) — all optional/nullable
+  - `createOrder` persists the three fields; `updateOrder` persists them in both branches (with items and metadata-only), using the `!== undefined` spread pattern so an explicit `null` clears a field while an omitted field keeps the existing value
+  - `totalValue` remains computed server-side from `chargedValue` (financial consistency rule)
+- Tests: `backend/tests/orders.test.js` grew 33 → 42 tests (create with all fields, nullable defaults, each valid payment type, invalid payment type rejection, >120 accountOwner rejection, >500 orderNotes rejection, update descriptive fields, explicit-null clearing, update-with-items preserving descriptive fields). **135 → 144 backend tests.**
+
+Task (Frontend):
+- `frontend/src/pages/OrdersPage.jsx`:
+  - New top-level states `accountOwner`, `paymentType`, `orderNotes` wired into `resetForm()`, `handleEditOrder()` (pre-fill), and both POST/PUT payloads (empty values sent as `null`)
+  - New helpers `trackingUrl(orderNumber)` (builds the tracking link with `encodeURIComponent`), `calculateTotalPV()` (sum of item `pv`), `paymentTypeLabel`/`paymentTypeBadge` (list rendering)
+  - Form field order above the items: **Número do Pedido (new placeholder "Informe o número do pedido da dōTERRA" + "Ver pedido no site" tracking link shown once the field is blurred with a number typed) → Responsável pela conta (ID dōTERRA ou nome, max 120) → Data do Pedido → Tipo de Pagamento (select: PIX / Boleto / Cartão de Crédito) → Descrição do Pedido (textarea, 500 chars, live `N/500` counter) → Soma dos Produtos (Valor Cobrado) + Soma dos PV summary cards → Itens do Pedido**
+  - The old post-items "Valor Total" block was removed (replaced by the summary cards above the items)
+  - Orders list table grew columns: **Responsável, Tipo Pgto (badge), PV Total, Descrição (truncated with tooltip), Rastreio (external-link icon "Ver" opening the tracking URL in a new tab)**
+- Tests: `frontend/tests/OrdersPage.test.jsx` grew 35 → 52 tests (renders of the three new fields, payment options, notes counter, tracking link shown/hidden, summary totals updating with item values, create payload with descriptive fields, null-for-empty payload, edit pre-fill + update payload, and the five new list columns). **221 → 238 frontend tests.**
+
+Key Design Decisions:
+- `accountOwner` is free text (not linked to a Person) — the user explicitly requested typing either the dōTERRA ID or the name
+- `paymentType` is an Order-level enum describing how the client paid the dōTERRA order — it is **not** related to the `Payment` table (which tracks internal settlements against the order balance)
+- The PV sum and product sum are computed dynamically in the UI — they are **not persisted** (the order total is already stored as `totalValue`)
+- The tracking link uses `encodeURIComponent` on the raw number (no strict format validation, per user request) and appears once the order-number field loses focus (blur) with a non-whitespace number typed
+
+Deliverable: ✅ Order form and list enriched with descriptive fields + tracking link — **144 backend tests (135 + 9 new), 238 frontend tests (221 + 17 new), 382 total tests**
+
 ## 🏆 Project Highlights
 
 - **Zero Floating-Point Errors**: All financial calculations use integer cents arithmetic

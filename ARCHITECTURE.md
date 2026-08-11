@@ -29,7 +29,8 @@ oc-receivables-control/
 │   ├── Dockerfile              # Backend container definition
 │   ├── entrypoint.sh           # Entrypoint script (DB wait & migrations)
 │   ├── package.json            # Backend dependencies & scripts
-│   ├── .env                    # Environment variables (DB, JWT, etc.)
+│   ├── .env.default             # Environment variables template (versioned; copy to .env)
+│   ├── .env                     # Environment variables (DB, JWT, etc.) — gitignored, user-specific
 │   ├── prisma/
 │   │   ├── schema.prisma       # Prisma database schema (User, Person, Order, Item, Payment, Product, ProductPrice)
 │   │   ├── seed.js             # Admin user seed
@@ -46,7 +47,7 @@ oc-receivables-control/
 │   ├── controllers/
 │   │   ├── authController.js # Auth login + register controllers
 │   │   ├── peopleController.js # People CRUD with Zod validation
-│   │   ├── ordersController.js # Orders + Items CRUD with Zod validation, custom orderDate support
+│   │   ├── ordersController.js # Orders + Items CRUD with Zod validation, custom orderDate, descriptive fields (accountOwner/paymentType/orderNotes)
 │ │ ├── paymentsController.js # Payments + balance with transactional status engine, custom paidAt support
 │   │   ├── dashboardController.js # Dashboard aggregation (KPIs + person balances + yearly breakdown)
 │   │   └── productController.js # Product CRUD (code immutable on update, price history on change, soft-delete; GET list with search/sort/pagination + pageSize=all)
@@ -64,7 +65,7 @@ oc-receivables-control/
 │ └── tests/
 │ ├── setup.js # Test environment setup (NODE_ENV, DATABASE_URL, JWT_SECRET)
 │ ├── people.test.js # 17 People CRUD tests
-│   ├── orders.test.js # 33 Orders + Items CRUD tests (incl. product/chargedValue/orderDate)
+│   ├── orders.test.js # 42 Orders + Items CRUD tests (incl. product/chargedValue/orderDate/descriptive fields)
 │   ├── payments.test.js # 28 Payments & Balance tests (incl. 2 floating-point regression tests + 2 custom paidAt tests)
 │   ├── dashboard.test.js # 6 Dashboard yearly breakdown tests
 │   ├── auth.test.js # 4 Auth tests
@@ -96,14 +97,14 @@ oc-receivables-control/
 │   │   ├── RegisterPage.jsx # Registration form (PT-BR) with validation
 │ │ ├── DashboardPage.jsx # Dashboard with KPI widgets, Recharts bar chart, yearly breakdown "Resumo por Ano" table & XLSX export button
 │ │ ├── PeoplePage.jsx # People CRUD with modals (PT-BR)
-│   │   ├── OrdersPage.jsx # Orders CRUD with dynamic item rows and custom order date (PT-BR)
+│   │   ├── OrdersPage.jsx # Orders CRUD with dynamic item rows, custom order date, tracking link, account owner, payment type, order notes, summary cards (PT-BR)
 │ │   ├── ReceivablesPage.jsx # Payment tracking with status badges & payment modal with custom date (PT-BR)
 │ │   └── ProductsPage.jsx # Product CRUD — loads the full catalog once (pageSize=all) and does search (name/code), sort (prices/PV) and status filter 100% client-side; infinite scroll slices the in-memory list (20 at a time); create/edit modals (code locked on edit), status toggle
 │ └── tests/
 │ ├── setup.js # @testing-library/jest-dom + window.matchMedia mock
 │ ├── api.test.js # 10 API interceptor tests (request/response, 401 + 403 redirect, other errors)
 │ ├── PeoplePage.test.jsx # 14 PeoplePage tests
-│   ├── OrdersPage.test.jsx # 24 OrdersPage tests
+│   ├── OrdersPage.test.jsx # 52 OrdersPage tests
 │   ├── ReceivablesPage.test.jsx # 27 ReceivablesPage tests (badge rendering, payment modal, validation guards, payment date field, toast feedback, FP regression)
 │ ├── Header.test.jsx # 6 Header tests (title, nav links incl. Produtos, Sair button, logout function, username display, hidden when not logged in)
 │ ├── MobileDrawer.test.jsx # 11 MobileDrawer tests (title, hamburger open/close, 5 nav items, active highlight, logout, tutorial event, backdrop close, mobile-only)
@@ -141,8 +142,12 @@ Defined in `docker-compose.yml` with network `receivables-network`:
   - Depends on: db
 
 ## Backend Configuration (.env)
+The repo ships a versioned template `backend/.env.default`. Each environment must have its own `backend/.env` (gitignored). The `entrypoint.sh` auto-creates `.env` from `.env.default` on first container start if it is missing.
+
 ```dotenv
 # Database Configuration
+# Use "localhost" for a local install (no Docker, e.g. Windows with PostgreSQL).
+# Use "db" for the Docker Compose setup.
 DATABASE_URL="postgresql://admin:admin@localhost:5432/receivables?schema=public"
 
 # JWT Configuration
@@ -156,6 +161,20 @@ NODE_ENV=development
 # CORS (optional — if unset, reflects request origin for development)
 # CORS_ORIGIN=https://meusite.com
 ```
+
+### Local install (no Docker — e.g. Windows with PostgreSQL installed natively)
+```bash
+cd backend
+cp .env.default .env          # then edit .env: confirm DATABASE_URL hostname is "localhost"
+npm install
+npx prisma generate
+npx prisma migrate deploy
+node prisma/seed.js
+npm run dev
+```
+
+### Docker install
+`docker compose up --build` handles everything (the entrypoint auto-creates `.env` from `.env.default` with the Docker-default `db` hostname if it is missing). To customize, copy `.env.default` → `.env` and edit before the first `up`.
 
 ## Frontend Configuration (environment variables)
 - `API_URL` — Vite proxy target for `/api` requests (defaults to `http://localhost:4000`). In Docker, set to `http://backend:4000`.
@@ -257,7 +276,7 @@ NODE_ENV=development
 ✅ exportExcel unit test suite: 32 tests covering workbook structure, sheet content (Pedidos, Pessoas, Histórico de Pagamentos, Saldo Pendente), BRL monetary cell formatting, DD/MM/YYYY date formatting, empty data handling, column widths, floating-point precision
 ✅ DashboardPage export integration tests: 7 tests covering export button rendering, disabled state, enabled state, exportExcel call with fetched data, success/error toast feedback, "Exportando..." loading state
 
-## Completed Phases (30)
+## Completed Phases (32)
 - **Phase 20**: ✅ Prisma schema update (`userId` in Person/Order), registration API (`POST /api/auth/register`), and TDD setup. 82 backend tests.
 - **Phase 21**: ✅ Backend data isolation (middleware enforcement on all routes, query filtering by `req.user.userId`). `userId` made required with `ON DELETE CASCADE`.
 - **Phase 22**: ✅ Frontend registration UI (`RegisterPage.jsx`) with PT-BR form, client-side validation, success redirect, and LoginPage navigation. 18 RegisterPage tests + 9 LoginPage tests. 160 frontend tests, 242 total tests.
@@ -270,6 +289,7 @@ NODE_ENV=development
 - **Phase 29**: ✅ Product search & infinite scroll — `GET /api/products` extended with `q` (partial name/code, case-insensitive), `sortBy`/`sortDir` (name/code/regularPrice/memberPrice/pv) and `page`/`pageSize` pagination returning `{ data, pagination }`; ProductsPage gained a search box with icon, sort dropdown, active/inactive status filter, product count and IntersectionObserver infinite scroll (20 per page). 9 new backend tests + 6 new frontend tests. 128 backend tests, 207 frontend tests, 335 total tests.
 - **Phase 30**: ✅ Client-side search/sort/filter — `GET /api/products` accepts `pageSize=all` to return the full list; ProductsPage loads the catalog once into browser memory and applies search (name/code), active/inactive status filter and sorting in-memory via `useMemo`, with infinite scroll slicing the in-memory list (no per-filter API calls). 1 new backend test + 3 new frontend tests. 129 backend tests, 210 frontend tests, 339 total tests.
 - **Phase 31**: ✅ Order item sub-form — each item links to a catalog product (`productId` FK → `Product`, `ON DELETE SET NULL`) via a filterable `ProductCombobox` that auto-fills read-only member-price and PV snapshots, plus an editable `chargedValue` (renamed from `value`) and free-text `details VARCHAR(500)`. Field order per item: Pessoa → Produto → Valor Membro → Valor Cobrado → PV → Detalhes, with a "Limpar produto" unlink button. `description` became optional (auto-filled from product name). Backend: new `validateProducts` helper (active products only), `itemSchema` extended, payments/dashboard sums read `chargedValue`. Migration `20260811190000_extend_item_fields`. 6 new backend tests + 11 new frontend tests. 135 backend tests, 221 frontend tests, 356 total tests.
+- **Phase 32**: ✅ Order descriptive fields — dōTERRA number placeholder + "Ver pedido no site" tracking link (`https://status.ondeestameupedido.com/tracking/{numero}/`), free-text `accountOwner VARCHAR(120)` (dōTERRA ID or name), `PaymentType` enum select (PIX / Boleto / Cartão de Crédito), free-text `orderNotes VARCHAR(500)` with live counter, and client-computed "Soma dos Produtos (Valor Cobrado)" + "Soma dos PV" summary cards above the items. Orders list gained Responsável, Tipo Pgto (badge), PV Total, Descrição (truncated + tooltip) and Rastreio (external link) columns. Backend: `createOrderSchema`/`updateOrderSchema` extended with the three nullable fields; `updateOrder` uses the `!== undefined` spread pattern so explicit `null` clears a field. Migration `20260811193000_add_order_descriptive_fields`. 9 new backend tests + 17 new frontend tests. 144 backend tests, 238 frontend tests, 382 total tests.
 
 ## Notes for Developers/Agents
 - Backend source is mounted at `/app` inside container for live editing
