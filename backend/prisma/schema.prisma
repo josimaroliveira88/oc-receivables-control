@@ -30,17 +30,20 @@ model Person {
 }
 
 model Order {
-  id          String     @id @default(uuid())
+  id          String       @id @default(uuid())
   orderNumber String
-  totalValue  Decimal    @db.Decimal(10, 2)
-  orderDate   DateTime   @default(now())
-  status      OrderStatus @default(PENDENTE)
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalValue  Decimal      @db.Decimal(10, 2)
+  orderDate   DateTime     @default(now())
+  status      OrderStatus  @default(PENDENTE)
+  accountOwner String?     @db.VarChar(120)
+  paymentType PaymentType?
+  orderNotes  String?      @db.VarChar(500)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      String
   items       Item[]
   payments    Payment[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   @@unique([orderNumber, userId])
 }
@@ -49,6 +52,12 @@ enum OrderStatus {
   PENDENTE
   PARCIAL
   QUITADO
+}
+
+enum PaymentType {
+  PIX
+  BOLETO
+  CARTAO_CREDITO
 }
 
 model Item {

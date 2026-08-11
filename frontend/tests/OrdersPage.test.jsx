@@ -24,6 +24,9 @@ const mockOrders = [
     orderDate: '2026-05-15T00:00:00.000Z',
     totalValue: '300.00',
     status: 'PENDENTE',
+    accountOwner: '6254862 - Ana Silva',
+    paymentType: 'PIX',
+    orderNotes: 'Pedido de promoção de março',
     items: [
       {
         id: 'i1',
@@ -53,6 +56,9 @@ const mockOrders = [
     orderDate: '2026-06-20T00:00:00.000Z',
     totalValue: '500.00',
     status: 'QUITADO',
+    accountOwner: null,
+    paymentType: null,
+    orderNotes: null,
     items: [
       {
         id: 'i3',
@@ -186,6 +192,51 @@ describe('OrdersPage', () => {
         expect(screen.getByText('20/06/2026')).toBeInTheDocument();
       });
     });
+
+    it('should display account owner column', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('6254862 - Ana Silva')).toBeInTheDocument();
+      });
+    });
+
+    it('should display payment type badges', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('PIX')).toBeInTheDocument();
+      });
+    });
+
+    it('should display total PV per order', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('45.00')).toBeInTheDocument();
+        expect(screen.getByText('0.00')).toBeInTheDocument();
+      });
+    });
+
+    it('should display order notes in description column', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('Pedido de promoção de março')).toBeInTheDocument();
+      });
+    });
+
+    it('should display tracking links for each order', async () => {
+      renderPage();
+      await waitFor(() => {
+        const links = screen.getAllByTitle('Ver pedido no site');
+        expect(links).toHaveLength(2);
+        expect(links[0]).toHaveAttribute(
+          'href',
+          'https://status.ondeestameupedido.com/tracking/ORD-001/'
+        );
+        expect(links[1]).toHaveAttribute(
+          'href',
+          'https://status.ondeestameupedido.com/tracking/ORD-002/'
+        );
+      });
+    });
   });
 
   describe('Create Order Modal', () => {
@@ -294,10 +345,10 @@ describe('OrdersPage', () => {
       fireEvent.click(screen.getByText('Novo Pedido'));
 
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Digite o número do pedido')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Informe o número do pedido da dōTERRA')).toBeInTheDocument();
       });
 
-      const form = screen.getByPlaceholderText('Digite o número do pedido').closest('form');
+      const form = screen.getByPlaceholderText('Informe o número do pedido da dōTERRA').closest('form');
       fireEvent.submit(form);
 
       await waitFor(() => {
@@ -365,10 +416,10 @@ describe('OrdersPage', () => {
       fireEvent.click(screen.getByText('Novo Pedido'));
 
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Digite o número do pedido')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Informe o número do pedido da dōTERRA')).toBeInTheDocument();
       });
 
-      fireEvent.change(screen.getByPlaceholderText('Digite o número do pedido'), { target: { value: 'ORD-NEW' } });
+      fireEvent.change(screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'), { target: { value: 'ORD-NEW' } });
       fireEvent.change(screen.getByLabelText('Data do Pedido'), { target: { value: '2026-03-10' } });
 
       const valueInput = screen.getByPlaceholderText('0.00');
@@ -376,12 +427,246 @@ describe('OrdersPage', () => {
       const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
       fireEvent.change(personSelect, { target: { value: 'p1' } });
 
-      const form = screen.getByPlaceholderText('Digite o número do pedido').closest('form');
+      const form = screen.getByPlaceholderText('Informe o número do pedido da dōTERRA').closest('form');
       fireEvent.submit(form);
 
       await waitFor(() => {
         expect(mockPost).toHaveBeenCalledWith('/orders', expect.objectContaining({
           orderDate: '2026-03-10',
+        }));
+      });
+    });
+
+    it('should display "Responsável pela conta" field in create modal', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Novo Pedido'));
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Responsável pela conta (ID dōTERRA ou nome)')).toBeInTheDocument();
+      });
+    });
+
+    it('should display "Tipo de Pagamento" dropdown with all options', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Novo Pedido'));
+
+      await waitFor(() => {
+        const select = screen.getByLabelText('Tipo de Pagamento');
+        expect(select).toBeInTheDocument();
+        expect(screen.getByRole('option', { name: 'PIX' })).toBeInTheDocument();
+        expect(screen.getByRole('option', { name: 'Boleto' })).toBeInTheDocument();
+        expect(screen.getByRole('option', { name: 'Cartão de Crédito' })).toBeInTheDocument();
+      });
+    });
+
+    it('should display "Descrição do Pedido" textarea in create modal', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Novo Pedido'));
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Descrição do Pedido')).toBeInTheDocument();
+      });
+    });
+
+    it('should display order notes character counter', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Novo Pedido'));
+
+      await waitFor(() => {
+        expect(screen.getAllByText('0/500')).toHaveLength(2);
+      });
+
+      fireEvent.change(screen.getByLabelText('Descrição do Pedido'), { target: { value: 'Promoção' } });
+
+      await waitFor(() => {
+        expect(screen.getByText('8/500')).toBeInTheDocument();
+      });
+    });
+
+    it('should show tracking link after blurring the order number field', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Novo Pedido'));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Informe o número do pedido da dōTERRA')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByText('Ver pedido no site')).not.toBeInTheDocument();
+
+      const numberInput = screen.getByPlaceholderText('Informe o número do pedido da dōTERRA');
+      fireEvent.change(numberInput, { target: { value: '12345' } });
+
+      expect(screen.queryByText('Ver pedido no site')).not.toBeInTheDocument();
+
+      fireEvent.blur(numberInput);
+
+      await waitFor(() => {
+        const link = screen.getByText('Ver pedido no site');
+        expect(link).toHaveAttribute(
+          'href',
+          'https://status.ondeestameupedido.com/tracking/12345/'
+        );
+      });
+    });
+
+    it('should not show tracking link when order number is empty', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Novo Pedido'));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Informe o número do pedido da dōTERRA')).toBeInTheDocument();
+      });
+
+      const numberInput = screen.getByPlaceholderText('Informe o número do pedido da dōTERRA');
+      fireEvent.change(numberInput, { target: { value: '   ' } });
+      fireEvent.blur(numberInput);
+
+      await waitFor(() => {
+        expect(screen.queryByText('Ver pedido no site')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should display "Soma dos Produtos" and "Soma dos PV" summary', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Novo Pedido'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Soma dos Produtos (Valor Cobrado)')).toBeInTheDocument();
+        expect(screen.getByText('Soma dos PV')).toBeInTheDocument();
+        expect(screen.getByText('0.00')).toBeInTheDocument();
+      });
+    });
+
+    it('should update summary totals when filling item values', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Novo Pedido'));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Busque um produto...')).toBeInTheDocument();
+      });
+
+      const combobox = screen.getByPlaceholderText('Busque um produto...');
+      fireEvent.change(combobox, { target: { value: 'Lavanda' } });
+      fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('30')).toBeInTheDocument();
+      });
+
+      const valueInput = screen.getByPlaceholderText('0.00');
+      fireEvent.change(valueInput, { target: { value: '175' } });
+
+      await waitFor(() => {
+        expect(screen.getByText(/R\$\s*175,00/)).toBeInTheDocument();
+      });
+      expect(screen.getByText('30.00')).toBeInTheDocument();
+    });
+
+    it('should send accountOwner, paymentType and orderNotes in create payload', async () => {
+      mockPost.mockResolvedValue({ data: { id: '3', orderNumber: 'ORD-DESC' } });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Novo Pedido'));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Informe o número do pedido da dōTERRA')).toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'), { target: { value: 'ORD-DESC' } });
+      fireEvent.change(screen.getByLabelText('Responsável pela conta (ID dōTERRA ou nome)'), { target: { value: 'Ana Silva' } });
+      fireEvent.change(screen.getByLabelText('Tipo de Pagamento'), { target: { value: 'PIX' } });
+      fireEvent.change(screen.getByLabelText('Descrição do Pedido'), { target: { value: 'Promoção de março' } });
+
+      const valueInput = screen.getByPlaceholderText('0.00');
+      fireEvent.change(valueInput, { target: { value: '150' } });
+      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
+      fireEvent.change(personSelect, { target: { value: 'p1' } });
+
+      const form = screen.getByPlaceholderText('Informe o número do pedido da dōTERRA').closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith('/orders', expect.objectContaining({
+          accountOwner: 'Ana Silva',
+          paymentType: 'PIX',
+          orderNotes: 'Promoção de março',
+        }));
+      });
+    });
+
+    it('should send null for empty optional descriptive fields', async () => {
+      mockPost.mockResolvedValue({ data: { id: '3', orderNumber: 'ORD-EMPTY' } });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Novo Pedido'));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Informe o número do pedido da dōTERRA')).toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'), { target: { value: 'ORD-EMPTY' } });
+
+      const valueInput = screen.getByPlaceholderText('0.00');
+      fireEvent.change(valueInput, { target: { value: '50' } });
+      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
+      fireEvent.change(personSelect, { target: { value: 'p1' } });
+
+      const form = screen.getByPlaceholderText('Informe o número do pedido da dōTERRA').closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith('/orders', expect.objectContaining({
+          accountOwner: null,
+          paymentType: null,
+          orderNotes: null,
         }));
       });
     });
@@ -459,7 +744,7 @@ describe('OrdersPage', () => {
       mockPost.mockResolvedValue({ data: { id: '3', orderNumber: 'ORD-ENH' } });
       await openModal();
 
-      fireEvent.change(screen.getByPlaceholderText('Digite o número do pedido'), { target: { value: 'ORD-ENH' } });
+      fireEvent.change(screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'), { target: { value: 'ORD-ENH' } });
 
       const combobox = screen.getByPlaceholderText('Busque um produto...');
       fireEvent.change(combobox, { target: { value: 'Lavanda' } });
@@ -476,7 +761,7 @@ describe('OrdersPage', () => {
       const detailsArea = screen.getByPlaceholderText('Adicione detalhes do item (até 500 caracteres)');
       fireEvent.change(detailsArea, { target: { value: 'Pedido urgente' } });
 
-      const form = screen.getByPlaceholderText('Digite o número do pedido').closest('form');
+      const form = screen.getByPlaceholderText('Informe o número do pedido da dōTERRA').closest('form');
       fireEvent.submit(form);
 
       await waitFor(() => {
@@ -499,14 +784,14 @@ describe('OrdersPage', () => {
       mockPost.mockResolvedValue({ data: { id: '3', orderNumber: 'ORD-STANDALONE' } });
       await openModal();
 
-      fireEvent.change(screen.getByPlaceholderText('Digite o número do pedido'), { target: { value: 'ORD-STANDALONE' } });
+      fireEvent.change(screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'), { target: { value: 'ORD-STANDALONE' } });
 
       const valueInput = screen.getByPlaceholderText('0.00');
       fireEvent.change(valueInput, { target: { value: '50' } });
       const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
       fireEvent.change(personSelect, { target: { value: 'p1' } });
 
-      const form = screen.getByPlaceholderText('Digite o número do pedido').closest('form');
+      const form = screen.getByPlaceholderText('Informe o número do pedido da dōTERRA').closest('form');
       fireEvent.submit(form);
 
       await waitFor(() => {
@@ -526,7 +811,7 @@ describe('OrdersPage', () => {
 
     it('should display details character counter', async () => {
       await openModal();
-      const form = screen.getByPlaceholderText('Digite o número do pedido').closest('form');
+      const form = screen.getByPlaceholderText('Informe o número do pedido da dōTERRA').closest('form');
       const detailsArea = screen.getByPlaceholderText('Adicione detalhes do item (até 500 caracteres)');
       fireEvent.change(detailsArea, { target: { value: 'abc' } });
       fireEvent.submit(form);
@@ -538,11 +823,11 @@ describe('OrdersPage', () => {
 
     it('should show validation error when charged value is empty', async () => {
       await openModal();
-      fireEvent.change(screen.getByPlaceholderText('Digite o número do pedido'), { target: { value: 'ORD-VAL' } });
+      fireEvent.change(screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'), { target: { value: 'ORD-VAL' } });
       const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
       fireEvent.change(personSelect, { target: { value: 'p1' } });
 
-      const form = screen.getByPlaceholderText('Digite o número do pedido').closest('form');
+      const form = screen.getByPlaceholderText('Informe o número do pedido da dōTERRA').closest('form');
       fireEvent.submit(form);
 
       await waitFor(() => {
@@ -605,6 +890,56 @@ describe('OrdersPage', () => {
 
       expect(screen.getByDisplayValue('Adaptiv Pastilhas (60226006)')).toBeInTheDocument();
       expect(screen.getByDisplayValue('15')).toBeInTheDocument();
+    });
+
+    it('should pre-fill descriptive fields in edit modal', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+
+      const editButtons = screen.getAllByText('Editar');
+      fireEvent.click(editButtons[0]);
+
+      await waitFor(() => {
+        expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
+      });
+
+      expect(screen.getByLabelText('Responsável pela conta (ID dōTERRA ou nome)').value).toBe('6254862 - Ana Silva');
+      expect(screen.getByLabelText('Tipo de Pagamento').value).toBe('PIX');
+      expect(screen.getByLabelText('Descrição do Pedido').value).toBe('Pedido de promoção de março');
+    });
+
+    it('should send descriptive fields when updating an order', async () => {
+      mockPut.mockResolvedValue({ data: { id: '1', orderNumber: 'ORD-001' } });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+
+      const editButtons = screen.getAllByText('Editar');
+      fireEvent.click(editButtons[0]);
+
+      await waitFor(() => {
+        expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByLabelText('Responsável pela conta (ID dōTERRA ou nome)'), { target: { value: 'João Pereira' } });
+      fireEvent.change(screen.getByLabelText('Tipo de Pagamento'), { target: { value: 'BOLETO' } });
+      fireEvent.change(screen.getByLabelText('Descrição do Pedido'), { target: { value: 'Encomenda' } });
+
+      const form = screen.getByDisplayValue('ORD-001').closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPut).toHaveBeenCalledWith('/orders/1', expect.objectContaining({
+          accountOwner: 'João Pereira',
+          paymentType: 'BOLETO',
+          orderNotes: 'Encomenda',
+        }));
+      });
     });
 
     it('should send chargedValue, pv and details when updating an order', async () => {

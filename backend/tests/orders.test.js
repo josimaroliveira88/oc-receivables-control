@@ -725,4 +725,216 @@ describe('Orders CRUD with Items', () => {
       expect(response.body.details).toBe('Atualizado com produto');
     });
   });
+
+  describe('Order descriptive fields (account owner, payment type, notes)', () => {
+    beforeEach(async () => {
+      const person = await prisma.person.create({
+        data: { name: 'Test Person Desc', contact: 'desc@test.com', userId },
+      });
+      testPersonId = person.id;
+    });
+
+    it('should create order with payment type and descriptive fields', async () => {
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-DESC'),
+          orderDate: '2026-07-20',
+          accountOwner: '6254862 - Ana Silva',
+          paymentType: 'PIX',
+          orderNotes: 'Pedido de promoção de março',
+          items: [
+            { description: 'Item', chargedValue: 100.00, personId: testPersonId },
+          ],
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.accountOwner).toBe('6254862 - Ana Silva');
+      expect(response.body.paymentType).toBe('PIX');
+      expect(response.body.orderNotes).toBe('Pedido de promoção de março');
+      expect(parseFloat(response.body.totalValue)).toBe(100.00);
+      createdOrderId = response.body.id;
+    });
+
+    it('should create order without payment type (nullable)', async () => {
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-NOPGTO'),
+          items: [
+            { description: 'Item', chargedValue: 50.00, personId: testPersonId },
+          ],
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.paymentType).toBeNull();
+      expect(response.body.accountOwner).toBeNull();
+      expect(response.body.orderNotes).toBeNull();
+      createdOrderId = response.body.id;
+    });
+
+    it('should accept each valid payment type', async () => {
+      for (const paymentType of ['PIX', 'BOLETO', 'CARTAO_CREDITO']) {
+        const response = await request(app)
+          .post('/api/orders')
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            orderNumber: uniqueOrderNumber('ORD-PGTO'),
+            paymentType,
+            items: [
+              { description: 'Item', chargedValue: 50.00, personId: testPersonId },
+            ],
+          });
+        expect(response.status).toBe(201);
+        expect(response.body.paymentType).toBe(paymentType);
+        createdOrderId = response.body.id;
+      }
+    });
+
+    it('should reject order with invalid payment type', async () => {
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-BADPGTO'),
+          paymentType: 'DINHEIRO',
+          items: [
+            { description: 'Item', chargedValue: 50.00, personId: testPersonId },
+          ],
+        });
+
+      expect(response.status).toBe(400);
+      expect(Array.isArray(response.body.error)).toBe(true);
+      expect(response.body.error[0].path).toEqual(['paymentType']);
+    });
+
+    it('should reject order with accountOwner longer than 120 characters', async () => {
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-LONGOWN'),
+          accountOwner: 'x'.repeat(121),
+          items: [
+            { description: 'Item', chargedValue: 50.00, personId: testPersonId },
+          ],
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error[0].path).toEqual(['accountOwner']);
+    });
+
+    it('should reject order with orderNotes longer than 500 characters', async () => {
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-LONGNOTES'),
+          orderNotes: 'y'.repeat(501),
+          items: [
+            { description: 'Item', chargedValue: 50.00, personId: testPersonId },
+          ],
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error[0].path).toEqual(['orderNotes']);
+    });
+
+    it('should update order descriptive fields', async () => {
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: uniqueOrderNumber('ORD-UPD-DESC'),
+          totalValue: 100.00,
+          status: 'PENDENTE',
+          userId,
+          items: {
+            create: [
+              { description: 'Item', chargedValue: 100.00, personId: testPersonId },
+            ],
+          },
+        },
+      });
+      createdOrderId = order.id;
+
+      const response = await request(app)
+        .put(`/api/orders/${order.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          accountOwner: 'João Pereira',
+          paymentType: 'BOLETO',
+          orderNotes: 'Encomenda para revenda',
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.accountOwner).toBe('João Pereira');
+      expect(response.body.paymentType).toBe('BOLETO');
+      expect(response.body.orderNotes).toBe('Encomenda para revenda');
+      expect(parseFloat(response.body.totalValue)).toBe(100.00);
+    });
+
+    it('should update order clearing payment type with explicit null', async () => {
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: uniqueOrderNumber('ORD-CLEAR-PGTO'),
+          totalValue: 100.00,
+          status: 'PENDENTE',
+          paymentType: 'PIX',
+          userId,
+          items: {
+            create: [
+              { description: 'Item', chargedValue: 100.00, personId: testPersonId },
+            ],
+          },
+        },
+      });
+      createdOrderId = order.id;
+
+      const response = await request(app)
+        .put(`/api/orders/${order.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ paymentType: null });
+
+      expect(response.status).toBe(200);
+      expect(response.body.paymentType).toBeNull();
+    });
+
+    it('should update order items preserving descriptive fields', async () => {
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: uniqueOrderNumber('ORD-UPD-ITEMS-DESC'),
+          totalValue: 100.00,
+          status: 'PENDENTE',
+          accountOwner: 'Maria',
+          paymentType: 'CARTAO_CREDITO',
+          orderNotes: 'Original',
+          userId,
+          items: {
+            create: [
+              { description: 'Item 1', chargedValue: 100.00, personId: testPersonId },
+            ],
+          },
+        },
+      });
+      createdOrderId = order.id;
+
+      const response = await request(app)
+        .put(`/api/orders/${order.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          items: [
+            { description: 'Item 1', chargedValue: 60.00, personId: testPersonId },
+            { description: 'Item 2', chargedValue: 40.00, personId: testPersonId },
+          ],
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.items).toHaveLength(2);
+      expect(response.body.accountOwner).toBe('Maria');
+      expect(response.body.paymentType).toBe('CARTAO_CREDITO');
+      expect(response.body.orderNotes).toBe('Original');
+      expect(parseFloat(response.body.totalValue)).toBe(100.00);
+    });
+  });
 });

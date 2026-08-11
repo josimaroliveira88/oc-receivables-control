@@ -9,6 +9,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name init",
     "prisma:studio": "prisma studio",
+    "prisma": "prisma",
     "load:products": "node scripts/loadProducts.js",
     "postinstall": "prisma generate",
     "test": "vitest run",
@@ -30,5 +31,8 @@
     "prisma": "^5.8.1",
     "supertest": "^6.3.4",
     "vitest": "^1.2.1"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   }
 }

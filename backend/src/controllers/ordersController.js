@@ -17,15 +17,25 @@ const itemSchema = z.object({
   details: z.string().max(500, 'Details must be at most 500 characters').optional().nullable(),
 });
 
+const paymentTypeSchema = z.enum(['PIX', 'BOLETO', 'CARTAO_CREDITO']);
+
+const orderDescriptiveSchema = {
+  accountOwner: z.string().max(120, 'Account owner must be at most 120 characters').optional().nullable(),
+  paymentType: paymentTypeSchema.optional().nullable(),
+  orderNotes: z.string().max(500, 'Order notes must be at most 500 characters').optional().nullable(),
+};
+
 const createOrderSchema = z.object({
   orderNumber: z.string().min(1, 'Order number is required'),
   orderDate: z.string().optional(),
+  ...orderDescriptiveSchema,
   items: z.array(itemSchema).min(1, 'At least one item is required'),
 });
 
 const updateOrderSchema = z.object({
   orderNumber: z.string().min(1, 'Order number is required').optional(),
   orderDate: z.string().optional(),
+  ...orderDescriptiveSchema,
   items: z.array(itemSchema).min(1, 'At least one item is required').optional(),
 });
 
@@ -141,6 +151,9 @@ const createOrder = async (req, res) => {
         orderNumber: validatedData.orderNumber,
         totalValue: totalValue,
         orderDate: validatedData.orderDate ? parseLocalDate(validatedData.orderDate) : undefined,
+        accountOwner: validatedData.accountOwner ?? null,
+        paymentType: validatedData.paymentType ?? null,
+        orderNotes: validatedData.orderNotes ?? null,
         status: 'PENDENTE',
         userId: req.user.userId,
         items: {
@@ -207,6 +220,9 @@ const updateOrder = async (req, res) => {
         orderNumber: validatedData.orderNumber || existingOrder.orderNumber,
         totalValue: totalValue,
         orderDate: validatedData.orderDate ? parseLocalDate(validatedData.orderDate) : undefined,
+        ...(validatedData.accountOwner !== undefined && { accountOwner: validatedData.accountOwner }),
+        ...(validatedData.paymentType !== undefined && { paymentType: validatedData.paymentType }),
+        ...(validatedData.orderNotes !== undefined && { orderNotes: validatedData.orderNotes }),
         items: {
           deleteMany: {},
           create: validatedData.items.map(itemCreateData),
@@ -229,6 +245,9 @@ const updateOrder = async (req, res) => {
       data: {
         orderNumber: validatedData.orderNumber || existingOrder.orderNumber,
         ...(validatedData.orderDate && { orderDate: parseLocalDate(validatedData.orderDate) }),
+        ...(validatedData.accountOwner !== undefined && { accountOwner: validatedData.accountOwner }),
+        ...(validatedData.paymentType !== undefined && { paymentType: validatedData.paymentType }),
+        ...(validatedData.orderNotes !== undefined && { orderNotes: validatedData.orderNotes }),
       },
       include: {
         items: {

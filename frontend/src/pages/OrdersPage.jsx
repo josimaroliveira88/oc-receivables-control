@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ExternalLink } from 'lucide-react';
 import api from '../services/api';
 import { toCents, formatBRL } from '../utils/money';
 
@@ -41,6 +42,33 @@ const statusBadge = (status) => {
     </span>
   );
 };
+
+const paymentTypeLabel = (type) => {
+  const map = {
+    PIX: 'PIX',
+    BOLETO: 'Boleto',
+    CARTAO_CREDITO: 'Cartão de Crédito',
+  };
+  return map[type] || type;
+};
+
+const paymentTypeBadge = (type) => {
+  if (!type) return <span className="text-gray-400 dark:text-gray-500">—</span>;
+  const config = {
+    PIX: { className: 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' },
+    BOLETO: { className: 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' },
+    CARTAO_CREDITO: { className: 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' },
+  };
+  const cfg = config[type] || { className: 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300' };
+  return (
+    <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${cfg.className}`}>
+      {paymentTypeLabel(type)}
+    </span>
+  );
+};
+
+const trackingUrl = (orderNumber) =>
+  `https://status.ondeestameupedido.com/tracking/${encodeURIComponent(orderNumber)}/`;
 
 const ProductCombobox = ({ products, value, onChange }) => {
   const [query, setQuery] = useState('');
@@ -127,7 +155,11 @@ const OrdersPage = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editOrderId, setEditOrderId] = useState(null);
   const [orderNumber, setOrderNumber] = useState('');
+  const [orderNumberBlurred, setOrderNumberBlurred] = useState(false);
   const [orderDate, setOrderDate] = useState(getTodayString());
+  const [accountOwner, setAccountOwner] = useState('');
+  const [paymentType, setPaymentType] = useState('');
+  const [orderNotes, setOrderNotes] = useState('');
   const [items, setItems] = useState([emptyItem()]);
 
   const fetchData = async () => {
@@ -183,9 +215,17 @@ const OrdersPage = () => {
     return totalCents / 100;
   };
 
+  const calculateTotalPV = () => {
+    return items.reduce((total, item) => total + (parseFloat(item.pv) || 0), 0);
+  };
+
   const resetForm = () => {
     setOrderNumber('');
+    setOrderNumberBlurred(false);
     setOrderDate(getTodayString());
+    setAccountOwner('');
+    setPaymentType('');
+    setOrderNotes('');
     setItems([emptyItem()]);
     setShowCreateModal(false);
     setShowEditModal(false);
@@ -219,6 +259,9 @@ const OrdersPage = () => {
       await api.post('/orders', {
         orderNumber: orderNumber.trim(),
         orderDate: orderDate || undefined,
+        accountOwner: accountOwner.trim() || null,
+        paymentType: paymentType || null,
+        orderNotes: orderNotes.trim() || null,
         items: items.map(itemPayload),
       });
       resetForm();
@@ -231,7 +274,11 @@ const OrdersPage = () => {
   const handleEditOrder = async (order) => {
     setEditOrderId(order.id);
     setOrderNumber(order.orderNumber);
+    setOrderNumberBlurred(true);
     setOrderDate(order.orderDate ? order.orderDate.split('T')[0] : getTodayString());
+    setAccountOwner(order.accountOwner || '');
+    setPaymentType(order.paymentType || '');
+    setOrderNotes(order.orderNotes || '');
     setItems(order.items.map(item => ({
       id: item.id,
       description: item.description || '',
@@ -262,6 +309,9 @@ const OrdersPage = () => {
       await api.put(`/orders/${editOrderId}`, {
         orderNumber: orderNumber.trim(),
         orderDate: orderDate || undefined,
+        accountOwner: accountOwner.trim() || null,
+        paymentType: paymentType || null,
+        orderNotes: orderNotes.trim() || null,
         items: items.map(itemPayload),
       });
       resetForm();
@@ -327,18 +377,54 @@ const OrdersPage = () => {
           <tr>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Número</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Data</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Valor Total (R$)</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Responsável</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Tipo Pgto</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Valor (R$)</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">PV Total</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Descrição</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Rastreio</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Status</th>
             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Ações</th>
           </tr>
         </thead>
         <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-          {orders.map((order) => (
+          {orders.map((order) => {
+            const totalPV = (order.items || []).reduce(
+              (sum, item) => sum + (parseFloat(item.pv) || 0),
+              0
+            );
+            return (
             <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{order.orderNumber}</td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{formatDateBR(order.orderDate)}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{order.accountOwner || '—'}</td>
+              <td className="px-6 py-4 whitespace-nowrap">{paymentTypeBadge(order.paymentType)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         {formatBRL(parseFloat(order.totalValue))}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {totalPV.toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4 max-w-[160px]">
+                        {order.orderNotes ? (
+                          <span title={order.orderNotes} className="block truncate text-sm text-gray-900 dark:text-gray-100">
+                            {order.orderNotes}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-400 dark:text-gray-500">—</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <a
+                          href={trackingUrl(order.orderNumber)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-sm text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
+                          title="Ver pedido no site"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          Ver
+                        </a>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">{statusBadge(order.status)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -346,7 +432,8 @@ const OrdersPage = () => {
                         <button onClick={() => handleDeleteOrder(order.id)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 transition-colors">Excluir</button>
                       </td>
                     </tr>
-                  ))}
+            );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -371,9 +458,36 @@ const OrdersPage = () => {
                   type="text"
                   value={orderNumber}
                   onChange={(e) => setOrderNumber(e.target.value)}
+                  onBlur={() => setOrderNumberBlurred(true)}
                   required
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-                  placeholder="Digite o número do pedido"
+                  placeholder="Informe o número do pedido da dōTERRA"
+                />
+                {orderNumberBlurred && orderNumber.trim() && (
+                  <div className="mt-1">
+                    <a
+                      href={trackingUrl(orderNumber.trim())}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-sm text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 underline"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      Ver pedido no site
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="accountOwner" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Responsável pela conta (ID dōTERRA ou nome)</label>
+                <input
+                  id="accountOwner"
+                  type="text"
+                  value={accountOwner}
+                  onChange={(e) => setAccountOwner(e.target.value)}
+                  maxLength={120}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                  placeholder="Ex.: 6254862 ou Ana Silva"
                 />
               </div>
 
@@ -386,6 +500,50 @@ const OrdersPage = () => {
                   onChange={(e) => setOrderDate(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
                 />
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="paymentType" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo de Pagamento</label>
+                <select
+                  id="paymentType"
+                  value={paymentType}
+                  onChange={(e) => setPaymentType(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                >
+                  <option value="">Selecione...</option>
+                  <option value="PIX">PIX</option>
+                  <option value="BOLETO">Boleto</option>
+                  <option value="CARTAO_CREDITO">Cartão de Crédito</option>
+                </select>
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="orderNotes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descrição do Pedido</label>
+                <textarea
+                  id="orderNotes"
+                  value={orderNotes}
+                  onChange={(e) => setOrderNotes(e.target.value)}
+                  maxLength={500}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                  placeholder="Acrescente informações adicionais — motivo do pedido, promoções, encomendas, etc."
+                />
+                <div className="mt-1 text-right text-xs text-gray-400 dark:text-gray-500">
+                  {orderNotes.length}/500
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-md p-3">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Soma dos Produtos (Valor Cobrado)</div>
+                    <div className="text-lg font-medium text-gray-900 dark:text-gray-100">{formatBRL(calculateTotal())}</div>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-md p-3">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Soma dos PV</div>
+                    <div className="text-lg font-medium text-gray-900 dark:text-gray-100">{calculateTotalPV().toFixed(2)}</div>
+                  </div>
+                </div>
               </div>
 
               <div className="mb-4">
@@ -488,11 +646,6 @@ const OrdersPage = () => {
                     </div>
                   </div>
                 ))}
-
-                <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                  <span className="text-lg font-medium text-gray-900 dark:text-gray-100">Valor Total:</span>
-                  <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{formatBRL(calculateTotal())}</span>
-                </div>
               </div>
 
               <div className="flex items-center justify-end space-x-3 mt-6">

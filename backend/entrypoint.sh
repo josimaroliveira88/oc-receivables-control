@@ -1,5 +1,11 @@
 #!/bin/sh
 
+# Create .env from the versioned template if it is missing (e.g. first run after cloning)
+if [ ! -f .env ] && [ -f .env.default ]; then
+  echo "Creating .env from .env.default (Docker defaults)..."
+  cp .env.default .env
+fi
+
 # Install dependencies to ensure anonymous volume gets new packages on image rebuild
 echo "Installing dependencies..."
 npm install
