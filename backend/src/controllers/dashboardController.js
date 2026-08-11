@@ -69,7 +69,7 @@ const getDashboardData = async (req, res) => {
         if (!personMap.has(pid)) {
           personMap.set(pid, { personId: pid, personName: name, itemTotalCents: 0, paymentTotalCents: 0 });
         }
-        personMap.get(pid).itemTotalCents += toCents(item.value);
+        personMap.get(pid).itemTotalCents += toCents(item.chargedValue);
       }
 
       for (const payment of order.payments) {

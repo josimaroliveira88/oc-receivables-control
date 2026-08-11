@@ -49,7 +49,7 @@ const createPayment = async (req, res) => {
 
       const itemSumCents = order.items
         .filter(item => item.personId === validatedData.personId)
-        .reduce((sum, item) => sum + toCents(item.value), 0);
+        .reduce((sum, item) => sum + toCents(item.chargedValue), 0);
 
       const paymentSumCents = order.payments
         .filter(payment => payment.personId === validatedData.personId)
@@ -85,7 +85,7 @@ const createPayment = async (req, res) => {
 
         const personItemSumCents = order.items
           .filter(item => item.personId === pid)
-          .reduce((sum, item) => sum + toCents(item.value), 0);
+          .reduce((sum, item) => sum + toCents(item.chargedValue), 0);
 
         let personPaymentSumCents = order.payments
           .filter(payment => payment.personId === pid)
@@ -189,7 +189,7 @@ const getOrderBalance = async (req, res) => {
       const current = personMap.get(personId);
       personMap.set(personId, {
         ...current,
-        itemTotalCents: current.itemTotalCents + toCents(item.value),
+        itemTotalCents: current.itemTotalCents + toCents(item.chargedValue),
       });
     });
 

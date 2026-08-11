@@ -8,9 +8,13 @@ const parseLocalDate = (dateStr) => {
 };
 
 const itemSchema = z.object({
-  description: z.string().min(1, 'Description is required'),
-  value: z.number().positive('Value must be greater than zero'),
+  description: z.string().max(500).optional().nullable(),
+  chargedValue: z.number().positive('Charged value must be greater than zero'),
   personId: z.string().uuid('Person ID must be a valid UUID'),
+  productId: z.string().uuid('Product ID must be a valid UUID').optional().nullable(),
+  memberPrice: z.number().nonnegative('Member price must not be negative').optional().nullable(),
+  pv: z.number().nonnegative('PV must not be negative').optional().nullable(),
+  details: z.string().max(500, 'Details must be at most 500 characters').optional().nullable(),
 });
 
 const createOrderSchema = z.object({
@@ -25,6 +29,32 @@ const updateOrderSchema = z.object({
   items: z.array(itemSchema).min(1, 'At least one item is required').optional(),
 });
 
+// Verify all products exist and are active (when a productId is provided)
+const validateProducts = async (items) => {
+  const productIds = [...new Set(items.map(item => item.productId).filter(Boolean))];
+  if (productIds.length === 0) return;
+
+  const products = await prisma.product.findMany({
+    where: { id: { in: productIds }, active: true },
+  });
+
+  if (products.length !== productIds.length) {
+    const error = new Error('One or more products not found');
+    error.status = 400;
+    throw error;
+  }
+};
+
+const itemCreateData = (item) => ({
+  description: item.description || null,
+  chargedValue: item.chargedValue,
+  personId: item.personId,
+  productId: item.productId || null,
+  memberPrice: item.memberPrice ?? null,
+  pv: item.pv ?? null,
+  details: item.details || null,
+});
+
 // Get all orders with items
 const getOrders = async (req, res) => {
   try {
@@ -34,6 +64,7 @@ const getOrders = async (req, res) => {
         items: {
           include: {
             person: true,
+            product: true,
           },
         },
         payments: {
@@ -61,6 +92,7 @@ const getOrderById = async (req, res) => {
         items: {
           include: {
             person: true,
+            product: true,
           },
         },
         payments: {
@@ -97,8 +129,11 @@ const createOrder = async (req, res) => {
       return res.status(400).json({ error: 'One or more persons not found' });
     }
 
+    // Verify all products exist and are active
+    await validateProducts(validatedData.items);
+
     // Calculate total value
-    const totalValue = validatedData.items.reduce((sum, item) => sum + item.value, 0);
+    const totalValue = validatedData.items.reduce((sum, item) => sum + item.chargedValue, 0);
 
     // Create order with items
     const order = await prisma.order.create({
@@ -109,17 +144,14 @@ const createOrder = async (req, res) => {
         status: 'PENDENTE',
         userId: req.user.userId,
         items: {
-          create: validatedData.items.map(item => ({
-            description: item.description,
-            value: item.value,
-            personId: item.personId,
-          })),
+          create: validatedData.items.map(itemCreateData),
         },
       },
       include: {
         items: {
           include: {
             person: true,
+            product: true,
           },
         },
       },
@@ -129,6 +161,9 @@ const createOrder = async (req, res) => {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors });
+    }
+    if (error.status) {
+      return res.status(error.status).json({ error: error.message });
     }
     console.error('Error creating order:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -161,7 +196,10 @@ const updateOrder = async (req, res) => {
       return res.status(400).json({ error: 'One or more persons not found' });
     }
 
-    const totalValue = validatedData.items.reduce((sum, item) => sum + item.value, 0);
+    // Verify all products exist and are active
+    await validateProducts(validatedData.items);
+
+    const totalValue = validatedData.items.reduce((sum, item) => sum + item.chargedValue, 0);
 
     const order = await prisma.order.update({
       where: { id },
@@ -171,17 +209,14 @@ const updateOrder = async (req, res) => {
         orderDate: validatedData.orderDate ? parseLocalDate(validatedData.orderDate) : undefined,
         items: {
           deleteMany: {},
-          create: validatedData.items.map(item => ({
-            description: item.description,
-            value: item.value,
-            personId: item.personId,
-          })),
+          create: validatedData.items.map(itemCreateData),
         },
       },
       include: {
         items: {
           include: {
             person: true,
+            product: true,
           },
         },
       },
@@ -199,6 +234,7 @@ const updateOrder = async (req, res) => {
         items: {
           include: {
             person: true,
+            product: true,
           },
         },
       },
@@ -209,6 +245,9 @@ const updateOrder = async (req, res) => {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors });
+    }
+    if (error.status) {
+      return res.status(error.status).json({ error: error.message });
     }
     console.error('Error updating order:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -264,16 +303,18 @@ const addItemToOrder = async (req, res) => {
       return res.status(400).json({ error: 'Person not found' });
     }
 
+    // Verify product exists and is active (when provided)
+    await validateProducts([validatedData]);
+
     // Add item to order
     const item = await prisma.item.create({
       data: {
-        description: validatedData.description,
-        value: validatedData.value,
+        ...itemCreateData(validatedData),
         orderId: orderId,
-        personId: validatedData.personId,
       },
       include: {
         person: true,
+        product: true,
       },
     });
 
@@ -282,13 +323,14 @@ const addItemToOrder = async (req, res) => {
       where: { id: orderId },
       data: {
         totalValue: {
-          increment: validatedData.value,
+          increment: validatedData.chargedValue,
         },
       },
       include: {
         items: {
           include: {
             person: true,
+            product: true,
           },
         },
       },
@@ -298,6 +340,9 @@ const addItemToOrder = async (req, res) => {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors });
+    }
+    if (error.status) {
+      return res.status(error.status).json({ error: error.message });
     }
     console.error('Error adding item to order:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -337,18 +382,24 @@ const updateItem = async (req, res) => {
       }
     }
 
+    // If updating productId (non-null), verify product exists and is active
+    if (validatedData.productId) {
+      await validateProducts([validatedData]);
+    }
+
     // Update item
     const item = await prisma.item.update({
       where: { id: itemId },
       data: validatedData,
       include: {
         person: true,
+        product: true,
       },
     });
 
-    // Update order total value if value changed
-    if (validatedData.value !== undefined) {
-      const valueChange = validatedData.value - existingItem.value;
+    // Update order total value if charged value changed
+    if (validatedData.chargedValue !== undefined) {
+      const valueChange = validatedData.chargedValue - existingItem.chargedValue;
       await prisma.order.update({
         where: { id: existingItem.orderId },
         data: {
@@ -363,6 +414,9 @@ const updateItem = async (req, res) => {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors });
+    }
+    if (error.status) {
+      return res.status(error.status).json({ error: error.message });
     }
     console.error('Error updating item:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -400,7 +454,7 @@ const deleteItem = async (req, res) => {
       where: { id: existingItem.orderId },
       data: {
         totalValue: {
-          decrement: existingItem.value,
+          decrement: existingItem.chargedValue,
         },
       },
     });

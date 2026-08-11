@@ -84,7 +84,7 @@ describe('Dashboard Yearly Breakdown', () => {
         status: 'QUITADO',
         userId,
         items: {
-          create: [{ description: 'Item Quitado', value: 777.00, personId: testPersonId }],
+          create: [{ description: 'Item Quitado', chargedValue: 777.00, personId: testPersonId }],
         },
       },
     });
@@ -110,7 +110,7 @@ describe('Dashboard Yearly Breakdown', () => {
         status: 'PENDENTE',
         userId,
         items: {
-          create: [{ description: 'Item Pendente', value: 555.00, personId: testPersonId }],
+          create: [{ description: 'Item Pendente', chargedValue: 555.00, personId: testPersonId }],
         },
       },
     });
@@ -123,7 +123,7 @@ describe('Dashboard Yearly Breakdown', () => {
         status: 'PARCIAL',
         userId,
         items: {
-          create: [{ description: 'Item Parcial', value: 444.00, personId: testPersonId }],
+          create: [{ description: 'Item Parcial', chargedValue: 444.00, personId: testPersonId }],
         },
       },
     });
@@ -162,7 +162,7 @@ describe('Dashboard Yearly Breakdown', () => {
         status: 'QUITADO',
         userId,
         items: {
-          create: [{ description: 'Item Dec 2023', value: 666.00, personId: testPersonId }],
+          create: [{ description: 'Item Dec 2023', chargedValue: 666.00, personId: testPersonId }],
         },
         payments: {
           create: [

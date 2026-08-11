@@ -59,8 +59,8 @@ describe('Orders CRUD with Items', () => {
         .send({
           orderNumber: uniqueOrderNumber('ORD'),
           items: [
-            { description: 'Item 1', value: 100.00, personId: testPersonId },
-            { description: 'Item 2', value: 200.00, personId: testPersonId },
+            { description: 'Item 1', chargedValue: 100.00, personId: testPersonId },
+            { description: 'Item 2', chargedValue: 200.00, personId: testPersonId },
           ],
         });
 
@@ -80,7 +80,7 @@ describe('Orders CRUD with Items', () => {
         .send({
           orderNumber: uniqueOrderNumber('ORD'),
           items: [
-            { description: 'Single Item', value: 500.00, personId: testPersonId },
+            { description: 'Single Item', chargedValue: 500.00, personId: testPersonId },
           ],
         });
 
@@ -95,7 +95,7 @@ describe('Orders CRUD with Items', () => {
         .post('/api/orders')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          items: [{ description: 'Item', value: 100, personId: testPersonId }],
+          items: [{ description: 'Item', chargedValue: 100, personId: testPersonId }],
         });
 
       expect(response.status).toBe(400);
@@ -107,22 +107,24 @@ describe('Orders CRUD with Items', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           orderNumber: uniqueOrderNumber('ORD'),
-          items: [{ description: 'Item', value: -100, personId: testPersonId }],
+          items: [{ description: 'Item', chargedValue: -100, personId: testPersonId }],
         });
 
       expect(response.status).toBe(400);
     });
 
-    it('should reject order with missing item description', async () => {
+    it('should create item without description (product provides the name)', async () => {
       const response = await request(app)
         .post('/api/orders')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           orderNumber: uniqueOrderNumber('ORD'),
-          items: [{ value: 100, personId: testPersonId }],
+          items: [{ chargedValue: 100, personId: testPersonId }],
         });
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(201);
+      expect(response.body.items[0].description).toBeNull();
+      createdOrderId = response.body.id;
     });
 
     it('should reject order with non-existent personId', async () => {
@@ -131,7 +133,7 @@ describe('Orders CRUD with Items', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           orderNumber: uniqueOrderNumber('ORD'),
-          items: [{ description: 'Item', value: 100, personId: '00000000-0000-0000-0000-000000000000' }],
+          items: [{ description: 'Item', chargedValue: 100, personId: '00000000-0000-0000-0000-000000000000' }],
         });
 
       expect(response.status).toBe(400);
@@ -145,7 +147,7 @@ describe('Orders CRUD with Items', () => {
           orderNumber: uniqueOrderNumber('ORD'),
           orderDate: '2026-05-15',
           items: [
-            { description: 'Item 1', value: 100.00, personId: testPersonId },
+            { description: 'Item 1', chargedValue: 100.00, personId: testPersonId },
           ],
         });
 
@@ -165,7 +167,7 @@ describe('Orders CRUD with Items', () => {
         .send({
           orderNumber: uniqueOrderNumber('ORD'),
           items: [
-            { description: 'Item 1', value: 100.00, personId: testPersonId },
+            { description: 'Item 1', chargedValue: 100.00, personId: testPersonId },
           ],
         });
 
@@ -184,7 +186,7 @@ describe('Orders CRUD with Items', () => {
         .post('/api/orders')
         .send({
           orderNumber: uniqueOrderNumber('ORD'),
-          items: [{ description: 'Item', value: 100, personId: testPersonId }],
+          items: [{ description: 'Item', chargedValue: 100, personId: testPersonId }],
         });
 
       expect(response.status).toBe(401);
@@ -196,7 +198,7 @@ describe('Orders CRUD with Items', () => {
         .set('Authorization', 'Bearer invalid-token')
         .send({
           orderNumber: uniqueOrderNumber('ORD'),
-          items: [{ description: 'Item', value: 100, personId: testPersonId }],
+          items: [{ description: 'Item', chargedValue: 100, personId: testPersonId }],
         });
 
       expect(response.status).toBe(403);
@@ -218,7 +220,7 @@ describe('Orders CRUD with Items', () => {
             userId,
             items: {
               create: [
-                { description: 'Test Item', value: 150.00, personId: testPersonId },
+                { description: 'Test Item', chargedValue: 150.00, personId: testPersonId },
               ],
             },
           },
@@ -278,7 +280,7 @@ describe('Orders CRUD with Items', () => {
           userId,
           items: {
             create: [
-              { description: 'Original Item', value: 100.00, personId: testPersonId },
+              { description: 'Original Item', chargedValue: 100.00, personId: testPersonId },
             ],
           },
         },
@@ -294,8 +296,8 @@ describe('Orders CRUD with Items', () => {
         .send({
           orderNumber: 'ORD-UPDATED',
           items: [
-            { description: 'New Item 1', value: 200.00, personId: testPersonId },
-            { description: 'New Item 2', value: 300.00, personId: testPersonId },
+            { description: 'New Item 1', chargedValue: 200.00, personId: testPersonId },
+            { description: 'New Item 2', chargedValue: 300.00, personId: testPersonId },
           ],
         });
 
@@ -331,7 +333,7 @@ describe('Orders CRUD with Items', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           orderNumber: 'ORD-INVALID',
-          items: [{ description: 'Item', value: -50, personId: testPersonId }],
+          items: [{ description: 'Item', chargedValue: -50, personId: testPersonId }],
         });
 
       expect(response.status).toBe(400);
@@ -366,7 +368,7 @@ describe('Orders CRUD with Items', () => {
           userId,
           items: {
             create: [
-              { description: 'Item to Delete', value: 100.00, personId: testPersonId },
+              { description: 'Item to Delete', chargedValue: 100.00, personId: testPersonId },
             ],
           },
         },
@@ -415,7 +417,7 @@ describe('Orders CRUD with Items', () => {
           userId,
           items: {
             create: [
-              { description: 'Original Item', value: 100.00, personId: testPersonId },
+              { description: 'Original Item', chargedValue: 100.00, personId: testPersonId },
             ],
           },
         },
@@ -437,13 +439,13 @@ describe('Orders CRUD with Items', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           description: 'New Item',
-          value: 50.00,
+          chargedValue: 50.00,
           personId: testPersonId,
         });
 
       expect(response.status).toBe(201);
       expect(response.body.description).toBe('New Item');
-      expect(parseFloat(response.body.value)).toBe(50.00);
+      expect(parseFloat(response.body.chargedValue)).toBe(50.00);
       expect(response.body.orderId).toBe(createdOrderId);
 
       const orderResponse = await request(app)
@@ -458,12 +460,12 @@ describe('Orders CRUD with Items', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           description: 'Updated Item',
-          value: 200.00,
+          chargedValue: 200.00,
         });
 
       expect(response.status).toBe(200);
       expect(response.body.description).toBe('Updated Item');
-      expect(parseFloat(response.body.value)).toBe(200.00);
+      expect(parseFloat(response.body.chargedValue)).toBe(200.00);
     });
 
     it('should delete an item from an order', async () => {
@@ -487,7 +489,7 @@ describe('Orders CRUD with Items', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           description: 'Orphan Item',
-          value: 50.00,
+          chargedValue: 50.00,
           personId: testPersonId,
         });
 
@@ -500,7 +502,7 @@ describe('Orders CRUD with Items', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           description: 'Negative Item',
-          value: -100,
+          chargedValue: -100,
           personId: testPersonId,
         });
 
@@ -524,13 +526,203 @@ describe('Orders CRUD with Items', () => {
         .set('Authorization', `Bearer ${otherToken}`)
         .send({
           description: 'Sneaky Item',
-          value: 10.00,
+          chargedValue: 10.00,
           personId: testPersonId,
         });
 
       expect(response.status).toBe(404);
 
       await prisma.user.delete({ where: { id: otherUserId } }).catch(() => {});
+    });
+  });
+
+  describe('Enhanced item fields (product, snapshot, details)', () => {
+    let testProductId;
+
+    beforeEach(async () => {
+      const person = await prisma.person.create({
+        data: { name: 'Test Person Enhanced', contact: 'enhanced@test.com', userId },
+      });
+      testPersonId = person.id;
+
+      const productCode = `TESTITEM-${Date.now()}`;
+      const product = await prisma.product.create({
+        data: {
+          code: productCode,
+          name: 'Test Enhanced Product',
+          size: '1',
+          prices: {
+            create: {
+              regularPrice: 300.00,
+              memberPrice: 231.25,
+              pv: 31,
+            },
+          },
+        },
+      });
+      testProductId = product.id;
+    });
+
+    afterEach(async () => {
+      if (testProductId) {
+        await prisma.product.delete({ where: { id: testProductId } }).catch(() => {});
+        testProductId = null;
+      }
+    });
+
+    it('should create order with product, snapshot fields and details', async () => {
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-ENH'),
+          items: [
+            {
+              description: 'Adaptiv Pastilhas',
+              chargedValue: 231.25,
+              personId: testPersonId,
+              productId: testProductId,
+              memberPrice: 231.25,
+              pv: 31,
+              details: 'Cliente pediu 2 unid.',
+            },
+          ],
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.items).toHaveLength(1);
+      const item = response.body.items[0];
+      expect(item.productId).toBe(testProductId);
+      expect(parseFloat(item.chargedValue)).toBe(231.25);
+      expect(parseFloat(item.memberPrice)).toBe(231.25);
+      expect(parseFloat(item.pv)).toBe(31);
+      expect(item.details).toBe('Cliente pediu 2 unid.');
+      expect(parseFloat(response.body.totalValue)).toBe(231.25);
+      createdOrderId = response.body.id;
+    });
+
+    it('should allow item without productId (standalone)', async () => {
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-STANDALONE'),
+          items: [
+            {
+              description: 'Frete',
+              chargedValue: 15.00,
+              personId: testPersonId,
+            },
+          ],
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.items[0].productId).toBeNull();
+      expect(parseFloat(response.body.totalValue)).toBe(15.00);
+      createdOrderId = response.body.id;
+    });
+
+    it('should reject order with non-existent productId', async () => {
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-BADPROD'),
+          items: [
+            {
+              description: 'Item',
+              chargedValue: 50.00,
+              personId: testPersonId,
+              productId: '00000000-0000-0000-0000-000000000000',
+            },
+          ],
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('One or more products not found');
+    });
+
+    it('should reject order with inactive productId', async () => {
+      await prisma.product.update({
+        where: { id: testProductId },
+        data: { active: false },
+      });
+
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-INACTIVE'),
+          items: [
+            {
+              description: 'Item',
+              chargedValue: 50.00,
+              personId: testPersonId,
+              productId: testProductId,
+            },
+          ],
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('One or more products not found');
+    });
+
+    it('should reject item with details longer than 500 characters', async () => {
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-LONG'),
+          items: [
+            {
+              description: 'Item',
+              chargedValue: 50.00,
+              personId: testPersonId,
+              details: 'x'.repeat(501),
+            },
+          ],
+        });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should update item selling productId, snapshot and details', async () => {
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: uniqueOrderNumber('ORD-UPD-ENH'),
+          totalValue: 100.00,
+          status: 'PENDENTE',
+          userId,
+          items: {
+            create: [
+              {
+                description: 'Original',
+                chargedValue: 100.00,
+                personId: testPersonId,
+              },
+            ],
+          },
+        },
+        include: { items: true },
+      });
+      createdOrderId = order.id;
+      const itemId = order.items[0].id;
+
+      const response = await request(app)
+        .put(`/api/orders/items/${itemId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          productId: testProductId,
+          memberPrice: 231.25,
+          pv: 31,
+          details: 'Atualizado com produto',
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.productId).toBe(testProductId);
+      expect(parseFloat(response.body.memberPrice)).toBe(231.25);
+      expect(parseFloat(response.body.pv)).toBe(31);
+      expect(response.body.details).toBe('Atualizado com produto');
     });
   });
 });

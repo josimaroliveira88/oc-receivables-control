@@ -73,8 +73,8 @@ describe('Payments & Balance', () => {
           userId,
           items: {
             create: [
-              { description: 'Item for Person 1', value: 150.00, personId: testPersonId },
-              { description: 'Item for Person 2', value: 250.00, personId: testPerson2Id },
+              { description: 'Item for Person 1', chargedValue: 150.00, personId: testPersonId },
+              { description: 'Item for Person 2', chargedValue: 250.00, personId: testPerson2Id },
             ],
           },
         },
@@ -111,7 +111,7 @@ describe('Payments & Balance', () => {
           userId,
           items: {
             create: [
-              { description: 'Item for Single Person', value: 300.00, personId: person.id },
+              { description: 'Item for Single Person', chargedValue: 300.00, personId: person.id },
             ],
           },
         },
@@ -349,8 +349,8 @@ describe('Payments & Balance', () => {
           userId,
           items: {
             create: [
-              { description: 'Item 1', value: 300.00, personId: balancePersonId },
-              { description: 'Item 2', value: 200.00, personId: balancePerson2Id },
+              { description: 'Item 1', chargedValue: 300.00, personId: balancePersonId },
+              { description: 'Item 2', chargedValue: 200.00, personId: balancePerson2Id },
             ],
           },
         },
@@ -517,7 +517,7 @@ describe('Floating point precision (cents)', () => {
           userId,
           items: {
             create: [
-              { description: 'Item 1234.56', value: 1234.56, personId: person.id },
+              { description: 'Item 1234.56', chargedValue: 1234.56, personId: person.id },
             ],
           },
         },
@@ -562,7 +562,7 @@ describe('Floating point precision (cents)', () => {
           userId,
           items: {
             create: [
-              { description: 'Item 1234.56', value: 1234.56, personId: person.id },
+              { description: 'Item 1234.56', chargedValue: 1234.56, personId: person.id },
             ],
           },
         },
@@ -635,7 +635,7 @@ describe('Floating point precision (cents)', () => {
           userId: tUserId,
           items: {
             create: [
-              { description: 'Test Item', value: 100.00, personId: person.id },
+              { description: 'Test Item', chargedValue: 100.00, personId: person.id },
             ],
           },
         },
@@ -676,7 +676,7 @@ describe('Floating point precision (cents)', () => {
           userId: tUserId,
           items: {
             create: [
-              { description: 'Cheap Item', value: 50.00, personId: person.id },
+              { description: 'Cheap Item', chargedValue: 50.00, personId: person.id },
             ],
           },
         },
