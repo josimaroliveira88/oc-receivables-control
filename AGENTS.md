@@ -83,6 +83,7 @@ This ensures future agents can understand the project state and continue develop
 Backend:
 - `npm run test` - Runs all backend tests with Vitest
 - `npm run test:watch` - Runs backend tests in watch mode
+- `npm run load:products` - Loads/updates the dōTERRA product catalog from `docs/tabela_produtos_doterra_2026.csv` (idempotent diff). Accepts a custom CSV path: `npm run load:products -- <path>`. Supports `--date YYYY-MM-DD` for retroactive loads (validity start) and `--dry-run` to preview changes without applying them. **Warning**: products present in DB but absent from the CSV are deactivated — always load the complete current catalog, and use `--dry-run` first.
 
 Frontend:
 - `npm run test` - Runs all frontend tests with Vitest
@@ -116,7 +117,7 @@ The Receivables Control System is now fully functional with user self-registrati
 ✅ Receivables tracking dashboard with per-person balance breakdown
 ✅ Analytics dashboard with KPI widgets, Recharts visualizations, and yearly breakdown (Pendente/Quitado por ano)
 ✅ Excel export functionality (4-sheet workbook with BRL formatting)
-✅ Comprehensive test coverage (173 frontend tests + 82 backend tests)
+✅ Comprehensive test coverage (183 frontend tests + 98 backend tests)
 ✅ Financial precision (integer cents arithmetic, no floating-point errors)
 ✅ Complete TDD methodology applied across all phases
 ✅ PT-BR localization for all user-facing content
@@ -134,16 +135,17 @@ The Receivables Control System is now fully functional with user self-registrati
 ✅ Logged-in user badge — username displayed as `User` icon + text badge in header (desktop) and as a clickable dropdown menu with Sair option in mobile bottom nav (via `jwt-decode` client-side JWT decoding)
 ✅ Docker `npm install` on container start — frontend `CMD` and backend `entrypoint.sh` run `npm install` before starting, ensuring anonymous node_modules volumes receive new dependencies after `docker compose up --build`
 ✅ Interactive User Onboarding Tour — step-by-step modal tutorial (8 steps, PT-BR) triggered on first login after registration, with manual restart via `HelpCircle` button in header and "Tutorial" option in mobile bottom nav dropdown
+✅ Product Catalog (dōTERRA) — global `Product` + `ProductPrice` tables with price history (`validFrom`/`validTo`), idempotent diff loader (`npm run load:products`, supports `--date` retroactive validity and `--dry-run` preview), CSV parser, and 219 products loaded from `docs/tabela_produtos_doterra_2026.csv`. CRUD screen + order-item integration planned for a future phase.
 
 ### Test Results:
-- **Backend Tests**: 82 passing (17 People + 27 Orders + 28 Payments + 6 Dashboard + 4 Auth)
+- **Backend Tests**: 98 passing (17 People + 27 Orders + 28 Payments + 6 Dashboard + 4 Auth + 16 ProductLoader)
 - **Frontend Tests**: 183 passing (14 PeoplePage + 24 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel + 10 api + 20 RegisterPage + 10 LoginPage + 6 Header + 7 MobileBottomNav + 7 ThemeContext)
-- **Total**: 265 tests passing with zero regressions
+- **Total**: 281 tests passing with zero regressions
 
 
 
 ### Key Learnings Documented:
-18 critical lessons learned documented in AGENTS.md (see "Lessons Learned / Pitfalls to Avoid") to guide future development:
+20 critical lessons learned documented in AGENTS.md (see "Lessons Learned / Pitfalls to Avoid") to guide future development:
 1. vi.mock hoisting bug in Vitest — arrow-function wrapper solution
 2. HTML5 required attribute blocking form submission in jsdom
 3. Conditional rendering of dynamic list items
@@ -170,7 +172,7 @@ When the client requests new functionality:
 3. **Plan Test Coverage**: Identify which tests need to be written (backend/frontend)
 4. **Implement with TDD**: Follow the TDD methodology used in phases 5+
 5. **Update Documentation**: Ensure ARCHITECTURE.md, AGENTS.md, and ROADMAP.md reflect changes
-6. **Run Full Test Suite**: Verify all 265 tests pass with zero regressions
+6. **Run Full Test Suite**: Verify all 281 tests pass with zero regressions
 
 The codebase is well-structured, documented, and ready to accept new features without breaking existing functionality.
 
@@ -517,3 +519,36 @@ This was applied to all modal overlays across:
 - `frontend/src/pages/ReceivablesPage.jsx:221`
 
 Use `z-[60]` consistently for modals and reserve `z-[70]` for toast notifications so there is a clear z-index hierarchy: nav → modals → toasts.
+
+### 19. Host Prisma Client Goes Stale After Schema Changes
+
+**Problem**: Backend tests run from the host machine using the host `node_modules` Prisma client. When new models are added to `schema.prisma` (e.g., `Product`/`ProductPrice`) and the migration is applied inside the Docker container (`prisma migrate dev` regenerates the *container's* client only), the host's generated client is stale. Tests then fail with `TypeError: Cannot read properties of undefined (reading 'findUnique')` because `tx.product` doesn't exist on the old client.
+```js
+// WRONG — host client was generated before Product/ProductPrice existed
+await tx.product.findUnique({ where: { code: row.code } }); // tx.product === undefined
+```
+**Fix**: Regenerate the Prisma client on the host before running tests after any schema change:
+```bash
+cd backend && npx prisma generate   # only reads schema.prisma, no DB connection needed
+```
+The host's `DATABASE_URL` in `.env` points to the `db` hostname (Docker-only). For host-side scripts (like `load:products`), override it with `DATABASE_URL="postgresql://admin:admin@localhost:5432/receivables"` since the container exposes port 5432.
+
+### 20. The Catalog Loader Deactivates Everything Absent From the CSV
+
+**Problem**: `loadProductCatalog` intentionally deactivates every active product whose code is NOT present in the loaded CSV (that's how the diff removes products from the list). This means:
+- Loading a *partial* CSV (e.g., a 1-product test file, or a subset of the catalog) deactivates ALL other products. I did this twice in development and left the 219-product catalog with `active = false`.
+- The backend test suite (which loads TEST-only catalogs) silently deactivated the entire real catalog on every run.
+
+```bash
+# DANGEROUS — a 1-product file just disabled the other 218 products
+printf 'codigo;produto;tamanho;preco_regular;preco_membros;pv\n60226006;X;1;1;1;1\n' > partial.csv
+npm run load:products -- partial.csv   # → 218 products deactivated
+```
+
+**Fix**:
+1. The CLI prints a loud warning when it deactivates products. Always load the **complete current catalog**, and preview with `--dry-run` first: `npm run load:products -- <csv> --dry-run`.
+2. Restore is trivial: re-run the loader with the full CSV (it reactivates previously-inactive products present in the CSV).
+3. Integration tests must never let a partial load poison real data. In `backend/tests/productLoader.test.js`:
+   - `beforeEach` deactivates all non-TEST products (so deactivation counts are deterministic and only TEST products are asserted).
+   - `beforeAll` snapshots `{ id, active }` of every product.
+   - `afterAll` restores each real product's `active` flag to the snapshot and deletes leftover TEST products.

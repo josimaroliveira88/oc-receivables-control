@@ -31,7 +31,11 @@ oc-receivables-control/
 │   ├── package.json            # Backend dependencies & scripts
 │   ├── .env                    # Environment variables (DB, JWT, etc.)
 │   ├── prisma/
-│   │   └── schema.prisma       # Prisma database schema
+│   │   ├── schema.prisma       # Prisma database schema (User, Person, Order, Item, Payment, Product, ProductPrice)
+│   │   ├── seed.js             # Admin user seed
+│   │   └── migrations/         # SQL migrations (init, userId, add_products)
+│   ├── scripts/
+│   │   └── loadProducts.js     # CLI: idempotent dōTERRA catalog load (npm run load:products; --date retroactive, --dry-run)
 │   └── src/
 │       ├── server.js           # Entry point (starts Express server)
 │       ├── app.js              # Express app setup (CORS, middleware, routes)
@@ -44,9 +48,11 @@ oc-receivables-control/
 │   │   ├── peopleController.js # People CRUD with Zod validation
 │   │   ├── ordersController.js # Orders + Items CRUD with Zod validation, custom orderDate support
 │ │ ├── paymentsController.js # Payments + balance with transactional status engine, custom paidAt support
-│   │ └── dashboardController.js # Dashboard aggregation (KPIs + person balances + yearly breakdown)
+│   │   └── dashboardController.js # Dashboard aggregation (KPIs + person balances + yearly breakdown)
 │   ├── utils/
-│   │ └── money.js # toCents, fromCents, formatBRL (integer cents arithmetic)
+│   │   ├── money.js # toCents, fromCents, formatBRL (integer cents arithmetic)
+│   │   ├── csvParser.js # parseProductCsv / parseProductCsvFile (';' delimiter, strings kept for precision)
+│   │   └── productLoader.js # loadProductCatalog — idempotent diff loader with price history
 │   └── routes/
 │       ├── authRoutes.js # Auth route definitions (/api/auth/login, /api/auth/register)
 │       ├── peopleRoutes.js # People CRUD routes (/api/people)
@@ -59,7 +65,8 @@ oc-receivables-control/
 │   ├── orders.test.js # 27 Orders + Items CRUD tests (incl. orderDate)
 │   ├── payments.test.js # 28 Payments & Balance tests (incl. 2 floating-point regression tests + 2 custom paidAt tests)
 │   ├── dashboard.test.js # 6 Dashboard yearly breakdown tests
-│   └── auth.test.js # 4 Auth tests
+│   ├── auth.test.js # 4 Auth tests
+│   └── productLoader.test.js # 16 CSV parsing + catalog loader (idempotent diff, price history, retroactive date, dry-run) tests
 ├── frontend/
 │   ├── Dockerfile              # Frontend container definition
 │   ├── package.json            # Frontend dependencies & scripts
@@ -152,6 +159,9 @@ NODE_ENV=development
 ### Backend (`backend/package.json`)
 - `npm run dev` - Start backend with nodemon (development)
 - `npm start` - Start backend with node (production)
+- `npm test` - Run all backend tests with Vitest
+- `npm run test:watch` - Run backend tests in watch mode
+- `npm run load:products` - Idempotent diff load of the dōTERRA catalog (default `docs/tabela_produtos_doterra_2026.csv`); custom path via `npm run load:products -- <path>`; `--date YYYY-MM-DD` for retroactive validity; `--dry-run` for safe preview
 
 ### Frontend (`frontend/package.json`)
 - `npm run dev` - Start Vite development server
@@ -171,7 +181,7 @@ NODE_ENV=development
 4. To stop: `docker compose down`
 5. To rebuild after code changes: `docker compose up --build` or `docker compose up -d --build`
 
-## Current Implementation Status (Phase 16 Complete)
+## Current Implementation Status
 ✅ Docker Compose orchestration with all required services
 ✅ Backend Express server with CORS and JSON middleware
 ✅ Basic health check endpoint (`GET /health`)
@@ -193,6 +203,9 @@ NODE_ENV=development
 ✅ Dockerfiles for both backend and frontend
 ✅ Volume mounting for live development
 ✅ Prisma schema with User, Person, Order, Item, Payment entities
+✅ Product + ProductPrice entities — global dōTERRA catalog with price history (`validFrom`/`validTo` interval), `pv` as Decimal(10,2), `active` flag
+✅ Idempotent diff catalog loader (`src/utils/productLoader.js` + `scripts/loadProducts.js`) — creates new products, syncs metadata, closes/reopens price records on change, deactivates removed products; 219 products loaded from 2026 CSV
+✅ Product loader test suite: 16 tests covering CSV parsing, idempotency, price-change history, metadata sync, deactivate/reactivate, new-product insertion, retroactive `validFrom`, and dry-run (tests snapshot/restore the real catalog so the suite never disables real products)
 ✅ Database migration completed and tables created
 ✅ Proper relationships and cascade rules established
 ✅ Working JWT authentication system with bcrypt password hashing
@@ -235,13 +248,15 @@ NODE_ENV=development
 ✅ exportExcel unit test suite: 32 tests covering workbook structure, sheet content (Pedidos, Pessoas, Histórico de Pagamentos, Saldo Pendente), BRL monetary cell formatting, DD/MM/YYYY date formatting, empty data handling, column widths, floating-point precision
 ✅ DashboardPage export integration tests: 7 tests covering export button rendering, disabled state, enabled state, exportExcel call with fetched data, success/error toast feedback, "Exportando..." loading state
 
-## Completed Phases (25)
+## Completed Phases (27)
 - **Phase 20**: ✅ Prisma schema update (`userId` in Person/Order), registration API (`POST /api/auth/register`), and TDD setup. 82 backend tests.
 - **Phase 21**: ✅ Backend data isolation (middleware enforcement on all routes, query filtering by `req.user.userId`). `userId` made required with `ON DELETE CASCADE`.
 - **Phase 22**: ✅ Frontend registration UI (`RegisterPage.jsx`) with PT-BR form, client-side validation, success redirect, and LoginPage navigation. 18 RegisterPage tests + 9 LoginPage tests. 160 frontend tests, 242 total tests.
 - **Phase 23**: ✅ Responsive header with gradient design. Mobile bottom navigation bar with lucide-react icons. 170 frontend tests, 252 total tests.
 - **Phase 24**: ✅ Design system unification + dark mode. Tailwind config with `darkMode: 'class'` and `primary` tokens. `ThemeContext.jsx` with localStorage persistence and system preference detection. All emojis replaced with `lucide-react` icons. Border-top accent on all cards. Gradient buttons (`from-primary-700 to-primary-500`). Unified status badges with colored dots. Glassmorphism modals. `dark:` variants everywhere. 180 frontend tests (173 + 7 new ThemeContext tests), 262 total tests.
 - **Phase 25**: ✅ Logged-in user badge in header (desktop) and clickable dropdown with Sair option in mobile bottom nav. `jwt-decode` added for client-side JWT payload extraction. Docker `npm install` on container start to ensure anonymous volumes receive new dependencies on rebuild. 183 frontend tests (6 Header + 7 MobileBottomNav), 265 total tests.
+- **Phase 26**: ✅ Interactive 8-step onboarding tour with auto-trigger on first login after registration and manual restart via header/mobile nav. 183 frontend tests, 265 total tests.
+- **Phase 27**: ✅ Product Catalog (dōTERRA) — global `Product` + `ProductPrice` tables with price history, idempotent diff loader (`npm run load:products`, `--date` retroactive + `--dry-run`), CSV parser, 16 new backend tests, 219 products loaded. 98 backend tests, 281 total tests.
 
 ## Notes for Developers/Agents
 - Backend source is mounted at `/app` inside container for live editing

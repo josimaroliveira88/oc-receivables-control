@@ -780,6 +780,57 @@ Key Design Decisions:
 
 Deliverable: ✅ Interactive 8-step onboarding tour with auto-trigger on first login after registration and manual restart via header/mobile nav — 183 frontend tests passing (no regressions), 265 total tests
 
+---
+
+## 🎯 Phase 27: Product Catalog (dōTERRA) with Price History
+Status: ✅ COMPLETED
+
+Context: Client needs a product table to load the dōTERRA catalog and, in the future, to answer "how much did this product cost in the past". The catalog is updated irregularly (sometimes years apart, sometimes within the same year), so the table must support incremental (diff) loads and preserve price history. The CRUD screen and order-item integration are planned for a future phase.
+
+Stack: Prisma ORM, PostgreSQL, Node.js.
+
+Task:
+- Created `Product` model (`backend/prisma/schema.prisma`):
+  - `code` (unique, dōTERRA product code, e.g. `60226006`), `name`, `size` (plain string, keeps original CSV text), `active` (boolean, false when the product leaves the list), timestamps
+- Created `ProductPrice` model:
+  - `regularPrice`, `memberPrice`, `pv` — all `Decimal(10,2)` (pv is Decimal, not Integer, because fractional PV values have occurred)
+  - `validFrom` / `validTo` interval — `validTo` is NULL for the current price; when a price changes the old record is closed (`validTo`) and a new record is opened, preserving history
+  - `onDelete: Cascade` from `Product`
+- Migration `20260811174015_add_products` (created via `prisma migrate dev --name add_products`)
+- CSV parser `backend/src/utils/csvParser.js` — pure function (`parseProductCsv`) + file wrapper (`parseProductCsvFile`); `;` delimiter, header skipped, monetary values kept as strings to preserve precision
+- Intelligent loader `backend/src/utils/productLoader.js` — `loadProductCatalog(prisma, rows)`:
+  - New products inserted with an active price record
+  - Existing products have name/size synced and are reactivated if they were inactive
+  - Price changes close the current price record (`validTo`) and open a new one
+  - Products present in DB but missing from the CSV are deactivated
+  - Idempotent — re-running an identical load changes nothing
+  - Runs inside a Prisma transaction and returns a summary `{ created, updated, priceChanged, unchanged, deactivated, errors }`
+- CLI wrapper `backend/scripts/loadProducts.js` + `npm run load:products`:
+  - Defaults to `docs/tabela_produtos_doterra_2026.csv`, or accepts a custom path as argv
+  - `--date YYYY-MM-DD` sets the validity start of the load, supporting **retroactive loads** (e.g., a new price table released weeks ago)
+  - `--dry-run` previews the changes without persisting anything (rolls back the transaction and prints the summary)
+  - Prints a loud warning when products are deactivated (they left the catalog)
+  - Prints a PT-BR summary of what changed
+- Initial load executed: 219 products + 219 price records from `docs/tabela_produtos_doterra_2026.csv` (all active, all with a current price)
+- Tests: `backend/tests/productLoader.test.js` — 16 tests covering CSV parsing (precision, fractional pv, malformed rows) and loader behavior (initial load, idempotency, price-change history, metadata update, deactivate/reactivate, new product addition, retroactive `validFrom`, dry-run)
+- Test isolation: loader tests snapshot and restore the real catalog's `active` flags (and deactivate non-TEST products in `beforeEach`), so running the suite never disables the real products
+
+Key Design Decisions:
+- Price history modeled as `validFrom`/`validTo` interval on `ProductPrice` instead of version snapshots or a separate `PriceList` table — answers historical price queries by date without duplicating the whole catalog per load
+- Catalog is global (shared across all users) — it mirrors the official dōTERRA list
+- Existing `Item`/`Order` tables untouched — no regression risk; product↔item linkage will be handled in the CRUD phase
+- Monetary comparison uses integer cents (`toCents` from `src/utils/money.js`) to avoid floating-point drift
+- Monetary values stored as `Decimal(10,2)` strings from the CSV to preserve exact decimal representation
+
+Usage:
+- Initial/future load: `DATABASE_URL="postgresql://admin:admin@localhost:5432/receivables" npm run load:products -- <path-to-csv>`
+- Retroactive validity: append `--date YYYY-MM-DD` (the load is valid from that date — closes the previous price record at that date and opens the new one)
+- Safe preview before any real load: `--dry-run` (prints the summary, changes nothing)
+- Inside the container the default `db` hostname works: `docker exec receivables_backend node scripts/loadProducts.js` (note: the `docs/` folder is not mounted in the container, so pass an accessible path or run from the host)
+- Always load the **complete current catalog** — any product absent from the CSV is deactivated (see AGENTS.md lesson #20)
+
+Deliverable: ✅ Product + ProductPrice tables with price history, an idempotent diff loader, retroactive `--date` support and safe `--dry-run` preview — 98 backend tests passing (82 + 16 new), 281 total tests
+
 ## 🏆 Project Highlights
 
 - **Zero Floating-Point Errors**: All financial calculations use integer cents arithmetic

@@ -5,3 +5,5 @@ backend/backend.log
 frontend/dist
 backend/dist
 frontend/screenshot.mjs
+docs/*.csv
+.opencode/oldagents/lgpd-auditor.md
