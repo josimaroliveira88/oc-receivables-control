@@ -9,7 +9,7 @@ const parseLocalDate = (dateStr) => {
 
 const itemSchema = z.object({
   description: z.string().max(500).optional().nullable(),
-  chargedValue: z.number().positive('Charged value must be greater than zero'),
+  chargedValue: z.number().min(0, 'Charged value must not be negative').default(0),
   personId: z.string().uuid('Person ID must be a valid UUID'),
   productId: z.string().uuid('Product ID must be a valid UUID').optional().nullable(),
   memberPrice: z.number().nonnegative('Member price must not be negative').optional().nullable(),

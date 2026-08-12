@@ -821,9 +821,11 @@ describe('OrdersPage', () => {
       });
     });
 
-    it('should show validation error when charged value is empty', async () => {
+    it('should allow empty charged value (assumed zero)', async () => {
+      mockPost.mockResolvedValue({ data: { id: '3', orderNumber: 'ORD-EMPTY' } });
       await openModal();
-      fireEvent.change(screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'), { target: { value: 'ORD-VAL' } });
+
+      fireEvent.change(screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'), { target: { value: 'ORD-EMPTY' } });
       const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
       fireEvent.change(personSelect, { target: { value: 'p1' } });
 
@@ -831,7 +833,55 @@ describe('OrdersPage', () => {
       fireEvent.submit(form);
 
       await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith('/orders', expect.objectContaining({
+          items: [
+            expect.objectContaining({
+              chargedValue: 0,
+              personId: 'p1',
+            }),
+          ],
+        }));
+      });
+    });
+
+    it('should reject negative charged value', async () => {
+      await openModal();
+      fireEvent.change(screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'), { target: { value: 'ORD-NEG' } });
+      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
+      fireEvent.change(personSelect, { target: { value: 'p1' } });
+      const valueInput = screen.getByPlaceholderText('0.00');
+      fireEvent.change(valueInput, { target: { value: '-5' } });
+
+      const form = screen.getByPlaceholderText('Informe o número do pedido da dōTERRA').closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
         expect(screen.getByText('Preencha todos os campos dos itens corretamente')).toBeInTheDocument();
+      });
+    });
+
+    it('should allow zero charged value (free item / gift)', async () => {
+      mockPost.mockResolvedValue({ data: { id: '3', orderNumber: 'ORD-GIFT' } });
+      await openModal();
+
+      fireEvent.change(screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'), { target: { value: 'ORD-GIFT' } });
+      const valueInput = screen.getByPlaceholderText('0.00');
+      fireEvent.change(valueInput, { target: { value: '0' } });
+      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
+      fireEvent.change(personSelect, { target: { value: 'p1' } });
+
+      const form = screen.getByPlaceholderText('Informe o número do pedido da dōTERRA').closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith('/orders', expect.objectContaining({
+          items: [
+            expect.objectContaining({
+              chargedValue: 0,
+              personId: 'p1',
+            }),
+          ],
+        }));
       });
     });
   });

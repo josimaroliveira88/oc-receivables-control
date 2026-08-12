@@ -113,6 +113,36 @@ describe('Orders CRUD with Items', () => {
       expect(response.status).toBe(400);
     });
 
+    it('should allow order with zero charged value (free item / gift)', async () => {
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-GIFT'),
+          items: [{ description: 'Brinde', chargedValue: 0, personId: testPersonId }],
+        });
+
+      expect(response.status).toBe(201);
+      expect(parseFloat(response.body.items[0].chargedValue)).toBe(0);
+      expect(parseFloat(response.body.totalValue)).toBe(0);
+      createdOrderId = response.body.id;
+    });
+
+    it('should default missing chargedValue to zero', async () => {
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-NOVAL'),
+          items: [{ description: 'Item sem valor', personId: testPersonId }],
+        });
+
+      expect(response.status).toBe(201);
+      expect(parseFloat(response.body.items[0].chargedValue)).toBe(0);
+      expect(parseFloat(response.body.totalValue)).toBe(0);
+      createdOrderId = response.body.id;
+    });
+
     it('should create item without description (product provides the name)', async () => {
       const response = await request(app)
         .post('/api/orders')

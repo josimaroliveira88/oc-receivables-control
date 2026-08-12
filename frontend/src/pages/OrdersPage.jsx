@@ -234,7 +234,7 @@ const OrdersPage = () => {
 
   const itemPayload = (item) => ({
     description: item.description.trim() || null,
-    chargedValue: parseFloat(item.chargedValue),
+    chargedValue: item.chargedValue === '' || item.chargedValue == null ? 0 : parseFloat(item.chargedValue),
     personId: item.personId,
     productId: item.productId || null,
     memberPrice: item.memberPrice !== '' && item.memberPrice != null ? parseFloat(item.memberPrice) : null,
@@ -249,7 +249,7 @@ const OrdersPage = () => {
       return;
     }
     const invalidItems = items.filter(item =>
-      !item.chargedValue || parseFloat(item.chargedValue) <= 0 || !item.personId
+      (item.chargedValue !== '' && item.chargedValue != null && parseFloat(item.chargedValue) < 0) || !item.personId
     );
     if (invalidItems.length > 0) {
       setError('Preencha todos os campos dos itens corretamente');
@@ -299,7 +299,7 @@ const OrdersPage = () => {
       return;
     }
     const invalidItems = items.filter(item =>
-      !item.chargedValue || parseFloat(item.chargedValue) <= 0 || !item.personId
+      (item.chargedValue !== '' && item.chargedValue != null && parseFloat(item.chargedValue) < 0) || !item.personId
     );
     if (invalidItems.length > 0) {
       setError('Preencha todos os campos dos itens corretamente');
@@ -610,7 +610,7 @@ const OrdersPage = () => {
                         <input
                           type="number"
                           step="0.01"
-                          min="0.01"
+                          min="0"
                           value={item.chargedValue}
                           onChange={(e) => updateItemField(index, 'chargedValue', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-sm"
