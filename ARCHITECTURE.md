@@ -64,7 +64,7 @@ oc-receivables-control/
 │ ├── vitest.config.js # Vitest config for backend (node environment, serial test files)
 │ └── tests/
 │ ├── setup.js # Test environment setup (NODE_ENV, DATABASE_URL, JWT_SECRET)
-│ ├── people.test.js # 17 People CRUD tests
+│ ├── people.test.js # 26 People CRUD tests
 │   ├── orders.test.js # 44 Orders + Items CRUD tests (incl. product/chargedValue/orderDate/descriptive fields/zero-value gift)
 │   ├── payments.test.js # 28 Payments & Balance tests (incl. 2 floating-point regression tests + 2 custom paidAt tests)
 │   ├── dashboard.test.js # 6 Dashboard yearly breakdown tests
@@ -219,10 +219,10 @@ npm run dev
 ✅ Orders + Items routes implemented (`src/routes/ordersRoutes.js`) at `/api/orders` and `/api/orders/items/:id`
 ✅ Centralized error handling middleware for Zod validation errors
 ✅ Frontend React entry point with AppLayout + Outlet pattern
-✅ AppLayout with header, navigation links (Dashboard/Pessoas/Pedidos/Recebíveis/Produtos), and logout button
+✅ AppLayout with header, navigation links (Dashboard/Clientes/Pedidos/Recebíveis/Produtos), and logout button
 ✅ MobileDrawer — mobile-only (md:hidden) hamburger top bar + slide-in drawer with all 5 nav items, Tutorial, theme toggle and Sair (replaces the old bottom-nav bar)
 ✅ Protected route component blocking unauthenticated access (`src/components/ProtectedRoute.jsx`)
-✅ PeoplePage component with table listing, create/edit modals, delete confirmation (PT-BR)
+✅ PeoplePage component with table listing, create/edit modals, delete confirmation (PT-BR) — renamed "Cadastro de Clientes" with the full client form: Nome, Grupos em comum, WhatsApp (masked `+55 (11) 99999-8888`, digits-only storage, inline out-of-pattern warning, wa.me link in the table), Instagram (link), Endereço, Grupo VIP (Sim/Não) and Cadastrado/Membro doTERRA (Sim/Não) (`src/pages/PeoplePage.jsx` + `src/utils/whatsapp.js`)
 ✅ OrdersPage component with table listing, status badges, dynamic multi-row item sub-form, custom order date field (PT-BR)
 ✅ Environment configuration files
 ✅ Dockerfiles for both backend and frontend
@@ -261,22 +261,22 @@ npm run dev
 ✅ Frontend validation: rejects only negative amounts; rejects zero against a person with chargeable items ("Valor deve ser maior que zero"); shows a custom `ConfirmDialog` (in-app HTML modal) when the amount exceeds the pending balance (overpayment) — the payment is posted only after the user confirms
 ✅ Frontend "Dar baixa" flow: zero-item persons (itemTotal === 0) appear as "Nada a receber" and are settled with a R$ 0,00 payment (submit button reads "Dar baixa"); fully-paid persons (itemTotal > 0 but pending = 0) require a positive amount
 ✅ Toast notification system (`src/components/Toast.jsx`) with success/error types and auto-dismiss
-✅ Navigation links: Dashboard, Pessoas, Pedidos, Recebíveis
+✅ Navigation links: Dashboard, Clientes, Pedidos, Recebíveis
 ✅ Backend dashboard controller (`src/controllers/dashboardController.js`) with `getDashboardData` aggregation
 ✅ Backend `GET /api/dashboard` (JWT-protected) returns: totalPending, totalPaid, currentMonthReceipts, personBalances[], yearlyBreakdown[]
 ✅ DashboardPage component (`src/pages/DashboardPage.jsx`) with KPI widgets, Recharts bar chart, yearly breakdown "Resumo por Ano" table (with Pendente/Quitado columns per year), and XLSX export button
 ✅ DashboardPage test suite: 26 tests covering: rendering, KPI widgets (BRL formatting, zero values), chart (data present, empty state), yearly breakdown table (title, headers, year values, BRL formatting, row count, empty state), error/auth handling
 ✅ XLSX export button ("📥 Exportar para Excel") on DashboardPage — fetches /api/orders, /api/people, /api/dashboard concurrently
-✅ Export utility (`frontend/src/utils/exportExcel.js`) — generates 4-sheet .xlsx workbook: Pedidos, Pessoas, Histórico de Pagamentos, Saldo Pendente
+✅ Export utility (`frontend/src/utils/exportExcel.js`) — generates 4-sheet .xlsx workbook: Pedidos, Clientes, Histórico de Pagamentos, Saldo Pendente
 ✅ BRL monetary cell formatting (#,##0.00) on all currency fields in exported Excel
 ✅ Browser download of `relatorio-recebiveis.xlsx` triggered by XLSX.writeFile
 ✅ Export button disabled when no data (all KPIs zero, no personBalances)
 ✅ Export loading state with "Exportando..." spinner
 ✅ Toast feedback for export: "Relatório exportado com sucesso!" / "Erro ao exportar relatório."
-✅ exportExcel unit test suite: 32 tests covering workbook structure, sheet content (Pedidos, Pessoas, Histórico de Pagamentos, Saldo Pendente), BRL monetary cell formatting, DD/MM/YYYY date formatting, empty data handling, column widths, floating-point precision
+✅ exportExcel unit test suite: 32 tests covering workbook structure, sheet content (Pedidos, Clientes, Histórico de Pagamentos, Saldo Pendente), BRL monetary cell formatting, DD/MM/YYYY date formatting, empty data handling, column widths, floating-point precision
 ✅ DashboardPage export integration tests: 7 tests covering export button rendering, disabled state, enabled state, exportExcel call with fetched data, success/error toast feedback, "Exportando..." loading state
 
-## Completed Phases (34)
+## Completed Phases (35)
 - **Phase 20**: ✅ Prisma schema update (`userId` in Person/Order), registration API (`POST /api/auth/register`), and TDD setup. 82 backend tests.
 - **Phase 21**: ✅ Backend data isolation (middleware enforcement on all routes, query filtering by `req.user.userId`). `userId` made required with `ON DELETE CASCADE`.
 - **Phase 22**: ✅ Frontend registration UI (`RegisterPage.jsx`) with PT-BR form, client-side validation, success redirect, and LoginPage navigation. 18 RegisterPage tests + 9 LoginPage tests. 160 frontend tests, 242 total tests.
@@ -293,6 +293,7 @@ npm run dev
 - **Phase 33**: ✅ Zero/gift `chargedValue` — the Valor Cobrado field now accepts zero (gift/brinde items) and the frontend treats an **empty** field as 0 (no longer required to type 0). Negative values are still rejected. Backend: `itemSchema.chargedValue` changed from `positive()` to `min(0).default(0)` (missing field defaults to 0 — robust for direct API consumers). Frontend: `itemPayload` converts empty/null to 0; create/update validations reject only negatives (`< 0`); Valor Cobrado input keeps `min="0"` and placeholder `0.00`. 2 new backend tests + 2 new/updated frontend tests. 146 backend tests, 240 frontend tests, 386 total tests.
 - **Phase 34**: ✅ Receivables adjustments — the "Registrar Pagamento" modal now (a) lists persons with R$ 0,00 item totals as "Nada a receber" and lets the user settle them with a **"Dar baixa"** action that posts a R$ 0,00 payment, and (b) accepts **overpayments**: backend `paymentSchema.amount` changed from `positive()` to `nonnegative()` and the `amount > pending` ("Amount exceeds pending balance") rejection was removed; the frontend validates only negatives and asks for `window.confirm` confirmation when the amount exceeds the pending balance. **Refined zero-amount guard**: a R$ 0,00 payment is only accepted when the person's `itemSum === 0` (gift items) — for a person with chargeable items (`itemSumCents > 0`), zero is rejected by both backend (`'Amount must be greater than zero for a person with chargeable items'`, 400) and frontend ('Valor deve ser maior que zero'). The "Dar baixa" UI is driven by `itemTotal === 0` (not `pending === 0`), so fully-paid persons (`itemTotal > 0`, `pending = 0`) require a positive amount (with overpay confirm still firing). Order status keeps PENDENTE → PARCIAL → QUITADO; overpaid persons report `pending = 0` (clamped) with `paymentTotal` showing the real received amount. 3 new backend tests + 3 new frontend tests. 149 backend tests, 243 frontend tests, 392 total tests.
 - **Phase 35**: ✅ Custom overpayment confirmation — a new reusable `frontend/src/components/ConfirmDialog.jsx` replaces the browser-native `window.confirm` gate on the Recebíveis screen. It renders an in-app HTML modal styled like the rest of the app: overlay `fixed inset-0 z-[70]` with `bg-black/50` (above the payment modal's `z-[60]`, same tier as the onboarding tour), centered `bg-white dark:bg-gray-800 rounded-xl shadow-2xl` card, amber `AlertTriangle` icon, gradient `from-primary-700 to-primary-500` confirm button and gray cancel button. Props: `open`, `title`, `message` (React node so amounts are wrapped in `<strong>`), `confirmLabel`, `cancelLabel`, `onConfirm`, `onCancel`, `loading`; `role="dialog"` + `aria-modal="true"`, auto-focus on confirm, Escape/backdrop-click to cancel (disabled while loading). `ReceivablesPage.jsx` extracted the payment POST into a `submitPayment()` helper and now sets `showOverpayConfirm = true` when `amountCents > pendingCents` (title "Confirmar recebimento", message "Valor de **R$ X** é maior que o saldo pendente (**R$ Y**). Deseja mesmo confirmar este recebimento?"); `onConfirm` closes the dialog and posts, `onCancel` only closes it. Tests reworked to interact with the dialog via `findByRole('dialog')` + `within()`, with a new boundary test proving no dialog appears when the amount equals the pending balance. 1 new frontend test. 149 backend tests, 244 frontend tests, 393 total tests.
+- **Phase 36**: ✅ Client registration — the Pessoas screen was renamed **"Cadastro de Clientes"** (menu label "Clientes", modals "Novo Cliente"/"Editar Cliente") and the person form now has, in order: **Nome** (required), **Grupos em comum** (`commonGroups VARCHAR(255)` — de onde o cliente veio: grupo de WhatsApp, vizinho, família...), **WhatsApp** (legacy `contact` column renamed to `whatsapp` preserving data; digits-only storage with phone mask `+55 (11) 99999-8888` in the form and table, pre-filled `+55` on create; inline amber out-of-pattern warning — non-blocking, no native alerts; the table renders a `https://wa.me/{numero}` link that opens WhatsApp), **Instagram** (`instagram VARCHAR(255)`, clickable link in the table with auto `https://` prefix), **Endereço** (`address VARCHAR(500)`, single field), **Grupo VIP** (`isVip Boolean DEFAULT false`, Sim/Não select) and **Cadastrado/Membro doTERRA** (`isDoterraMember Boolean DEFAULT false`, Sim/Não select). Table columns: Nome, Grupos em Comum, WhatsApp (link), Instagram (link), Endereço, VIP (badge), Membro doTERRA (badge), Ações. Backend Zod schema extended (`whatsapp/commonGroups/instagram` ≤255 nullable, `address` ≤500 nullable, `isVip/isDoterraMember` booleans); migration `20260812151032_extend_person_client_fields` hand-edited to use `ALTER TABLE ... RENAME COLUMN` (Prisma's default would DROP+ADD and lose legacy data). Excel Pessoas sheet renamed to **Clientes** with the new columns (WhatsApp exported formatted, VIP/Membro as Sim/Não). Nav labels and onboarding tour step updated. 9 new backend tests + 9 new frontend tests. **158 backend tests, 253 frontend tests, 411 total tests.**
 
 ## Notes for Developers/Agents
 - Backend source is mounted at `/app` inside container for live editing

@@ -1,6 +1,6 @@
 # Receivables Control System
 
-Sistema de controle de recebíveis desenvolvido com **Node.js**, **Express**, **React** e **PostgreSQL**. Permite gerenciar pessoas, pedidos, itens e pagamentos com atualização automática de status e dashboard de analytics.
+Sistema de controle de recebíveis desenvolvido com **Node.js**, **Express**, **React** e **PostgreSQL**. Permite gerenciar clientes, pedidos, itens e pagamentos com atualização automática de status e dashboard de analytics.
 
 > 🤖 **Desenvolvido com auxílio de IA**: Este projeto foi construído com assistência de inteligência artificial (opencode), seguindo metodologia TDD e boas práticas de desenvolvimento.
 
@@ -11,7 +11,7 @@ Sistema de controle de recebíveis desenvolvido com **Node.js**, **Express**, **
 ## Funcionalidades
 
 - **Autenticação JWT** — Login seguro com token stateless e hash bcrypt
-- **Gestão de Pessoas** — CRUD completo (nome, contato)
+- **Cadastro de Clientes** — CRUD completo (nome, grupos em comum, WhatsApp com link `wa.me` e máscara +55, Instagram, endereço, VIP e Membro doTERRA)
 - **Gestão de Pedidos** — CRUD com itens dinâmicos (descrição, valor, pessoa associada)
 - **Processamento de Pagamentos** — Registro com baixa de R$ 0,00 (brindes) e aceite de overpayment com confirmação
 - **Status Automático** — Pedidos transitam entre *Pendente*, *Parcial* e *Quitado*
@@ -215,7 +215,7 @@ receivables-control/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/  # Header, Nav, Toast, etc.
-│   │   ├── pages/       # Dashboard, Pessoas, Pedidos, etc.
+│   │   ├── pages/       # Dashboard, Clientes, Pedidos, etc.
 │   │   ├── services/    # Axios client
 │   │   ├── context/     # AuthContext, ThemeContext
 │   │   └── utils/       # formatBRL, exportExcel

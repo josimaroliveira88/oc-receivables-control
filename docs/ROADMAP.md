@@ -1112,6 +1112,43 @@ Key Design Decisions:
 
 Deliverable: ✅ Confirmação de overpayment em HTML no visual da aplicação (componente reutilizável `ConfirmDialog`) substituindo o `window.confirm` nativo — **149 backend tests (inalterados), 244 frontend tests (243 + 1 new), 393 total tests**
 
+## 🎯 Phase 36: Cadastro de Clientes — Rename + WhatsApp/Instagram/Endereço/VIP/Membro doTERRA
+
+Status: ✅ COMPLETED
+
+Context: The user wants to enrich the client (Pessoa) registration. The menu option is renamed to "Cadastro de Clientes" and the form gains, in order: **Nome**, **Grupos em comum** (free-text category describing where the client came from — WhatsApp group, neighbor, family, etc.), **WhatsApp** (phone number that becomes a `https://wa.me/{numero}` link when viewed in the table; the field comes pre-filled with Brazil's country code `55` and stays editable), **Instagram** (link), a **single Endereço** field, **Grupo VIP** (Sim/Não) and **Cadastrado/Membro doTERRA** (Sim/Não). The legacy `contact` field is migrated into `whatsapp` preserving data; out-of-pattern values (e.g. old e-mails) are kept, flagged with a non-blocking inline warning, and can still be saved.
+
+Stack: Express, Prisma ORM, React, Tailwind CSS, Zod, lucide-react, Vitest.
+
+Task (Backend):
+- `backend/prisma/schema.prisma` (migration `20260812151032_extend_person_client_fields`):
+  - `Person.contact` renamed to `Person.whatsapp` — the generated migration would have been `DROP COLUMN contact` (data loss), so it was **hand-edited to `ALTER TABLE "Person" RENAME COLUMN "contact" TO "whatsapp"`** preserving every existing value (lesson #22)
+  - New nullable fields: `commonGroups VARCHAR(255)`, `instagram VARCHAR(255)`, `address VARCHAR(500)`, plus `isVip Boolean NOT NULL DEFAULT false` and `isDoterraMember Boolean NOT NULL DEFAULT false` (both default `false`, so existing rows read "Não")
+- `backend/src/controllers/peopleController.js`: `personSchema` extended — `whatsapp` (string, nullable), `commonGroups`/`instagram` (string ≤255, nullable), `address` (string ≤500, nullable), `isVip`/`isDoterraMember` (boolean, optional — omitted defaults to `false` on create)
+- Tests: `backend/tests/people.test.js` reworked + grew 17 → 26 tests: all-fields create, optional-fields defaulting to null/false, legacy non-digit whatsapp preserved, >255 `commonGroups`/`instagram` rejection, >500 `address` rejection, non-boolean `isVip` rejection, GET by id returns all fields, update all client fields, explicit-null whatsapp clearing, non-boolean `isDoterraMember` rejection. **149 → 158 backend tests.**
+
+Task (Frontend):
+- `frontend/src/utils/whatsapp.js` (**new**): `onlyDigits` (strips non-digits, caps at 15 — E.164 max), `isDigitsOnly`, `isWhatsAppOutOfPattern` (10–15 digits; empty = ok; covers BR `55 + DDD + 8/9` and international), `maskWhatsApp` (progressive `+55 (11) 99999-8888`, handles 8-digit landlines and 9-digit mobiles), `whatsAppLink` (returns `https://wa.me/{digits}` or `null` when out of pattern)
+- `frontend/src/pages/PeoplePage.jsx` reworked:
+  - Title "Cadastro de Clientes", empty state "Nenhum cliente cadastrado", modals **"Novo Cliente"/"Editar Cliente"**, PT-BR error messages use "cliente"
+  - Form field order: Nome (required) → Grupos em comum → WhatsApp → Instagram → Endereço → Grupo VIP (Sim/Não select) → Cadastrado/Membro doTERRA (Sim/Não select). The shared `PersonFormFields` component avoids duplicating the 7 fields across the two modals; modals gained `max-h-[90vh] overflow-y-auto`
+  - WhatsApp input: `type="tel"` + `inputMode="numeric"`, pre-filled `+55` on create, masks as the user types; onChange stores **digits only**; an **inline amber out-of-pattern warning** (AlertTriangle icon, dark-mode aware, non-blocking) shows when the value is non-empty and has <10 or >15 digits — legacy non-digit values (old e-mails) display raw with the warning and remain saveable (no native alerts)
+  - Payload: `whatsapp` sent as digits; untouched legacy raw values are preserved as-is; empty → `null`; booleans sent as-is
+  - Table columns: Nome | Grupos em Comum | **WhatsApp** (masked + `https://wa.me/{digits}` link, `target="_blank"`; out-of-pattern values render as plain text) | **Instagram** (clickable link with auto `https://` prefix) | Endereço | **VIP** (Sim/Não badge) | **Membro doTERRA** (badge) | Ações
+- `frontend/src/components/Header.jsx` + `MobileDrawer.jsx`: nav label "Pessoas" → **"Clientes"** (route `/people` unchanged)
+- `frontend/src/components/OnboardingTour.jsx`: step renamed "Cadastro de Clientes" with the new fields explained; intro text updated to "clientes"
+- `frontend/src/utils/exportExcel.js`: sheet "Pessoas" renamed to **"Clientes"** with headers Nome, Grupos em Comum, WhatsApp, Instagram, Endereço, VIP, Membro doTERRA (WhatsApp exported formatted via `maskWhatsApp`, VIP/Membro as Sim/Não)
+- Tests: `frontend/tests/PeoplePage.test.jsx` reworked + grew 14 → 23 tests (new title, wa.me link rendering, plain-text legacy whatsapp, instagram link, Sim/Não badges, `+55` pre-fill, mask while typing, out-of-pattern warning shown/hidden, all-fields create payload, edit pre-fill incl. masked whatsapp, legacy raw + warning on edit, update payload); `exportExcel.test.js` reworked (Clientes sheet headers/rows/nulls/widths); `Header.test.jsx` + `MobileDrawer.test.jsx` updated to "Clientes". **244 → 253 frontend tests.**
+
+Key Design Decisions:
+- The `contact` → `whatsapp` rename is a **real column rename** (data preserved) rather than drop+add — Prisma's default migration would have destroyed every existing contact value
+- WhatsApp is stored **digits-only** (≤15) and displayed with the mask; the pre-filled `+55` is part of the stored number, so editing never loses the country code unless the user deliberately changes it (foreign numbers supported — the warning is informational, never blocking)
+- Out-of-pattern values are **warned but saveable** (both new and legacy), per user request — an inline amber notice replaces any native `window.confirm`/`alert`; the `wa.me` link only renders for values matching 10–15 digits
+- Sim/Não selects store booleans (`isVip`, `isDoterraMember`) with DB default `false`; the `<select>` uses string values `'true'/'false'` because React does not match boolean `value` against option strings
+- Route and API paths stay `/people` + `/api/people` (internal artifacts remain English); only user-facing PT-BR labels changed
+
+Deliverable: ✅ Cadastro de Clientes com WhatsApp (link wa.me + máscara + aviso fora do padrão), Instagram, Endereço, VIP e Membro doTERRA — **158 backend tests (149 + 9 new), 253 frontend tests (244 + 9 new), 411 total tests**
+
 ## 🏆 Project Highlights
 
 - **Zero Floating-Point Errors**: All financial calculations use integer cents arithmetic

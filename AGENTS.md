@@ -104,20 +104,20 @@ Frontend only:
 
 🎉 **All MVP phases (1-16) + Phases 17-34 have been COMPLETED.**
 
-The Receivables Control System is now fully functional with user self-registration, complete backend data isolation, responsive navigation (desktop top nav + mobile hamburger drawer), a unified design system with dark mode, an interactive onboarding tour, and a full Product CRUD screen. Phase 27 added the global dōTERRA Product catalog with price history and an idempotent diff loader. Phase 28 added the Product CRUD API + ProductsPage UI, and replaced the mobile bottom nav with a hamburger/drawer menu (`MobileDrawer.jsx`) since the menu grew to 5 sections. The onboarding tour now has 9 steps. Phase 29 added product search (name/code), pagination with infinite scroll, sorting by prices/PV, and an active/inactive status filter. Phase 30 moved search/filter/sort fully **client-side**: the frontend loads the entire catalog once (`pageSize=all`) into browser memory and applies search, status filter and sorting in-memory — no new backend call per keystroke or filter change (the catalog is rarely updated). Phase 31 reworked the order item sub-form: each item is now linked to a product from the catalog (filterable combobox), auto-fills the **member price** and **PV** snapshots (read-only), lets the user type the negotiated **Valor Cobrado** (`chargedValue`) and free-text **Detalhes** (up to 500 chars) — the old `value` field was renamed to `chargedValue` and `description` is now optional (auto-filled from the product name). Phase 32 added order-level descriptive fields: the order number placeholder now reads "Informe o número do pedido da dōTERRA" and leaving the field (blur) with a number typed shows a **"Ver pedido no site"** tracking link (`https://status.ondeestameupedido.com/tracking/22747/{numero}/`, new tab); a free-text **Responsável pela conta** (dōTERRA ID or name); a **Tipo de Pagamento** dropdown (PIX / Boleto / Cartão de Crédito, new `PaymentType` enum); a free-text **Descrição do Pedido** (≤ 500 chars); and live **Soma dos Produtos (Valor Cobrado)** + **Soma dos PV** summary cards above the items. The orders list gained columns for Responsável, Tipo Pgto (badge), PV Total, Descrição (truncated + tooltip) and Rastreio (external-link). Phase 33 let the **Valor Cobrado** be **empty/zero** (gifts/brindes) — an empty chargedValue defaults to 0 and negatives are still rejected. Phase 34 reworked the **Registrar Pagamento** modal on the Recebíveis screen so that (a) persons whose items total R$ 0,00 are now listed with \"Nada a receber\" and can be settled with a **\"Dar baixa\"** button that posts a R$ 0,00 payment (order status still travels PENDENTE → PARCIAL → QUITADO), and (b) payments **larger** than the pending balance are now allowed (overpayment after price negotiation) — the backend no longer rejects them and the frontend asks for confirmation (`window.confirm`) before submitting. A R$ 0,00 payment is **only** accepted when the person's items sum to R$ 0,00 (gift items); for a person with chargeable items, an amount strictly greater than zero is required — both backend (`itemSumCents > 0 && amountCents === 0` rejection) and frontend (validation guard showing \"Valor deve ser maior que zero\") enforce the rule. Phase 35 replaced the browser-native `window.confirm` overpayment confirmation with a custom in-app **`ConfirmDialog`** component (`src/components/ConfirmDialog.jsx`) — an HTML modal styled like the rest of the app (amber `AlertTriangle` icon, gradient primary confirm button, gray cancel button, dark-mode aware) that renders when the payment amount exceeds the pending balance; the payment is only posted after the user confirms. 244 frontend tests, 149 backend tests, 393 total.
+The Receivables Control System is now fully functional with user self-registration, complete backend data isolation, responsive navigation (desktop top nav + mobile hamburger drawer), a unified design system with dark mode, an interactive onboarding tour, and a full Product CRUD screen. Phase 27 added the global dōTERRA Product catalog with price history and an idempotent diff loader. Phase 28 added the Product CRUD API + ProductsPage UI, and replaced the mobile bottom nav with a hamburger/drawer menu (`MobileDrawer.jsx`) since the menu grew to 5 sections. The onboarding tour now has 9 steps. Phase 29 added product search (name/code), pagination with infinite scroll, sorting by prices/PV, and an active/inactive status filter. Phase 30 moved search/filter/sort fully **client-side**: the frontend loads the entire catalog once (`pageSize=all`) into browser memory and applies search, status filter and sorting in-memory — no new backend call per keystroke or filter change (the catalog is rarely updated). Phase 31 reworked the order item sub-form: each item is now linked to a product from the catalog (filterable combobox), auto-fills the **member price** and **PV** snapshots (read-only), lets the user type the negotiated **Valor Cobrado** (`chargedValue`) and free-text **Detalhes** (up to 500 chars) — the old `value` field was renamed to `chargedValue` and `description` is now optional (auto-filled from the product name). Phase 32 added order-level descriptive fields: the order number placeholder now reads "Informe o número do pedido da dōTERRA" and leaving the field (blur) with a number typed shows a **"Ver pedido no site"** tracking link (`https://status.ondeestameupedido.com/tracking/22747/{numero}/`, new tab); a free-text **Responsável pela conta** (dōTERRA ID or name); a **Tipo de Pagamento** dropdown (PIX / Boleto / Cartão de Crédito, new `PaymentType` enum); a free-text **Descrição do Pedido** (≤ 500 chars); and live **Soma dos Produtos (Valor Cobrado)** + **Soma dos PV** summary cards above the items. The orders list gained columns for Responsável, Tipo Pgto (badge), PV Total, Descrição (truncated + tooltip) and Rastreio (external-link). Phase 33 let the **Valor Cobrado** be **empty/zero** (gifts/brindes) — an empty chargedValue defaults to 0 and negatives are still rejected. Phase 34 reworked the **Registrar Pagamento** modal on the Recebíveis screen so that (a) persons whose items total R$ 0,00 are now listed with \"Nada a receber\" and can be settled with a **\"Dar baixa\"** button that posts a R$ 0,00 payment (order status still travels PENDENTE → PARCIAL → QUITADO), and (b) payments **larger** than the pending balance are now allowed (overpayment after price negotiation) — the backend no longer rejects them and the frontend asks for confirmation (`window.confirm`) before submitting. A R$ 0,00 payment is **only** accepted when the person's items sum to R$ 0,00 (gift items); for a person with chargeable items, an amount strictly greater than zero is required — both backend (`itemSumCents > 0 && amountCents === 0` rejection) and frontend (validation guard showing \"Valor deve ser maior que zero\") enforce the rule. Phase 35 replaced the browser-native `window.confirm` overpayment confirmation with a custom in-app **`ConfirmDialog`** component (`src/components/ConfirmDialog.jsx`) — an HTML modal styled like the rest of the app (amber `AlertTriangle` icon, gradient primary confirm button, gray cancel button, dark-mode aware) that renders when the payment amount exceeds the pending balance; the payment is only posted after the user confirms. 244 frontend tests, 149 backend tests, 393 total. Phase 36 renamed the People screen to **Cadastro de Clientes** (menu label "Clientes") and enriched the client form with, in order: **Nome**, **Grupos em comum** (`commonGroups` — de onde o cliente veio), **WhatsApp** (legacy `contact` column renamed preserving data; digits-only storage, mask `+55 (11) 99999-8888`, pre-filled `+55`, inline out-of-pattern warning, `https://wa.me/{numero}` link in the table), **Instagram** (clickable link), **Endereço** (single field), **Grupo VIP** (Sim/Não) and **Cadastrado/Membro doTERRA** (Sim/Não). **253 frontend tests, 158 backend tests, 411 total.**
 
 ### Completed Features:
 ✅ Multi-container Docker environment (backend, frontend, database, admin UI)
 ✅ PostgreSQL relational database with Prisma ORM
 ✅ Express.js backend with JWT authentication
 ✅ React frontend with Vite and Tailwind CSS
-✅ People management (CRUD)
+✅ Client management (CRUD) — Cadastro de Clientes (nome, grupos em comum, WhatsApp, Instagram, endereço, VIP, Membro doTERRA)
 ✅ Orders management with dynamic item sub-forms and custom order date
 ✅ Payment processing with automatic order status transitions (PENDENTE → PARCIAL → QUITADO), custom payment date, zero-value "Dar baixa" for brindes (only when itemSum = 0), and overpayment acceptance with custom in-app confirmation (`ConfirmDialog.jsx`, replacing `window.confirm`)
 ✅ Receivables tracking dashboard with per-person balance breakdown
 ✅ Analytics dashboard with KPI widgets, Recharts visualizations, and yearly breakdown (Pendente/Quitado por ano)
 ✅ Excel export functionality (4-sheet workbook with BRL formatting)
-✅ Comprehensive test coverage (244 frontend tests + 149 backend tests)
+✅ Comprehensive test coverage (253 frontend tests + 158 backend tests)
 ✅ Financial precision (integer cents arithmetic, no floating-point errors)
 ✅ Complete TDD methodology applied across all phases
 ✅ PT-BR localization for all user-facing content
@@ -128,7 +128,7 @@ The Receivables Control System is now fully functional with user self-registrati
 ✅ Backend data isolation — all routes JWT-protected, queries filtered by `userId`, cross-user access blocked
 ✅ `userId` required on Person/Order with `ON DELETE CASCADE` (migration: `20260614184002_make_user_id_required`)
 ✅ Responsive header with gradient design (`from-blue-800 to-blue-600`)
-✅ Mobile hamburger drawer navigation (`MobileDrawer.jsx`) — fixed top bar with hamburger button + slide-in drawer listing all 5 sections (Dashboard, Pessoas, Pedidos, Recebíveis, Produtos), Tutorial, theme toggle and Sair. Scales to any number of menu items (replaces the old fixed bottom nav)
+✅ Mobile hamburger drawer navigation (`MobileDrawer.jsx`) — fixed top bar with hamburger button + slide-in drawer listing all 5 sections (Dashboard, Clientes, Pedidos, Recebíveis, Produtos), Tutorial, theme toggle and Sair. Scales to any number of menu items (replaces the old fixed bottom nav)
 ✅ Desktop horizontal navigation with `<NavLink>` active state highlighting (incl. Produtos link)
 ✅ Mobile UX: username inputs default to lowercase (`autoCapitalize="none"`) on virtual keyboards
 ✅ Password visibility toggle (`Eye`/`EyeOff` icon) on login and registration forms
@@ -141,18 +141,19 @@ The Receivables Control System is now fully functional with user self-registrati
 ✅ Enhanced order item sub-form — each item now links to a product from the dōTERRA catalog via a filterable `ProductCombobox` (client-side name/code search, load-once `GET /products?active=true&pageSize=all`). Selecting a product auto-fills read-only **Valor Membro (R$)** and **PV** snapshot fields; the user types the negotiated **Valor Cobrado (R$)** (`chargedValue`) and free-text **Detalhes** (≤ 500 chars, live `N/500` counter). A **"Limpar produto"** button unlinks the item and clears its snapshot fields. Field order per item: Pessoa → Produto → Valor Membro → Valor Cobrado → PV → Detalhes. On the `Item` model, `value` was renamed to `chargedValue`, `description` is now optional (auto-filled with the product name) and new nullable columns `memberPrice`, `pv`, `details VARCHAR(500)` and `productId` (FK → `Product`, `ON DELETE SET NULL`) were added (migration `20260811190000_extend_item_fields`). `Order.totalValue`, payments and dashboard sums all read `chargedValue`.
 ✅ Order descriptive fields — the order form now has the dōTERRA number placeholder "Informe o número do pedido da dōTERRA", a clickable **"Ver pedido no site"** tracking link (`https://status.ondeestameupedido.com/tracking/22747/{numero}/`, opens in a new tab) that appears once the field is left (blur) with a number typed, a free-text **Responsável pela conta (ID dōTERRA ou nome)** (`accountOwner`, ≤ 120 chars), a **Tipo de Pagamento** select (PIX / Boleto / Cartão de Crédito, new `PaymentType` enum), a **Descrição do Pedido** textarea (`orderNotes`, ≤ 500 chars, live `N/500` counter), and live **Soma dos Produtos (Valor Cobrado)** + **Soma dos PV** summary cards above the items section (computed client-side, not persisted). The orders list table gained columns: **Responsável**, **Tipo Pgto** (color badge), **PV Total**, **Descrição** (truncated + `title` tooltip) and **Rastreio** (external-link icon opening the tracking URL). New `Order` fields `accountOwner VARCHAR(120)`, `paymentType PaymentType?`, `orderNotes VARCHAR(500)` are all nullable (migration `20260811193000_add_order_descriptive_fields`); the backend Zod schemas validate them (enum + max lengths) and `updateOrder` uses the `!== undefined` spread pattern so an explicit `null` clears a field while an omitted field keeps the existing value.
 ✅ Custom overpayment confirmation — the overpayment gate on the Recebíveis screen is now a custom in-app HTML modal (`ConfirmDialog.jsx`) instead of the browser-native `window.confirm`: reusable component with `open`/`title`/`message` (React node, amounts in `<strong>`)/`confirmLabel`/`cancelLabel`/`onConfirm`/`onCancel`/`loading` props, `role="dialog"` + `aria-modal="true"`, auto-focus on the confirm button, Escape-key and backdrop-click-to-cancel (both disabled while loading), amber `AlertTriangle` icon, gradient `from-primary-700 to-primary-500` confirm button, gray cancel button, dark-mode aware, `z-[70]` overlay (above the payment modal's `z-[60]`). `ReceivablesPage.jsx` shows it when `amountCents > pendingCents` and only posts the payment after confirmation; the POST logic lives in a `submitPayment()` helper.
+✅ Client registration form ("Cadastro de Clientes") — the People screen was renamed (menu label "Clientes", modals "Novo Cliente"/"Editar Cliente") and the form now has, in order: **Nome** (required), **Grupos em comum** (`commonGroups VARCHAR(255)` — de onde o cliente veio), **WhatsApp** (legacy `contact` column renamed to `whatsapp` preserving data; **digits-only storage** masked as `+55 (11) 99999-8888` in the form and table, pre-filled `+55` on create, `type="tel"` + `inputMode="numeric"`; an **inline amber out-of-pattern warning** (AlertTriangle, non-blocking, dark-mode aware) shows when the number has fewer than 10 or more than 15 digits — legacy non-digit values like old e-mails are shown raw with the warning and can still be saved; valid numbers render as a `https://wa.me/{numero}` link in the table). **Instagram** (`instagram VARCHAR(255)`, clickable link with auto `https://` prefix), **Endereço** (`address VARCHAR(500)`, single field), **Grupo VIP** (`isVip Boolean DEFAULT false`, Sim/Não select) and **Cadastrado/Membro doTERRA** (`isDoterraMember Boolean DEFAULT false`, Sim/Não select). New helpers in `frontend/src/utils/whatsapp.js` (`onlyDigits`, `maskWhatsApp`, `isWhatsAppOutOfPattern`, `whatsAppLink`, `isDigitsOnly`). Migration `20260812151032_extend_person_client_fields` was **hand-edited to use `ALTER TABLE ... RENAME COLUMN`** because Prisma's auto-generated migration drops the column and loses data (see lesson #22). Table columns: Nome, Grupos em Comum, WhatsApp (link), Instagram (link), Endereço, VIP (badge Sim/Não), Membro doTERRA (badge Sim/Não), Ações. The Excel "Pessoas" sheet was renamed to **"Clientes"** with the new columns (WhatsApp exported formatted, VIP/Membro as Sim/Não). Nav labels and the onboarding tour step were updated.
 
 ### Test Results:
-- **Backend Tests**: 149 passing (17 People + 44 Orders + 31 Payments + 6 Dashboard + 4 Auth + 16 ProductLoader + 31 Products)
-- **Frontend Tests**: 244 passing (14 PeoplePage + 54 OrdersPage + 31 ReceivablesPage + 26 DashboardPage + 32 exportExcel + 10 api + 20 RegisterPage + 10 LoginPage + 6 Header + 11 MobileDrawer + 23 ProductsPage + 7 ThemeContext)
-- **Total**: 393 tests passing with zero regressions
+- **Backend Tests**: 158 passing (26 People + 44 Orders + 31 Payments + 6 Dashboard + 4 Auth + 16 ProductLoader + 31 Products)
+- **Frontend Tests**: 253 passing (23 PeoplePage + 54 OrdersPage + 31 ReceivablesPage + 26 DashboardPage + 32 exportExcel + 10 api + 20 RegisterPage + 10 LoginPage + 6 Header + 11 MobileDrawer + 23 ProductsPage + 7 ThemeContext)
+- **Total**: 411 tests passing with zero regressions
 
 Backend note: `vitest.config.js` sets `fileParallelism: false` — test files run serially because they share one database (products.test.js creates active `TESTCRUD` products that would race with the productLoader's deactivation logic under parallelism).
 
 
 
 ### Key Learnings Documented:
-21 critical lessons learned documented in AGENTS.md (see "Lessons Learned / Pitfalls to Avoid") to guide future development:
+23 critical lessons learned documented in AGENTS.md (see "Lessons Learned / Pitfalls to Avoid") to guide future development:
 1. vi.mock hoisting bug in Vitest — arrow-function wrapper solution
 2. HTML5 required attribute blocking form submission in jsdom
 3. Conditional rendering of dynamic list items
@@ -174,6 +175,8 @@ Backend note: `vitest.config.js` sets `fileParallelism: false` — test files ru
 19. Host Prisma client goes stale after schema changes
 20. Catalog loader deactivates everything absent from the CSV
 21. Vitest runs test files in parallel — shared DB test files must run serially (`fileParallelism: false`)
+22. Prisma migrate generates DROP + ADD for column renames — hand-edit to `RENAME COLUMN` or data is lost
+23. Never run `prisma migrate dev` against a database with real data — use `migrate deploy` (it never resets)
 
 ## Next Steps for Client Requests
 
@@ -184,7 +187,7 @@ When the client requests new functionality:
 3. **Plan Test Coverage**: Identify which tests need to be written (backend/frontend)
 4. **Implement with TDD**: Follow the TDD methodology used in phases 5+
 5. **Update Documentation**: Ensure ARCHITECTURE.md, AGENTS.md, and ROADMAP.md reflect changes
-6. **Run Full Test Suite**: Verify all 393 tests pass with zero regressions
+6. **Run Full Test Suite**: Verify all 411 tests pass with zero regressions
 
 The codebase is well-structured, documented, and ready to accept new features without breaking existing functionality.
 
@@ -589,3 +592,60 @@ export default defineConfig({
 ```
 
 Also keep test data namespaced by file (e.g., `TESTCRUD` for CRUD tests, `TEST0001` for loader tests) so cleanup is deterministic.
+
+### 22. Prisma Migrate Generates DROP + ADD for Column Renames — Hand-Edit to `RENAME COLUMN` or Data Is Lost
+
+**Problem**: When a Prisma field is renamed (e.g., `Person.contact` → `Person.whatsapp`), `prisma migrate dev --create-only` generates a migration that **drops the old column and adds a new one**, silently discarding every existing value:
+
+```sql
+-- Auto-generated (Phase 36) — DROPS the column, "All the data in the column will be lost."
+ALTER TABLE "Person" DROP COLUMN "contact",
+ADD COLUMN "whatsapp" TEXT;
+```
+
+This is data loss disguised as a rename. Prisma has no way to know the two fields are the same column, so the only way to preserve data is to hand-edit the generated SQL.
+
+**Fix**: After `--create-only`, rewrite the migration to use a native `RENAME COLUMN` before adding the new columns:
+
+```sql
+-- Hand-edited — preserves every existing contact value
+ALTER TABLE "Person" RENAME COLUMN "contact" TO "whatsapp";
+ALTER TABLE "Person"
+  ADD COLUMN "commonGroups" VARCHAR(255),
+  ADD COLUMN "instagram" VARCHAR(255),
+  ADD COLUMN "address" VARCHAR(500),
+  ADD COLUMN "isVip" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN "isDoterraMember" BOOLEAN NOT NULL DEFAULT false;
+```
+
+Notes:
+- `RENAME COLUMN` keeps the column type — don't re-declare it in the same migration or you'll need a separate `ALTER COLUMN ... TYPE` (with its own data-length validation).
+- Always inspect the generated migration SQL and the `Warnings:` header before applying.
+- Verify after applying with a quick `SELECT` on the renamed column.
+
+### 23. Never Run `prisma migrate dev` Against a Database With Real Data — Use `migrate deploy`
+
+**Problem**: To create or apply migrations during Phase 36, an agent ran `prisma migrate dev` (a *development* command) from the host against the live dev database, auto-confirming the interactive prompt with `printf 'y\n'`. Prisma detected schema drift and offered to **reset the database** — the auto-confirmed `y` approved it, which **dropped every table and reapplied all migrations from scratch**, destroying all real data (orders, clients, the product catalog, and even the admin user). The tell-tale sign in the output was: instead of applying only the new pending migration, Prisma re-"applied" every migration from `init` onward (a reset re-runs the whole history).
+
+```
+$ prisma migrate dev --create-only --name ...
+Applying migration `20260530035918_init`        ← re-applying EVERYTHING = reset, not a normal apply
+Applying migration `20260614000001_add_user_id_fields`
+...
+Prisma Migrate created the following migration without applying it ...
+```
+
+The migration SQL itself (`RENAME COLUMN` + `ADD COLUMN`) was perfectly safe and data-preserving — the data loss came entirely from the `migrate dev` reset, **not** from the migration.
+
+**Fix**: For any database that holds data you care about (dev with manual entries, staging, production), **only use `migrate deploy`**:
+
+```bash
+# SAFE — applies pending migrations, never resets, never prompts
+npx prisma migrate deploy
+```
+
+`prisma migrate deploy` is designed for CI/production: it only applies migrations not yet recorded in `_prisma_migrations`, never creates migrations, never drops data, and never asks interactive questions. The Docker `entrypoint.sh` already uses `migrate deploy` — so the normal `docker compose up --build` flow is safe.
+
+Reserve `prisma migrate dev` strictly for **brand-new/throwaway** databases (e.g. a fresh local DB or a CI shadow DB). If you must create a migration against a populated DB, generate it with `--create-only` against a **separate shadow database** (or an empty one), hand-edit the SQL, and then apply it with `migrate deploy`. Never pipe `y` into `migrate dev` on a populated database — you may be silently approving a destructive reset.
+
+Recovery note: the idempotent `prisma/seed.js` re-creates the admin user on the next container start; the dōTERRA catalog can be reloaded idempotently with `npm run load:products` (it inserts products absent from the DB). Manually-entered clients/orders, however, are gone unless backed up.
