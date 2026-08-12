@@ -18,28 +18,88 @@ const mockOrders = [
   {
     id: 'order-1',
     orderNumber: 'ORD-001',
+    orderDate: '2026-08-01',
+    accountOwner: 'Ana Silva',
+    orderNotes: 'Pedido de teste',
     totalValue: '300.00',
     status: 'PENDENTE',
+    items: [{ pv: '10.50' }, { pv: '5.00' }],
+    payments: [],
   },
   {
     id: 'order-2',
     orderNumber: 'ORD-002',
+    orderDate: '2026-08-02',
+    accountOwner: null,
+    orderNotes: 'Descrição ORD-002',
     totalValue: '500.00',
     status: 'PARCIAL',
+    items: [{ pv: '20.00' }],
+    payments: [{ amount: '50.00' }],
   },
   {
     id: 'order-3',
     orderNumber: 'ORD-003',
+    orderDate: '2026-08-03',
+    accountOwner: 'Carlos Souza',
+    orderNotes: null,
     totalValue: '200.00',
     status: 'QUITADO',
+    items: [{ pv: '5.00' }],
+    payments: [{ amount: '250.00' }],
   },
   {
     id: 'order-4',
     orderNumber: 'ORD-004',
+    orderDate: '2026-08-04',
+    accountOwner: null,
+    orderNotes: null,
     totalValue: '0.00',
     status: 'PENDENTE',
+    items: [{ pv: '0.00' }],
+    payments: [],
   },
 ];
+
+const paidOrder = {
+  id: 'order-paid',
+  orderNumber: 'ORD-PAID',
+  orderDate: '2026-08-06',
+  accountOwner: null,
+  orderNotes: null,
+  totalValue: '100.00',
+  status: 'PARCIAL',
+  items: [],
+  payments: [{ amount: '100.00' }],
+};
+
+const overpaidOrder = {
+  id: 'order-overpaid',
+  orderNumber: 'ORD-OVERPAID',
+  orderDate: '2026-08-07',
+  accountOwner: 'Pedro Alves',
+  orderNotes: 'Sobrepagamento',
+  totalValue: '100.00',
+  status: 'PARCIAL',
+  items: [],
+  payments: [{ amount: '150.00' }],
+};
+
+const richOrder = {
+  id: 'order-rich',
+  orderNumber: 'ORD-RICH',
+  orderDate: '2026-08-05',
+  accountOwner: 'Roberta Lima',
+  orderNotes: 'Pedido de julho',
+  totalValue: '234.56',
+  status: 'PARCIAL',
+  items: [
+    { id: 'item-1', personId: 'p1', description: 'Lemongrass Óleo Essencial 15ml', details: 'Uso doméstico', chargedValue: '89.00', pv: '10.00' },
+    { id: 'item-2', personId: 'p1', description: 'On Guard + 30ml', details: null, chargedValue: '145.56', pv: '20.00' },
+    { id: 'item-3', personId: 'p2', description: 'Deep Blue Rub', details: 'Para o cliente X', chargedValue: '50.00', pv: '5.00' },
+  ],
+  payments: [],
+};
 
 const mockBalances = {
   'order-1': {
@@ -56,6 +116,22 @@ const mockBalances = {
   'order-4': {
     balances: [
       { personId: 'p4', personName: 'Brinde Person', itemTotal: '0.00', paymentTotal: '0.00', pending: '0.00' },
+    ],
+  },
+  'order-paid': {
+    balances: [
+      { personId: 'p1', personName: 'João Silva', itemTotal: '100.00', paymentTotal: '100.00', pending: '0.00' },
+    ],
+  },
+  'order-overpaid': {
+    balances: [
+      { personId: 'p1', personName: 'João Silva', itemTotal: '100.00', paymentTotal: '150.00', pending: '0.00' },
+    ],
+  },
+  'order-rich': {
+    balances: [
+      { personId: 'p1', personName: 'João Silva', itemTotal: '234.56', paymentTotal: '0.00', pending: '234.56' },
+      { personId: 'p2', personName: 'Maria Santos', itemTotal: '50.00', paymentTotal: '0.00', pending: '50.00' },
     ],
   },
 };
@@ -125,7 +201,7 @@ describe('ReceivablesPage', () => {
       mockGetImplementation([mockOrders[0]]);
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText(/Pendente/)).toBeInTheDocument();
+        expect(screen.getByText('Pendente')).toBeInTheDocument();
       });
     });
 
@@ -163,6 +239,111 @@ describe('ReceivablesPage', () => {
         expect(screen.getByText('Pago')).toBeInTheDocument();
         expect(screen.queryByText('Registrar Pagamento')).not.toBeInTheDocument();
       });
+    });
+  });
+
+  describe('Expanded List Columns', () => {
+    const rowFor = (orderNumber) => screen.getByText(orderNumber).closest('tr');
+
+    it('should render order date in BR format', async () => {
+      mockGetImplementation([mockOrders[0]]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+
+      expect(within(rowFor('ORD-001')).getByText('01/08/2026')).toBeInTheDocument();
+    });
+
+    it('should render responsible owner', async () => {
+      mockGetImplementation([mockOrders[0]]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+
+      expect(within(rowFor('ORD-001')).getByText('Ana Silva')).toBeInTheDocument();
+    });
+
+    it('should render a dash when responsible owner is absent', async () => {
+      mockGetImplementation([mockOrders[1]]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-002')).toBeInTheDocument();
+      });
+
+      expect(within(rowFor('ORD-002')).getByText('—')).toBeInTheDocument();
+    });
+
+    it('should render pending value equal to total when no payments exist', async () => {
+      mockGetImplementation([mockOrders[0]]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+
+      const row = rowFor('ORD-001');
+      expect(within(row).getAllByText(/R\$\s*300,00/)).toHaveLength(2);
+    });
+
+    it('should render pending value as total minus paid amount', async () => {
+      mockGetImplementation([mockOrders[1]]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-002')).toBeInTheDocument();
+      });
+
+      expect(within(rowFor('ORD-002')).getByText(/R\$\s*450,00/)).toBeInTheDocument();
+    });
+
+    it('should clamp pending value to R$ 0,00 on overpayment', async () => {
+      mockGetImplementation([mockOrders[2]]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-003')).toBeInTheDocument();
+      });
+
+      expect(within(rowFor('ORD-003')).getByText(/R\$\s*0,00/)).toBeInTheDocument();
+    });
+
+    it('should render PV Total as the sum of item pv', async () => {
+      mockGetImplementation([mockOrders[0]]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+
+      expect(within(rowFor('ORD-001')).getByText('15.50')).toBeInTheDocument();
+    });
+
+    it('should render description truncated with full text in title', async () => {
+      mockGetImplementation([mockOrders[0]]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+
+      const desc = within(rowFor('ORD-001')).getByText('Pedido de teste');
+      expect(desc).toHaveAttribute('title', 'Pedido de teste');
+    });
+
+    it('should render a dash for empty description', async () => {
+      mockGetImplementation([mockOrders[2]]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-003')).toBeInTheDocument();
+      });
+
+      expect(within(rowFor('ORD-003')).getByText('—')).toBeInTheDocument();
     });
   });
 
@@ -304,6 +485,137 @@ describe('ReceivablesPage', () => {
       await waitFor(() => {
         expect(screen.queryByText(/Registrar Pagamento — ORD-001/)).not.toBeInTheDocument();
       });
+    });
+  });
+
+  describe('Payment Modal — Order Summary Header', () => {
+    const openModalFor = async (order) => {
+      mockGetImplementation([order]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Registrar Pagamento')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Registrar Pagamento'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('payment-modal')).toBeInTheDocument();
+      });
+
+      return within(screen.getByTestId('payment-modal'));
+    };
+
+    it('should render all summary labels in the modal', async () => {
+      const modal = await openModalFor(mockOrders[0]);
+
+      expect(modal.getByText('Número')).toBeInTheDocument();
+      expect(modal.getByText('Data')).toBeInTheDocument();
+      expect(modal.getByText('Responsável')).toBeInTheDocument();
+      expect(modal.getByText('Valor Total')).toBeInTheDocument();
+      expect(modal.getByText('Valor Pendente')).toBeInTheDocument();
+      expect(modal.getByText('Descrição')).toBeInTheDocument();
+    });
+
+    it('should render order number, date, owner and description values', async () => {
+      const modal = await openModalFor(mockOrders[0]);
+
+      expect(modal.getByText('ORD-001')).toBeInTheDocument();
+      expect(modal.getByText('01/08/2026')).toBeInTheDocument();
+      expect(modal.getByText('Ana Silva')).toBeInTheDocument();
+      expect(modal.getByTestId('order-summary-description')).toHaveTextContent('Pedido de teste');
+    });
+
+    it('should show pending equal to total when there are no payments', async () => {
+      const modal = await openModalFor(mockOrders[0]);
+
+      expect(modal.getByTestId('order-summary-total')).toHaveTextContent(/R\$\s*300,00/);
+      expect(modal.getByTestId('order-summary-pending')).toHaveTextContent(/R\$\s*300,00/);
+    });
+
+    it('should clamp pending to R$ 0,00 when the order is fully paid', async () => {
+      const modal = await openModalFor(paidOrder);
+
+      expect(modal.getByTestId('order-summary-total')).toHaveTextContent(/R\$\s*100,00/);
+      expect(modal.getByTestId('order-summary-pending')).toHaveTextContent(/R\$\s*0,00/);
+    });
+
+    it('should clamp pending to R$ 0,00 on overpayment', async () => {
+      const modal = await openModalFor(overpaidOrder);
+
+      expect(modal.getByTestId('order-summary-total')).toHaveTextContent(/R\$\s*100,00/);
+      expect(modal.getByTestId('order-summary-pending')).toHaveTextContent(/R\$\s*0,00/);
+    });
+
+    it('should set the title attribute on the description for tooltip', async () => {
+      const modal = await openModalFor(mockOrders[0]);
+
+      const desc = modal.getByTestId('order-summary-description');
+      expect(desc).toHaveAttribute('title', 'Pedido de teste');
+    });
+
+    it('should render a dash when the description is absent', async () => {
+      const modal = await openModalFor(paidOrder);
+
+      const desc = modal.getByTestId('order-summary-description');
+      expect(desc).toHaveTextContent('—');
+      expect(desc).not.toHaveAttribute('title');
+    });
+  });
+
+  describe('Payment Modal — Per-Person Items', () => {
+    const openRichOrderModal = async () => {
+      mockGetImplementation([richOrder]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Registrar Pagamento')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Registrar Pagamento'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('payment-modal')).toBeInTheDocument();
+      });
+
+      return within(screen.getByTestId('payment-modal'));
+    };
+
+    it('should list the selected person items with description, charged value and details', async () => {
+      const modal = await openRichOrderModal();
+
+      expect(modal.getByText('Itens desta pessoa')).toBeInTheDocument();
+      expect(modal.getByText('Lemongrass Óleo Essencial 15ml')).toBeInTheDocument();
+      expect(modal.getByText(/R\$\s*89,00/)).toBeInTheDocument();
+      expect(modal.getByText(/Uso doméstico/)).toBeInTheDocument();
+      expect(modal.getByText('On Guard + 30ml')).toBeInTheDocument();
+      expect(modal.getByText(/R\$\s*145,56/)).toBeInTheDocument();
+    });
+
+    it('should render a dash for items without details', async () => {
+      const modal = await openRichOrderModal();
+
+      expect(modal.getByText('On Guard + 30ml')).toBeInTheDocument();
+      expect(modal.getByText(/Detalhes: —/)).toBeInTheDocument();
+    });
+
+    it('should not show items belonging to other persons', async () => {
+      const modal = await openRichOrderModal();
+
+      expect(modal.queryByText('Deep Blue Rub')).not.toBeInTheDocument();
+    });
+
+    it('should show only the selected person items when changing the person', async () => {
+      const modal = await openRichOrderModal();
+
+      fireEvent.change(modal.getByRole('combobox'), { target: { value: 'p2' } });
+
+      await waitFor(() => {
+        expect(modal.getByText('Deep Blue Rub')).toBeInTheDocument();
+      });
+
+      expect(modal.queryByText('Lemongrass Óleo Essencial 15ml')).not.toBeInTheDocument();
+      expect(modal.queryByText('On Guard + 30ml')).not.toBeInTheDocument();
     });
   });
 

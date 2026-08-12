@@ -3,6 +3,7 @@ import api from '../services/api';
 import { useToast } from '../components/Toast';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { toCents, formatBRL } from '../utils/money';
+import { formatDateBR } from '../utils/dates';
 
 const getTodayString = () => {
   const d = new Date();
@@ -108,6 +109,24 @@ const ReceivablesPage = () => {
     return !!balance && toCents(balance.itemTotal) === 0;
   };
 
+  const getOrderPaidCents = () => {
+    if (!selectedOrder) return 0;
+    return (selectedOrder.payments || []).reduce(
+      (sum, p) => sum + toCents(parseFloat(p.amount)),
+      0
+    );
+  };
+
+  const getOrderPendingCents = () => {
+    if (!selectedOrder) return 0;
+    return Math.max(0, toCents(parseFloat(selectedOrder.totalValue)) - getOrderPaidCents());
+  };
+
+  const getSelectedPersonItems = () => {
+    if (!selectedOrder || !selectedOrder.items) return [];
+    return selectedOrder.items.filter((item) => item.personId === selectedPersonId);
+  };
+
   const submitPayment = async () => {
     try {
       setSubmitting(true);
@@ -203,38 +222,75 @@ const ReceivablesPage = () => {
                 <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Número</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Valor Total (R$)</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Data</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Responsável</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Valor (R$)</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Valor Pendente</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">PV Total</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Descrição</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Status</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {orders.map((order) => (
-                    <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                        {order.orderNumber}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                        {formatBRL(parseFloat(order.totalValue))}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {statusBadge(order.status)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        {order.status !== 'QUITADO' && (
-                          <button
-                            onClick={() => openPaymentModal(order)}
-                            className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
-                          >
-                            Registrar Pagamento
-                          </button>
-                        )}
-                        {order.status === 'QUITADO' && (
-                          <span className="text-gray-400 dark:text-gray-500 text-sm">Pago</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {orders.map((order) => {
+                    const totalPV = (order.items || []).reduce(
+                      (sum, item) => sum + (parseFloat(item.pv) || 0),
+                      0
+                    );
+                    const paidCents = (order.payments || []).reduce(
+                      (sum, payment) => sum + toCents(parseFloat(payment.amount)),
+                      0
+                    );
+                    const pendingCents = Math.max(0, toCents(parseFloat(order.totalValue)) - paidCents);
+                    return (
+                      <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                          {order.orderNumber}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                          {formatDateBR(order.orderDate)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                          {order.accountOwner || '—'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                          {formatBRL(parseFloat(order.totalValue))}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                          {formatBRL(pendingCents / 100)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                          {totalPV.toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 max-w-[160px]">
+                          {order.orderNotes ? (
+                            <span title={order.orderNotes} className="block truncate text-sm text-gray-900 dark:text-gray-100">
+                              {order.orderNotes}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-gray-400 dark:text-gray-500">—</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {statusBadge(order.status)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          {order.status !== 'QUITADO' && (
+                            <button
+                              onClick={() => openPaymentModal(order)}
+                              className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
+                            >
+                              Registrar Pagamento
+                            </button>
+                          )}
+                          {order.status === 'QUITADO' && (
+                            <span className="text-gray-400 dark:text-gray-500 text-sm">Pago</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -243,8 +299,11 @@ const ReceivablesPage = () => {
       </div>
 
       {showPaymentModal && selectedOrder && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
+        <div
+          data-testid="payment-modal"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
               <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
                 Registrar Pagamento — {selectedOrder.orderNumber}
@@ -257,6 +316,41 @@ const ReceivablesPage = () => {
               </button>
             </div>
             <form onSubmit={handlePaymentSubmit} className="px-6 py-4">
+              <div className="mb-4 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 p-3">
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                  <div>
+                    <dt className="text-xs text-gray-500 dark:text-gray-400">Número</dt>
+                    <dd className="text-sm font-medium text-gray-900 dark:text-gray-100">{selectedOrder.orderNumber}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-gray-500 dark:text-gray-400">Data</dt>
+                    <dd className="text-sm font-medium text-gray-900 dark:text-gray-100">{formatDateBR(selectedOrder.orderDate)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-gray-500 dark:text-gray-400">Responsável</dt>
+                    <dd className="text-sm font-medium text-gray-900 dark:text-gray-100">{selectedOrder.accountOwner || '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-gray-500 dark:text-gray-400">Valor Total</dt>
+                    <dd data-testid="order-summary-total" className="text-sm font-medium text-gray-900 dark:text-gray-100">{formatBRL(parseFloat(selectedOrder.totalValue))}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-gray-500 dark:text-gray-400">Valor Pendente</dt>
+                    <dd data-testid="order-summary-pending" className="text-sm font-medium text-gray-900 dark:text-gray-100">{formatBRL(getOrderPendingCents() / 100)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-gray-500 dark:text-gray-400">Descrição</dt>
+                    <dd
+                      data-testid="order-summary-description"
+                      className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate"
+                      title={selectedOrder.orderNotes || undefined}
+                    >
+                      {selectedOrder.orderNotes || '—'}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Pessoa
@@ -295,6 +389,37 @@ const ReceivablesPage = () => {
                   <p className="text-sm text-blue-700 dark:text-blue-400">
                     Saldo pendente: <strong>{formatBRL(getSelectedPendingCents() / 100)}</strong>
                   </p>
+                )}
+              </div>
+            )}
+
+            {selectedPersonId && (
+              <div className="mb-4">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Itens desta pessoa
+                </h4>
+                {getSelectedPersonItems().length === 0 ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Nenhum item registrado para esta pessoa
+                  </p>
+                ) : (
+                  <div className="rounded-md border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700 overflow-hidden">
+                    {getSelectedPersonItems().map((item) => (
+                      <div key={item.id} className="px-3 py-2 bg-white dark:bg-gray-800">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {item.description || '—'}
+                          </span>
+                          <span className="text-sm font-semibold text-primary-700 dark:text-primary-400 whitespace-nowrap">
+                            {formatBRL(parseFloat(item.chargedValue))}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          {`Detalhes: ${item.details || '—'}`}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             )}
