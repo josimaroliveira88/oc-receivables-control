@@ -65,7 +65,7 @@ oc-receivables-control/
 │ └── tests/
 │ ├── setup.js # Test environment setup (NODE_ENV, DATABASE_URL, JWT_SECRET)
 │ ├── people.test.js # 17 People CRUD tests
-│   ├── orders.test.js # 42 Orders + Items CRUD tests (incl. product/chargedValue/orderDate/descriptive fields)
+│   ├── orders.test.js # 44 Orders + Items CRUD tests (incl. product/chargedValue/orderDate/descriptive fields/zero-value gift)
 │   ├── payments.test.js # 28 Payments & Balance tests (incl. 2 floating-point regression tests + 2 custom paidAt tests)
 │   ├── dashboard.test.js # 6 Dashboard yearly breakdown tests
 │   ├── auth.test.js # 4 Auth tests
@@ -104,7 +104,7 @@ oc-receivables-control/
 │ ├── setup.js # @testing-library/jest-dom + window.matchMedia mock
 │ ├── api.test.js # 10 API interceptor tests (request/response, 401 + 403 redirect, other errors)
 │ ├── PeoplePage.test.jsx # 14 PeoplePage tests
-│   ├── OrdersPage.test.jsx # 52 OrdersPage tests
+│   ├── OrdersPage.test.jsx # 54 OrdersPage tests
 │   ├── ReceivablesPage.test.jsx # 27 ReceivablesPage tests (badge rendering, payment modal, validation guards, payment date field, toast feedback, FP regression)
 │ ├── Header.test.jsx # 6 Header tests (title, nav links incl. Produtos, Sair button, logout function, username display, hidden when not logged in)
 │ ├── MobileDrawer.test.jsx # 11 MobileDrawer tests (title, hamburger open/close, 5 nav items, active highlight, logout, tutorial event, backdrop close, mobile-only)
@@ -276,7 +276,7 @@ npm run dev
 ✅ exportExcel unit test suite: 32 tests covering workbook structure, sheet content (Pedidos, Pessoas, Histórico de Pagamentos, Saldo Pendente), BRL monetary cell formatting, DD/MM/YYYY date formatting, empty data handling, column widths, floating-point precision
 ✅ DashboardPage export integration tests: 7 tests covering export button rendering, disabled state, enabled state, exportExcel call with fetched data, success/error toast feedback, "Exportando..." loading state
 
-## Completed Phases (32)
+## Completed Phases (33)
 - **Phase 20**: ✅ Prisma schema update (`userId` in Person/Order), registration API (`POST /api/auth/register`), and TDD setup. 82 backend tests.
 - **Phase 21**: ✅ Backend data isolation (middleware enforcement on all routes, query filtering by `req.user.userId`). `userId` made required with `ON DELETE CASCADE`.
 - **Phase 22**: ✅ Frontend registration UI (`RegisterPage.jsx`) with PT-BR form, client-side validation, success redirect, and LoginPage navigation. 18 RegisterPage tests + 9 LoginPage tests. 160 frontend tests, 242 total tests.
@@ -288,8 +288,9 @@ npm run dev
 - **Phase 28**: ✅ Product CRUD API (`/api/products`) with immutable code, price-history-preserving updates and soft-delete; ProductsPage UI; mobile bottom nav replaced by a hamburger/drawer menu (`MobileDrawer.jsx`) and Produtos link added to desktop header; onboarding tour updated to 9 steps. 21 new backend tests + 11 MobileDrawer tests + 14 ProductsPage tests. 119 backend tests, 201 frontend tests, 320 total tests.
 - **Phase 29**: ✅ Product search & infinite scroll — `GET /api/products` extended with `q` (partial name/code, case-insensitive), `sortBy`/`sortDir` (name/code/regularPrice/memberPrice/pv) and `page`/`pageSize` pagination returning `{ data, pagination }`; ProductsPage gained a search box with icon, sort dropdown, active/inactive status filter, product count and IntersectionObserver infinite scroll (20 per page). 9 new backend tests + 6 new frontend tests. 128 backend tests, 207 frontend tests, 335 total tests.
 - **Phase 30**: ✅ Client-side search/sort/filter — `GET /api/products` accepts `pageSize=all` to return the full list; ProductsPage loads the catalog once into browser memory and applies search (name/code), active/inactive status filter and sorting in-memory via `useMemo`, with infinite scroll slicing the in-memory list (no per-filter API calls). 1 new backend test + 3 new frontend tests. 129 backend tests, 210 frontend tests, 339 total tests.
-- **Phase 31**: ✅ Order item sub-form — each item links to a catalog product (`productId` FK → `Product`, `ON DELETE SET NULL`) via a filterable `ProductCombobox` that auto-fills read-only member-price and PV snapshots, plus an editable `chargedValue` (renamed from `value`) and free-text `details VARCHAR(500)`. Field order per item: Pessoa → Produto → Valor Membro → Valor Cobrado → PV → Detalhes, with a "Limpar produto" unlink button. `description` became optional (auto-filled from product name). Backend: new `validateProducts` helper (active products only), `itemSchema` extended, payments/dashboard sums read `chargedValue`. Migration `20260811190000_extend_item_fields`. 6 new backend tests + 11 new frontend tests. 135 backend tests, 221 frontend tests, 356 total tests.
+- **Phase 31**: ✅ Order item sub-form — each item links to a catalog product (`productId` FK → `Product`, `ON DELETE SET NULL`) via a filterable `ProductCombobox` that auto-fills read-only member-price and PV snapshots, plus an editable `chargedValue` (renamed from `value`) and free-text `details VARCHAR(500)`. Field order per item: Pessoa → Produto → Valor Membro → Valor Cobrado → PV → Detalhes, with a "Limpar produto" unlink button. `description` became optional (auto-filled from product name). Backend: new `validateProducts` helper (active products only), `itemSchema` extended, payments/dashboard sums read `chargedValue`. Migration `20260811190000_extend_item_fields`. `chargedValue` accepts zero (gift/brinde) and the frontend treats an empty field as 0; backend Zod uses `min(0).default(0)`. 6 new backend tests + 11 new frontend tests. 135 backend tests, 221 frontend tests, 356 total tests.
 - **Phase 32**: ✅ Order descriptive fields — dōTERRA number placeholder + "Ver pedido no site" tracking link (`https://status.ondeestameupedido.com/tracking/{numero}/`), free-text `accountOwner VARCHAR(120)` (dōTERRA ID or name), `PaymentType` enum select (PIX / Boleto / Cartão de Crédito), free-text `orderNotes VARCHAR(500)` with live counter, and client-computed "Soma dos Produtos (Valor Cobrado)" + "Soma dos PV" summary cards above the items. Orders list gained Responsável, Tipo Pgto (badge), PV Total, Descrição (truncated + tooltip) and Rastreio (external link) columns. Backend: `createOrderSchema`/`updateOrderSchema` extended with the three nullable fields; `updateOrder` uses the `!== undefined` spread pattern so explicit `null` clears a field. Migration `20260811193000_add_order_descriptive_fields`. 9 new backend tests + 17 new frontend tests. 144 backend tests, 238 frontend tests, 382 total tests.
+- **Phase 33**: ✅ Zero/gift `chargedValue` — the Valor Cobrado field now accepts zero (gift/brinde items) and the frontend treats an **empty** field as 0 (no longer required to type 0). Negative values are still rejected. Backend: `itemSchema.chargedValue` changed from `positive()` to `min(0).default(0)` (missing field defaults to 0 — robust for direct API consumers). Frontend: `itemPayload` converts empty/null to 0; create/update validations reject only negatives (`< 0`); Valor Cobrado input keeps `min="0"` and placeholder `0.00`. 2 new backend tests + 2 new/updated frontend tests. 146 backend tests, 240 frontend tests, 386 total tests.
 
 ## Notes for Developers/Agents
 - Backend source is mounted at `/app` inside container for live editing
