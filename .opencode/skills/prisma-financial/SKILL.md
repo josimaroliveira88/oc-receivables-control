@@ -54,7 +54,7 @@ Never allow:
 - zero payments against a person with chargeable items (`itemSumCents > 0 && amountCents === 0` rejected with `'Amount must be greater than zero for a person with chargeable items'`)
 - partial inconsistent writes
 
-Allowed (with frontend `window.confirm` gate):
+Allowed (with frontend confirmation gate — custom `ConfirmDialog` on the Recebíveis screen):
 
 - zero-value payments (R$ 0,00 "Dar baixa" for gift items with `chargedValue = 0`, i.e. `itemSum === 0`)
 - overpayments (amount > pending balance; pending clamps at 0, the excess stays recorded in `paymentTotal`)

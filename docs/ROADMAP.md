@@ -1084,6 +1084,34 @@ Key Design Decisions:
 
 Deliverable: ✅ "Dar baixa" de R$ 0,00 para brindes + pagamento com overpayment confirmado (com regra anti-zero para pessoas com itens cobráveis) — **149 backend tests (146 + 3 new), 243 frontend tests (240 + 3 new), 392 total tests**
 
+## 🎯 Phase 35: Custom Overpayment Confirmation Dialog
+
+Status: ✅ COMPLETED
+
+Context: The overpayment confirmation used the browser's native `window.confirm`, which looks nothing like the rest of the application. The user wants an in-app HTML confirmation dialog styled like the other modals (white/dark cards, gradient primary button, gray cancel button), replacing the native browser dialog.
+
+Stack: React, Tailwind CSS, lucide-react, Vitest.
+
+Task (Frontend):
+- `frontend/src/components/ConfirmDialog.jsx` (**new**): reusable custom confirmation dialog with props `open`, `title`, `message` (accepts React nodes, so amounts can be wrapped in `<strong>`), `confirmLabel` (default `'Confirmar'`), `cancelLabel` (default `'Cancelar'`), `onConfirm`, `onCancel`, `loading`. Overlay `fixed inset-0 z-[70]` with `bg-black/50` (same hierarchy as the onboarding tour, above the payment modal's `z-[60]`), centered card `bg-white dark:bg-gray-800 rounded-xl shadow-2xl`, amber `AlertTriangle` icon in a `rounded-full` circle, PT-BR copy, gradient `from-primary-700 to-primary-500` confirm button, gray cancel button (same styles as the payment modal buttons), `role="dialog"` + `aria-modal="true"`, auto-focus on the confirm button, Escape key and backdrop-click to cancel (both disabled while `loading`)
+- `frontend/src/pages/ReceivablesPage.jsx`:
+  - The POST logic was extracted from `handlePaymentSubmit` into a `submitPayment()` helper (unchanged behavior — same payload, toast feedback and error mapping)
+  - `handlePaymentSubmit` now **shows the dialog** (`setShowOverpayConfirm(true)`) when `amountCents > pendingCents` instead of calling `window.confirm`; the payment is only posted after the user confirms in the dialog
+  - A `<ConfirmDialog open={showOverpayConfirm} ...>` renders next to the payment modal with title **"Confirmar recebimento"**, the message "Valor de **R$ X** é maior que o saldo pendente (**R$ Y**). Deseja mesmo confirmar este recebimento?" (amounts bolded via `<strong>`), `confirmLabel="Confirmar recebimento"` and `cancelLabel="Cancelar"`; `onConfirm` closes the dialog and calls `submitPayment()`, `onCancel` only closes it
+- Tests: `frontend/tests/ReceivablesPage.test.jsx`:
+  - Removed all `window.confirm` mocking (`beforeEach` no longer stubs it; the zero-balance and overpayment tests no longer set `window.confirm`)
+  - Reworked: the overpayment tests now assert the dialog is rendered (`screen.findByRole('dialog')`, scoped assertions with `within(dialog)` for the message and the BRL amounts) and click its **"Confirmar recebimento"** button to confirm / **"Cancelar"** button to abort; the cancelled test also asserts the dialog closes with no POST
+  - Added: `should not show the overpayment confirmation when amount equals the pending balance` — a full-settlement amount (R$ 300,00 on a R$ 300,00 pending) posts directly without rendering the dialog
+  - ReceivablesPage tests 30 → 31. **243 → 244 frontend tests.**
+
+Key Design Decisions:
+- The `ConfirmDialog` is a standalone reusable component so future confirmation flows (deletes, destructive actions, etc.) can adopt it instead of `window.confirm`
+- `message` accepts React nodes so monetary values are emphasized with `<strong>` inside the sentence
+- z-index `z-[70]` matches the onboarding tour and stays above the payment modal (`z-[60]`), keeping the modal visible behind the dialog as context
+- The overpayment rule is unchanged (still unbounded on the backend); the custom dialog is purely a UI replacement of the previous `window.confirm` gate
+
+Deliverable: ✅ Confirmação de overpayment em HTML no visual da aplicação (componente reutilizável `ConfirmDialog`) substituindo o `window.confirm` nativo — **149 backend tests (inalterados), 244 frontend tests (243 + 1 new), 393 total tests**
+
 ## 🏆 Project Highlights
 
 - **Zero Floating-Point Errors**: All financial calculations use integer cents arithmetic
