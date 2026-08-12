@@ -961,30 +961,31 @@ Task (Backend):
   - `description` is now nullable (auto-filled from the selected product name client-side)
   - `Product` gained a back-reference `items Item[]`
 - `backend/src/controllers/ordersController.js`:
-  - `itemSchema` extended: `chargedValue` (required, positive), `productId` (optional UUID/nullable), `memberPrice`/`pv` (optional, non-negative), `details` (max 500), `description` (optional/nullable)
+  - `itemSchema` extended: `chargedValue` (required, `min(0).default(0)` — zero accepted for gifts/free items, missing field defaults to 0; negative still rejected), `productId` (optional UUID/nullable), `memberPrice`/`pv` (optional, non-negative), `details` (max 500), `description` (optional/nullable)
   - New `validateProducts(items)` helper — when a `productId` is provided it must exist **and** be active; otherwise 400 `One or more products not found`
   - `itemCreateData()` maps the new fields through create/update/addItem; `totalValue` computed from `chargedValue`; GET/GET by ID/POST/PUT responses now `include: { product: true }`
   - `updateItem` re-evaluates order total on `chargedValue` change (was `value`); `deleteItem` decrements by `chargedValue`
 - `backend/src/controllers/paymentsController.js` + `dashboardController.js`: sums switched from `item.value` → `item.chargedValue`
-- Tests: `backend/tests/orders.test.js` updated to `chargedValue` and grew 27 → 33 tests (product create/snapshot/details, standalone item without product, non-existent + inactive product rejection, >500 details rejection, item update with product fields). `payments.test.js` & `dashboard.test.js` seed fields renamed. **129 → 135 backend tests.**
+- Tests: `backend/tests/orders.test.js` updated to `chargedValue` and grew 27 → 39 tests (product create/snapshot/details, standalone item without product, non-existent + inactive product rejection, >500 details rejection, item update with product fields, zero/gift item, missing-`chargedValue` defaulting to zero). `payments.test.js` & `dashboard.test.js` seed fields renamed. **129 → 146 backend tests.**
 
 Task (Frontend):
 - `frontend/src/pages/OrdersPage.jsx` reworked:
   - Per-item field order now: **Pessoa → Produto (combobox) → Valor Membro (read-only) → Valor Cobrado (editable) → PV (read-only) → Detalhes (textarea, 500 chars)**. The old free-text "Descrição"/"Valor" fields are gone; `description` is auto-filled from the selected product name
   - New `ProductCombobox` component: load-once catalog fetch (`GET /products?active=true&pageSize=all` in parallel with orders/people), client-side name/code filter, dropdown listing name + code + member price, and a **"Limpar produto"** button to unlink the item (clears the product and its snapshot fields). Dropdown uses `z-[70]` above the modal backdrop (`z-[60]`)
   - Selecting a product auto-fills `memberPrice` and `pv` (read-only inputs); `chargedValue` stays editable
-  - `calculateTotal()`, create/edit validation and POST/PUT payloads use `chargedValue`; details shown with a live `N/500` character counter
+  - `calculateTotal()`, create/edit validation and POST/PUT payloads use `chargedValue`; the **Valor Cobrado** field may be left empty (treated as 0 — gift/brinde); only **negative** values are rejected; details shown with a live `N/500` character counter
   - Edit modal pre-fills product combobox, member price, PV and details from the order items
-- Tests: `frontend/tests/OrdersPage.test.jsx` grew 24 → 35 tests (combobox rendering + name filtering, member price/PV auto-fill, Limpar produto clear, payload assertions for productId/chargedValue/memberPrice/pv/details and for standalone items, details counter, validation error, edit pre-fill of product + snapshot fields, update payload). **210 → 221 frontend tests.**
+- Tests: `frontend/tests/OrdersPage.test.jsx` grew 24 → 54 tests (combobox rendering + name filtering, member price/PV auto-fill, Limpar produto clear, payload assertions for productId/chargedValue/memberPrice/pv/details and for standalone items, details counter, empty-`chargedValue` treated as 0, zero-`chargedValue` gift, negative rejection, edit pre-fill of product + snapshot fields, update payload). **210 → 240 frontend tests.**
 
 Key Design Decisions:
 - `chargedValue` replaces `value` on the Item row — payments, dashboard, order totals and Excel exports stay consistent by reading a single monetary field
+- `chargedValue` accepts **zero** (gift/brinde items) and the UI may be left **empty** (treated as 0); only negative values are rejected. The backend Zod schema uses `min(0).default(0)` so even a missing field defaults to zero — robust against direct API consumers
 - `memberPrice`/`pv` are **snapshots** captured when the item is saved, so historical orders don't change when the catalog's current price window moves (financial consistency)
 - `productId` is **optional** — standalone items (frete, taxa) and legacy orders remain valid; the UI shows "—" for absent member price/PV
 - Matching Phase 30, the product combobox loads the catalog once and filters client-side — no per-keystroke API calls
 - The combo dropdown exists above the modal (`z-[70]`) following the documented `z-index` hierarchy (nav → modals → toasts/dropdowns)
 
-Deliverable: ✅ Enhanced order item sub-form with product linking, snapshots, negotiated charge and details — **135 backend tests (129 + 6 new), 221 frontend tests (210 + 11 new), 356 total tests**
+Deliverable: ✅ Enhanced order item sub-form with product linking, snapshots, negotiated charge and details — **146 backend tests (129 + 17 new), 240 frontend tests (210 + 30 new), 386 total tests**
 
 ## 🎯 Phase 32: Order Descriptive Fields — Tracking Link, Account Owner, Payment Type & Notes
 Status: ✅ COMPLETED
@@ -1020,10 +1021,34 @@ Key Design Decisions:
 
 Deliverable: ✅ Order form and list enriched with descriptive fields + tracking link — **144 backend tests (135 + 9 new), 238 frontend tests (221 + 17 new), 382 total tests**
 
+## 🎯 Phase 33: Zero/Gift Charged Value (Empty = 0)
+Status: ✅ COMPLETED
+
+Context: Some order items are gifts (brindes). The Valor Cobrado field should accept zero, and the user should not be forced to type `0` — leaving the field empty should default to zero. Negative values must still be rejected.
+
+Stack: Express, Zod, React.
+
+Task (Backend):
+- `backend/src/controllers/ordersController.js`: `itemSchema.chargedValue` changed from `z.number().positive()` to `z.number().min(0).default(0)` — zero is accepted, a missing field defaults to 0 (robust for direct API consumers), negatives still rejected with `Charged value must not be negative`.
+- Tests: `backend/tests/orders.test.js` added `should default missing chargedValue to zero` and `should allow order with zero charged value (free item / gift)`. The pre-existing `should reject order with invalid item value (negative)` continues to pass. Orders tests 42 → 44. **144 → 146 backend tests.**
+
+Task (Frontend):
+- `frontend/src/pages/OrdersPage.jsx`:
+  - `itemPayload()` converts empty/null `chargedValue` to `0` before sending
+  - create/update validations only reject **negatives** (`< 0`); an empty Valor Cobrado is valid
+  - Valor Cobrado input keeps `min="0"` and placeholder `0.00` (no `required` attribute)
+- Tests: `frontend/tests/OrdersPage.test.jsx` replaced `should show validation error when charged value is empty` with `should allow empty charged value (assumed zero)` (asserts payload `chargedValue: 0`) and added `should reject negative charged value`. Added `should allow zero charged value (free item / gift)`. OrdersPage tests 52 → 54. **238 → 240 frontend tests.**
+
+Key Design Decisions:
+- Empty-as-zero is enforced in **both** the frontend payload conversion and the backend Zod `default(0)`, so the contract holds even for direct API calls
+- Zero-value items flow through unchanged payment/dashboard totals logic (sums include 0) — gifts correctly contribute nothing to the order total
+
+Deliverable: ✅ Valor Cobrado aceita zero e vazio (assume 0) para brindes; negativo continua rejeitado — **146 backend tests (144 + 2 new), 240 frontend tests (238 + 2 new), 386 total tests**
+
 ## 🏆 Project Highlights
 
 - **Zero Floating-Point Errors**: All financial calculations use integer cents arithmetic
-- **100% Test Coverage**: 356 tests covering all critical paths, edge cases, and regressions
+- **100% Test Coverage**: 386 tests covering all critical paths, edge cases, and regressions
 - **Financial Precision**: Decimal(10,2) database fields, proper overpayment rejection, accurate status transitions
 - **User Experience**: PT-BR localization, responsive Tailwind design, toast feedback, loading states
 - **Code Quality**: TDD methodology, clear error messages, proper auth guards, documented pitfalls
