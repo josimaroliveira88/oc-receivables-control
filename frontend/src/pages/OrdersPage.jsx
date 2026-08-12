@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ExternalLink } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ExternalLink, Plus } from 'lucide-react';
 import api from '../services/api';
 import { toCents, formatBRL } from '../utils/money';
 
@@ -161,6 +161,7 @@ const OrdersPage = () => {
   const [paymentType, setPaymentType] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
   const [items, setItems] = useState([emptyItem()]);
+  const addItemBtnRef = useRef(null);
 
   const fetchData = async () => {
     try {
@@ -182,6 +183,11 @@ const OrdersPage = () => {
 
   const addItem = () => {
     setItems([...items, emptyItem()]);
+    setTimeout(() => {
+      if (addItemBtnRef.current && typeof addItemBtnRef.current.scrollIntoView === 'function') {
+        addItemBtnRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+    }, 0);
   };
 
   const removeItem = (index) => {
@@ -549,13 +555,6 @@ const OrdersPage = () => {
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-3">
                   <span className="font-medium text-gray-700 dark:text-gray-300">Itens do Pedido</span>
-                  <button
-                    type="button"
-                    onClick={addItem}
-                    className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 rounded-md transition-colors"
-                  >
-                    Adicionar Item
-                  </button>
                 </div>
 
                 {items.map((item, index) => (
@@ -646,6 +645,16 @@ const OrdersPage = () => {
                     </div>
                   </div>
                 ))}
+
+                <button
+                  type="button"
+                  onClick={addItem}
+                  ref={addItemBtnRef}
+                  className="w-full px-3 py-2 mt-1 text-sm font-medium text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 rounded-md transition-colors flex items-center justify-center gap-1"
+                >
+                  <Plus className="w-4 h-4" />
+                  Adicionar Item
+                </button>
               </div>
 
               <div className="flex items-center justify-end space-x-3 mt-6">
