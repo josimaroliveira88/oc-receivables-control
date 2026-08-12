@@ -25,17 +25,40 @@ const renderPage = () => {
   );
 };
 
+const mockPeople = [
+  {
+    id: '1',
+    name: 'João Silva',
+    commonGroups: 'Grupo do WhatsApp',
+    whatsapp: '5511999998888',
+    instagram: 'https://instagram.com/joao',
+    address: 'Rua das Flores, 123',
+    isVip: true,
+    isDoterraMember: true,
+  },
+  {
+    id: '2',
+    name: 'Maria Santos',
+    commonGroups: null,
+    whatsapp: 'joao@email.com',
+    instagram: null,
+    address: null,
+    isVip: false,
+    isDoterraMember: false,
+  },
+];
+
 describe('PeoplePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   describe('Rendering', () => {
-    it('should render "Cadastro de Pessoas"', async () => {
+    it('should render "Cadastro de Clientes"', async () => {
       mockGet.mockResolvedValue({ data: [] });
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('Cadastro de Pessoas')).toBeInTheDocument();
+        expect(screen.getByText('Cadastro de Clientes')).toBeInTheDocument();
       });
     });
 
@@ -51,7 +74,7 @@ describe('PeoplePage', () => {
       mockGet.mockResolvedValue({ data: [] });
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('Nenhuma pessoa cadastrada')).toBeInTheDocument();
+        expect(screen.getByText('Nenhum cliente cadastrado')).toBeInTheDocument();
       });
     });
 
@@ -63,19 +86,59 @@ describe('PeoplePage', () => {
   });
 
   describe('People List', () => {
-    const mockPeople = [
-      { id: '1', name: 'João Silva', contact: 'joao@email.com' },
-      { id: '2', name: 'Maria Santos', contact: 'maria@email.com' },
-    ];
-
-    it('should display people in a table', async () => {
+    it('should display people in a table with client fields', async () => {
       mockGet.mockResolvedValue({ data: mockPeople });
       renderPage();
 
       await waitFor(() => {
         expect(screen.getByText('João Silva')).toBeInTheDocument();
         expect(screen.getByText('Maria Santos')).toBeInTheDocument();
-        expect(screen.getByText('joao@email.com')).toBeInTheDocument();
+        expect(screen.getByText('Grupo do WhatsApp')).toBeInTheDocument();
+        expect(screen.getByText('Rua das Flores, 123')).toBeInTheDocument();
+      });
+    });
+
+    it('should render WhatsApp as a wa.me link for valid numbers', async () => {
+      mockGet.mockResolvedValue({ data: [mockPeople[0]] });
+      renderPage();
+
+      await waitFor(() => {
+        const link = screen.getByText('+55 (11) 99999-8888');
+        expect(link.tagName).toBe('A');
+        expect(link).toHaveAttribute('href', 'https://wa.me/5511999998888');
+        expect(link).toHaveAttribute('target', '_blank');
+      });
+    });
+
+    it('should render WhatsApp as plain text when out of pattern (legacy value)', async () => {
+      mockGet.mockResolvedValue({ data: [mockPeople[1]] });
+      renderPage();
+
+      await waitFor(() => {
+        const cell = screen.getByText('joao@email.com');
+        expect(cell.tagName).not.toBe('A');
+      });
+    });
+
+    it('should render Instagram as a clickable link', async () => {
+      mockGet.mockResolvedValue({ data: [mockPeople[0]] });
+      renderPage();
+
+      await waitFor(() => {
+        const link = screen.getByText('https://instagram.com/joao');
+        expect(link.tagName).toBe('A');
+        expect(link).toHaveAttribute('href', 'https://instagram.com/joao');
+        expect(link).toHaveAttribute('target', '_blank');
+      });
+    });
+
+    it('should render VIP and Membro doTERRA badges', async () => {
+      mockGet.mockResolvedValue({ data: mockPeople });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getAllByText('Sim')).toHaveLength(2);
+        expect(screen.getAllByText('Não')).toHaveLength(2);
       });
     });
 
@@ -90,7 +153,7 @@ describe('PeoplePage', () => {
     });
   });
 
-  describe('Create Person Modal', () => {
+  describe('Create Client Modal', () => {
     it('should open modal when clicking "Novo"', async () => {
       mockGet.mockResolvedValue({ data: [] });
       renderPage();
@@ -102,7 +165,7 @@ describe('PeoplePage', () => {
       fireEvent.click(screen.getByText('Novo'));
 
       await waitFor(() => {
-        expect(screen.getByText('Nova Pessoa')).toBeInTheDocument();
+        expect(screen.getByText('Novo Cliente')).toBeInTheDocument();
       });
     });
 
@@ -115,13 +178,13 @@ describe('PeoplePage', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText('Nova Pessoa')).toBeInTheDocument();
+        expect(screen.getByText('Novo Cliente')).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByText('Fechar'));
 
       await waitFor(() => {
-        expect(screen.queryByText('Nova Pessoa')).not.toBeInTheDocument();
+        expect(screen.queryByText('Novo Cliente')).not.toBeInTheDocument();
       });
     });
 
@@ -142,9 +205,71 @@ describe('PeoplePage', () => {
       });
     });
 
-    it('should create person and call API', async () => {
+    it('should pre-fill WhatsApp with Brazilian country code +55', async () => {
       mockGet.mockResolvedValue({ data: [] });
-      mockPost.mockResolvedValue({ data: { id: '3', name: 'Novo', contact: 'novo@email.com' } });
+      renderPage();
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByText('Novo'));
+      });
+
+      const whatsappInput = await screen.findByPlaceholderText('+55 (11) 99999-8888');
+      expect(whatsappInput.value).toBe('+55');
+    });
+
+    it('should mask WhatsApp as the user types', async () => {
+      mockGet.mockResolvedValue({ data: [] });
+      renderPage();
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByText('Novo'));
+      });
+
+      const whatsappInput = await screen.findByPlaceholderText('+55 (11) 99999-8888');
+      fireEvent.change(whatsappInput, { target: { value: '5511999998888' } });
+
+      await waitFor(() => {
+        expect(whatsappInput.value).toBe('+55 (11) 99999-8888');
+      });
+    });
+
+    it('should show out-of-pattern warning for an invalid whatsapp', async () => {
+      mockGet.mockResolvedValue({ data: [] });
+      renderPage();
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByText('Novo'));
+      });
+
+      const whatsappInput = await screen.findByPlaceholderText('+55 (11) 99999-8888');
+      fireEvent.change(whatsappInput, { target: { value: '5511' } });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Número fora do padrão/)
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('should not show out-of-pattern warning for a valid whatsapp', async () => {
+      mockGet.mockResolvedValue({ data: [] });
+      renderPage();
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByText('Novo'));
+      });
+
+      const whatsappInput = await screen.findByPlaceholderText('+55 (11) 99999-8888');
+      fireEvent.change(whatsappInput, { target: { value: '5511999998888' } });
+
+      await waitFor(() => {
+        expect(screen.queryByText(/Número fora do padrão/)).not.toBeInTheDocument();
+      });
+    });
+
+    it('should create client and call API with all fields', async () => {
+      mockGet.mockResolvedValue({ data: [] });
+      mockPost.mockResolvedValue({ data: { id: '3', name: 'Novo' } });
 
       renderPage();
 
@@ -153,28 +278,36 @@ describe('PeoplePage', () => {
       });
 
       const nameInput = await screen.findByPlaceholderText('Digite o nome');
-      const contactInput = screen.getByPlaceholderText('Digite o contato (opcional)');
+      const whatsappInput = screen.getByPlaceholderText('+55 (11) 99999-8888');
+      const groupsInput = screen.getByPlaceholderText('Ex.: Grupo do WhatsApp, vizinho, família...');
+      const instagramInput = screen.getByPlaceholderText('https://instagram.com/usuario');
+      const addressInput = screen.getByPlaceholderText('Digite o endereço completo');
 
       fireEvent.change(nameInput, { target: { value: 'Novo' } });
-      fireEvent.change(contactInput, { target: { value: 'novo@email.com' } });
+      fireEvent.change(groupsInput, { target: { value: 'Família' } });
+      fireEvent.change(whatsappInput, { target: { value: '5511999998888' } });
+      fireEvent.change(instagramInput, { target: { value: 'https://instagram.com/novo' } });
+      fireEvent.change(addressInput, { target: { value: 'Rua Nova, 1' } });
+      fireEvent.change(screen.getByLabelText('Grupo VIP'), { target: { value: 'true' } });
       fireEvent.click(screen.getByText('Salvar'));
 
       await waitFor(() => {
         expect(mockPost).toHaveBeenCalledWith('/people', {
           name: 'Novo',
-          contact: 'novo@email.com',
+          whatsapp: '5511999998888',
+          commonGroups: 'Família',
+          instagram: 'https://instagram.com/novo',
+          address: 'Rua Nova, 1',
+          isVip: true,
+          isDoterraMember: false,
         });
       });
     });
   });
 
-  describe('Edit Person', () => {
-    const mockPeople = [
-      { id: '1', name: 'João Silva', contact: 'joao@email.com' },
-    ];
-
+  describe('Edit Client', () => {
     it('should open edit modal with pre-filled data', async () => {
-      mockGet.mockResolvedValue({ data: mockPeople });
+      mockGet.mockResolvedValue({ data: [mockPeople[0]] });
       renderPage();
 
       await waitFor(() => {
@@ -184,15 +317,34 @@ describe('PeoplePage', () => {
       fireEvent.click(screen.getByText('Editar'));
 
       await waitFor(() => {
-        expect(screen.getByText('Editar Pessoa')).toBeInTheDocument();
+        expect(screen.getByText('Editar Cliente')).toBeInTheDocument();
         expect(screen.getByDisplayValue('João Silva')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('Grupo do WhatsApp')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('+55 (11) 99999-8888')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('https://instagram.com/joao')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('Rua das Flores, 123')).toBeInTheDocument();
+      });
+    });
+
+    it('should show raw legacy whatsapp with out-of-pattern warning on edit', async () => {
+      mockGet.mockResolvedValue({ data: [mockPeople[1]] });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Maria Santos')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Editar'));
+
+      await waitFor(() => {
         expect(screen.getByDisplayValue('joao@email.com')).toBeInTheDocument();
+        expect(screen.getByText(/Número fora do padrão/)).toBeInTheDocument();
       });
     });
 
     it('should call PUT API on form submit', async () => {
-      mockGet.mockResolvedValue({ data: mockPeople });
-      mockPut.mockResolvedValue({ data: { id: '1', name: 'Updated', contact: 'joao@email.com' } });
+      mockGet.mockResolvedValue({ data: [mockPeople[0]] });
+      mockPut.mockResolvedValue({ data: { id: '1', name: 'Updated' } });
 
       renderPage();
 
@@ -204,9 +356,10 @@ describe('PeoplePage', () => {
 
       const nameInput = await screen.findByDisplayValue('João Silva');
       fireEvent.change(nameInput, { target: { value: 'Updated' } });
+      fireEvent.change(screen.getByLabelText('Cadastrado/Membro doTERRA'), { target: { value: 'false' } });
 
       await waitFor(() => {
-        expect(screen.getByText('Editar Pessoa')).toBeInTheDocument();
+        expect(screen.getByText('Editar Cliente')).toBeInTheDocument();
       });
 
       const form = nameInput.closest('form');
@@ -215,19 +368,20 @@ describe('PeoplePage', () => {
       await waitFor(() => {
         expect(mockPut).toHaveBeenCalledWith('/people/1', {
           name: 'Updated',
-          contact: 'joao@email.com',
+          whatsapp: '5511999998888',
+          commonGroups: 'Grupo do WhatsApp',
+          instagram: 'https://instagram.com/joao',
+          address: 'Rua das Flores, 123',
+          isVip: true,
+          isDoterraMember: false,
         });
       });
     });
   });
 
   describe('Delete Person', () => {
-    const mockPeople = [
-      { id: '1', name: 'João Silva', contact: 'joao@email.com' },
-    ];
-
     it('should delete when confirming', async () => {
-      mockGet.mockResolvedValue({ data: mockPeople });
+      mockGet.mockResolvedValue({ data: [mockPeople[0]] });
       mockDelete.mockResolvedValue({ data: { message: 'Person deleted' } });
       window.confirm = vi.fn(() => true);
 
@@ -246,7 +400,7 @@ describe('PeoplePage', () => {
     });
 
     it('should not delete when cancelling', async () => {
-      mockGet.mockResolvedValue({ data: mockPeople });
+      mockGet.mockResolvedValue({ data: [mockPeople[0]] });
       window.confirm = vi.fn(() => false);
 
       renderPage();
