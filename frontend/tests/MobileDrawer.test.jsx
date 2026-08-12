@@ -53,7 +53,7 @@ describe('MobileDrawer', () => {
     renderDrawer();
     fireEvent.click(screen.getByLabelText('Abrir menu'));
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Pessoas')).toBeInTheDocument();
+    expect(screen.getByText('Clientes')).toBeInTheDocument();
     expect(screen.getByText('Pedidos')).toBeInTheDocument();
     expect(screen.getByText('Recebíveis')).toBeInTheDocument();
     expect(screen.getByText('Produtos')).toBeInTheDocument();
@@ -68,7 +68,7 @@ describe('MobileDrawer', () => {
   it('should close the drawer when a nav link is clicked', () => {
     renderDrawer();
     fireEvent.click(screen.getByLabelText('Abrir menu'));
-    fireEvent.click(screen.getByText('Pessoas'));
+    fireEvent.click(screen.getByText('Clientes'));
     expect(screen.getByRole('complementary').className).toContain('-translate-x-full');
   });
 

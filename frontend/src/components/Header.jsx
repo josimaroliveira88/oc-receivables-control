@@ -5,7 +5,7 @@ import { LayoutDashboard, Users, ClipboardList, DollarSign, Package, LogOut, Sun
 
 const navLinks = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/people', icon: Users, label: 'Pessoas' },
+  { to: '/people', icon: Users, label: 'Clientes' },
   { to: '/orders', icon: ClipboardList, label: 'Pedidos' },
   { to: '/receivables', icon: DollarSign, label: 'Recebíveis' },
   { to: '/products', icon: Package, label: 'Produtos' },

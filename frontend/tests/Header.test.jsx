@@ -38,7 +38,7 @@ describe('Header', () => {
   it('should render desktop navigation links', () => {
     renderHeader();
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Pessoas')).toBeInTheDocument();
+    expect(screen.getByText('Clientes')).toBeInTheDocument();
     expect(screen.getByText('Pedidos')).toBeInTheDocument();
     expect(screen.getByText('Recebíveis')).toBeInTheDocument();
     expect(screen.getByText('Produtos')).toBeInTheDocument();

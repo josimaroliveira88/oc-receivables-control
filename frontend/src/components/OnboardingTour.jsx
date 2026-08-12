@@ -18,7 +18,7 @@ const steps = [
   {
     title: 'Bem-vindo ao Controle de Recebíveis!',
     description:
-      'Vamos conhecer as principais funcionalidades do sistema em apenas alguns passos. Este tutorial rápido vai te mostrar como gerenciar pessoas, pedidos e recebíveis.',
+      'Vamos conhecer as principais funcionalidades do sistema em apenas alguns passos. Este tutorial rápido vai te mostrar como gerenciar clientes, pedidos e recebíveis.',
     icon: GraduationCap,
     route: null,
   },
@@ -37,9 +37,9 @@ const steps = [
     route: null,
   },
   {
-    title: 'Gerenciamento de Pessoas',
+    title: 'Cadastro de Clientes',
     description:
-      'Cadastre clientes, fornecedores ou qualquer pessoa envolvida nos seus pedidos. Aqui você adiciona, edita e remove contatos com facilidade.',
+      'Cadastre seus clientes com nome, grupos em comum (de onde vieram: grupo do WhatsApp, vizinho, família...), WhatsApp, Instagram, endereço e os marcadores VIP e Membro doTERRA. O WhatsApp vira um link que abre a conversa diretamente.',
     icon: Users,
     route: '/people',
   },
