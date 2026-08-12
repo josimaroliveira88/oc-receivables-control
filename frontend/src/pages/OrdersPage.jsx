@@ -10,6 +10,8 @@ const emptyItem = () => ({
   chargedValue: '',
   personId: '',
   productId: '',
+  productName: '',
+  productCode: '',
   memberPrice: '',
   pv: '',
   details: '',
@@ -65,10 +67,17 @@ const paymentTypeBadge = (type) => {
 const trackingUrl = (orderNumber) =>
     `https://status.ondeestameupedido.com/tracking/22747/${encodeURIComponent(orderNumber)}/`;
 
-const ProductCombobox = ({ products, value, onChange }) => {
+const ProductCombobox = ({ products, value, onChange, selectedName, selectedCode }) => {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const selected = products.find((p) => p.id === value) || null;
+  const hasSelection = Boolean(value);
+
+  const displayLabel = selected
+    ? `${selected.name} (${selected.code})`
+    : value && (selectedName || selectedCode)
+      ? `${selectedName || ''}${selectedCode ? ` (${selectedCode})` : ''}`
+      : query;
 
   const filtered = products
     .filter((p) =>
@@ -100,7 +109,7 @@ const ProductCombobox = ({ products, value, onChange }) => {
         <div className="relative flex-1">
           <input
             type="text"
-            value={selected ? `${selected.name} (${selected.code})` : query}
+            value={displayLabel}
             onChange={handleType}
             onFocus={() => setOpen(true)}
             placeholder="Busque um produto..."
@@ -126,7 +135,7 @@ const ProductCombobox = ({ products, value, onChange }) => {
             </>
           )}
         </div>
-        {selected && (
+        {hasSelection && (
           <button
             type="button"
             onClick={handleClear}
@@ -164,7 +173,7 @@ const OrdersPage = () => {
       const [ordersRes, peopleRes, productsRes] = await Promise.all([
         api.get('/orders'),
         api.get('/people'),
-        api.get('/products?active=true&pageSize=all'),
+        api.get('/products?available=true&pageSize=all'),
       ]);
       setOrders(ordersRes.data);
       setPeople(peopleRes.data);
@@ -203,6 +212,8 @@ const OrdersPage = () => {
         ? {
             ...item,
             productId,
+            productName: product ? product.name : '',
+            productCode: product ? product.code : '',
             description: product ? product.name : '',
             memberPrice: product && product.memberPrice != null ? parseFloat(product.memberPrice).toString() : '',
             pv: product && product.pv != null ? parseFloat(product.pv).toString() : '',
@@ -286,6 +297,8 @@ const OrdersPage = () => {
       chargedValue: item.chargedValue != null ? parseFloat(item.chargedValue).toString() : '',
       personId: item.personId || '',
       productId: item.productId || '',
+      productName: item.product ? item.product.name : '',
+      productCode: item.product ? item.product.code : '',
       memberPrice: item.memberPrice != null ? parseFloat(item.memberPrice).toString() : '',
       pv: item.pv != null ? parseFloat(item.pv).toString() : '',
       details: item.details || '',
@@ -584,6 +597,8 @@ const OrdersPage = () => {
                         <ProductCombobox
                           products={products}
                           value={item.productId}
+                          selectedName={item.productName}
+                          selectedCode={item.productCode}
                           onChange={(productId) => onProductSelect(index, productId)}
                         />
                       </div>

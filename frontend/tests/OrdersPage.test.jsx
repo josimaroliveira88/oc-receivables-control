@@ -80,9 +80,9 @@ const mockPeople = [
 ];
 
 const mockProducts = [
-  { id: 'prod-1', name: 'Adaptiv Pastilhas', code: '60226006', memberPrice: '90.00', pv: '15' },
-  { id: 'prod-2', name: 'Óleo de Lavanda', code: '60226007', memberPrice: '180.00', pv: '30' },
-  { id: 'prod-3', name: 'Menta Verde', code: '60226008', memberPrice: '50.00', pv: '8' },
+  { id: 'prod-1', name: 'Adaptiv Pastilhas', code: '60226006', memberPrice: '90.00', pv: '15', status: 'ATIVO' },
+  { id: 'prod-2', name: 'Óleo de Lavanda', code: '60226007', memberPrice: '180.00', pv: '30', status: 'ATIVO' },
+  { id: 'prod-3', name: 'Menta Verde', code: '60226008', memberPrice: '50.00', pv: '8', status: 'INDISPONIVEL' },
 ];
 
 const mockGetImplementation = (ordersData = [], peopleData = mockPeople) => {
@@ -695,6 +695,22 @@ describe('OrdersPage', () => {
       expect(screen.queryByText(/Adaptiv Pastilhas/)).not.toBeInTheDocument();
     });
 
+    it('should list INDISPONIVEL products in the combobox', async () => {
+      await openModal();
+      const combobox = screen.getByPlaceholderText('Busque um produto...');
+      fireEvent.change(combobox, { target: { value: 'Menta' } });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Menta Verde/)).toBeInTheDocument();
+      });
+    });
+
+    it('should fetch available products (available=true)', async () => {
+      await openModal();
+      const productsCall = mockGet.mock.calls.find(([url]) => url.startsWith('/products'));
+      expect(productsCall[0]).toContain('available=true');
+    });
+
     it('should not show "Limpar produto" before selecting a product', async () => {
       await openModal();
       expect(screen.queryByText('Limpar produto')).not.toBeInTheDocument();
@@ -931,6 +947,54 @@ describe('OrdersPage', () => {
 
       expect(screen.getByDisplayValue('Adaptiv Pastilhas (60226006)')).toBeInTheDocument();
       expect(screen.getByDisplayValue('15')).toBeInTheDocument();
+    });
+
+    it('should display an INATIVO product name in edit modal even when not in the available list', async () => {
+      const inactiveOrder = {
+        id: '10',
+        orderNumber: 'ORD-INATIVO',
+        orderDate: '2026-05-15T00:00:00.000Z',
+        totalValue: '100.00',
+        status: 'PENDENTE',
+        accountOwner: null,
+        paymentType: null,
+        orderNotes: null,
+        items: [
+          {
+            id: 'i-inactive',
+            description: 'Produto Inativo',
+            chargedValue: '100.00',
+            personId: 'p1',
+            person: { name: 'João' },
+            productId: 'prod-inativo',
+            product: { id: 'prod-inativo', name: 'Produto Inativo', code: '999999' },
+            memberPrice: '50.00',
+            pv: '5',
+          },
+        ],
+      };
+
+      mockGet.mockImplementation((url) => {
+        if (url === '/orders') return Promise.resolve({ data: [inactiveOrder] });
+        if (url === '/people') return Promise.resolve({ data: mockPeople });
+        if (url.startsWith('/products')) return Promise.resolve({ data: { data: mockProducts } });
+        return Promise.resolve({ data: [] });
+      });
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-INATIVO')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Editar'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
+      });
+
+      expect(screen.getByDisplayValue('Produto Inativo (999999)')).toBeInTheDocument();
+      expect(screen.getByText('Limpar produto')).toBeInTheDocument();
     });
 
     it('should pre-fill descriptive fields in edit modal', async () => {

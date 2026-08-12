@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Search } from 'lucide-react';
+import { Search, ExternalLink, AlertCircle } from 'lucide-react';
 import api from '../services/api';
 import { formatBRL } from '../utils/money';
 
@@ -17,6 +17,37 @@ const SORT_OPTIONS = [
   { value: 'pv:desc', label: 'PV (maior)' },
 ];
 
+const PRODUCT_STATUS = {
+  ATIVO: { label: 'Ativo', className: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' },
+  INDISPONIVEL: { label: 'Indisponível', className: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' },
+  INATIVO: { label: 'Inativo', className: 'bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300' },
+};
+
+const statusBadge = (status) => {
+  const cfg = PRODUCT_STATUS[status] || PRODUCT_STATUS.INATIVO;
+  return (
+    <span
+      data-testid={`product-status-${status || 'INATIVO'}`}
+      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${cfg.className}`}
+    >
+      {status === 'INDISPONIVEL' && <AlertCircle className="w-3.5 h-3.5" />}
+      {cfg.label}
+    </span>
+  );
+};
+
+const isValidUrl = (value) => {
+  const trimmed = (value || '').trim();
+  if (trimmed === '') return true;
+  try {
+    // eslint-disable-next-line no-new
+    new URL(trimmed);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const emptyForm = {
   code: '',
   name: '',
@@ -24,6 +55,7 @@ const emptyForm = {
   regularPrice: '',
   memberPrice: '',
   pv: '',
+  doterraUrl: '',
 };
 
 const ProductsPage = () => {
@@ -38,7 +70,7 @@ const ProductsPage = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editProductId, setEditProductId] = useState(null);
   const [editProduct, setEditProduct] = useState(emptyForm);
-  const [editActive, setEditActive] = useState(true);
+  const [editStatus, setEditStatus] = useState('ATIVO');
   const [createForm, setCreateForm] = useState(emptyForm);
 
   const sentinelRef = useRef(null);
@@ -69,11 +101,8 @@ const ProductsPage = () => {
       if (query && !product.name.toLowerCase().includes(query) && !product.code.toLowerCase().includes(query)) {
         return false;
       }
-      if (statusFilter !== '') {
-        const expected = statusFilter === 'true';
-        if (product.active !== expected) {
-          return false;
-        }
+      if (statusFilter !== '' && product.status !== statusFilter) {
+        return false;
       }
       return true;
     });
@@ -127,6 +156,10 @@ const ProductsPage = () => {
       setError('Tamanho é obrigatório');
       return;
     }
+    if (!isValidUrl(createForm.doterraUrl)) {
+      setError('URL do produto inválida');
+      return;
+    }
     try {
       await api.post('/products', {
         code: createForm.code.trim(),
@@ -135,6 +168,7 @@ const ProductsPage = () => {
         regularPrice: parseFloat(createForm.regularPrice),
         memberPrice: parseFloat(createForm.memberPrice),
         pv: parseFloat(createForm.pv),
+        doterraUrl: createForm.doterraUrl.trim() || null,
       });
       setCreateForm(emptyForm);
       setShowCreateModal(false);
@@ -150,11 +184,16 @@ const ProductsPage = () => {
       setError('Nome é obrigatório');
       return;
     }
+    if (!isValidUrl(editProduct.doterraUrl)) {
+      setError('URL do produto inválida');
+      return;
+    }
     try {
       await api.put(`/products/${editProductId}`, {
         name: editProduct.name.trim(),
         size: editProduct.size.trim(),
-        active: editActive,
+        status: editStatus,
+        doterraUrl: editProduct.doterraUrl.trim() || null,
       });
       setEditProductId(null);
       setEditProduct(emptyForm);
@@ -165,13 +204,12 @@ const ProductsPage = () => {
     }
   };
 
-  const handleToggleActive = async (product) => {
-    const action = product.active ? 'desativar' : 'ativar';
-    if (!window.confirm(`Tem certeza que deseja ${action} este produto?`)) {
+  const handleStatusChange = async (product, newStatus) => {
+    if (!window.confirm(`Tem certeza que deseja alterar o status deste produto para "${PRODUCT_STATUS[newStatus].label}"?`)) {
       return;
     }
     try {
-      await api.put(`/products/${product.id}`, { active: !product.active });
+      await api.put(`/products/${product.id}`, { status: newStatus });
       loadProducts();
     } catch (err) {
       setError('Erro ao atualizar produto. Tente novamente.');
@@ -187,8 +225,9 @@ const ProductsPage = () => {
       regularPrice: product.regularPrice,
       memberPrice: product.memberPrice,
       pv: product.pv,
+      doterraUrl: product.doterraUrl || '',
     });
-    setEditActive(product.active);
+    setEditStatus(product.status || 'ATIVO');
     setShowEditModal(true);
   };
 
@@ -265,8 +304,9 @@ const ProductsPage = () => {
                   aria-label="Status"
                 >
                   <option value="">Todos os status</option>
-                  <option value="true">Somente ativos</option>
-                  <option value="false">Somente inativos</option>
+                  <option value="ATIVO">Somente ativos</option>
+                  <option value="INDISPONIVEL">Somente indisponíveis</option>
+                  <option value="INATIVO">Somente inativos</option>
                 </select>
               </label>
             </div>
@@ -317,6 +357,9 @@ const ProductsPage = () => {
                       PV
                     </th>
                     <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Site
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                       Status
                     </th>
                     <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -346,15 +389,23 @@ const ProductsPage = () => {
                         {product.pv}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            product.active
-                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                              : 'bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
-                          }`}
-                        >
-                          {product.active ? 'Ativo' : 'Inativo'}
-                        </span>
+                        {product.doterraUrl ? (
+                          <a
+                            href={product.doterraUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center justify-center text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
+                            title="Ver produto no site da dōTERRA"
+                            aria-label="Ver produto no site"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        ) : (
+                          <span className="text-gray-400 dark:text-gray-500">—</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        {statusBadge(product.status)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button
@@ -363,12 +414,16 @@ const ProductsPage = () => {
                         >
                           Editar
                         </button>
-                        <button
-                          onClick={() => handleToggleActive(product)}
-                          className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                        <select
+                          value={product.status}
+                          onChange={(e) => handleStatusChange(product, e.target.value)}
+                          className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                          aria-label="Alterar status"
                         >
-                          {product.active ? 'Desativar' : 'Ativar'}
-                        </button>
+                          <option value="ATIVO">Ativo</option>
+                          <option value="INDISPONIVEL">Indisponível</option>
+                          <option value="INATIVO">Inativo</option>
+                        </select>
                       </td>
                     </tr>
                   ))}
@@ -385,7 +440,7 @@ const ProductsPage = () => {
 
       {showCreateModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
               <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Novo Produto</h3>
               <button
@@ -468,6 +523,16 @@ const ProductsPage = () => {
                   placeholder="Digite o PV"
                 />
               </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">URL do produto no site da dōTERRA</label>
+                <input
+                  type="url"
+                  value={createForm.doterraUrl}
+                  onChange={(e) => setCreateForm((prev) => ({ ...prev, doterraUrl: e.target.value }))}
+                  className={inputClass}
+                  placeholder="https://www.doterra.com/BR/pt_BR/..."
+                />
+              </div>
               <div className="flex items-center justify-end space-x-3">
                 <button
                   type="button"
@@ -487,7 +552,7 @@ const ProductsPage = () => {
 
       {showEditModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
               <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Editar Produto</h3>
               <button onClick={closeEditModal} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-2xl leading-none">
@@ -529,14 +594,26 @@ const ProductsPage = () => {
                 />
               </div>
               <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">URL do produto no site da dōTERRA</label>
+                <input
+                  type="url"
+                  value={editProduct.doterraUrl}
+                  onChange={(e) => setEditProduct((prev) => ({ ...prev, doterraUrl: e.target.value }))}
+                  className={inputClass}
+                  placeholder="https://www.doterra.com/BR/pt_BR/..."
+                />
+              </div>
+              <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
                 <select
-                  value={editActive ? 'true' : 'false'}
-                  onChange={(e) => setEditActive(e.target.value === 'true')}
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value)}
+                  data-testid="edit-status-select"
                   className={inputClass}
                 >
-                  <option value="true">Ativo</option>
-                  <option value="false">Inativo</option>
+                  <option value="ATIVO">Ativo</option>
+                  <option value="INDISPONIVEL">Indisponível</option>
+                  <option value="INATIVO">Inativo</option>
                 </select>
               </div>
               <div className="flex items-center justify-end space-x-3">
