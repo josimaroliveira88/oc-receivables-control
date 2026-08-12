@@ -128,24 +128,153 @@ describe('Payments & Balance', () => {
       expect(response.body.order.status).toBe('QUITADO');
     });
 
-    it('should reject payment with amount exceeding pending balance', async () => {
-      const response = await request(app)
-        .post(`/api/orders/${testOrderId}/payments`)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({ amount: 500.00, personId: testPersonId });
+    it('should accept overpayment and mark single-person order as QUITADO', async () => {
+      const person = await prisma.person.create({
+        data: { name: 'Overpay Person', contact: 'overpay@test.com', userId },
+      });
+      createdPersonIds.push(person.id);
 
-      expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Amount exceeds pending balance');
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: uniqueOrderNumber('ORD-OVERPAY'),
+          totalValue: 19.90,
+          userId,
+          items: {
+            create: [
+              { description: 'Produto negociado', chargedValue: 19.90, personId: person.id },
+            ],
+          },
+        },
+        include: { items: true },
+      });
+      createdOrderIds.push(order.id);
+
+      const response = await request(app)
+        .post(`/api/orders/${order.id}/payments`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ amount: 20.00, personId: person.id });
+
+      expect(response.status).toBe(201);
+      expect(response.body.order.status).toBe('QUITADO');
+
+      const balanceRes = await request(app)
+        .get(`/api/orders/${order.id}/balance`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(balanceRes.status).toBe(200);
+      const balance = balanceRes.body.balances.find((b) => b.personId === person.id);
+      expect(parseFloat(balance.pending)).toBe(0);
+      expect(parseFloat(balance.paymentTotal)).toBe(20.00);
     });
 
-    it('should reject payment with zero amount (Zod validation)', async () => {
+    it('should reject zero payment when the person has chargeable items', async () => {
       const response = await request(app)
         .post(`/api/orders/${testOrderId}/payments`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ amount: 0, personId: testPersonId });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBeDefined();
+      expect(response.body.error).toContain('greater than zero');
+    });
+
+    it('should accept overpayment for a multi-person order and keep status PARCIAL while others owe', async () => {
+      const response = await request(app)
+        .post(`/api/orders/${testOrderId}/payments`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ amount: 500.00, personId: testPersonId });
+
+      expect(response.status).toBe(201);
+      expect(response.body.order.status).toBe('PARCIAL');
+
+      const balanceRes = await request(app)
+        .get(`/api/orders/${testOrderId}/balance`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(balanceRes.status).toBe(200);
+      const paidPerson = balanceRes.body.balances.find((b) => b.personId === testPersonId);
+      const otherPerson = balanceRes.body.balances.find((b) => b.personId === testPerson2Id);
+      expect(parseFloat(paidPerson.pending)).toBe(0);
+      expect(parseFloat(otherPerson.pending)).toBe(250.00);
+    });
+
+    it('should accept zero amount payment for a zero-value item and mark order as QUITADO', async () => {
+      const person = await prisma.person.create({
+        data: { name: 'Freebie Person', contact: 'freebie@test.com', userId },
+      });
+      createdPersonIds.push(person.id);
+
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: uniqueOrderNumber('ORD-FREE'),
+          totalValue: 0.00,
+          userId,
+          items: {
+            create: [
+              { description: 'Brinde', chargedValue: 0.00, personId: person.id },
+            ],
+          },
+        },
+        include: { items: true },
+      });
+      createdOrderIds.push(order.id);
+
+      const response = await request(app)
+        .post(`/api/orders/${order.id}/payments`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ amount: 0, personId: person.id });
+
+      expect(response.status).toBe(201);
+      expect(response.body.order.status).toBe('QUITADO');
+
+      const balanceRes = await request(app)
+        .get(`/api/orders/${order.id}/balance`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(balanceRes.status).toBe(200);
+      expect(parseFloat(balanceRes.body.balances[0].pending)).toBe(0);
+    });
+
+    it('should register zero payment for a zero-value person without affecting other persons', async () => {
+      const zeroPerson = await prisma.person.create({
+        data: { name: 'Zero Person', contact: 'zero@test.com', userId },
+      });
+      createdPersonIds.push(zeroPerson.id);
+
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: uniqueOrderNumber('ORD-MIXED'),
+          totalValue: 100.00,
+          userId,
+          items: {
+            create: [
+              { description: 'Brinde para Zero', chargedValue: 0.00, personId: zeroPerson.id },
+              { description: 'Item real', chargedValue: 100.00, personId: testPersonId },
+            ],
+          },
+        },
+        include: { items: true },
+      });
+      createdOrderIds.push(order.id);
+
+      const zeroPayRes = await request(app)
+        .post(`/api/orders/${order.id}/payments`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ amount: 0, personId: zeroPerson.id });
+
+      expect(zeroPayRes.status).toBe(201);
+      expect(zeroPayRes.body.order.status).toBe('PENDENTE');
+
+      const balanceRes = await request(app)
+        .get(`/api/orders/${order.id}/balance`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(balanceRes.status).toBe(200);
+      expect(balanceRes.body.orderStatus).toBe('PENDENTE');
+
+      const zeroBalance = balanceRes.body.balances.find((b) => b.personId === zeroPerson.id);
+      const realBalance = balanceRes.body.balances.find((b) => b.personId === testPersonId);
+      expect(parseFloat(zeroBalance.pending)).toBe(0);
+      expect(parseFloat(realBalance.pending)).toBe(100.00);
     });
 
     it('should reject payment with negative amount (Zod validation)', async () => {
@@ -549,7 +678,7 @@ describe('Floating point precision (cents)', () => {
       expect(parseFloat(balanceRes.body.balances[0].pending)).toBe(0);
     });
 
-    it('should still reject overpayment with cents-based calculation', async () => {
+    it('should accept overpayment and keep balance pending at zero with cents-based calculation', async () => {
       const person = await prisma.person.create({
         data: { name: 'Cents Over Test', contact: 'centsover@test.com', userId },
       });
@@ -580,8 +709,17 @@ describe('Floating point precision (cents)', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send({ amount: 1.57, personId: person.id });
 
-      expect(overpaymentRes.status).toBe(400);
-      expect(overpaymentRes.body.error).toBe('Amount exceeds pending balance');
+      expect(overpaymentRes.status).toBe(201);
+      expect(overpaymentRes.body.order.status).toBe('QUITADO');
+
+      const balanceRes = await request(app)
+        .get(`/api/orders/${order.id}/balance`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(balanceRes.status).toBe(200);
+      const balance = balanceRes.body.balances.find((b) => b.personId === person.id);
+      expect(parseFloat(balance.pending)).toBe(0);
+      expect(parseFloat(balance.paymentTotal)).toBe(1234.57);
     });
   });
 
@@ -663,7 +801,7 @@ describe('Floating point precision (cents)', () => {
       expect(parseFloat(balanceRes.body.balances[0].pending)).toBe(0);
     });
 
-    it('should not persist payment when validation fails inside transaction', async () => {
+    it('should persist overpayment and update order status inside the transaction', async () => {
       const person = await prisma.person.create({
         data: { name: 'Rollback Test', contact: 'rollback@test.com', userId: tUserId },
       });
@@ -689,14 +827,16 @@ describe('Floating point precision (cents)', () => {
         .set('Authorization', `Bearer ${tAuthToken}`)
         .send({ amount: 200, personId: person.id });
 
-      expect(overpaymentRes.status).toBe(400);
+      expect(overpaymentRes.status).toBe(201);
+      expect(overpaymentRes.body.order.status).toBe('QUITADO');
 
       const payments = await prisma.payment.findMany({
         where: { orderId: order.id },
       });
-      expect(payments).toHaveLength(0);
+      expect(payments).toHaveLength(1);
+      expect(parseFloat(payments[0].amount)).toBe(200.00);
 
       const orderAfter = await prisma.order.findUnique({ where: { id: order.id } });
-      expect(orderAfter.status).toBe('PENDENTE');
+      expect(orderAfter.status).toBe('QUITADO');
     });
   });

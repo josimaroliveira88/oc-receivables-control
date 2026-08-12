@@ -9,7 +9,7 @@ const parseLocalDate = (dateStr) => {
 };
 
 const paymentSchema = z.object({
-  amount: z.number().positive('Amount must be greater than zero'),
+  amount: z.number().nonnegative('Amount must be greater than or equal to zero'),
   personId: z.string().uuid('Person ID must be a valid UUID'),
   paidAt: z.string().optional(),
   notes: z.string().optional(),
@@ -51,29 +51,19 @@ const createPayment = async (req, res) => {
         .filter(item => item.personId === validatedData.personId)
         .reduce((sum, item) => sum + toCents(item.chargedValue), 0);
 
-      const paymentSumCents = order.payments
-        .filter(payment => payment.personId === validatedData.personId)
-        .reduce((sum, payment) => sum + toCents(payment.amount), 0);
-
-      const pendingCents = itemSumCents - paymentSumCents;
-
-      if (amountCents <= 0) {
-        throw new Error('Amount must be greater than zero');
+      if (itemSumCents > 0 && amountCents === 0) {
+        throw new Error('Amount must be greater than zero for a person with chargeable items');
       }
 
-      if (amountCents > pendingCents) {
-        throw new Error('Amount exceeds pending balance');
-      }
-
-    const payment = await tx.payment.create({
-      data: {
-        amount: validatedData.amount,
-        orderId: orderId,
-        personId: validatedData.personId,
-        paidAt: validatedData.paidAt ? parseLocalDate(validatedData.paidAt) : undefined,
-        notes: validatedData.notes,
-      },
-    });
+      const payment = await tx.payment.create({
+        data: {
+          amount: validatedData.amount,
+          orderId: orderId,
+          personId: validatedData.personId,
+          paidAt: validatedData.paidAt ? parseLocalDate(validatedData.paidAt) : undefined,
+          notes: validatedData.notes,
+        },
+      });
 
       const personIds = [...new Set(order.items.map(item => item.personId))];
 
