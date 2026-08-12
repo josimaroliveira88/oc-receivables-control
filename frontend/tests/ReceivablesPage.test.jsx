@@ -33,6 +33,12 @@ const mockOrders = [
     totalValue: '200.00',
     status: 'QUITADO',
   },
+  {
+    id: 'order-4',
+    orderNumber: 'ORD-004',
+    totalValue: '0.00',
+    status: 'PENDENTE',
+  },
 ];
 
 const mockBalances = {
@@ -45,6 +51,11 @@ const mockBalances = {
     balances: [
       { personId: 'p1', personName: 'João Silva', itemTotal: '200.00', paymentTotal: '50.00', pending: '150.00' },
       { personId: 'p2', personName: 'Maria Santos', itemTotal: '300.00', paymentTotal: '300.00', pending: '0.00' },
+    ],
+  },
+  'order-4': {
+    balances: [
+      { personId: 'p4', personName: 'Brinde Person', itemTotal: '0.00', paymentTotal: '0.00', pending: '0.00' },
     ],
   },
 };
@@ -75,6 +86,7 @@ const renderPage = () => {
 describe('ReceivablesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.confirm = vi.fn(() => true);
   });
 
   describe('Rendering', () => {
@@ -203,24 +215,55 @@ describe('ReceivablesPage', () => {
       });
     });
 
-    it('should show "Nenhuma pessoa com saldo pendente" when all balances are zero', async () => {
-      mockGet.mockImplementation((url) => {
-        if (url === '/orders') return Promise.resolve({ data: [mockOrders[2]] });
-        if (url === '/orders/order-3/balance') {
-          return Promise.resolve({
-            data: {
-              balances: [
-                { personId: 'p3', personName: 'Carlos', itemTotal: '200.00', paymentTotal: '200.00', pending: '0.00' },
-              ],
-            },
-          });
-        }
-        return Promise.resolve({ data: [] });
-      });
+    it('should not show "Nenhuma pessoa neste pedido" and list zero-balance persons', async () => {
+      const mockConfirm = vi.fn(() => true);
+      window.confirm = mockConfirm;
+
+      mockGetImplementation([mockOrders[3]]);
       renderPage();
 
       await waitFor(() => {
-        expect(screen.getByText('Pago')).toBeInTheDocument();
+        expect(screen.getByText('Registrar Pagamento')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Registrar Pagamento'));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Registrar Pagamento — ORD-004/)).toBeInTheDocument();
+      });
+
+      expect(screen.queryByText('Nenhuma pessoa neste pedido')).not.toBeInTheDocument();
+      expect(screen.getByText(/Brinde Person — Nada a receber/)).toBeInTheDocument();
+    });
+
+    it('should show "Dar baixa" button and submit a zero payment for a zero-balance person', async () => {
+      mockGetImplementation([mockOrders[3]]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Registrar Pagamento')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Registrar Pagamento'));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Registrar Pagamento — ORD-004/)).toBeInTheDocument();
+      });
+
+      expect(screen.getByText(/Nada a receber — baixa sem valor/)).toBeInTheDocument();
+      expect(screen.getByText('Dar baixa')).toBeInTheDocument();
+
+      const amountInput = screen.getByPlaceholderText('0.00');
+      const form = amountInput.closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith('/orders/order-4/payments', {
+          amount: 0,
+          personId: 'p4',
+          paidAt: expect.any(String),
+          notes: undefined,
+        });
       });
     });
 
@@ -284,7 +327,32 @@ describe('ReceivablesPage', () => {
       });
     };
 
-    it('should reject zero amount with "Valor deve ser maior que zero"', async () => {
+    it('should allow submitting a zero amount for a zero-balance person', async () => {
+      mockGetImplementation([mockOrders[3]]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Registrar Pagamento')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Registrar Pagamento'));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Registrar Pagamento — ORD-004/)).toBeInTheDocument();
+      });
+
+      const amountInput = screen.getByPlaceholderText('0.00');
+      fireEvent.change(amountInput, { target: { value: '0' } });
+
+      const form = amountInput.closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalled();
+      });
+    });
+
+    it('should reject zero amount when the person has a pending balance', async () => {
       await openModalWithBalance();
 
       const amountInput = screen.getByPlaceholderText('0.00');
@@ -296,9 +364,10 @@ describe('ReceivablesPage', () => {
       await waitFor(() => {
         expect(screen.getByText('Valor deve ser maior que zero')).toBeInTheDocument();
       });
+      expect(mockPost).not.toHaveBeenCalled();
     });
 
-    it('should reject negative amount with "Valor deve ser maior que zero"', async () => {
+    it('should reject negative amount with "Valor não pode ser negativo"', async () => {
       await openModalWithBalance();
 
       const amountInput = screen.getByPlaceholderText('0.00');
@@ -308,11 +377,43 @@ describe('ReceivablesPage', () => {
       fireEvent.submit(form);
 
       await waitFor(() => {
-        expect(screen.getByText('Valor deve ser maior que zero')).toBeInTheDocument();
+        expect(screen.getByText('Valor não pode ser negativo')).toBeInTheDocument();
+      });
+      expect(mockPost).not.toHaveBeenCalled();
+    });
+
+    it('should ask for confirmation on overpayment and submit when confirmed', async () => {
+      const mockConfirm = vi.fn(() => true);
+      window.confirm = mockConfirm;
+
+      await openModalWithBalance();
+
+      const amountInput = screen.getByPlaceholderText('0.00');
+      fireEvent.change(amountInput, { target: { value: '999' } });
+
+      mockPost.mockResolvedValue({ data: { id: 'pay-over', amount: '999.00' } });
+      mockGet.mockResolvedValue({ data: [] });
+
+      const form = amountInput.closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockConfirm).toHaveBeenCalledTimes(1);
+      });
+      expect(mockConfirm).toHaveBeenCalledWith(expect.stringContaining('Confirmar recebimento'));
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith('/orders/order-1/payments', {
+          amount: 999,
+          personId: 'p1',
+          paidAt: expect.any(String),
+          notes: undefined,
+        });
       });
     });
 
-    it('should reject overpayment with "Valor excede o saldo pendente"', async () => {
+    it('should not submit overpayment when confirmation is cancelled', async () => {
+      window.confirm = vi.fn(() => false);
+
       await openModalWithBalance();
 
       const amountInput = screen.getByPlaceholderText('0.00');
@@ -322,7 +423,7 @@ describe('ReceivablesPage', () => {
       fireEvent.submit(form);
 
       await waitFor(() => {
-        expect(screen.getByText('Valor excede o saldo pendente')).toBeInTheDocument();
+        expect(window.confirm).toHaveBeenCalledTimes(1);
       });
       expect(mockPost).not.toHaveBeenCalled();
     });
@@ -523,7 +624,7 @@ describe('ReceivablesPage', () => {
       });
     });
 
-    it('should show error toast when backend rejects overpayment', async () => {
+    it('should map a backend "pending balance" error string to the PT-BR toast', async () => {
       mockGetImplementation([mockOrders[0]]);
       renderPage();
 

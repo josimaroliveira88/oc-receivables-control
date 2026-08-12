@@ -68,12 +68,12 @@ const ReceivablesPage = () => {
 
     try {
       const response = await api.get(`/orders/${order.id}/balance`);
-      const pendingBalances = response.data.balances.filter(
-        (b) => toCents(b.pending) > 0
-      );
-      setBalances(pendingBalances);
-      if (pendingBalances.length > 0) {
-        setSelectedPersonId(pendingBalances[0].personId);
+      const balances = response.data.balances;
+      setBalances(balances);
+      if (balances.length > 0) {
+        setSelectedPersonId(balances[0].personId);
+        const firstBalance = balances[0];
+        setPaymentAmount(toCents(firstBalance.itemTotal) === 0 ? '0' : '');
       }
       setShowPaymentModal(true);
     } catch (err) {
@@ -92,25 +92,28 @@ const ReceivablesPage = () => {
     setPaymentError('');
   };
 
+  const getSelectedBalance = () => {
+    return balances.find((b) => b.personId === selectedPersonId) || null;
+  };
+
   const getSelectedPendingCents = () => {
-    const balance = balances.find((b) => b.personId === selectedPersonId);
+    const balance = getSelectedBalance();
     return balance ? toCents(balance.pending) : 0;
+  };
+
+  const isSelectedZeroItem = () => {
+    const balance = getSelectedBalance();
+    return !!balance && toCents(balance.itemTotal) === 0;
   };
 
   const handlePaymentSubmit = async (e) => {
     e.preventDefault();
     setPaymentError('');
 
-    const amountCents = toCents(parseFloat(paymentAmount));
+    const amountCents = toCents(parseFloat(paymentAmount || '0'));
 
-    if (!amountCents || amountCents <= 0) {
-      setPaymentError('Valor deve ser maior que zero');
-      return;
-    }
-
-    const pendingCents = getSelectedPendingCents();
-    if (amountCents > pendingCents) {
-      setPaymentError('Valor excede o saldo pendente');
+    if (amountCents < 0) {
+      setPaymentError('Valor não pode ser negativo');
       return;
     }
 
@@ -119,10 +122,28 @@ const ReceivablesPage = () => {
       return;
     }
 
+    const selectedBalance = getSelectedBalance();
+
+    if (selectedBalance && toCents(selectedBalance.itemTotal) > 0 && amountCents === 0) {
+      setPaymentError('Valor deve ser maior que zero');
+      return;
+    }
+
+    const pendingCents = getSelectedPendingCents();
+
+    if (amountCents > pendingCents) {
+      const confirmOk = window.confirm(
+        `Valor de ${formatBRL(amountCents / 100)} é maior que o saldo pendente (${formatBRL(pendingCents / 100)}). Confirmar recebimento?`
+      );
+      if (!confirmOk) {
+        return;
+      }
+    }
+
     try {
       setSubmitting(true);
       await api.post(`/orders/${selectedOrder.id}/payments`, {
-        amount: parseFloat(paymentAmount),
+        amount: parseFloat(paymentAmount || '0'),
         personId: selectedPersonId,
         paidAt: paymentDate || undefined,
         notes: paymentNotes.trim() || undefined,
@@ -135,6 +156,8 @@ const ReceivablesPage = () => {
         err.response?.data?.error || 'Erro ao registrar pagamento. Tente novamente.';
       if (typeof msg === 'string' && msg.includes('pending balance')) {
         addToast('Valor excede o saldo pendente', 'error');
+      } else if (typeof msg === 'string' && msg.includes('greater than zero')) {
+        addToast('Valor deve ser maior que zero', 'error');
       } else {
         addToast(msg, 'error');
       }
@@ -237,20 +260,23 @@ const ReceivablesPage = () => {
                   Pessoa
                 </label>
                 {balances.length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Nenhuma pessoa com saldo pendente</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Nenhuma pessoa neste pedido</p>
                 ) : (
                   <select
                     value={selectedPersonId}
                     onChange={(e) => {
+                      const nextBalance = balances.find((b) => b.personId === e.target.value);
                       setSelectedPersonId(e.target.value);
-                      setPaymentAmount('');
+                      setPaymentAmount(nextBalance && toCents(nextBalance.itemTotal) === 0 ? '0' : '');
                       setPaymentError('');
                     }}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
                   >
                     {balances.map((b) => (
                       <option key={b.personId} value={b.personId}>
-                        {b.personName} — Pendente: {formatBRL(b.pending)}
+                        {toCents(b.itemTotal) === 0
+                          ? `${b.personName} — Nada a receber`
+                          : `${b.personName} — Pendente: ${formatBRL(b.pending)}`}
                       </option>
                     ))}
                   </select>
@@ -259,9 +285,15 @@ const ReceivablesPage = () => {
 
             {selectedPersonId && (
               <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md">
-                <p className="text-sm text-blue-700 dark:text-blue-400">
-                  Saldo pendente: <strong>{formatBRL(getSelectedPendingCents() / 100)}</strong>
-                </p>
+                {isSelectedZeroItem() ? (
+                  <p className="text-sm text-blue-700 dark:text-blue-400">
+                    Nada a receber — baixa sem valor
+                  </p>
+                ) : (
+                  <p className="text-sm text-blue-700 dark:text-blue-400">
+                    Saldo pendente: <strong>{formatBRL(getSelectedPendingCents() / 100)}</strong>
+                  </p>
+                )}
               </div>
             )}
 
@@ -285,13 +317,14 @@ const ReceivablesPage = () => {
                 <input
                   type="number"
                   step="0.01"
-                  min="0.01"
+                  min="0"
                   value={paymentAmount}
                   onChange={(e) => {
                     setPaymentAmount(e.target.value);
                     setPaymentError('');
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                  disabled={isSelectedZeroItem()}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   placeholder="0.00"
                 />
               </div>
@@ -328,7 +361,11 @@ const ReceivablesPage = () => {
                   disabled={submitting || balances.length === 0}
                   className="px-4 py-2 bg-gradient-to-r from-primary-700 to-primary-500 hover:from-primary-800 hover:to-primary-600 disabled:from-primary-400 disabled:to-primary-300 text-white font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {submitting ? 'Registrando...' : 'Registrar Pagamento'}
+                  {submitting
+                    ? 'Registrando...'
+                    : isSelectedZeroItem()
+                      ? 'Dar baixa'
+                      : 'Registrar Pagamento'}
                 </button>
               </div>
             </form>
