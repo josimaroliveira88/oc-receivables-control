@@ -13,7 +13,7 @@ A receivables management system built with **Node.js**, **Express**, **React**, 
 - **JWT Authentication** — Secure stateless login with bcrypt password hashing
 - **People Management** — Full CRUD (name, contact)
 - **Order Management** — CRUD with dynamic items (description, value, associated person)
-- **Payment Processing** — Register payments with balance validation and overpayment rejection
+- **Payment Processing** — Register payments with R$ 0,00 "Dar baixa" (gifts) and confirmed overpayment acceptance
 - **Automatic Status** — Orders transition between *Pending*, *Partial*, and *Paid*
 - **Analytics Dashboard** — KPIs (total pending, total paid, current month revenue) + per-person chart
 - **Excel Export** — 4-sheet workbook with BRL currency formatting

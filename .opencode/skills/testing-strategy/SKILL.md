@@ -23,8 +23,10 @@ Priority scenarios:
 
 - partial payment
 - full payment
-- overpayment rejection
-- status transitions
+- zero-value "Dar baixa" (R$ 0,00 settlement for gift items with `itemSum === 0`)
+- rejection of zero payment against chargeable items (`itemSum > 0`, amount = 0)
+- overpayment acceptance (with frontend confirmation)
+- status transitions (PENDENTE → PARCIAL → QUITADO)
 - transactional consistency
 
 ## Frontend

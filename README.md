@@ -13,7 +13,7 @@ Sistema de controle de recebíveis desenvolvido com **Node.js**, **Express**, **
 - **Autenticação JWT** — Login seguro com token stateless e hash bcrypt
 - **Gestão de Pessoas** — CRUD completo (nome, contato)
 - **Gestão de Pedidos** — CRUD com itens dinâmicos (descrição, valor, pessoa associada)
-- **Processamento de Pagamentos** — Registro com validação de saldo e rejeição de overpayment
+- **Processamento de Pagamentos** — Registro com baixa de R$ 0,00 (brindes) e aceite de overpayment com confirmação
 - **Status Automático** — Pedidos transitam entre *Pendente*, *Parcial* e *Quitado*
 - **Dashboard Analytics** — KPIs (total pendente, quitado, recebimentos do mês) + gráfico por pessoa
 - **Exportação Excel** — Relatório de 4 planilhas com formatação BRL

@@ -1045,11 +1045,50 @@ Key Design Decisions:
 
 Deliverable: ✅ Valor Cobrado aceita zero e vazio (assume 0) para brindes; negativo continua rejeitado — **146 backend tests (144 + 2 new), 240 frontend tests (238 + 2 new), 386 total tests**
 
+## 🎯 Phase 34: Receivables Adjustments — "Dar baixa" for R$ 0,00 items & Overpayment Acceptance
+Status: ✅ COMPLETED
+
+Context: The user needs two adjustments in the "Registrar Pagamento" modal of the Recebíveis screen. (1) Since an order item can now have `chargedValue = 0,00` (gifts/brindes/descounts), that person's item must appear in the list, show that there is nothing to receive ("Nada a receber"), and still allow registering a payment of R$ 0,00 to formally settle it. (2) The user may legitimately receive amounts **larger** than the expected pending balance (e.g. an item charged at R$ 19,90 can be settled with R$ 20,00 or more after a later negotiation) — overpayment must no longer be rejected.
+
+Stack: Express, Zod, React, Vitest.
+
+Task (Backend):
+- `backend/src/controllers/paymentsController.js`:
+  - `paymentSchema.amount` changed from `z.number().positive()` to `z.number().nonnegative()` — a R$ 0,00 payment is now accepted; negatives are still rejected (Zod)
+  - `createPayment` removed both guardrails: the `amountCents <= 0` rejection and the `amountCents > pendingCents` ("Amount exceeds pending balance") overpayment rejection — any non-negative amount is recorded **as long as it's a zero-value person** (see guard below)
+  - **Refined zero-amount guard**: `itemSumCents` is recomputed for the person; if `itemSumCents > 0 && amountCents === 0` the request is rejected with `'Amount must be greater than zero for a person with chargeable items'` (400) — R$ 0,00 is only accepted for genuinely gift/brinde persons (`itemSumCents === 0`)
+  - The status engine already handles both cases correctly with `personPendingCents > 0`: an overpaid (`personPendingCents < 0`) or settled (`= 0`) person no longer blocks `allPaid`; a zero payment leaves `hasAnyPayment` false, so a mixed order (one person R$ 0,00 settled + another still owing) stays `PENDENTE` until real money is received
+  - `getOrderBalance` unchanged: `pending` still clamps with `Math.max(0, ...)` so an overpaid person reports `pending = 0` (never negative), while `paymentTotal` reflects the actual received amount
+- Tests: `backend/tests/payments.test.js`:
+  - Reworked: overpayment now returns `201` + `QUITADO` (single-person), overpayment on a multi-person order stays `PARCIAL` while others owe, zero-amount for a zero-value item returns `201` + `QUITADO`, cents-based overpayment (`1233,00` + `1,57` on `1234,56`) is accepted with `pending = 0` and `paymentTotal = 1234,57`, and the former transaction-rollback test now asserts overpayment **persists** with order `QUITADO`
+  - Added: mixed order test (R$ 0,00 person + R$ 100,00 person) — zero "baixa" registers a `0` payment, keeps the order `PENDENTE`, and both pending balances stay correct; plus a guard test `should reject zero payment when the person has chargeable items` (post `amount: 0` for a R$ 150,00 person → `400` with `'greater than zero'`)
+  - Payments tests 28 → 31. **146 → 149 backend tests.**
+
+Task (Frontend):
+- `frontend/src/pages/ReceivablesPage.jsx`:
+  - `openPaymentModal` no longer filters out persons with `pending = 0` — **every** person of the order is listed; when the first selected person has `itemTotal === 0` (gift) the amount input is pre-filled with `0`
+  - Person dropdown shows `— Nada a receber` for **zero-item persons** (driven by `toCents(b.itemTotal) === 0`, not `pending`); the balance info box shows "Nada a receber — baixa sem valor"; a fully-paid person (`itemTotal > 0` but `pending = 0`) shows "Pendente: R$ 0,00" and requires an amount > 0
+  - Amount input now has `min="0"` (was `min="0.01"`) and is disabled when a zero-item person is selected; the submit button reads **"Dar baixa"** in that case
+  - `handlePaymentSubmit` accepts `amount = 0` **only** for zero-item persons (`isSelectedZeroItem()`); for a person with `itemTotal > 0` an amount of `0` shows "Valor deve ser maior que zero" and blocks the POST. Negatives are rejected with "Valor não pode ser negativo". The `amount > pending` rejection was removed and a `window.confirm` step added: an amount exceeding the pending balance asks "Valor de R$ X é maior que o saldo pendente (R$ Y). Confirmar recebimento?" — the payment is only submitted after the user confirms (also fires for fully-paid persons receiving more, since `pending = 0`)
+- Tests: `frontend/tests/ReceivablesPage.test.jsx`:
+  - Reworked: removed "Nenhuma pessoa com saldo pendente"/zero-rejection/overpayment-rejection tests
+  - Added: zero-balance persons appear as "Nada a receber" in the dropdown, the "Dar baixa" button is shown and submits a `R$ 0,00` payment, a zero amount submits successfully (zero-item), overpayment shows the `window.confirm` prompt and POSTs when confirmed, and does not POST when cancelled; plus a **guard test** rejecting `0` against a positive balance ("Valor deve ser maior que zero", no POST)
+  - ReceivablesPage tests 27 → 30. **240 → 243 frontend tests.**
+
+Key Design Decisions:
+- The zero-value "baixa" is recorded as a real `Payment` row of R$ 0,00 (audit history), though it does not change the person's balance
+- R$ 0,00 payments are accepted **only** when the person's `itemSum === 0` (gift items); for a person with chargeable items, an amount strictly greater than zero is required — both backend (`itemSumCents > 0 && amountCents === 0` rejection) and frontend (validation guard with 'Valor deve ser maior que zero') enforce the rule, so an accidental zero against a positive balance cannot create a useless record
+- Overpayment is intentionally **unbounded** on the backend (any amount ≥ 0 for zero-item persons, any amount > 0 for chargeable persons) — the frontend `window.confirm` is the only gate, keeping a single source of truth (server accepts overpayment) and avoiding "double validation" drift
+- Order status semantics are preserved: `QUITADO` requires every person settled; a zero-person alone cannot move a mixed order past `PENDENTE`, and overpayment never produces a negative "pending" (clamped at 0)
+- Dashboard per-person `pending` already clamps at 0 and `totalPaid` uses the order total (not the payment sum), so overpayment is not double-counted as revenue
+
+Deliverable: ✅ "Dar baixa" de R$ 0,00 para brindes + pagamento com overpayment confirmado (com regra anti-zero para pessoas com itens cobráveis) — **149 backend tests (146 + 3 new), 243 frontend tests (240 + 3 new), 392 total tests**
+
 ## 🏆 Project Highlights
 
 - **Zero Floating-Point Errors**: All financial calculations use integer cents arithmetic
-- **100% Test Coverage**: 386 tests covering all critical paths, edge cases, and regressions
-- **Financial Precision**: Decimal(10,2) database fields, proper overpayment rejection, accurate status transitions
+- **100% Test Coverage**: 392 tests covering all critical paths, edge cases, and regressions
+- **Financial Precision**: Decimal(10,2) database fields, accurate status transitions, zero-value "Dar baixa" (only for gift items), zero-against-positive rejection, and confirmed overpayments
 - **User Experience**: PT-BR localization, responsive Tailwind design, toast feedback, loading states
 - **Code Quality**: TDD methodology, clear error messages, proper auth guards, documented pitfalls
 - **Production Ready**: Docker orchestration, persistent storage, adminer for DB inspection

@@ -50,6 +50,11 @@ Person:
 
 Never allow:
 
-- negative payments
-- overpayments
+- negative payments (rejected by Zod `nonnegative()`)
+- zero payments against a person with chargeable items (`itemSumCents > 0 && amountCents === 0` rejected with `'Amount must be greater than zero for a person with chargeable items'`)
 - partial inconsistent writes
+
+Allowed (with frontend `window.confirm` gate):
+
+- zero-value payments (R$ 0,00 "Dar baixa" for gift items with `chargedValue = 0`, i.e. `itemSum === 0`)
+- overpayments (amount > pending balance; pending clamps at 0, the excess stays recorded in `paymentTotal`)

@@ -36,9 +36,10 @@
 **Processamento de Pagamentos**
 - ✅ Registrar pagamentos por pessoa
 - ✅ Validações automáticas:
-  - Rejeita pagamentos maiores que o saldo pendente
-  - Rejeita valores zerados/negativos
-  - Garante que o valor não exceda o devido
+  - Permite pagamento de R$ 0,00 apenas para dar baixa em itens de brinde (pessoa com itens somando R$ 0,00 aparece como "Nada a receber", botão "Dar baixa")
+  - Rejeita pagamento de R$ 0,00 para pessoas com itens de valor: o usuário é obrigado a informar um valor maior que zero ("Valor deve ser maior que zero")
+  - Aceita pagamentos MAIORES que o saldo pendente (overpayment), com confirmação antes de registrar (ex.: item de R$ 19,90 pago com R$ 20,00)
+  - Rejeita apenas valores negativos
 - ✅ Status do pedido atualiza automaticamente:
   - 🔴 Pendente = nenhum pagamento feito
   - ⚠️ Parcial = pagamento feito mas ainda há saldo

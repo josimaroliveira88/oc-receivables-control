@@ -57,7 +57,7 @@ All phases starting from Phase 5 must follow Test-Driven Development:
 1. **Write tests before implementation**: Before writing any business logic, identify and write test cases that define the expected behavior.
 2. **Backend tests** (Vitest):
    - Services, financial calculations, validation rules
-   - Priority: partial payment, full payment, overpayment rejection, status transitions, transactional consistency
+   - Priority: partial payment, full payment, overpayment acceptance (with confirmation), zero-value "Dar baixa" (only when itemSum = 0; zero against chargeable items is rejected), status transitions, transactional consistency
 3. **Frontend tests** (React Testing Library):
    - Forms, authentication flow, protected routes, financial validations
 4. **Run tests as verification**: Tests must pass before marking a phase as complete.
@@ -102,9 +102,9 @@ Frontend only:
 
 ## Project Status
 
-🎉 **All MVP phases (1-16) + Phases 17-32 have been COMPLETED.**
+🎉 **All MVP phases (1-16) + Phases 17-34 have been COMPLETED.**
 
-The Receivables Control System is now fully functional with user self-registration, complete backend data isolation, responsive navigation (desktop top nav + mobile hamburger drawer), a unified design system with dark mode, an interactive onboarding tour, and a full Product CRUD screen. Phase 27 added the global dōTERRA Product catalog with price history and an idempotent diff loader. Phase 28 added the Product CRUD API + ProductsPage UI, and replaced the mobile bottom nav with a hamburger/drawer menu (`MobileDrawer.jsx`) since the menu grew to 5 sections. The onboarding tour now has 9 steps. Phase 29 added product search (name/code), pagination with infinite scroll, sorting by prices/PV, and an active/inactive status filter. Phase 30 moved search/filter/sort fully **client-side**: the frontend loads the entire catalog once (`pageSize=all`) into browser memory and applies search, status filter and sorting in-memory — no new backend call per keystroke or filter change (the catalog is rarely updated). Phase 31 reworked the order item sub-form: each item is now linked to a product from the catalog (filterable combobox), auto-fills the **member price** and **PV** snapshots (read-only), lets the user type the negotiated **Valor Cobrado** (`chargedValue`) and free-text **Detalhes** (up to 500 chars) — the old `value` field was renamed to `chargedValue` and `description` is now optional (auto-filled from the product name). Phase 32 added order-level descriptive fields: the order number placeholder now reads "Informe o número do pedido da dōTERRA" and leaving the field (blur) with a number typed shows a **"Ver pedido no site"** tracking link (`https://status.ondeestameupedido.com/tracking/22747/{numero}/`, new tab); a free-text **Responsável pela conta** (dōTERRA ID or name); a **Tipo de Pagamento** dropdown (PIX / Boleto / Cartão de Crédito, new `PaymentType` enum); a free-text **Descrição do Pedido** (≤ 500 chars); and live **Soma dos Produtos (Valor Cobrado)** + **Soma dos PV** summary cards above the items. The orders list gained columns for Responsável, Tipo Pgto (badge), PV Total, Descrição (truncated + tooltip) and Rastreio (external-link).
+The Receivables Control System is now fully functional with user self-registration, complete backend data isolation, responsive navigation (desktop top nav + mobile hamburger drawer), a unified design system with dark mode, an interactive onboarding tour, and a full Product CRUD screen. Phase 27 added the global dōTERRA Product catalog with price history and an idempotent diff loader. Phase 28 added the Product CRUD API + ProductsPage UI, and replaced the mobile bottom nav with a hamburger/drawer menu (`MobileDrawer.jsx`) since the menu grew to 5 sections. The onboarding tour now has 9 steps. Phase 29 added product search (name/code), pagination with infinite scroll, sorting by prices/PV, and an active/inactive status filter. Phase 30 moved search/filter/sort fully **client-side**: the frontend loads the entire catalog once (`pageSize=all`) into browser memory and applies search, status filter and sorting in-memory — no new backend call per keystroke or filter change (the catalog is rarely updated). Phase 31 reworked the order item sub-form: each item is now linked to a product from the catalog (filterable combobox), auto-fills the **member price** and **PV** snapshots (read-only), lets the user type the negotiated **Valor Cobrado** (`chargedValue`) and free-text **Detalhes** (up to 500 chars) — the old `value` field was renamed to `chargedValue` and `description` is now optional (auto-filled from the product name). Phase 32 added order-level descriptive fields: the order number placeholder now reads "Informe o número do pedido da dōTERRA" and leaving the field (blur) with a number typed shows a **"Ver pedido no site"** tracking link (`https://status.ondeestameupedido.com/tracking/22747/{numero}/`, new tab); a free-text **Responsável pela conta** (dōTERRA ID or name); a **Tipo de Pagamento** dropdown (PIX / Boleto / Cartão de Crédito, new `PaymentType` enum); a free-text **Descrição do Pedido** (≤ 500 chars); and live **Soma dos Produtos (Valor Cobrado)** + **Soma dos PV** summary cards above the items. The orders list gained columns for Responsável, Tipo Pgto (badge), PV Total, Descrição (truncated + tooltip) and Rastreio (external-link). Phase 33 let the **Valor Cobrado** be **empty/zero** (gifts/brindes) — an empty chargedValue defaults to 0 and negatives are still rejected. Phase 34 reworked the **Registrar Pagamento** modal on the Recebíveis screen so that (a) persons whose items total R$ 0,00 are now listed with \"Nada a receber\" and can be settled with a **\"Dar baixa\"** button that posts a R$ 0,00 payment (order status still travels PENDENTE → PARCIAL → QUITADO), and (b) payments **larger** than the pending balance are now allowed (overpayment after price negotiation) — the backend no longer rejects them and the frontend asks for confirmation (`window.confirm`) before submitting. A R$ 0,00 payment is **only** accepted when the person's items sum to R$ 0,00 (gift items); for a person with chargeable items, an amount strictly greater than zero is required — both backend (`itemSumCents > 0 && amountCents === 0` rejection) and frontend (validation guard showing \"Valor deve ser maior que zero\") enforce the rule.
 
 ### Completed Features:
 ✅ Multi-container Docker environment (backend, frontend, database, admin UI)
@@ -113,11 +113,11 @@ The Receivables Control System is now fully functional with user self-registrati
 ✅ React frontend with Vite and Tailwind CSS
 ✅ People management (CRUD)
 ✅ Orders management with dynamic item sub-forms and custom order date
-✅ Payment processing with automatic order status transitions (PENDENTE → PARCIAL → QUITADO) and custom payment date
+✅ Payment processing with automatic order status transitions (PENDENTE → PARCIAL → QUITADO), custom payment date, zero-value "Dar baixa" for brindes (only when itemSum = 0), and overpayment acceptance with confirmation
 ✅ Receivables tracking dashboard with per-person balance breakdown
 ✅ Analytics dashboard with KPI widgets, Recharts visualizations, and yearly breakdown (Pendente/Quitado por ano)
 ✅ Excel export functionality (4-sheet workbook with BRL formatting)
-✅ Comprehensive test coverage (240 frontend tests + 146 backend tests)
+✅ Comprehensive test coverage (243 frontend tests + 149 backend tests)
 ✅ Financial precision (integer cents arithmetic, no floating-point errors)
 ✅ Complete TDD methodology applied across all phases
 ✅ PT-BR localization for all user-facing content
@@ -142,9 +142,9 @@ The Receivables Control System is now fully functional with user self-registrati
 ✅ Order descriptive fields — the order form now has the dōTERRA number placeholder "Informe o número do pedido da dōTERRA", a clickable **"Ver pedido no site"** tracking link (`https://status.ondeestameupedido.com/tracking/22747/{numero}/`, opens in a new tab) that appears once the field is left (blur) with a number typed, a free-text **Responsável pela conta (ID dōTERRA ou nome)** (`accountOwner`, ≤ 120 chars), a **Tipo de Pagamento** select (PIX / Boleto / Cartão de Crédito, new `PaymentType` enum), a **Descrição do Pedido** textarea (`orderNotes`, ≤ 500 chars, live `N/500` counter), and live **Soma dos Produtos (Valor Cobrado)** + **Soma dos PV** summary cards above the items section (computed client-side, not persisted). The orders list table gained columns: **Responsável**, **Tipo Pgto** (color badge), **PV Total**, **Descrição** (truncated + `title` tooltip) and **Rastreio** (external-link icon opening the tracking URL). New `Order` fields `accountOwner VARCHAR(120)`, `paymentType PaymentType?`, `orderNotes VARCHAR(500)` are all nullable (migration `20260811193000_add_order_descriptive_fields`); the backend Zod schemas validate them (enum + max lengths) and `updateOrder` uses the `!== undefined` spread pattern so an explicit `null` clears a field while an omitted field keeps the existing value.
 
 ### Test Results:
-- **Backend Tests**: 146 passing (17 People + 44 Orders + 28 Payments + 6 Dashboard + 4 Auth + 16 ProductLoader + 31 Products)
-- **Frontend Tests**: 240 passing (14 PeoplePage + 54 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel + 10 api + 20 RegisterPage + 10 LoginPage + 6 Header + 11 MobileDrawer + 23 ProductsPage + 7 ThemeContext)
-- **Total**: 386 tests passing with zero regressions
+- **Backend Tests**: 149 passing (17 People + 44 Orders + 31 Payments + 6 Dashboard + 4 Auth + 16 ProductLoader + 31 Products)
+- **Frontend Tests**: 243 passing (14 PeoplePage + 54 OrdersPage + 30 ReceivablesPage + 26 DashboardPage + 32 exportExcel + 10 api + 20 RegisterPage + 10 LoginPage + 6 Header + 11 MobileDrawer + 23 ProductsPage + 7 ThemeContext)
+- **Total**: 392 tests passing with zero regressions
 
 Backend note: `vitest.config.js` sets `fileParallelism: false` — test files run serially because they share one database (products.test.js creates active `TESTCRUD` products that would race with the productLoader's deactivation logic under parallelism).
 
@@ -183,7 +183,7 @@ When the client requests new functionality:
 3. **Plan Test Coverage**: Identify which tests need to be written (backend/frontend)
 4. **Implement with TDD**: Follow the TDD methodology used in phases 5+
 5. **Update Documentation**: Ensure ARCHITECTURE.md, AGENTS.md, and ROADMAP.md reflect changes
-6. **Run Full Test Suite**: Verify all 386 tests pass with zero regressions
+6. **Run Full Test Suite**: Verify all 392 tests pass with zero regressions
 
 The codebase is well-structured, documented, and ready to accept new features without breaking existing functionality.
 
