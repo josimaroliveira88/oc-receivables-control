@@ -117,7 +117,7 @@ The Receivables Control System is now fully functional with user self-registrati
 ✅ Receivables tracking dashboard with per-person balance breakdown
 ✅ Analytics dashboard with KPI widgets, Recharts visualizations, and yearly breakdown (Pendente/Quitado por ano)
 ✅ Excel export functionality (4-sheet workbook with BRL formatting)
-✅ Comprehensive test coverage (238 frontend tests + 144 backend tests)
+✅ Comprehensive test coverage (240 frontend tests + 146 backend tests)
 ✅ Financial precision (integer cents arithmetic, no floating-point errors)
 ✅ Complete TDD methodology applied across all phases
 ✅ PT-BR localization for all user-facing content
@@ -142,9 +142,9 @@ The Receivables Control System is now fully functional with user self-registrati
 ✅ Order descriptive fields — the order form now has the dōTERRA number placeholder "Informe o número do pedido da dōTERRA", a clickable **"Ver pedido no site"** tracking link (`https://status.ondeestameupedido.com/tracking/{numero}/`, opens in a new tab) that appears once the field is left (blur) with a number typed, a free-text **Responsável pela conta (ID dōTERRA ou nome)** (`accountOwner`, ≤ 120 chars), a **Tipo de Pagamento** select (PIX / Boleto / Cartão de Crédito, new `PaymentType` enum), a **Descrição do Pedido** textarea (`orderNotes`, ≤ 500 chars, live `N/500` counter), and live **Soma dos Produtos (Valor Cobrado)** + **Soma dos PV** summary cards above the items section (computed client-side, not persisted). The orders list table gained columns: **Responsável**, **Tipo Pgto** (color badge), **PV Total**, **Descrição** (truncated + `title` tooltip) and **Rastreio** (external-link icon opening the tracking URL). New `Order` fields `accountOwner VARCHAR(120)`, `paymentType PaymentType?`, `orderNotes VARCHAR(500)` are all nullable (migration `20260811193000_add_order_descriptive_fields`); the backend Zod schemas validate them (enum + max lengths) and `updateOrder` uses the `!== undefined` spread pattern so an explicit `null` clears a field while an omitted field keeps the existing value.
 
 ### Test Results:
-- **Backend Tests**: 144 passing (17 People + 42 Orders + 28 Payments + 6 Dashboard + 4 Auth + 16 ProductLoader + 31 Products)
-- **Frontend Tests**: 238 passing (14 PeoplePage + 52 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel + 10 api + 20 RegisterPage + 10 LoginPage + 6 Header + 11 MobileDrawer + 23 ProductsPage + 7 ThemeContext)
-- **Total**: 382 tests passing with zero regressions
+- **Backend Tests**: 146 passing (17 People + 44 Orders + 28 Payments + 6 Dashboard + 4 Auth + 16 ProductLoader + 31 Products)
+- **Frontend Tests**: 240 passing (14 PeoplePage + 54 OrdersPage + 27 ReceivablesPage + 26 DashboardPage + 32 exportExcel + 10 api + 20 RegisterPage + 10 LoginPage + 6 Header + 11 MobileDrawer + 23 ProductsPage + 7 ThemeContext)
+- **Total**: 386 tests passing with zero regressions
 
 Backend note: `vitest.config.js` sets `fileParallelism: false` — test files run serially because they share one database (products.test.js creates active `TESTCRUD` products that would race with the productLoader's deactivation logic under parallelism).
 
@@ -183,7 +183,7 @@ When the client requests new functionality:
 3. **Plan Test Coverage**: Identify which tests need to be written (backend/frontend)
 4. **Implement with TDD**: Follow the TDD methodology used in phases 5+
 5. **Update Documentation**: Ensure ARCHITECTURE.md, AGENTS.md, and ROADMAP.md reflect changes
-6. **Run Full Test Suite**: Verify all 356 tests pass with zero regressions
+6. **Run Full Test Suite**: Verify all 386 tests pass with zero regressions
 
 The codebase is well-structured, documented, and ready to accept new features without breaking existing functionality.
 
