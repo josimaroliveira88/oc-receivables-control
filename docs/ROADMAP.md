@@ -1219,6 +1219,27 @@ Key Design Decisions:
 
 Deliverable: ✅ Status Indisponível + link do site no produto, com pedidos aceitando INDISPONIVEL e exibindo INATIVO apenas na edição — **168 backend tests (158 + 10 new), 282 frontend tests (273 + 9 new), 450 total tests**
 
+## 🎯 Phase 40: Listas Responsivas com Flowbite (padrão `data-label`)
+
+Status: ✅ COMPLETED
+
+Context: Todas as listas (Clientes, Pedidos, Recebíveis, Produtos e a tabela "Resumo por Ano" do Dashboard) usavam `<div className="overflow-x-auto">` em volta de `<table className="min-w-full ...">` com células `whitespace-nowrap` — em telas estreitas isso criava **barra de rolagem horizontal**. O cliente pediu para eliminar as barras de rolagem horizontal sem uma refatoração grande, aceitando o uso de um framework/design system.
+
+Stack: React, Tailwind CSS v3, **Flowbite** (`flowbite@^2.5.2`, plugin Tailwind apenas, MIT).
+
+Task:
+- Setup: adicionar `flowbite@^2.5.2` em `frontend/package.json`; em `tailwind.config.js` registrar `import flowbitePlugin from 'flowbite/plugin.js'` em `plugins` e incluir `./node_modules/flowbite/**/*.js` em `content` (ver lição #24 — o import precisa da extensão `.js`).
+- Migrar as 5 tabelas (`PeoplePage.jsx`, `OrdersPage.jsx`, `ReceivablesPage.jsx`, `ProductsPage.jsx`, `DashboardPage.jsx`): remover `overflow-x-auto`; `<table>` → `block md:table`; `<thead>` → `hidden md:table-header-group`; `<tbody>` → `block md:table-row-group`; `<tr>` → `block md:table-row ... border rounded-lg shadow-sm mb-3 md:mb-0`; cada `<td>` → `block md:table-cell` + `data-label="Coluna"` + `before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase md:before:hidden`.
+- Ajustes por célula: `whitespace-nowrap` virou `md:whitespace-nowrap`; colunas alinhadas à direita/centro viram `text-left md:text-right` / `text-left md:text-center`.
+- Testes: **nenhum teste alterado** — a estrutura DOM (`<table>/<tr>/<td>`) é preservada; só mudaram classes/atributos. Os 282 testes frontend passam inalterados.
+
+Key Design Decisions:
+- **Só o plugin, sem JS**: Flowbite entra como plugin Tailwind puro (sem `flowbite/dist/flowbite.css`, sem componentes JS) para não inflar o bundle — o padrão `data-label` é puro CSS/Tailwind.
+- **Padrão de cards mobile**: abaixo de `md` cada linha vira um card empilhado com o nome da coluna como rótulo acima do valor; todas as colunas continuam visíveis. Em `md+` a tabela fica idêntica à anterior.
+- **Acessibilidade preservada**: o DOM continua `<table>/<tr>/<td>` reais — leitores de tela e testes que selecionam `tbody tr` continuam funcionando; o `<thead>` é apenas oculto visualmente em `<md`.
+
+Deliverable: ✅ Zero barras de rolagem horizontal em qualquer largura (320px–1920px) nas 5 listas, mantendo todas as colunas visíveis no mobile via cards com rótulo — **168 backend tests, 282 frontend tests, 450 total tests (sem regressões, nenhum teste alterado)**
+
 ## 🏆 Project Highlights
 
 - **Zero Floating-Point Errors**: All financial calculations use integer cents arithmetic
