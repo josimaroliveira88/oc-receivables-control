@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ExternalLink, Plus } from 'lucide-react';
 import api from '../services/api';
 import { toCents, formatBRL } from '../utils/money';
+import { formatDateBR } from '../utils/dates';
 
 const emptyItem = () => ({
   id: Date.now(),
@@ -20,12 +21,6 @@ const getTodayString = () => {
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
-};
-
-const formatDateBR = (dateStr) => {
-  if (!dateStr) return '';
-  const [year, month, day] = dateStr.split('T')[0].split('-').map(Number);
-  return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
 };
 
 const statusBadge = (status) => {
