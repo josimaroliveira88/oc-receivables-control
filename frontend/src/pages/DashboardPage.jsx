@@ -214,23 +214,23 @@ const DashboardPage = () => {
               <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-4">
                 Resumo por Ano
               </h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm" data-testid="yearly-breakdown">
-                  <thead>
+              <div>
+                <table className="w-full text-sm block md:table" data-testid="yearly-breakdown">
+                  <thead className="hidden md:table-header-group">
                     <tr className="border-b border-gray-200 dark:border-gray-700">
                       <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">Ano</th>
                       <th className="text-right py-3 px-4 font-medium text-gray-600 dark:text-gray-400">Pendente</th>
                       <th className="text-right py-3 px-4 font-medium text-gray-600 dark:text-gray-400">Quitado</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="block md:table-row-group">
                     {data.yearlyBreakdown.map((yearData) => (
-                      <tr key={yearData.year} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                        <td className="py-3 px-4 font-medium text-gray-800 dark:text-gray-200">{yearData.year}</td>
-                        <td className="py-3 px-4 text-right text-red-600 dark:text-red-400 font-medium">
+                      <tr key={yearData.year} className="block md:table-row border border-gray-200 dark:border-gray-700 md:border-0 rounded-lg md:rounded-none shadow-sm md:shadow-none mb-3 md:mb-0 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <td data-label="Ano" className="block md:table-cell py-2 md:py-3 px-4 font-medium text-gray-800 dark:text-gray-200 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase md:before:hidden">{yearData.year}</td>
+                        <td data-label="Pendente" className="block md:table-cell py-2 md:py-3 px-4 text-left md:text-right text-red-600 dark:text-red-400 font-medium before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase md:before:hidden">
                           {formatBRL(yearData.totalPending)}
                         </td>
-                        <td className="py-3 px-4 text-right text-green-600 dark:text-green-400 font-medium">
+                        <td data-label="Quitado" className="block md:table-cell py-2 md:py-3 px-4 text-left md:text-right text-green-600 dark:text-green-400 font-medium before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase md:before:hidden">
                           {formatBRL(yearData.totalQuitado)}
                         </td>
                       </tr>
