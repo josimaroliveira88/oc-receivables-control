@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import { isDigitsOnly, maskWhatsApp } from './whatsapp';
 
 const BRL_FORMAT = '#,##0.00';
 
@@ -40,15 +41,20 @@ const buildPedidosSheet = (orders) => {
   return ws;
 };
 
-const buildPessoasSheet = (people) => {
-  const headers = ['Nome', 'Contato'];
+const buildClientesSheet = (people) => {
+  const headers = ['Nome', 'Grupos em Comum', 'WhatsApp', 'Instagram', 'Endereço', 'VIP', 'Membro doTERRA'];
   const rows = people.map((person) => ({
     'Nome': person.name,
-    'Contato': person.contact || '',
+    'Grupos em Comum': person.commonGroups || '',
+    'WhatsApp': isDigitsOnly(person.whatsapp) ? maskWhatsApp(person.whatsapp) : (person.whatsapp || ''),
+    'Instagram': person.instagram || '',
+    'Endereço': person.address || '',
+    'VIP': person.isVip ? 'Sim' : 'Não',
+    'Membro doTERRA': person.isDoterraMember ? 'Sim' : 'Não',
   }));
 
   const ws = XLSX.utils.json_to_sheet(rows, { header: headers });
-  ws['!cols'] = [{ wch: 30 }, { wch: 25 }];
+  ws['!cols'] = [{ wch: 30 }, { wch: 22 }, { wch: 22 }, { wch: 30 }, { wch: 35 }, { wch: 6 }, { wch: 12 }];
 
   return ws;
 };
@@ -107,8 +113,8 @@ export const exportExcel = ({ orders, people, dashboard }) => {
   const wsPedidos = buildPedidosSheet(orders || []);
   XLSX.utils.book_append_sheet(wb, wsPedidos, 'Pedidos');
 
-  const wsPessoas = buildPessoasSheet(people || []);
-  XLSX.utils.book_append_sheet(wb, wsPessoas, 'Pessoas');
+  const wsClientes = buildClientesSheet(people || []);
+  XLSX.utils.book_append_sheet(wb, wsClientes, 'Clientes');
 
   const wsHistorico = buildHistoricoSheet(orders || []);
   XLSX.utils.book_append_sheet(wb, wsHistorico, 'Histórico de Pagamentos');

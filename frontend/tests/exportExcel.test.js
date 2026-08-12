@@ -39,8 +39,16 @@ const mockOrders = [
 ];
 
 const mockPeople = [
-  { name: 'João Silva', contact: 'joao@email.com' },
-  { name: 'Maria Santos', contact: null },
+  {
+    name: 'João Silva',
+    whatsapp: '5511999998888',
+    commonGroups: 'Grupo do WhatsApp',
+    instagram: 'https://instagram.com/joao',
+    address: 'Rua das Flores, 123',
+    isVip: true,
+    isDoterraMember: true,
+  },
+  { name: 'Maria Santos', whatsapp: null, isVip: false, isDoterraMember: false },
 ];
 
 const mockDashboard = {
@@ -69,13 +77,13 @@ describe('exportExcel', () => {
       expect(wb.SheetNames).toHaveLength(4);
     });
 
-    it('should have sheet names: Pedidos, Pessoas, Histórico de Pagamentos, Saldo Pendente', () => {
+    it('should have sheet names: Pedidos, Clientes, Histórico de Pagamentos, Saldo Pendente', () => {
       exportExcel({ orders: mockOrders, people: mockPeople, dashboard: mockDashboard });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
       expect(wb.SheetNames).toEqual([
         'Pedidos',
-        'Pessoas',
+        'Clientes',
         'Histórico de Pagamentos',
         'Saldo Pendente',
       ]);
@@ -142,38 +150,45 @@ describe('exportExcel', () => {
     });
   });
 
-  describe('Pessoas Sheet', () => {
+  describe('Clientes Sheet', () => {
     it('should have correct headers', () => {
       exportExcel({ orders: [], people: mockPeople, dashboard: { personBalances: [] } });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
-      const ws = wb.Sheets['Pessoas'];
+      const ws = wb.Sheets['Clientes'];
       const headers = XLSX.utils.sheet_to_json(ws, { header: 1 })[0];
 
-      expect(headers).toEqual(['Nome', 'Contato']);
+      expect(headers).toEqual(['Nome', 'Grupos em Comum', 'WhatsApp', 'Instagram', 'Endereço', 'VIP', 'Membro doTERRA']);
     });
 
-    it('should populate person rows with correct data', () => {
+    it('should populate client rows with correct data', () => {
       exportExcel({ orders: [], people: mockPeople, dashboard: { personBalances: [] } });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
-      const ws = wb.Sheets['Pessoas'];
+      const ws = wb.Sheets['Clientes'];
       const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
 
       expect(rows).toHaveLength(3);
       expect(rows[1][0]).toBe('João Silva');
-      expect(rows[1][1]).toBe('joao@email.com');
+      expect(rows[1][1]).toBe('Grupo do WhatsApp');
+      expect(rows[1][2]).toBe('+55 (11) 99999-8888');
+      expect(rows[1][3]).toBe('https://instagram.com/joao');
+      expect(rows[1][4]).toBe('Rua das Flores, 123');
+      expect(rows[1][5]).toBe('Sim');
+      expect(rows[1][6]).toBe('Sim');
       expect(rows[2][0]).toBe('Maria Santos');
+      expect(rows[2][5]).toBe('Não');
+      expect(rows[2][6]).toBe('Não');
     });
 
-    it('should show empty string for null contact', () => {
+    it('should show empty string for null whatsapp', () => {
       exportExcel({ orders: [], people: mockPeople, dashboard: { personBalances: [] } });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
-      const ws = wb.Sheets['Pessoas'];
+      const ws = wb.Sheets['Clientes'];
       const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
 
-      expect(rows[2][1]).toBe('');
+      expect(rows[2][2]).toBe('');
     });
   });
 
@@ -368,15 +383,15 @@ describe('exportExcel', () => {
       expect(rows[0]).toEqual(['Número', 'Data', 'Valor Total (R$)', 'Status']);
     });
 
-    it('should create Pessoas sheet with only headers when no people', () => {
+    it('should create Clientes sheet with only headers when no people', () => {
       exportExcel({ orders: [], people: [], dashboard: { personBalances: [] } });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
-      const ws = wb.Sheets['Pessoas'];
+      const ws = wb.Sheets['Clientes'];
       const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
 
       expect(rows).toHaveLength(1);
-      expect(rows[0]).toEqual(['Nome', 'Contato']);
+      expect(rows[0]).toEqual(['Nome', 'Grupos em Comum', 'WhatsApp', 'Instagram', 'Endereço', 'VIP', 'Membro doTERRA']);
     });
 
     it('should create Histórico sheet with only headers when no payments exist', () => {
@@ -418,14 +433,14 @@ describe('exportExcel', () => {
       expect(ws['!cols'].length).toBe(4);
     });
 
-    it('should set column widths on Pessoas sheet', () => {
+    it('should set column widths on Clientes sheet', () => {
       exportExcel({ orders: [], people: mockPeople, dashboard: { personBalances: [] } });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
-      const ws = wb.Sheets['Pessoas'];
+      const ws = wb.Sheets['Clientes'];
 
       expect(ws['!cols']).toBeDefined();
-      expect(ws['!cols'].length).toBe(2);
+      expect(ws['!cols'].length).toBe(7);
     });
 
     it('should set column widths on Histórico de Pagamentos sheet', () => {
