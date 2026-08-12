@@ -1195,10 +1195,34 @@ Key Design Decisions:
 
 Deliverable: ✅ Modal de Registrar Pagamento com cabeçalho do pedido e itens por pessoa — **158 backend tests (sem alterações), 273 frontend tests (262 + 11 new), 431 total tests**
 
+## 🎯 Phase 39: Status "Indisponível" + Link do Site no Produto
+
+Status: ✅ COMPLETED
+
+Context: A lista de produtos só distinguia **Ativo** e **Inativo** (campo `active: Boolean`) e não tinha como guardar o link da página do produto no site da dōTERRA. O cliente pediu (1) um campo para colar o **link do produto no site da dōTERRA** e (2) um terceiro status **"Indisponível"** — que indica que o produto saiu do site mas ainda pode estar em pedidos antigos. Regra de pedidos: apenas produtos **Inativo** não podem ser escolhidos na inclusão/edição; **Indisponível** continua selecionável. Pedido que já contém um produto inativo deve mostrar o nome/código na edição, mas sem oferecer esse produto na lista de troca.
+
+Stack: Node.js/Express, Prisma, PostgreSQL, React, Tailwind CSS, Vitest, React Testing Library.
+
+Task:
+- Backend (`schema.prisma` + migration `20260812160000_add_product_status_and_url`): substituir `Product.active: Boolean` por `status ProductStatus @default(ATIVO)` (enum **ATIVO / INDISPONIVEL / INATIVO**) e adicionar `doterraUrl String? @db.VarChar(2048)`. Migração backfill `active=true→ATIVO`, `active=false→INATIVO`, adiciona `doterraUrl`, troca índice `active` → `status`, dropa `active` — aplicada via `migrate deploy` (nenhum dado perdido).
+- `productController.js`: `createProductSchema` ganha `doterraUrl` (`z.string().url().max(2048).optional().nullable()`); `updateProductSchema` troca `active` por `status` (enum) + `doterraUrl`; `projectCurrentPrice` expõe `status`/`doterraUrl`; `getProducts` aceita `?status=` (simples/múltiplo), **`?available=true`** → `status IN [ATIVO, INDISPONIVEL]` e mantém alias legado `?active=true/false`; `deleteProduct` soft-delete via `status = 'INATIVO'`.
+- `ordersController.js`: `validateProducts` passa a exigir `status IN [ATIVO, INDISPONIVEL]` (erro `'One or more products are inactive or do not exist'`).
+- `productLoader.js`: deactivation loop agora filtra `where: { status: 'ATIVO' }`; produtos `INDISPONIVEL` (estado manual) **nunca são tocados** — presentes no CSV preservam o status, ausentes não são desativados.
+- Frontend `ProductsPage.jsx`: filtro e badge de status com 3 estados (Ativo verde / Indisponível âmbar com `AlertCircle` / Inativo cinza), campo **"URL do produto no site da dōTERRA"** nos modais de criar/editar (validação de URL), coluna **Site** (ícone `ExternalLink` abrindo em nova aba), dropdown inline de status substituindo Desativar/Ativar.
+- Frontend `OrdersPage.jsx`: combobox passa a carregar `/products?available=true` (ATIVO + INDISPONIVEL); o `ProductCombobox` ganhou props `selectedName`/`selectedCode` para exibir o nome/código de um produto **INATIVO** já vinculado ao item (via `item.product` retornado por `GET /api/orders`), mantendo o botão "Limpar produto".
+- Tests: backend `products.test.js` 31 → 38 (create com/`sem` doterraUrl, URL inválida, update status/doterraUrl/limpar-null, filtros `status=INDISPONIVEL` e `available=true`), `orders.test.js` (aceita INDISPONIVEL, rejeita INATIVO com nova mensagem), `productLoader.test.js` 16 → 18 (preserva INDISPONIVEL presente no CSV e ausente do CSV). Frontend `ProductsPage.test.jsx` 23 → 29 (badges 3 estados via `data-testid`, coluna Site, filtro INDISPONIVEL, URL inválida, `doterraUrl: null` no create, PUT com status+doterraUrl, dropdown inline), `OrdersPage.test.jsx` 54 → 57 (`available=true` na query, INDISPONIVEL listado, INATIVO exibido na edição via fallback).
+
+Key Design Decisions:
+- **Enum em vez de boolean**: `ProductStatus` expressa os 3 estados semanticamente (migração preserva 100% dos dados); o loader distingue estado manual (`INDISPONIVEL`) de estado derivado do catálogo (`ATIVO`/`INATIVO`).
+- **`?available=true`** é o contrato de "selecionável em pedidos" (ATIVO + INDISPONIVEL), separado do filtro de gestão `?status=`.
+- O fallback `selectedName`/`selectedCode` no combobox resolve a regra "produto inativo aparece na edição mas não na lista de troca" sem chamada extra — `GET /api/orders` já inclui `item.product`.
+
+Deliverable: ✅ Status Indisponível + link do site no produto, com pedidos aceitando INDISPONIVEL e exibindo INATIVO apenas na edição — **168 backend tests (158 + 10 new), 282 frontend tests (273 + 9 new), 450 total tests**
+
 ## 🏆 Project Highlights
 
 - **Zero Floating-Point Errors**: All financial calculations use integer cents arithmetic
-- **100% Test Coverage**: 392 tests covering all critical paths, edge cases, and regressions
+- **100% Test Coverage**: 450 tests covering all critical paths, edge cases, and regressions
 - **Financial Precision**: Decimal(10,2) database fields, accurate status transitions, zero-value "Dar baixa" (only for gift items), zero-against-positive rejection, and confirmed overpayments
 - **User Experience**: PT-BR localization, responsive Tailwind design, toast feedback, loading states
 - **Code Quality**: TDD methodology, clear error messages, proper auth guards, documented pitfalls
