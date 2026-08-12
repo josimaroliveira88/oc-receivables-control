@@ -55,13 +55,13 @@ describe('Payments & Balance', () => {
 
     beforeEach(async () => {
       const person1 = await prisma.person.create({
-        data: { name: 'Payment Person 1', contact: 'pay1@test.com', userId },
+        data: { name: 'Payment Person 1', whatsapp: 'pay1@test.com', userId },
       });
       testPersonId = person1.id;
       createdPersonIds.push(person1.id);
 
       const person2 = await prisma.person.create({
-        data: { name: 'Payment Person 2', contact: 'pay2@test.com', userId },
+        data: { name: 'Payment Person 2', whatsapp: 'pay2@test.com', userId },
       });
       testPerson2Id = person2.id;
       createdPersonIds.push(person2.id);
@@ -100,7 +100,7 @@ describe('Payments & Balance', () => {
 
     it('should create a full payment for a single-person order and update status to QUITADO', async () => {
       const person = await prisma.person.create({
-        data: { name: 'Single Person', contact: 'single@test.com', userId },
+        data: { name: 'Single Person', whatsapp: 'single@test.com', userId },
       });
       createdPersonIds.push(person.id);
 
@@ -130,7 +130,7 @@ describe('Payments & Balance', () => {
 
     it('should accept overpayment and mark single-person order as QUITADO', async () => {
       const person = await prisma.person.create({
-        data: { name: 'Overpay Person', contact: 'overpay@test.com', userId },
+        data: { name: 'Overpay Person', whatsapp: 'overpay@test.com', userId },
       });
       createdPersonIds.push(person.id);
 
@@ -199,7 +199,7 @@ describe('Payments & Balance', () => {
 
     it('should accept zero amount payment for a zero-value item and mark order as QUITADO', async () => {
       const person = await prisma.person.create({
-        data: { name: 'Freebie Person', contact: 'freebie@test.com', userId },
+        data: { name: 'Freebie Person', whatsapp: 'freebie@test.com', userId },
       });
       createdPersonIds.push(person.id);
 
@@ -236,7 +236,7 @@ describe('Payments & Balance', () => {
 
     it('should register zero payment for a zero-value person without affecting other persons', async () => {
       const zeroPerson = await prisma.person.create({
-        data: { name: 'Zero Person', contact: 'zero@test.com', userId },
+        data: { name: 'Zero Person', whatsapp: 'zero@test.com', userId },
       });
       createdPersonIds.push(zeroPerson.id);
 
@@ -460,13 +460,13 @@ describe('Payments & Balance', () => {
 
     beforeEach(async () => {
       const person1 = await prisma.person.create({
-        data: { name: 'Balance Person 1', contact: 'bal1@test.com', userId },
+        data: { name: 'Balance Person 1', whatsapp: 'bal1@test.com', userId },
       });
       balancePersonId = person1.id;
       createdPersonIds.push(person1.id);
 
       const person2 = await prisma.person.create({
-        data: { name: 'Balance Person 2', contact: 'bal2@test.com', userId },
+        data: { name: 'Balance Person 2', whatsapp: 'bal2@test.com', userId },
       });
       balancePerson2Id = person2.id;
       createdPersonIds.push(person2.id);
@@ -635,7 +635,7 @@ describe('Floating point precision (cents)', () => {
 
     it('should accept exact remaining balance without floating point errors', async () => {
       const person = await prisma.person.create({
-        data: { name: 'Cents Test', contact: 'cents@test.com', userId },
+        data: { name: 'Cents Test', whatsapp: 'cents@test.com', userId },
       });
       createdPersonIds.push(person.id);
 
@@ -680,7 +680,7 @@ describe('Floating point precision (cents)', () => {
 
     it('should accept overpayment and keep balance pending at zero with cents-based calculation', async () => {
       const person = await prisma.person.create({
-        data: { name: 'Cents Over Test', contact: 'centsover@test.com', userId },
+        data: { name: 'Cents Over Test', whatsapp: 'centsover@test.com', userId },
       });
       createdPersonIds.push(person.id);
 
@@ -762,7 +762,7 @@ describe('Floating point precision (cents)', () => {
 
     it('should update order status atomically within the payment transaction', async () => {
       const person = await prisma.person.create({
-        data: { name: 'Transactional Test', contact: 'trans@test.com', userId: tUserId },
+        data: { name: 'Transactional Test', whatsapp: 'trans@test.com', userId: tUserId },
       });
       tCreatedPersonIds.push(person.id);
 
@@ -803,7 +803,7 @@ describe('Floating point precision (cents)', () => {
 
     it('should persist overpayment and update order status inside the transaction', async () => {
       const person = await prisma.person.create({
-        data: { name: 'Rollback Test', contact: 'rollback@test.com', userId: tUserId },
+        data: { name: 'Rollback Test', whatsapp: 'rollback@test.com', userId: tUserId },
       });
       tCreatedPersonIds.push(person.id);
 

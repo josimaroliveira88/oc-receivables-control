@@ -47,7 +47,7 @@ describe('Orders CRUD with Items', () => {
   describe('POST /api/orders', () => {
     beforeEach(async () => {
       const person = await prisma.person.create({
-        data: { name: 'Test Person for Order', contact: 'person@test.com', userId },
+        data: { name: 'Test Person for Order', whatsapp: 'person@test.com', userId },
       });
       testPersonId = person.id;
     });
@@ -238,7 +238,7 @@ describe('Orders CRUD with Items', () => {
     describe('GET /api/orders', () => {
       beforeEach(async () => {
         const person = await prisma.person.create({
-          data: { name: 'Test Person', contact: 'test@test.com', userId },
+          data: { name: 'Test Person', whatsapp: 'test@test.com', userId },
         });
         testPersonId = person.id;
 
@@ -298,7 +298,7 @@ describe('Orders CRUD with Items', () => {
   describe('PUT /api/orders/:id', () => {
     beforeEach(async () => {
       const person = await prisma.person.create({
-        data: { name: 'Test Person', contact: 'test@test.com', userId },
+        data: { name: 'Test Person', whatsapp: 'test@test.com', userId },
       });
       testPersonId = person.id;
 
@@ -386,7 +386,7 @@ describe('Orders CRUD with Items', () => {
   describe('DELETE /api/orders/:id', () => {
     beforeEach(async () => {
       const person = await prisma.person.create({
-        data: { name: 'Test Person', contact: 'test@test.com', userId },
+        data: { name: 'Test Person', whatsapp: 'test@test.com', userId },
       });
       testPersonId = person.id;
 
@@ -435,7 +435,7 @@ describe('Orders CRUD with Items', () => {
 
     beforeEach(async () => {
       const person = await prisma.person.create({
-        data: { name: 'Test Person', contact: 'test@test.com', userId },
+        data: { name: 'Test Person', whatsapp: 'test@test.com', userId },
       });
       testPersonId = person.id;
 
@@ -571,7 +571,7 @@ describe('Orders CRUD with Items', () => {
 
     beforeEach(async () => {
       const person = await prisma.person.create({
-        data: { name: 'Test Person Enhanced', contact: 'enhanced@test.com', userId },
+        data: { name: 'Test Person Enhanced', whatsapp: 'enhanced@test.com', userId },
       });
       testPersonId = person.id;
 
@@ -759,7 +759,7 @@ describe('Orders CRUD with Items', () => {
   describe('Order descriptive fields (account owner, payment type, notes)', () => {
     beforeEach(async () => {
       const person = await prisma.person.create({
-        data: { name: 'Test Person Desc', contact: 'desc@test.com', userId },
+        data: { name: 'Test Person Desc', whatsapp: 'desc@test.com', userId },
       });
       testPersonId = person.id;
     });

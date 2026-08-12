@@ -5,7 +5,12 @@ const prisma = new PrismaClient();
 // Zod schema for person validation
 const personSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  contact: z.string().optional().nullable(),
+  whatsapp: z.string().optional().nullable(),
+  commonGroups: z.string().max(255).optional().nullable(),
+  instagram: z.string().max(255).optional().nullable(),
+  address: z.string().max(500).optional().nullable(),
+  isVip: z.boolean().optional(),
+  isDoterraMember: z.boolean().optional(),
 });
 
 // Get all people

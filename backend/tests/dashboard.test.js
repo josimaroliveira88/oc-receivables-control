@@ -51,7 +51,7 @@ describe('Dashboard Yearly Breakdown', () => {
 
   beforeEach(async () => {
     const person = await prisma.person.create({
-      data: { name: 'Dashboard Year Test Person', contact: 'year@test.com', userId },
+      data: { name: 'Dashboard Year Test Person', whatsapp: 'year@test.com', userId },
     });
     testPersonId = person.id;
   });
