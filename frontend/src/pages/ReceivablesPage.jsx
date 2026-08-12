@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useToast } from '../components/Toast';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { toCents, formatBRL } from '../utils/money';
 
 const getTodayString = () => {
@@ -39,6 +40,7 @@ const ReceivablesPage = () => {
   const [paymentDate, setPaymentDate] = useState(getTodayString());
   const [paymentError, setPaymentError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showOverpayConfirm, setShowOverpayConfirm] = useState(false);
   const { addToast } = useToast();
 
   const fetchOrders = async () => {
@@ -106,6 +108,33 @@ const ReceivablesPage = () => {
     return !!balance && toCents(balance.itemTotal) === 0;
   };
 
+  const submitPayment = async () => {
+    try {
+      setSubmitting(true);
+      await api.post(`/orders/${selectedOrder.id}/payments`, {
+        amount: parseFloat(paymentAmount || '0'),
+        personId: selectedPersonId,
+        paidAt: paymentDate || undefined,
+        notes: paymentNotes.trim() || undefined,
+      });
+      addToast('Pagamento registrado com sucesso!', 'success');
+      closePaymentModal();
+      fetchOrders();
+    } catch (err) {
+      const msg =
+        err.response?.data?.error || 'Erro ao registrar pagamento. Tente novamente.';
+      if (typeof msg === 'string' && msg.includes('pending balance')) {
+        addToast('Valor excede o saldo pendente', 'error');
+      } else if (typeof msg === 'string' && msg.includes('greater than zero')) {
+        addToast('Valor deve ser maior que zero', 'error');
+      } else {
+        addToast(msg, 'error');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handlePaymentSubmit = async (e) => {
     e.preventDefault();
     setPaymentError('');
@@ -132,38 +161,11 @@ const ReceivablesPage = () => {
     const pendingCents = getSelectedPendingCents();
 
     if (amountCents > pendingCents) {
-      const confirmOk = window.confirm(
-        `Valor de ${formatBRL(amountCents / 100)} é maior que o saldo pendente (${formatBRL(pendingCents / 100)}). Confirmar recebimento?`
-      );
-      if (!confirmOk) {
-        return;
-      }
+      setShowOverpayConfirm(true);
+      return;
     }
 
-    try {
-      setSubmitting(true);
-      await api.post(`/orders/${selectedOrder.id}/payments`, {
-        amount: parseFloat(paymentAmount || '0'),
-        personId: selectedPersonId,
-        paidAt: paymentDate || undefined,
-        notes: paymentNotes.trim() || undefined,
-      });
-      addToast('Pagamento registrado com sucesso!', 'success');
-      closePaymentModal();
-      fetchOrders();
-    } catch (err) {
-      const msg =
-        err.response?.data?.error || 'Erro ao registrar pagamento. Tente novamente.';
-      if (typeof msg === 'string' && msg.includes('pending balance')) {
-        addToast('Valor excede o saldo pendente', 'error');
-      } else if (typeof msg === 'string' && msg.includes('greater than zero')) {
-        addToast('Valor deve ser maior que zero', 'error');
-      } else {
-        addToast(msg, 'error');
-      }
-    } finally {
-      setSubmitting(false);
-    }
+    await submitPayment();
   };
 
   if (loading) {
@@ -372,6 +374,28 @@ const ReceivablesPage = () => {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={showOverpayConfirm}
+        title="Confirmar recebimento"
+        message={
+          <>
+            Valor de{' '}
+            <strong>{formatBRL(toCents(parseFloat(paymentAmount || '0')) / 100)}</strong>{' '}
+            é maior que o saldo pendente (
+            <strong>{formatBRL(getSelectedPendingCents() / 100)}</strong>). Deseja mesmo
+            confirmar este recebimento?
+          </>
+        }
+        confirmLabel="Confirmar recebimento"
+        cancelLabel="Cancelar"
+        loading={submitting}
+        onConfirm={() => {
+          setShowOverpayConfirm(false);
+          submitPayment();
+        }}
+        onCancel={() => setShowOverpayConfirm(false)}
+      />
     </>
   );
 };

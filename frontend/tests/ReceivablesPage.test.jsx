@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ReceivablesPage from '../src/pages/ReceivablesPage';
@@ -86,7 +86,6 @@ const renderPage = () => {
 describe('ReceivablesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    window.confirm = vi.fn(() => true);
   });
 
   describe('Rendering', () => {
@@ -216,9 +215,6 @@ describe('ReceivablesPage', () => {
     });
 
     it('should not show "Nenhuma pessoa neste pedido" and list zero-balance persons', async () => {
-      const mockConfirm = vi.fn(() => true);
-      window.confirm = mockConfirm;
-
       mockGetImplementation([mockOrders[3]]);
       renderPage();
 
@@ -383,9 +379,6 @@ describe('ReceivablesPage', () => {
     });
 
     it('should ask for confirmation on overpayment and submit when confirmed', async () => {
-      const mockConfirm = vi.fn(() => true);
-      window.confirm = mockConfirm;
-
       await openModalWithBalance();
 
       const amountInput = screen.getByPlaceholderText('0.00');
@@ -397,10 +390,12 @@ describe('ReceivablesPage', () => {
       const form = amountInput.closest('form');
       fireEvent.submit(form);
 
-      await waitFor(() => {
-        expect(mockConfirm).toHaveBeenCalledTimes(1);
-      });
-      expect(mockConfirm).toHaveBeenCalledWith(expect.stringContaining('Confirmar recebimento'));
+      const dialog = await screen.findByRole('dialog');
+      expect(within(dialog).getByText(/maior que o saldo pendente/)).toBeInTheDocument();
+      expect(within(dialog).getByText(/R\$\s*999,00/)).toBeInTheDocument();
+
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmar recebimento' }));
+
       await waitFor(() => {
         expect(mockPost).toHaveBeenCalledWith('/orders/order-1/payments', {
           amount: 999,
@@ -412,8 +407,6 @@ describe('ReceivablesPage', () => {
     });
 
     it('should not submit overpayment when confirmation is cancelled', async () => {
-      window.confirm = vi.fn(() => false);
-
       await openModalWithBalance();
 
       const amountInput = screen.getByPlaceholderText('0.00');
@@ -422,10 +415,38 @@ describe('ReceivablesPage', () => {
       const form = amountInput.closest('form');
       fireEvent.submit(form);
 
+      const dialog = await screen.findByRole('dialog');
+      expect(within(dialog).getByText(/maior que o saldo pendente/)).toBeInTheDocument();
+
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
+
       await waitFor(() => {
-        expect(window.confirm).toHaveBeenCalledTimes(1);
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
       });
       expect(mockPost).not.toHaveBeenCalled();
+    });
+
+    it('should not show the overpayment confirmation when amount equals the pending balance', async () => {
+      await openModalWithBalance();
+
+      const amountInput = screen.getByPlaceholderText('0.00');
+      fireEvent.change(amountInput, { target: { value: '300' } });
+
+      mockPost.mockResolvedValue({ data: { id: 'pay-full', amount: '300.00', personId: 'p1' } });
+      mockGet.mockResolvedValue({ data: [] });
+
+      const form = amountInput.closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith('/orders/order-1/payments', {
+          amount: 300,
+          personId: 'p1',
+          paidAt: expect.any(String),
+          notes: undefined,
+        });
+      });
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
     it('should submit valid payment and call POST /orders/:id/payments', async () => {
