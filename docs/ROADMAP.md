@@ -1149,6 +1149,52 @@ Key Design Decisions:
 
 Deliverable: ✅ Cadastro de Clientes com WhatsApp (link wa.me + máscara + aviso fora do padrão), Instagram, Endereço, VIP e Membro doTERRA — **158 backend tests (149 + 9 new), 253 frontend tests (244 + 9 new), 411 total tests**
 
+## 🎯 Phase 37: Recebíveis — Lista com paridade à Gestão de Pedidos
+
+Status: ✅ COMPLETED
+
+Context: A lista do **Controle de Recebíveis** mostrava apenas Número, Valor Total, Status e Ações. O cliente pediu colunas semelhantes às da **Gestão de Pedidos** — número, data, responsável, valor total do pedido, valor pendente, PV Total, descrição, status e ações (excluindo "Tipo Pgto" e "Rastreio", conforme confirmado).
+
+Stack: React, Tailwind CSS, Vitest, React Testing Library.
+
+Task:
+- `frontend/src/utils/dates.js` (**novo**): extrai `formatDateBR` (PT-BR `dd/mm/yyyy`) que estava duplicado localmente em `OrdersPage.jsx`, reutilizado por ambas as páginas (DRY).
+- `frontend/src/pages/ReceivablesPage.jsx`: tabela ampliada para 9 colunas — **Número | Data | Responsável | Valor (R$) | Valor Pendente | PV Total | Descrição | Status | Ações**.
+  - **Valor Pendente** calculado client-side: `max(0, totalValue − Σ payments[].amount)` em centavos (nada de backend novo — `GET /api/orders` já retorna `payments[]`). Overpayment (Σ pagamentos > total) é **fixado em R$ 0,00**; o badge de status comunica o estado real.
+  - **PV Total** = `Σ items[].pv` (mesma fórmula do Orders).
+  - **Descrição** truncada com `title` completo; `—` quando vazia.
+  - Ações permanece **Registrar Pagamento** / **Pago** (sem Editar/Excluir numa lista de recebíveis).
+- Tests: `frontend/tests/ReceivablesPage.test.jsx` cresceu 31 → 40 (mocks ampliados com `orderDate`, `accountOwner`, `orderNotes`, `items[].pv`, `payments[].amount` + 9 novos testes: data em BR, responsável/`—`, pendente = total sem pagamentos, pendente = total − pago, pendente fixado em 0 no overpayment, PV Total, descrição truncada + `title`, `—` para descrição vazia).
+
+Key Design Decisions:
+- Nenhuma mudança de backend: `GET /api/orders` já inclui `items[]` (com `pv`) e `payments[]` por pedido; o pendente é derivado client-side, sem chamada extra.
+- Pendente em centavos inteiros (`toCents`) e clampado em `Math.max(0, ...)` para nunca exibir valor negativo em overpayment.
+- "Tipo Pgto" e "Rastreio" foram **omitidos** intencionalmente (pedido explícito do cliente).
+
+Deliverable: ✅ Lista do Controle de Recebíveis espelhando a Gestão de Pedidos com Valor Pendente calculado — **158 backend tests (sem alterações), 262 frontend tests (253 + 9 new), 420 total tests**
+
+## 🎯 Phase 38: Registrar Pagamento — Cabeçalho do Pedido + Itens por Pessoa
+
+Status: ✅ COMPLETED
+
+Context: O modal **Registrar Pagamento** mostrava apenas a pessoa selecionada com seu saldo pendente. O cliente precisava cruzar informações com controles externos (planilhas próprias, sistema da dōTERRA) para identificar **quais itens** uma pessoa comprou e **quanto** foi cobrado antes de lançar o pagamento. O modal ganhou um **cabeçalho com os dados básicos do pedido** (sempre visível) e uma **lista de itens da pessoa selecionada** (descrição do produto, valor cobrado e detalhes).
+
+Stack: React, Tailwind CSS, Vitest, React Testing Library.
+
+Task:
+- `frontend/src/pages/ReceivablesPage.jsx`:
+  - **Cabeçalho do pedido** (grid 2 colunas, acima do select de Pessoa) com 6 campos: **Número**, **Data** (`formatDateBR`), **Responsável** (`accountOwner`, `—` quando vazio), **Valor Total**, **Valor Pendente** e **Descrição** (`orderNotes` truncada com `title`, `—` quando vazia). O **Valor Pendente** é calculado client-side em centavos como `max(0, totalValue − Σ payments[].amount)` — fixado em R$ 0,00 quando a soma dos pagamentos iguala ou supera o total.
+  - **Lista de itens da pessoa** (abaixo do callout "Saldo pendente"/"Nada a receber", apenas quando `selectedPersonId` está setado): filtra `selectedOrder.items` por `personId`, e para cada item mostra **descrição** (nome do produto), **valor cobrado** (`formatBRL(parseFloat(item.chargedValue))`) e **detalhes** (`item.details`, `—` quando nulo). Pessoa sem itens exibe "Nenhum item registrado para esta pessoa".
+  - Modal alargado de `max-w-md` para `max-w-lg` com `max-h-[90vh] overflow-y-auto` no painel para rolar listas longas.
+- Tests: `frontend/tests/ReceivablesPage.test.jsx` cresceu 40 → 51 (mocks enriquecidos com `paidOrder`/`overpaidOrder`/`richOrder` com `items[].{description,details,chargedValue,personId}` + 11 novos testes: labels do cabeçalho, valores (número/data/responsável/descrição), pendente = total sem pagamentos, pendente = 0 quando totalmente pago, pendente = 0 no overpayment, `title` na descrição, `—` para descrição ausente, lista de itens da pessoa, `—` para item sem detalhes, itens de outras pessoas não aparecem, troca de pessoa filtra a lista).
+
+Key Design Decisions:
+- **Nenhuma mudança de backend**: `GET /api/orders` já retorna `items[]` (com `description`/`details`/`chargedValue`) e `payments[]`; o cabeçalho e a lista de itens são derivados client-side do objeto `selectedOrder` já carregado — sem chamada extra nem migração.
+- O **Valor Pendente do cabeçalho** é o pendente **do pedido inteiro** (total − soma de todos os pagamentos), distinto do pendente **por pessoa** exibido no callout/seletor — ambos em centavos inteiros com `Math.max(0, ...)`.
+- Foram usados `data-testid`s (`payment-modal`, `order-summary-total`, `order-summary-pending`, `order-summary-description`) para tornar as asserções robustas contra textos repetidos (ex.: "R$ 300,00" aparece no cabeçalho, no select e no callout).
+
+Deliverable: ✅ Modal de Registrar Pagamento com cabeçalho do pedido e itens por pessoa — **158 backend tests (sem alterações), 273 frontend tests (262 + 11 new), 431 total tests**
+
 ## 🏆 Project Highlights
 
 - **Zero Floating-Point Errors**: All financial calculations use integer cents arithmetic
