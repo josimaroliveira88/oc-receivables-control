@@ -17,10 +17,11 @@ function samePriceValues(current, row) {
 /**
  * Intelligent catalog load. Compares the given rows against the database and
  * only applies what changed:
- *  - new products are inserted (with an active price record)
- *  - existing products have metadata synced and are reactivated if inactive
+ *  - new products are inserted (with an active price record and status ATIVO)
+ *  - existing products have metadata synced and are reactivated if INATIVO
+ *  - INDISPONIVEL products present in the CSV keep their manual status (never touched)
  *  - changed prices close the current price record (validTo) and open a new one
- *  - products present in DB but missing from the CSV are deactivated
+ *  - products with status ATIVO but missing from the CSV are marked INATIVO
  *
  * Options:
  *  - validFrom: Date — validity start for this load (supports retroactive loads)
@@ -52,7 +53,7 @@ async function loadProductCatalog(prisma, rows, options = {}) {
               code: row.code,
               name: row.name,
               size: row.size,
-              active: true,
+              status: 'ATIVO',
               prices: {
                 create: {
                   regularPrice: row.regularPrice,
@@ -67,15 +68,22 @@ async function loadProductCatalog(prisma, rows, options = {}) {
           continue;
         }
 
-        const metadataChanged =
-          existing.name !== row.name || existing.size !== row.size || !existing.active;
+        const nameOrSizeChanged = existing.name !== row.name || existing.size !== row.size;
+        const needsReactivation = existing.status === 'INATIVO';
 
-        if (metadataChanged) {
+        if (nameOrSizeChanged || needsReactivation) {
+          const updateData = { name: row.name, size: row.size };
+          // Only reactivate INATIVO products; INDISPONIVEL is a manual state preserved by the loader.
+          if (needsReactivation) {
+            updateData.status = 'ATIVO';
+          }
           await tx.product.update({
             where: { id: existing.id },
-            data: { name: row.name, size: row.size, active: true },
+            data: updateData,
           });
         }
+
+        const metadataChanged = nameOrSizeChanged || needsReactivation;
 
         const currentPrice = await tx.productPrice.findFirst({
           where: { productId: existing.id, validTo: null },
@@ -123,12 +131,12 @@ async function loadProductCatalog(prisma, rows, options = {}) {
         }
       }
 
-      const activeProducts = await tx.product.findMany({ where: { active: true } });
+      const activeProducts = await tx.product.findMany({ where: { status: 'ATIVO' } });
       for (const product of activeProducts) {
         if (!codes.has(product.code)) {
           await tx.product.update({
             where: { id: product.id },
-            data: { active: false },
+            data: { status: 'INATIVO' },
           });
           summary.deactivated += 1;
         }

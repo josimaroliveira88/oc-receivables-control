@@ -39,17 +39,17 @@ const updateOrderSchema = z.object({
   items: z.array(itemSchema).min(1, 'At least one item is required').optional(),
 });
 
-// Verify all products exist and are active (when a productId is provided)
+// Verify all products exist and are available (ATIVO or INDISPONIVEL; INATIVO is rejected)
 const validateProducts = async (items) => {
   const productIds = [...new Set(items.map(item => item.productId).filter(Boolean))];
   if (productIds.length === 0) return;
 
   const products = await prisma.product.findMany({
-    where: { id: { in: productIds }, active: true },
+    where: { id: { in: productIds }, status: { in: ['ATIVO', 'INDISPONIVEL'] } },
   });
 
   if (products.length !== productIds.length) {
-    const error = new Error('One or more products not found');
+    const error = new Error('One or more products are inactive or do not exist');
     error.status = 400;
     throw error;
   }
@@ -139,7 +139,7 @@ const createOrder = async (req, res) => {
       return res.status(400).json({ error: 'One or more persons not found' });
     }
 
-    // Verify all products exist and are active
+    // Verify all products exist and are available (ATIVO or INDISPONIVEL)
     await validateProducts(validatedData.items);
 
     // Calculate total value
@@ -209,7 +209,7 @@ const updateOrder = async (req, res) => {
       return res.status(400).json({ error: 'One or more persons not found' });
     }
 
-    // Verify all products exist and are active
+    // Verify all products exist and are available (ATIVO or INDISPONIVEL)
     await validateProducts(validatedData.items);
 
     const totalValue = validatedData.items.reduce((sum, item) => sum + item.chargedValue, 0);
@@ -322,7 +322,7 @@ const addItemToOrder = async (req, res) => {
       return res.status(400).json({ error: 'Person not found' });
     }
 
-    // Verify product exists and is active (when provided)
+    // Verify product exists and is available (when provided)
     await validateProducts([validatedData]);
 
     // Add item to order
@@ -401,7 +401,7 @@ const updateItem = async (req, res) => {
       }
     }
 
-    // If updating productId (non-null), verify product exists and is active
+    // If updating productId (non-null), verify product exists and is available
     if (validatedData.productId) {
       await validateProducts([validatedData]);
     }

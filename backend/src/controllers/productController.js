@@ -3,6 +3,8 @@ const { z } = require('zod');
 const prisma = new PrismaClient();
 const { toCents } = require('../utils/money');
 
+const productStatusSchema = z.enum(['ATIVO', 'INDISPONIVEL', 'INATIVO']);
+
 const createProductSchema = z.object({
   code: z.string().min(1, 'Code is required'),
   name: z.string().min(1, 'Name is required'),
@@ -10,12 +12,14 @@ const createProductSchema = z.object({
   regularPrice: z.number().nonnegative('Regular price must be non-negative'),
   memberPrice: z.number().nonnegative('Member price must be non-negative'),
   pv: z.number().nonnegative('PV must be non-negative'),
+  doterraUrl: z.string().url('Invalid product URL').max(2048, 'Product URL is too long').optional().nullable(),
 });
 
 const updateProductSchema = z.object({
   name: z.string().min(1, 'Name is required').optional(),
   size: z.string().min(1, 'Size is required').optional(),
-  active: z.boolean().optional(),
+  status: productStatusSchema.optional(),
+  doterraUrl: z.string().url('Invalid product URL').max(2048, 'Product URL is too long').optional().nullable(),
   regularPrice: z.number().nonnegative('Regular price must be non-negative').optional(),
   memberPrice: z.number().nonnegative('Member price must be non-negative').optional(),
   pv: z.number().nonnegative('PV must be non-negative').optional(),
@@ -38,7 +42,8 @@ const projectCurrentPrice = (product) => {
     code: product.code,
     name: product.name,
     size: product.size,
-    active: product.active,
+    status: product.status,
+    doterraUrl: product.doterraUrl,
     createdAt: product.createdAt,
     updatedAt: product.updatedAt,
     regularPrice: currentPrice ? currentPrice.regularPrice : null,
@@ -69,12 +74,20 @@ const sortProducts = (products, sortBy, sortDir) => {
 
 const getProducts = async (req, res) => {
   try {
-    const { active, q, sortBy, sortDir, page: pageParam, pageSize: pageSizeParam } = req.query;
+    const { active, status, available, q, sortBy, sortDir, page: pageParam, pageSize: pageSizeParam } = req.query;
 
     const where = {};
-    if (active !== undefined) {
-      where.active = active === 'true';
+
+    const statusValues = Array.isArray(status) ? status : status ? [status] : [];
+
+    if (available === 'true') {
+      where.status = { in: ['ATIVO', 'INDISPONIVEL'] };
+    } else if (statusValues.length > 0) {
+      where.status = statusValues.length === 1 ? statusValues[0] : { in: statusValues };
+    } else if (active !== undefined) {
+      where.status = active === 'true' ? 'ATIVO' : 'INATIVO';
     }
+
     if (q && q.trim()) {
       const search = q.trim();
       where.OR = [
@@ -162,7 +175,7 @@ const createProduct = async (req, res) => {
         code: validatedData.code,
         name: validatedData.name,
         size: validatedData.size,
-        active: true,
+        doterraUrl: validatedData.doterraUrl ?? null,
         prices: {
           create: {
             regularPrice: validatedData.regularPrice,
@@ -214,7 +227,8 @@ const updateProduct = async (req, res) => {
       const updateData = {
         ...(validatedData.name !== undefined && { name: validatedData.name }),
         ...(validatedData.size !== undefined && { size: validatedData.size }),
-        ...(validatedData.active !== undefined && { active: validatedData.active }),
+        ...(validatedData.status !== undefined && { status: validatedData.status }),
+        ...(validatedData.doterraUrl !== undefined && { doterraUrl: validatedData.doterraUrl }),
       };
 
       let currentPrice = existingProduct.prices.find((price) => price.validTo === null);
@@ -303,7 +317,7 @@ const deleteProduct = async (req, res) => {
 
     await prisma.product.update({
       where: { id },
-      data: { active: false },
+      data: { status: 'INATIVO' },
     });
 
     res.status(200).json({ message: 'Product deactivated successfully' });

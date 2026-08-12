@@ -51,14 +51,14 @@ describe('parseProductCsv', () => {
 });
 
 describe('loadProductCatalog', () => {
-  let originalActiveStates;
+  let originalStates;
 
   beforeAll(async () => {
     // Snapshot the real catalog state so tests can restore it afterward.
     // The loader deactivates every product absent from the loaded CSV, so test
     // loads of TEST-only catalogs would otherwise disable the real products.
-    originalActiveStates = await prisma.product.findMany({
-      select: { id: true, active: true },
+    originalStates = await prisma.product.findMany({
+      select: { id: true, status: true },
     });
   });
 
@@ -67,7 +67,7 @@ describe('loadProductCatalog', () => {
     // and only TEST products participate in assertions.
     await prisma.product.updateMany({
       where: { NOT: { code: { startsWith: 'TEST' } } },
-      data: { active: false },
+      data: { status: "INATIVO" },
     });
   });
 
@@ -77,11 +77,11 @@ describe('loadProductCatalog', () => {
 
   afterAll(async () => {
     // Restore the original active state of every real product.
-    for (const product of originalActiveStates) {
+    for (const product of originalStates) {
       await prisma.product
         .update({
           where: { id: product.id },
-          data: { active: product.active },
+          data: { status: product.status },
         })
         .catch(() => {});
     }
@@ -115,7 +115,7 @@ describe('loadProductCatalog', () => {
     });
     expect(products).toHaveLength(2);
     for (const product of products) {
-      expect(product.active).toBe(true);
+      expect(product.status).toBe("ATIVO");
       expect(product.prices).toHaveLength(1);
       expect(product.prices[0].validTo).toBeNull();
       expect(parseFloat(product.prices[0].regularPrice)).toBe(product.code === 'TEST0001' ? 308.0 : 103.0);
@@ -198,7 +198,7 @@ describe('loadProductCatalog', () => {
 
     expect(summary.deactivated).toBe(1);
     const deactivated = await prisma.product.findUnique({ where: { code: 'TEST0002' } });
-    expect(deactivated.active).toBe(false);
+    expect(deactivated.status).toBe("INATIVO");
 
     const thirdLoad = rowsFrom([
       { code: 'TEST0001', name: 'Basil', size: '5 ml', regularPrice: '103.00', memberPrice: '77.50', pv: '9' },
@@ -207,8 +207,48 @@ describe('loadProductCatalog', () => {
     const summary3 = await loadProductCatalog(prisma, thirdLoad);
 
     const reactivated = await prisma.product.findUnique({ where: { code: 'TEST0002' } });
-    expect(reactivated.active).toBe(true);
+    expect(reactivated.status).toBe("ATIVO");
     expect(summary3.created).toBe(0);
+  });
+
+  it('should preserve the INDISPONIVEL status of a product present in the CSV', async () => {
+    const rows = rowsFrom([
+      { code: 'TEST0001', name: 'Basil', size: '5 ml', regularPrice: '103.00', memberPrice: '77.50', pv: '9' },
+    ]);
+    await loadProductCatalog(prisma, rows);
+
+    await prisma.product.update({
+      where: { code: 'TEST0001' },
+      data: { status: 'INDISPONIVEL' },
+    });
+
+    const summary = await loadProductCatalog(prisma, rows);
+
+    expect(summary.deactivated).toBe(0);
+    const product = await prisma.product.findUnique({ where: { code: 'TEST0001' } });
+    expect(product.status).toBe('INDISPONIVEL');
+  });
+
+  it('should not deactivate an INDISPONIVEL product that is missing from the CSV', async () => {
+    const rows = rowsFrom([
+      { code: 'TEST0001', name: 'Basil', size: '5 ml', regularPrice: '103.00', memberPrice: '77.50', pv: '9' },
+      { code: 'TEST0002', name: 'Cedarwood', size: '15 ml', regularPrice: '140.00', memberPrice: '105.00', pv: '14' },
+    ]);
+    await loadProductCatalog(prisma, rows);
+
+    await prisma.product.update({
+      where: { code: 'TEST0002' },
+      data: { status: 'INDISPONIVEL' },
+    });
+
+    const partial = rowsFrom([
+      { code: 'TEST0001', name: 'Basil', size: '5 ml', regularPrice: '103.00', memberPrice: '77.50', pv: '9' },
+    ]);
+    const summary = await loadProductCatalog(prisma, partial);
+
+    expect(summary.deactivated).toBe(0);
+    const product = await prisma.product.findUnique({ where: { code: 'TEST0002' } });
+    expect(product.status).toBe('INDISPONIVEL');
   });
 
   it('should add new products to the catalog without touching existing ones', async () => {
@@ -225,7 +265,7 @@ describe('loadProductCatalog', () => {
 
     expect(summary.created).toBe(1);
     const newProduct = await prisma.product.findUnique({ where: { code: 'TEST0003' }, include: { prices: true } });
-    expect(newProduct.active).toBe(true);
+    expect(newProduct.status).toBe("ATIVO");
     expect(newProduct.prices).toHaveLength(1);
   });
 
@@ -321,6 +361,6 @@ describe('loadProductCatalog', () => {
     expect(summary.deactivated).toBe(1);
 
     const stillActive = await prisma.product.findUnique({ where: { code: 'TEST0002' } });
-    expect(stillActive.active).toBe(true);
+    expect(stillActive.status).toBe("ATIVO");
   });
 });

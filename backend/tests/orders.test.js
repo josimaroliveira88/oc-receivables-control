@@ -669,13 +669,13 @@ describe('Orders CRUD with Items', () => {
         });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('One or more products not found');
+      expect(response.body.error).toBe('One or more products are inactive or do not exist');
     });
 
     it('should reject order with inactive productId', async () => {
       await prisma.product.update({
         where: { id: testProductId },
-        data: { active: false },
+        data: { status: 'INATIVO' },
       });
 
       const response = await request(app)
@@ -694,7 +694,32 @@ describe('Orders CRUD with Items', () => {
         });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('One or more products not found');
+      expect(response.body.error).toBe('One or more products are inactive or do not exist');
+    });
+
+    it('should accept order with an INDISPONIVEL productId', async () => {
+      await prisma.product.update({
+        where: { id: testProductId },
+        data: { status: 'INDISPONIVEL' },
+      });
+
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-INDISPONIVEL'),
+          items: [
+            {
+              description: 'Item',
+              chargedValue: 50.00,
+              personId: testPersonId,
+              productId: testProductId,
+            },
+          ],
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.items[0].productId).toBe(testProductId);
     });
 
     it('should reject item with details longer than 500 characters', async () => {

@@ -98,18 +98,25 @@ model Payment {
 }
 
 model Product {
-  id        String   @id @default(uuid())
-  code      String   @unique
-  name      String
-  size      String
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String        @id @default(uuid())
+  code       String        @unique
+  name       String
+  size       String
+  status     ProductStatus @default(ATIVO)
+  doterraUrl String?       @db.VarChar(2048)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
 
   prices ProductPrice[]
   items  Item[]
 
-  @@index([active])
+  @@index([status])
+}
+
+enum ProductStatus {
+  ATIVO
+  INDISPONIVEL
+  INATIVO
 }
 
 model ProductPrice {
