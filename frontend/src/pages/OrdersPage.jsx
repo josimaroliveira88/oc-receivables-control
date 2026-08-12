@@ -68,7 +68,7 @@ const paymentTypeBadge = (type) => {
 };
 
 const trackingUrl = (orderNumber) =>
-  `https://status.ondeestameupedido.com/tracking/${encodeURIComponent(orderNumber)}/`;
+    `https://status.ondeestameupedido.com/tracking/22747/${encodeURIComponent(orderNumber)}/`;
 
 const ProductCombobox = ({ products, value, onChange }) => {
   const [query, setQuery] = useState('');

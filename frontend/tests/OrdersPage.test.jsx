@@ -227,14 +227,8 @@ describe('OrdersPage', () => {
       await waitFor(() => {
         const links = screen.getAllByTitle('Ver pedido no site');
         expect(links).toHaveLength(2);
-        expect(links[0]).toHaveAttribute(
-          'href',
-          'https://status.ondeestameupedido.com/tracking/ORD-001/'
-        );
-        expect(links[1]).toHaveAttribute(
-          'href',
-          'https://status.ondeestameupedido.com/tracking/ORD-002/'
-        );
+        expect(links[0]).toHaveAttribute('href', 'https://status.ondeestameupedido.com/tracking/22747/ORD-001/');
+        expect(links[1]).toHaveAttribute('href', 'https://status.ondeestameupedido.com/tracking/22747/ORD-002/');
       });
     });
   });
@@ -527,10 +521,7 @@ describe('OrdersPage', () => {
 
       await waitFor(() => {
         const link = screen.getByText('Ver pedido no site');
-        expect(link).toHaveAttribute(
-          'href',
-          'https://status.ondeestameupedido.com/tracking/12345/'
-        );
+        expect(link).toHaveAttribute('href', 'https://status.ondeestameupedido.com/tracking/22747/12345/');
       });
     });
 

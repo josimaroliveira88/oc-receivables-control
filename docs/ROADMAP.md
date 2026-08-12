@@ -602,7 +602,7 @@ Deliverable: ✅ All modals now render above the mobile bottom navigation bar, m
 - Currency formatting: BRL with pt-BR locale (R$ 1.234,56)
 
 ### Test Results Summary:
-```                                                                                 
+```
 ┌─────────────────────────┬───────────────────┬──────────────┐
 │ Component               │ Test Count        │ Status       │
 ├─────────────────────────┼───────────────────┼──────────────┤
@@ -990,7 +990,7 @@ Deliverable: ✅ Enhanced order item sub-form with product linking, snapshots, n
 ## 🎯 Phase 32: Order Descriptive Fields — Tracking Link, Account Owner, Payment Type & Notes
 Status: ✅ COMPLETED
 
-Context: The user wants to enrich the order form with descriptive (non-financial) order-level fields: the dōTERRA order number must show a clickable tracking link to `https://status.ondeestameupedido.com/tracking/{numero}/`, plus a free-text field for the account owner (dōTERRA ID or name), the payment method used (PIX, Boleto, Cartão de Crédito), a free-text order description (motivo do pedido, promoções, encomendas, etc.), and a live summary of the summed product value and summed PV placed before the items section.
+Context: The user wants to enrich the order form with descriptive (non-financial) order-level fields: the dōTERRA order number must show a clickable tracking link to `https://status.ondeestameupedido.com/tracking/22747/{numero}/`, plus a free-text field for the account owner (dōTERRA ID or name), the payment method used (PIX, Boleto, Cartão de Crédito), a free-text order description (motivo do pedido, promoções, encomendas, etc.), and a live summary of the summed product value and summed PV placed before the items section.
 
 Stack: Express, Prisma ORM, React, Tailwind CSS, Zod, lucide-react.
 
