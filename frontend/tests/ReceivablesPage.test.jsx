@@ -73,18 +73,6 @@ const paidOrder = {
   payments: [{ amount: '100.00' }],
 };
 
-const overpaidOrder = {
-  id: 'order-overpaid',
-  orderNumber: 'ORD-OVERPAID',
-  orderDate: '2026-08-07',
-  accountOwner: 'Pedro Alves',
-  orderNotes: 'Sobrepagamento',
-  totalValue: '100.00',
-  status: 'PARCIAL',
-  items: [],
-  payments: [{ amount: '150.00' }],
-};
-
 const richOrder = {
   id: 'order-rich',
   orderNumber: 'ORD-RICH',
@@ -159,6 +147,21 @@ const renderPage = () => {
   );
 };
 
+const openPaymentAction = async (orderId, label = 'Registrar Pagamento') => {
+  await waitFor(() => {
+    expect(screen.getByTestId(`receivable-actions-${orderId}-trigger`)).toBeInTheDocument();
+  });
+  fireEvent.click(screen.getByTestId(`receivable-actions-${orderId}-trigger`));
+  await waitFor(() => {
+    expect(screen.getByTestId(`receivable-actions-${orderId}-menu`)).toBeInTheDocument();
+  });
+  const itemId = label === 'Dar baixa' ? 'Dar-baixa' : 'Registrar-Pagamento';
+  fireEvent.click(screen.getByTestId(`receivable-actions-${orderId}-item-${itemId}`));
+  await waitFor(() => {
+    expect(screen.getByTestId('payment-modal')).toBeInTheDocument();
+  });
+};
+
 describe('ReceivablesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -223,22 +226,182 @@ describe('ReceivablesPage', () => {
   });
 
   describe('Action Buttons', () => {
-    it('should show "Registrar Pagamento" for PENDENTE and PARCIAL orders', async () => {
+    it('should show payment actions inside the dropdown for PENDENTE and PARCIAL orders', async () => {
       mockGetImplementation([mockOrders[0], mockOrders[1]]);
       renderPage();
       await waitFor(() => {
-        const buttons = screen.getAllByText('Registrar Pagamento');
-        expect(buttons).toHaveLength(2);
+        expect(screen.getAllByTestId(/^receivable-actions-.*-trigger$/)).toHaveLength(2);
       });
+      fireEvent.click(screen.getByTestId('receivable-actions-order-1-trigger'));
+      expect(screen.getByTestId('receivable-actions-order-1-item-Registrar-Pagamento')).toHaveTextContent('Registrar Pagamento');
+      expect(screen.getByTestId('receivable-actions-order-1-item-Detalhar')).toBeInTheDocument();
     });
 
-    it('should show "Pago" label for QUITADO orders', async () => {
+    it('should show only the kebab trigger (no "Pago" text, no payment button) for QUITADO orders', async () => {
       mockGetImplementation([mockOrders[2]]);
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('Pago')).toBeInTheDocument();
-        expect(screen.queryByText('Registrar Pagamento')).not.toBeInTheDocument();
+        expect(screen.getByText('ORD-003')).toBeInTheDocument();
       });
+      expect(screen.queryByText('Pago')).not.toBeInTheDocument();
+      expect(screen.queryByText('Registrar Pagamento')).not.toBeInTheDocument();
+      expect(screen.getByTestId('receivable-actions-order-3-trigger')).toBeInTheDocument();
+    });
+  });
+
+  describe('Action Menu (kebab)', () => {
+    const rowForOrder = (orderNumber) => screen.getByText(orderNumber).closest('tr');
+
+    const openReceivableMenu = async (orderId) => {
+      await waitFor(() => {
+        expect(screen.getByTestId(`receivable-actions-${orderId}-trigger`)).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByTestId(`receivable-actions-${orderId}-trigger`));
+      await waitFor(() => {
+        expect(screen.getByTestId(`receivable-actions-${orderId}-menu`)).toBeInTheDocument();
+      });
+    };
+
+    it('should render one kebab trigger per row', async () => {
+      mockGetImplementation(mockOrders);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getAllByTestId(/^receivable-actions-.*-trigger$/)).toHaveLength(4);
+      });
+    });
+
+    it('should show the highlighted "Registrar Pagamento" item inside the dropdown for orders with pending balance', async () => {
+      mockGetImplementation([mockOrders[0], mockOrders[1]]);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId('receivable-actions-order-1-trigger')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByTestId('receivable-actions-order-1-trigger'));
+      expect(screen.getByTestId('receivable-actions-order-1-item-Registrar-Pagamento')).toHaveClass('bg-primary-600');
+      expect(screen.getByTestId('receivable-actions-order-1-item-Detalhar')).toBeInTheDocument();
+    });
+
+    it('should show "Dar baixa" inside the dropdown for zero-value orders still pending settlement', async () => {
+      mockGetImplementation([mockOrders[3]]);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('ORD-004')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByTestId('receivable-actions-order-4-trigger'));
+      expect(screen.getByTestId('receivable-actions-order-4-item-Dar-baixa')).toBeInTheDocument();
+      expect(screen.getByTestId('receivable-actions-order-4-item-Detalhar')).toBeInTheDocument();
+      expect(screen.queryByTestId('receivable-actions-order-4-item-Registrar-Pagamento')).not.toBeInTheDocument();
+    });
+
+    it('should treat fully paid PARCIAL orders as quitado (kebab only)', async () => {
+      mockGetImplementation([paidOrder]);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('ORD-PAID')).toBeInTheDocument();
+      });
+      expect(screen.queryByText('Registrar Pagamento')).not.toBeInTheDocument();
+      expect(screen.getByTestId('receivable-actions-order-paid-trigger')).toBeInTheDocument();
+    });
+
+    it('should keep the menu hidden until the trigger is clicked', async () => {
+      mockGetImplementation([mockOrders[0]]);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+      expect(screen.queryByTestId('receivable-actions-order-1-menu')).not.toBeInTheDocument();
+    });
+
+    it('should show "Detalhar" when the kebab is opened for a pending order', async () => {
+      mockGetImplementation([mockOrders[0]]);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+      await openReceivableMenu('order-1');
+      expect(screen.getByText('Detalhar')).toBeInTheDocument();
+    });
+
+    it('should call the "Detalhar" callback and close the menu on item click', async () => {
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      mockGetImplementation([mockOrders[2]]);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('ORD-003')).toBeInTheDocument();
+      });
+      await openReceivableMenu('order-3');
+      fireEvent.click(screen.getByTestId('receivable-actions-order-3-item-Detalhar'));
+      expect(consoleSpy).toHaveBeenCalledWith('Detalhar — pedido', 'order-3');
+      expect(screen.queryByTestId('receivable-actions-order-3-menu')).not.toBeInTheDocument();
+      consoleSpy.mockRestore();
+    });
+
+    it('should set a11y semantics on trigger and menu', async () => {
+      mockGetImplementation([mockOrders[2]]);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('ORD-003')).toBeInTheDocument();
+      });
+      const trigger = screen.getByTestId('receivable-actions-order-3-trigger');
+      expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
+      expect(trigger).toHaveAttribute('aria-expanded', 'false');
+      fireEvent.click(trigger);
+      await waitFor(() => {
+        expect(trigger).toHaveAttribute('aria-expanded', 'true');
+      });
+      const menu = screen.getByTestId('receivable-actions-order-3-menu');
+      expect(menu).toHaveAttribute('role', 'menu');
+      const menuitem = within(menu).getByRole('menuitem');
+      expect(menuitem).toHaveTextContent('Detalhar');
+      expect(menuitem).toHaveAttribute('role', 'menuitem');
+    });
+
+    it('should close the menu when clicking the backdrop', async () => {
+      mockGetImplementation([mockOrders[2]]);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('ORD-003')).toBeInTheDocument();
+      });
+      await openReceivableMenu('order-3');
+      fireEvent.click(screen.getByTestId('receivable-actions-order-3-backdrop'));
+      await waitFor(() => {
+        expect(screen.queryByTestId('receivable-actions-order-3-menu')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should close the menu when pressing Escape', async () => {
+      mockGetImplementation([mockOrders[2]]);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('ORD-003')).toBeInTheDocument();
+      });
+      await openReceivableMenu('order-3');
+      fireEvent.keyDown(document, { key: 'Escape' });
+      await waitFor(() => {
+        expect(screen.queryByTestId('receivable-actions-order-3-menu')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should render Valor Pendente with muted styling when pending is zero', async () => {
+      mockGetImplementation([mockOrders[2]]);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('ORD-003')).toBeInTheDocument();
+      });
+      const pendingCell = rowForOrder('ORD-003').querySelector('td[data-label="Valor Pendente"]');
+      expect(pendingCell).toHaveClass('text-gray-400');
+      expect(pendingCell).toHaveClass('dark:text-gray-500');
+    });
+
+    it('should render Valor Pendente with default styling when pending is positive', async () => {
+      mockGetImplementation([mockOrders[0]]);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+      const pendingCell = rowForOrder('ORD-001').querySelector('td[data-label="Valor Pendente"]');
+      expect(pendingCell).toHaveClass('text-gray-900');
+      expect(pendingCell).toHaveClass('dark:text-gray-100');
     });
   });
 
@@ -351,12 +514,7 @@ describe('ReceivablesPage', () => {
     it('should open payment modal and fetch balance when clicking "Registrar Pagamento"', async () => {
       mockGetImplementation([mockOrders[0]]);
       renderPage();
-
-      await waitFor(() => {
-        expect(screen.getByText('Registrar Pagamento')).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByText('Registrar Pagamento'));
+      await openPaymentAction('order-1');
 
       await waitFor(() => {
         expect(mockGet).toHaveBeenCalledWith('/orders/order-1/balance');
@@ -367,13 +525,7 @@ describe('ReceivablesPage', () => {
     it('should display person dropdown with pending balances', async () => {
       mockGetImplementation([mockOrders[1]]);
       renderPage();
-
-      await waitFor(() => {
-        expect(screen.getAllByText('Registrar Pagamento')[0]).toBeInTheDocument();
-      });
-
-      const buttons = screen.getAllByText('Registrar Pagamento');
-      fireEvent.click(buttons[0]);
+      await openPaymentAction('order-2');
 
       await waitFor(() => {
         expect(screen.getByText(/João Silva — Pendente: R\$\s*150,00/)).toBeInTheDocument();
@@ -383,12 +535,7 @@ describe('ReceivablesPage', () => {
     it('should display "Saldo pendente" for the selected person', async () => {
       mockGetImplementation([mockOrders[0]]);
       renderPage();
-
-      await waitFor(() => {
-        expect(screen.getByText('Registrar Pagamento')).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByText('Registrar Pagamento'));
+      await openPaymentAction('order-1');
 
       await waitFor(() => {
         expect(screen.getByText(/Saldo pendente:/)).toBeInTheDocument();
@@ -398,12 +545,7 @@ describe('ReceivablesPage', () => {
     it('should not show "Nenhuma pessoa neste pedido" and list zero-balance persons', async () => {
       mockGetImplementation([mockOrders[3]]);
       renderPage();
-
-      await waitFor(() => {
-        expect(screen.getByText('Registrar Pagamento')).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByText('Registrar Pagamento'));
+      await openPaymentAction('order-4', 'Dar baixa');
 
       await waitFor(() => {
         expect(screen.getByText(/Registrar Pagamento — ORD-004/)).toBeInTheDocument();
@@ -416,12 +558,7 @@ describe('ReceivablesPage', () => {
     it('should show "Dar baixa" button and submit a zero payment for a zero-balance person', async () => {
       mockGetImplementation([mockOrders[3]]);
       renderPage();
-
-      await waitFor(() => {
-        expect(screen.getByText('Registrar Pagamento')).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByText('Registrar Pagamento'));
+      await openPaymentAction('order-4', 'Dar baixa');
 
       await waitFor(() => {
         expect(screen.getByText(/Registrar Pagamento — ORD-004/)).toBeInTheDocument();
@@ -447,12 +584,7 @@ describe('ReceivablesPage', () => {
     it('should close modal when clicking "Cancelar"', async () => {
       mockGetImplementation([mockOrders[0]]);
       renderPage();
-
-      await waitFor(() => {
-        expect(screen.getByText('Registrar Pagamento')).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByText('Registrar Pagamento'));
+      await openPaymentAction('order-1');
 
       await waitFor(() => {
         expect(screen.getByText(/Registrar Pagamento — ORD-001/)).toBeInTheDocument();
@@ -468,12 +600,7 @@ describe('ReceivablesPage', () => {
     it('should close modal when clicking × button', async () => {
       mockGetImplementation([mockOrders[0]]);
       renderPage();
-
-      await waitFor(() => {
-        expect(screen.getByText('Registrar Pagamento')).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByText('Registrar Pagamento'));
+      await openPaymentAction('order-1');
 
       await waitFor(() => {
         expect(screen.getByText(/Registrar Pagamento — ORD-001/)).toBeInTheDocument();
@@ -492,16 +619,7 @@ describe('ReceivablesPage', () => {
     const openModalFor = async (order) => {
       mockGetImplementation([order]);
       renderPage();
-
-      await waitFor(() => {
-        expect(screen.getByText('Registrar Pagamento')).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByText('Registrar Pagamento'));
-
-      await waitFor(() => {
-        expect(screen.getByTestId('payment-modal')).toBeInTheDocument();
-      });
+      await openPaymentAction(order.id, order.totalValue === '0.00' ? 'Dar baixa' : 'Registrar Pagamento');
 
       return within(screen.getByTestId('payment-modal'));
     };
@@ -533,17 +651,10 @@ describe('ReceivablesPage', () => {
       expect(modal.getByTestId('order-summary-pending')).toHaveTextContent(/R\$\s*300,00/);
     });
 
-    it('should clamp pending to R$ 0,00 when the order is fully paid', async () => {
-      const modal = await openModalFor(paidOrder);
+    it('should show pending R$ 0,00 for a zero-value order', async () => {
+      const modal = await openModalFor(mockOrders[3]);
 
-      expect(modal.getByTestId('order-summary-total')).toHaveTextContent(/R\$\s*100,00/);
-      expect(modal.getByTestId('order-summary-pending')).toHaveTextContent(/R\$\s*0,00/);
-    });
-
-    it('should clamp pending to R$ 0,00 on overpayment', async () => {
-      const modal = await openModalFor(overpaidOrder);
-
-      expect(modal.getByTestId('order-summary-total')).toHaveTextContent(/R\$\s*100,00/);
+      expect(modal.getByTestId('order-summary-total')).toHaveTextContent(/R\$\s*0,00/);
       expect(modal.getByTestId('order-summary-pending')).toHaveTextContent(/R\$\s*0,00/);
     });
 
@@ -555,7 +666,7 @@ describe('ReceivablesPage', () => {
     });
 
     it('should render a dash when the description is absent', async () => {
-      const modal = await openModalFor(paidOrder);
+      const modal = await openModalFor(mockOrders[3]);
 
       const desc = modal.getByTestId('order-summary-description');
       expect(desc).toHaveTextContent('—');
@@ -567,16 +678,7 @@ describe('ReceivablesPage', () => {
     const openRichOrderModal = async () => {
       mockGetImplementation([richOrder]);
       renderPage();
-
-      await waitFor(() => {
-        expect(screen.getByText('Registrar Pagamento')).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByText('Registrar Pagamento'));
-
-      await waitFor(() => {
-        expect(screen.getByTestId('payment-modal')).toBeInTheDocument();
-      });
+      await openPaymentAction('order-rich');
 
       return within(screen.getByTestId('payment-modal'));
     };
@@ -623,31 +725,13 @@ describe('ReceivablesPage', () => {
     const openModalWithBalance = async () => {
       mockGetImplementation([mockOrders[0]]);
       renderPage();
-
-      await waitFor(() => {
-        expect(screen.getByText('Registrar Pagamento')).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByText('Registrar Pagamento'));
-
-      await waitFor(() => {
-        expect(screen.getByText(/Registrar Pagamento — ORD-001/)).toBeInTheDocument();
-      });
+      await openPaymentAction('order-1');
     };
 
     it('should allow submitting a zero amount for a zero-balance person', async () => {
       mockGetImplementation([mockOrders[3]]);
       renderPage();
-
-      await waitFor(() => {
-        expect(screen.getByText('Registrar Pagamento')).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByText('Registrar Pagamento'));
-
-      await waitFor(() => {
-        expect(screen.getByText(/Registrar Pagamento — ORD-004/)).toBeInTheDocument();
-      });
+      await openPaymentAction('order-4', 'Dar baixa');
 
       const amountInput = screen.getByPlaceholderText('0.00');
       fireEvent.change(amountInput, { target: { value: '0' } });
@@ -806,16 +890,7 @@ describe('ReceivablesPage', () => {
       });
 
       renderPage();
-
-      await waitFor(() => {
-        expect(screen.getByText('Registrar Pagamento')).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByText('Registrar Pagamento'));
-
-      await waitFor(() => {
-        expect(screen.getByText(/Registrar Pagamento — ORD-FP/)).toBeInTheDocument();
-      });
+      await openPaymentAction('order-fp');
 
       const amountInput = screen.getByPlaceholderText('0.00');
       fireEvent.change(amountInput, { target: { value: '1.56' } });
@@ -843,16 +918,7 @@ describe('ReceivablesPage', () => {
     const openModalWithBalance = async () => {
       mockGetImplementation([mockOrders[0]]);
       renderPage();
-
-      await waitFor(() => {
-        expect(screen.getByText('Registrar Pagamento')).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByText('Registrar Pagamento'));
-
-      await waitFor(() => {
-        expect(screen.getByText(/Registrar Pagamento — ORD-001/)).toBeInTheDocument();
-      });
+      await openPaymentAction('order-1');
     };
 
     it('should show date input with label "Data do Pagamento"', async () => {
@@ -917,7 +983,7 @@ describe('ReceivablesPage', () => {
         expect(screen.queryByText(/Registrar Pagamento — ORD-001/)).not.toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('Registrar Pagamento'));
+      await openPaymentAction('order-1');
 
       await waitFor(() => {
         const resetDateInput = screen.getByLabelText('Data do Pagamento');
@@ -932,16 +998,7 @@ describe('ReceivablesPage', () => {
     it('should show success toast "Pagamento registrado com sucesso!" on valid payment', async () => {
       mockGetImplementation([mockOrders[0]]);
       renderPage();
-
-      await waitFor(() => {
-        expect(screen.getByText('Registrar Pagamento')).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByText('Registrar Pagamento'));
-
-      await waitFor(() => {
-        expect(screen.getByText(/Registrar Pagamento — ORD-001/)).toBeInTheDocument();
-      });
+      await openPaymentAction('order-1');
 
       const amountInput = screen.getByPlaceholderText('0.00');
       fireEvent.change(amountInput, { target: { value: '50' } });
@@ -960,16 +1017,7 @@ describe('ReceivablesPage', () => {
     it('should map a backend "pending balance" error string to the PT-BR toast', async () => {
       mockGetImplementation([mockOrders[0]]);
       renderPage();
-
-      await waitFor(() => {
-        expect(screen.getByText('Registrar Pagamento')).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByText('Registrar Pagamento'));
-
-      await waitFor(() => {
-        expect(screen.getByText(/Registrar Pagamento — ORD-001/)).toBeInTheDocument();
-      });
+      await openPaymentAction('order-1');
 
       const amountInput = screen.getByPlaceholderText('0.00');
       fireEvent.change(amountInput, { target: { value: '100' } });

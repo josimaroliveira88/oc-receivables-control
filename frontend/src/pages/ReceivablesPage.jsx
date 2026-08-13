@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { DollarSign, Eye } from 'lucide-react';
 import api from '../services/api';
 import { useToast } from '../components/Toast';
 import ConfirmDialog from '../components/ConfirmDialog';
+import ActionMenu from '../components/ActionMenu';
 import { toCents, formatBRL } from '../utils/money';
 import { formatDateBR } from '../utils/dates';
 
@@ -154,6 +156,10 @@ const ReceivablesPage = () => {
     }
   };
 
+  const handleViewDetails = (order) => {
+    console.log('Detalhar — pedido', order.id);
+  };
+
   const handlePaymentSubmit = async (e) => {
     e.preventDefault();
     setPaymentError('');
@@ -242,7 +248,11 @@ const ReceivablesPage = () => {
                       (sum, payment) => sum + toCents(parseFloat(payment.amount)),
                       0
                     );
-                    const pendingCents = Math.max(0, toCents(parseFloat(order.totalValue)) - paidCents);
+                    const totalCents = toCents(parseFloat(order.totalValue));
+                    const pendingCents = Math.max(0, totalCents - paidCents);
+                    const showPaymentAction =
+                      pendingCents > 0 || (totalCents === 0 && order.status !== 'QUITADO');
+                    const paymentActionLabel = totalCents === 0 ? 'Dar baixa' : 'Registrar Pagamento';
                     return (
                       <tr key={order.id} className="block lg:table-row border border-gray-200 dark:border-gray-700 lg:border-0 rounded-lg lg:rounded-none shadow-sm lg:shadow-none mb-3 lg:mb-0 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                         <td data-label="Número" className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden">
@@ -257,7 +267,7 @@ const ReceivablesPage = () => {
                         <td data-label="Valor (R$)" className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden">
                           {formatBRL(parseFloat(order.totalValue))}
                         </td>
-                        <td data-label="Valor Pendente" className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden">
+                        <td data-label="Valor Pendente" className={`block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm ${pendingCents === 0 ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-gray-100'} before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden`}>
                           {formatBRL(pendingCents / 100)}
                         </td>
                         <td data-label="PV Total" className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden">
@@ -275,18 +285,28 @@ const ReceivablesPage = () => {
                         <td data-label="Status" className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden">
                           {statusBadge(order.status)}
                         </td>
-                        <td data-label="Ações" className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 text-left lg:text-right text-sm font-medium before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden">
-                          {order.status !== 'QUITADO' && (
-                            <button
-                              onClick={() => openPaymentModal(order)}
-                              className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
-                            >
-                              Registrar Pagamento
-                            </button>
-                          )}
-                          {order.status === 'QUITADO' && (
-                            <span className="text-gray-400 dark:text-gray-500 text-sm">Pago</span>
-                          )}
+                        <td data-label="Ações" className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 text-left lg:text-right text-sm font-medium before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden relative">
+                          <div className="flex items-center justify-end gap-2">
+                            <ActionMenu
+                              actions={[
+                                ...(showPaymentAction
+                                  ? [{
+                                      label: paymentActionLabel,
+                                      icon: DollarSign,
+                                      variant: 'primary',
+                                      onClick: () => openPaymentModal(order),
+                                    }]
+                                  : []),
+                                {
+                                  label: 'Detalhar',
+                                  icon: Eye,
+                                  onClick: () => handleViewDetails(order),
+                                },
+                              ]}
+                              ariaLabel="Ações do pedido"
+                              testIdPrefix={`receivable-actions-${order.id}`}
+                            />
+                          </div>
                         </td>
                       </tr>
                     );
