@@ -1327,10 +1327,25 @@ Deliverable: ✅ Colunas `Ações` de Clientes e Produtos com menu kebab (`MoreV
 
 Deliverable: ✅ Coluna `Ações` do Recebíveis com kebab único; o dropdown reúne "Registrar Pagamento" ou "Dar baixa" conforme o pedido e "Detalhar" para todos os pedidos, com labels alinhados mesmo quando quebram linha. Valor Pendente com tom discreto quando zerado. **168 backend tests, 314 frontend tests, 482 total tests (zero regressões)**
 
+### 🎯 PHASE 44: Modal de detalhamento de recebíveis
+
+**Objetivo**: implementar a tela de detalhamento acessível pela ação "Detalhar" no Controle de Recebíveis, sem alteração de backend.
+
+**Escopo**:
+- Modal `Detalhamento — {número}` com o mesmo cabeçalho da modal de Registrar Pagamento: Número, Data, Responsável, Valor Total, Valor Pendente e Descrição.
+- Lista de pessoas com valor total e valor pendente obtidos de `GET /orders/:id/balance`.
+- Acordeão de uma pessoa por vez, exibindo seus itens e pagamentos recebidos com data, valor e observação.
+- Estados de carregamento, pedido sem pessoas e fechamento pelo botão `Fechar` ou pelo `×`, com layout responsivo e dark mode.
+
+**Testes (TDD)**:
+- **ReceivablesPage.test.jsx**: 62 → **67 testes**, cobrindo abertura, cabeçalho, totais, expansão exclusiva, itens, pagamentos e fechamento.
+
+Deliverable: ✅ Modal de detalhamento de pagamentos recebidos integrada ao menu kebab do Controle de Recebíveis. **168 backend tests, 319 frontend tests, 487 total tests (zero regressões)**
+
 ## 🏆 Project Highlights
 
 - **Zero Floating-Point Errors**: All financial calculations use integer cents arithmetic
-- **100% Test Coverage**: 482 tests covering all critical paths, edge cases, and regressions
+- **100% Test Coverage**: 487 tests covering all critical paths, edge cases, and regressions
 - **Financial Precision**: Decimal(10,2) database fields, accurate status transitions, zero-value "Dar baixa" (only for gift items), zero-against-positive rejection, and confirmed overpayments
 - **User Experience**: PT-BR localization, responsive Tailwind design, toast feedback, loading states
 - **Code Quality**: TDD methodology, clear error messages, proper auth guards, documented pitfalls
