@@ -89,6 +89,49 @@ const richOrder = {
   payments: [],
 };
 
+const detailRichOrder = {
+  id: 'order-detail-rich',
+  orderNumber: 'ORD-DETAIL',
+  orderDate: '2026-08-05',
+  accountOwner: 'Roberta Lima',
+  orderNotes: 'Detalhes do pedido',
+  totalValue: '234.56',
+  status: 'PARCIAL',
+  items: [
+    {
+      id: 'detail-item-1',
+      personId: 'p1',
+      person: { id: 'p1', name: 'João Silva' },
+      product: { name: 'Lemongrass Óleo Essencial 15ml' },
+      description: 'Lemongrass Óleo Essencial 15ml',
+      details: 'Uso doméstico',
+      chargedValue: '89.00',
+    },
+    {
+      id: 'detail-item-2',
+      personId: 'p1',
+      person: { id: 'p1', name: 'João Silva' },
+      product: { name: 'On Guard + 30ml' },
+      description: 'On Guard + 30ml',
+      details: null,
+      chargedValue: '145.56',
+    },
+    {
+      id: 'detail-item-3',
+      personId: 'p2',
+      person: { id: 'p2', name: 'Maria Santos' },
+      product: { name: 'Deep Blue Rub' },
+      description: 'Deep Blue Rub',
+      details: 'Para o cliente X',
+      chargedValue: '50.00',
+    },
+  ],
+  payments: [
+    { id: 'detail-payment-1', personId: 'p1', person: { name: 'João Silva' }, amount: '100.00', paidAt: '2026-08-06T12:00:00.000Z', notes: 'Pix recebido' },
+    { id: 'detail-payment-2', personId: 'p2', person: { name: 'Maria Santos' }, amount: '50.00', paidAt: '2026-08-07T12:00:00.000Z', notes: null },
+  ],
+};
+
 const mockBalances = {
   'order-1': {
     balances: [
@@ -120,6 +163,12 @@ const mockBalances = {
     balances: [
       { personId: 'p1', personName: 'João Silva', itemTotal: '234.56', paymentTotal: '0.00', pending: '234.56' },
       { personId: 'p2', personName: 'Maria Santos', itemTotal: '50.00', paymentTotal: '0.00', pending: '50.00' },
+    ],
+  },
+  'order-detail-rich': {
+    balances: [
+      { personId: 'p1', personName: 'João Silva', itemTotal: '234.56', paymentTotal: '100.00', pending: '134.56' },
+      { personId: 'p2', personName: 'Maria Santos', itemTotal: '50.00', paymentTotal: '50.00', pending: '0.00' },
     ],
   },
 };
@@ -322,18 +371,16 @@ describe('ReceivablesPage', () => {
       expect(screen.getByText('Detalhar')).toBeInTheDocument();
     });
 
-    it('should call the "Detalhar" callback and close the menu on item click', async () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      mockGetImplementation([mockOrders[2]]);
+    it('should open the details modal and close the menu on item click', async () => {
+      mockGetImplementation([detailRichOrder]);
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('ORD-003')).toBeInTheDocument();
+        expect(screen.getByText('ORD-DETAIL')).toBeInTheDocument();
       });
-      await openReceivableMenu('order-3');
-      fireEvent.click(screen.getByTestId('receivable-actions-order-3-item-Detalhar'));
-      expect(consoleSpy).toHaveBeenCalledWith('Detalhar — pedido', 'order-3');
-      expect(screen.queryByTestId('receivable-actions-order-3-menu')).not.toBeInTheDocument();
-      consoleSpy.mockRestore();
+      await openReceivableMenu('order-detail-rich');
+      fireEvent.click(screen.getByTestId('receivable-actions-order-detail-rich-item-Detalhar'));
+      await waitFor(() => expect(screen.getByTestId('details-modal')).toBeInTheDocument());
+      expect(screen.queryByTestId('receivable-actions-order-detail-rich-menu')).not.toBeInTheDocument();
     });
 
     it('should set a11y semantics on trigger and menu', async () => {
@@ -718,6 +765,81 @@ describe('ReceivablesPage', () => {
 
       expect(modal.queryByText('Lemongrass Óleo Essencial 15ml')).not.toBeInTheDocument();
       expect(modal.queryByText('On Guard + 30ml')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Details Modal', () => {
+    const openDetailsModal = async () => {
+      mockGetImplementation([detailRichOrder]);
+      renderPage();
+      await waitFor(() => expect(screen.getByText('ORD-DETAIL')).toBeInTheDocument());
+      fireEvent.click(screen.getByTestId('receivable-actions-order-detail-rich-trigger'));
+      fireEvent.click(screen.getByTestId('receivable-actions-order-detail-rich-item-Detalhar'));
+      await waitFor(() => expect(screen.getByTestId('details-modal')).toBeInTheDocument());
+      return within(screen.getByTestId('details-modal'));
+    };
+
+    it('should fetch the balance and render the same summary header data', async () => {
+      const modal = await openDetailsModal();
+
+      expect(mockGet).toHaveBeenCalledWith('/orders/order-detail-rich/balance');
+      expect(modal.getByText('Detalhamento — ORD-DETAIL')).toBeInTheDocument();
+      expect(modal.getByText('Número')).toBeInTheDocument();
+      expect(modal.getByText('Data')).toBeInTheDocument();
+      expect(modal.getByText('Responsável')).toBeInTheDocument();
+      expect(modal.getByText('Valor Total')).toBeInTheDocument();
+      expect(modal.getByText('Valor Pendente')).toBeInTheDocument();
+      expect(modal.getByText('Descrição')).toBeInTheDocument();
+      expect(modal.getByTestId('details-summary-total')).toHaveTextContent(/R\$\s*234,56/);
+      expect(modal.getByTestId('details-summary-pending')).toHaveTextContent(/R\$\s*84,56/);
+      expect(modal.getByTestId('details-summary-description')).toHaveTextContent('Detalhes do pedido');
+    });
+
+    it('should render one person row with total and pending values', async () => {
+      const modal = await openDetailsModal();
+
+      expect(modal.getByTestId('detail-person-p1')).toHaveTextContent('João Silva');
+      expect(modal.getByTestId('detail-person-p1')).toHaveTextContent(/R\$\s*234,56/);
+      expect(modal.getByTestId('detail-person-p1')).toHaveTextContent(/R\$\s*134,56/);
+      expect(modal.getByTestId('detail-person-p2')).toHaveTextContent('Maria Santos');
+      expect(modal.getByTestId('detail-person-p2')).toHaveTextContent(/R\$\s*50,00/);
+    });
+
+    it('should show the selected person items and payments in the lower panel', async () => {
+      const modal = await openDetailsModal();
+
+      expect(modal.queryByTestId('detail-panel-p1')).not.toBeInTheDocument();
+      fireEvent.click(modal.getByTestId('detail-person-p1'));
+
+      expect(modal.getByTestId('detail-panel-p1')).toBeInTheDocument();
+      expect(modal.getByText('Lemongrass Óleo Essencial 15ml')).toBeInTheDocument();
+      expect(modal.getByText('Detalhes: Uso doméstico')).toBeInTheDocument();
+      expect(modal.getByText('On Guard + 30ml')).toBeInTheDocument();
+      expect(modal.getByText('Pagamentos recebidos')).toBeInTheDocument();
+      expect(modal.getByText('06/08/2026')).toBeInTheDocument();
+      expect(modal.getByText(/R\$\s*100,00/)).toBeInTheDocument();
+      expect(modal.getByText('Observação: Pix recebido')).toBeInTheDocument();
+      expect(modal.queryByText('Deep Blue Rub')).not.toBeInTheDocument();
+    });
+
+    it('should allow only one expanded person and collapse on a second click', async () => {
+      const modal = await openDetailsModal();
+
+      fireEvent.click(modal.getByTestId('detail-person-p1'));
+      expect(modal.getByTestId('detail-panel-p1')).toBeInTheDocument();
+      fireEvent.click(modal.getByTestId('detail-person-p2'));
+      expect(modal.queryByTestId('detail-panel-p1')).not.toBeInTheDocument();
+      expect(modal.getByTestId('detail-panel-p2')).toBeInTheDocument();
+      expect(modal.getByText('Observação: —')).toBeInTheDocument();
+      fireEvent.click(modal.getByTestId('detail-person-p2'));
+      expect(modal.queryByTestId('detail-panel-p2')).not.toBeInTheDocument();
+    });
+
+    it('should close with the close button', async () => {
+      const modal = await openDetailsModal();
+
+      fireEvent.click(modal.getByRole('button', { name: 'Fechar detalhamento' }));
+      await waitFor(() => expect(screen.queryByTestId('details-modal')).not.toBeInTheDocument());
     });
   });
 
