@@ -1270,10 +1270,67 @@ Key Design Decisions:
 
 Deliverable: ✅ Coluna `Ações` de Pedidos com menu kebab (`MoreVertical`) + dropdown `bottom-end` com Editar (ícone `Pencil`, default) e Excluir (ícone `Trash`, danger). Handlers `handleEditOrder(order)` e `handleDeleteOrder(order.id)` preservados. 7 novos testes TDD verdes. **168 backend tests, 289 frontend tests, 457 total tests (zero regressões)**
 
+---
+
+### 🎯 PHASE 42: Action Menu (kebab) em Clientes e Produtos
+
+**Objetivo**: replicar o padrão do menu kebab (Fase 41) nas colunas `Ações` de **Cadastro de Clientes** (`PeoplePage.jsx`) e **Cadastro de Produtos** (`ProductsPage.jsx`), seguindo o playbook `docs/ACTION_MENU_REFACTORING_GUIDE.md`.
+
+**Escopo**:
+- **PeoplePage.jsx**: substituir os botões inline "Editar" / "Excluir" por `<ActionMenu actions={[Editar (Pencil), Excluir (Trash, danger)]} ariaLabel="Ações do cliente" testIdPrefix="client-actions-${id}" />`. Handlers `openEditModal(person)` / `handleDeletePerson(person.id)` preservados.
+- **ProductsPage.jsx**: substituir o botão inline "Editar" por `<ActionMenu actions={[Editar (Pencil)]} ariaLabel="Ações do produto" testIdPrefix="product-actions-${id}" />`. O `<select>` de status inline é preservado ao lado do kebab (dentro de um wrapper `flex items-center justify-end gap-2`). Handlers `openEditModal(product)` / `handleStatusChange(product, newStatus)` preservados.
+- **ReceivablesPage.jsx**: intencionalmente **não migrado** — sua coluna `Ações` tem apenas o botão "Registrar Pagamento" / "Pago" (sem Editar/Excluir).
+
+**Critérios de Aceite**:
+- [x] Trigger kebab (`MoreVertical`) renderizado por linha (sem botões inline "Editar"/"Excluir").
+- [x] Menu abre `absolute right-0 mt-2` (bottom-end do trigger) com `z-[80]` (backdrop `z-[70]`).
+- [x] Editar com estilo default (`text-gray-700 dark:text-gray-200`); Excluir com estilo danger (`text-red-600 dark:text-red-400 hover:bg-red-50`).
+- [x] Acessibilidade: `aria-haspopup="menu"`, `aria-expanded`, `role="menu"`, `role="menuitem"`.
+- [x] Backdrop click e Escape fecham o menu.
+- [x] Clique em item fecha o menu **antes** de invocar o handler.
+- [x] `relative` no `<td>` ancora o menu absoluto corretamente.
+- [x] Todos os testes anteriores continuam passando + novos testes TDD do kebab.
+
+**Testes**:
+- **PeoplePage.test.jsx**: 7 novos testes TDD do kebab (trigger-per-row, menu-hidden-until-click, Editar+Excluir items, danger styling no Excluir, a11y semantics, backdrop-click-to-close, Escape-to-close). 5 testes existentes de Edit/Delete reescritos via `openClientActionsMenu`/`clickClientAction`. **23 → 30 testes**.
+- **ProductsPage.test.jsx**: 7 novos testes TDD do kebab (trigger-per-row, menu-hidden-until-click, Editar item, a11y semantics, backdrop-click-to-close, Escape-to-close, opens-edit-modal). 3 testes existentes de Edit reescritos via `openProductActionsMenu`/`clickProductAction`. **29 → 36 testes**.
+
+**Lições**:
+- O `ActionMenu` é agnóstico ao número de ações — funciona com 1 ação (Produtos: só Editar) ou 2+ ações (Clientes/Pedidos: Editar + Excluir).
+- O `<select>` de status inline do ProductsPage é um controle diferente (dropdown nativo, não botão de texto) — não faz sentido movê-lo para dentro do ActionMenu; mantê-lo ao lado do kebab preserva a UX de troca rápida de status sem abrir modal.
+- `relative` no `<td>` é obrigatório — sem ele, o menu absoluto ancora no `<table>` e quebra o alinhamento.
+
+Deliverable: ✅ Colunas `Ações` de Clientes e Produtos com menu kebab (`MoreVertical`) + dropdown `bottom-end`. Clientes: Editar (Pencil) + Excluir (Trash, danger). Produtos: Editar (Pencil) — o `<select>` de status inline é preservado ao lado do kebab. Handlers `openEditModal`/`handleDeletePerson`/`handleStatusChange` preservados. 14 novos testes TDD verdes (7 por tela). **168 backend tests, 303 frontend tests, 471 total tests (zero regressões)**
+
+### 🎯 PHASE 43: Ações condicionais + menu kebab no Controle de Recebíveis
+
+**Objetivo**: refatorar a coluna `Ações` do **Controle de Recebíveis** (`ReceivablesPage.jsx`) com comportamento condicional baseado no **Valor Pendente** (centavos), seguindo o playbook `docs/ACTION_MENU_REFACTORING_GUIDE.md`. Sem novas dependências (reusa `ActionMenu` + `lucide-react`).
+
+**Escopo**:
+- **Pendente (Valor Pendente > 0)**: a coluna exibe apenas o kebab; o dropdown contém o item primário destacado **"Registrar Pagamento"** (azul sólido `bg-primary-600`, texto branco) e **"Detalhar"**.
+- **Quitado (Valor Pendente == 0)**: remove o texto "Pago" desabilitado; exibe apenas o kebab. O menu contém apenas **"Detalhar"**.
+- **Dar baixa preservado**: pedidos de valor zero ainda pendentes de baixa (`pendingCents === 0 && totalCents === 0 && status !== 'QUITADO'`) exibem no menu o item primário **"Dar baixa"**, junto de **"Detalhar"**.
+- **Menu dropdown (`bottom-end`)**: `ActionMenu` agora suporta `variant: 'primary'` além de `default`/`danger`, com ícones em coluna de largura fixa e labels alinhados à esquerda. O item **"Detalhar"** usa o ícone `Eye` e `handleViewDetails(order)` executa `console.log('Detalhar — pedido', order.id)` — **stub intencional**: a modal/tela de detalhamento fica para uma fase futura.
+- **Estilo do Valor Pendente**: quando `pendingCents === 0`, a célula usa `text-gray-400 dark:text-gray-500` (tom discreto) em vez de `text-gray-900 dark:text-gray-100`.
+- **Regra de exibição**: `showPaymentAction = pendingCents > 0 || (totalCents === 0 && order.status !== 'QUITADO')`; o rótulo é `Dar baixa` quando `totalCents === 0`, caso contrário `Registrar Pagamento`. Labels longos do menu usam alinhamento à esquerda e coluna de ícone fixa.
+- `testIdPrefix` = `receivable-actions-${order.id}`; `ariaLabel` = "Ações do pedido"; `relative` adicionado ao `<td>`.
+
+**Testes (TDD)**:
+- **ReceivablesPage.test.jsx**: 51 → **62 testes**.
+  - Novo describe "Action Menu (kebab)" com 12 testes: trigger por linha, ações primárias dentro do menu, kebab-only para QUITADO (sem "Pago"), Dar baixa preservado (pedido zero-item), PARCIAL totalmente pago tratado como quitado, menu oculto até abrir, "Detalhar" visível no menu, callback `console.log` chamado + menu fecha após clique, semântica ARIA (`aria-haspopup`/`aria-expanded`/`role="menu"`/`role="menuitem"`), fechamento por backdrop, por `Escape`, e estilos de Valor Pendente (muted quando 0 / default quando > 0).
+  - Teste "Pago" reescrito → kebab-only para QUITADO.
+  - Testes do modal de resumo adaptados: como pedidos totalmente pagos/sobrepagos não abrem mais o modal (kebab-only), "clamp pending to R$ 0,00" agora usa o pedido zero-item (ORD-004); o teste de sobrepagamento no modal foi removido (caminho de UI inacessível).
+
+**Decisões**:
+- Critério de "quitado" = `pendingCents === 0` (não `order.status`), pois cobre sobrepagamento (PARCIAL com pagamento > total).
+- `overpaidOrder` fixture removido do teste (ficou sem uso após a remoção do teste de sobrepagamento no modal).
+
+Deliverable: ✅ Coluna `Ações` do Recebíveis com kebab único; o dropdown reúne "Registrar Pagamento" ou "Dar baixa" conforme o pedido e "Detalhar" para todos os pedidos, com labels alinhados mesmo quando quebram linha. Valor Pendente com tom discreto quando zerado. **168 backend tests, 314 frontend tests, 482 total tests (zero regressões)**
+
 ## 🏆 Project Highlights
 
 - **Zero Floating-Point Errors**: All financial calculations use integer cents arithmetic
-- **100% Test Coverage**: 457 tests covering all critical paths, edge cases, and regressions
+- **100% Test Coverage**: 482 tests covering all critical paths, edge cases, and regressions
 - **Financial Precision**: Decimal(10,2) database fields, accurate status transitions, zero-value "Dar baixa" (only for gift items), zero-against-positive rejection, and confirmed overpayments
 - **User Experience**: PT-BR localization, responsive Tailwind design, toast feedback, loading states
 - **Code Quality**: TDD methodology, clear error messages, proper auth guards, documented pitfalls
