@@ -98,14 +98,14 @@ oc-receivables-control/
 │ │ ├── DashboardPage.jsx # Dashboard with KPI widgets, Recharts bar chart, yearly breakdown "Resumo por Ano" table & XLSX export button
 │ │ ├── PeoplePage.jsx # People CRUD with modals (PT-BR)
 │   │   ├── OrdersPage.jsx # Orders CRUD with dynamic item rows, custom order date, tracking link, account owner, payment type, order notes, summary cards (PT-BR)
-│ │   ├── ReceivablesPage.jsx # Payment tracking with status badges & payment modal with custom date (PT-BR)
+│ │   ├── ReceivablesPage.jsx # Receivables tracking, payment modal and expandable payment details modal (PT-BR)
 │ │   └── ProductsPage.jsx # Product CRUD — loads the full catalog once (pageSize=all) and does search (name/code), sort (prices/PV) and status filter (ATIVO/INDISPONIVEL/INATIVO) 100% client-side; infinite scroll slices the in-memory list (20 at a time); create/edit modals (code locked on edit, doterraUrl field, 3-state status select), "Site" external-link column, inline status dropdown
 │ └── tests/
 │ ├── setup.js # @testing-library/jest-dom + window.matchMedia mock
 │ ├── api.test.js # 10 API interceptor tests (request/response, 401 + 403 redirect, other errors)
 │ ├── PeoplePage.test.jsx # 14 PeoplePage tests
 │   ├── OrdersPage.test.jsx # 54 OrdersPage tests
-│   ├── ReceivablesPage.test.jsx # 27 ReceivablesPage tests (badge rendering, payment modal, validation guards, payment date field, toast feedback, FP regression)
+│   ├── ReceivablesPage.test.jsx # ReceivablesPage tests (receivables table, payment modal, details modal, validation and feedback)
 │ ├── Header.test.jsx # 6 Header tests (title, nav links incl. Produtos, Sair button, logout function, username display, hidden when not logged in)
 │ ├── MobileDrawer.test.jsx # 11 MobileDrawer tests (title, hamburger open/close, 5 nav items, active highlight, logout, tutorial event, backdrop close, mobile-only)
 │ ├── ProductsPage.test.jsx # 29 ProductsPage tests (rendering, table, 3-state status badges, count, client-side search/filter/sort with no extra API calls, in-memory infinite scroll, create flow + validation incl. URL, edit with disabled code, PUT payload, inline status dropdown, "Site" link column)
