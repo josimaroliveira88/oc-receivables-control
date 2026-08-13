@@ -1240,10 +1240,40 @@ Key Design Decisions:
 
 Deliverable: ✅ Zero barras de rolagem horizontal em qualquer largura (320px–1920px) nas 5 listas, mantendo todas as colunas visíveis no mobile via cards com rótulo — **168 backend tests, 282 frontend tests, 450 total tests (sem regressões, nenhum teste alterado)**
 
+## 🎯 Phase 41: Action Menu Dropdown (kebab) na coluna AÇÕES de Pedidos
+
+Status: ✅ COMPLETED
+
+Context: A coluna `Ações` da tabela de Pedidos (e das outras listas) renderizava dois botões de texto lado-a-lado ("Editar" e "Excluir"), ocupando espaço visual e poluindo o cabeçalho. O cliente pediu para adotar o padrão de mercado com **menu de ações dropdown** (ícone kebab, menu `bottom-end` com ícone + texto, item Excluir com estilo de perigo). Decisão: implementar agora apenas em **OrdersPage** e produzir um guia de migração para que o próximo agente replique em Clientes/Recebíveis/Produtos.
+
+Stack: React, Tailwind CSS, `lucide-react` (já provê `MoreVertical`, `Pencil`, `Trash`). Sem novas dependências.
+
+Task:
+- Criar `frontend/src/components/ActionMenu.jsx` — componente reutilizável (~80 linhas) que recebe `actions`, `ariaLabel` e `testIdPrefix`. Usa estado React (`useState` para `open`), click-outside via `mousedown` no `document`, fechamento por `Escape`. Renderiza:
+  - Trigger: `<button type="button" aria-haspopup="menu" aria-expanded={open}>` envolvendo `<MoreVertical>` (`p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 focus:ring-2 focus:ring-primary-500 transition-colors`).
+  - Backdrop: `<div fixed inset-0 z-[70]>` com `data-testid` (clicar fecha).
+  - Menu: `<div role="menu" absolute right-0 mt-2 z-[80] w-44 ... divide-y ... rounded-lg shadow-lg>` ancorado em `bottom-end` ao trigger.
+  - Item `default`: `text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700`.
+  - Item `danger`: `text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-300`.
+  - Cada item chama `e.stopPropagation()` e fecha o menu **antes** de invocar `onClick` (evita dropdown-fantasma atrás de modal recém-aberto).
+- `OrdersPage.jsx`: substituir os dois botões inline por `<ActionMenu>` dentro de `<div className="flex justify-end">`. Adicionar `relative` ao `<td>` para ancoragem correta. Imports adicionais: `Pencil`, `Trash` (de `lucide-react`) e `ActionMenu` (de `../components/ActionMenu`). `handleEditOrder(order)` / `handleDeleteOrder(order.id)` ficam **intactos**.
+- Testes (TDD): substituir `'should display Edit and Delete buttons for each order'` por `'should display an actions kebab trigger for each order'`; adicionar 7 novos testes para abertura/fechamento do menu, semântica ARIA, estilo danger do Excluir, fechamento por clique no backdrop, por `Escape` e após clicar em item. Reescrever os 9 testes existentes que dependiam de `getAllByText('Editar'|'Excluir')` para usar os helpers `openOrderActionsMenu(id)` e `clickOrderAction(id, label)` que abrem o menu primeiro.
+- Documentação: criar `docs/ACTION_MENU_REFACTORING_GUIDE.md` (playbook de migração para People/Receivables/Products), atualizar `AGENTS.md` (entrada Phase 41) e `ROADMAP.md`.
+
+Key Design Decisions:
+- **Componente próprio em React + Tailwind (sem `flowbite-react`)**: nenhuma nova dependência; segue o padrão do `ProductCombobox` (state + backdrop + z-index). Bundle inalterado.
+- **Z-index hierarchy** (lição #18): modais `z-[60]` · ConfirmDialog + ActionMenu backdrop `z-[70]` · ActionMenu panel `z-[80]`. O menu fica acima de qualquer modal aberto.
+- **Acessibilidade**: trigger com `aria-haspopup="menu"` + `aria-expanded`; menu com `role="menu"`; itens com `role="menuitem"`. Funciona com teclado (Tab cicla, Escape fecha).
+- **`data-testid`s determinísticos** (`<prefix>-trigger`, `<prefix>-menu`, `<prefix>-item-<label>`) eliminam ambiguidade em testes mesmo com múltiplos pedidos na mesma página.
+- **`flex justify-end`** mantém o trigger alinhado à direita tanto no desktop (`lg:text-right` herdado) quanto no mobile (card `data-label` da Fase 40).
+- **Migração guiada**: por decisão do cliente, só OrdersPage foi migrada nesta fase; Clientes/Recebíveis/Produtos têm guia pronto em `docs/ACTION_MENU_REFACTORING_GUIDE.md`.
+
+Deliverable: ✅ Coluna `Ações` de Pedidos com menu kebab (`MoreVertical`) + dropdown `bottom-end` com Editar (ícone `Pencil`, default) e Excluir (ícone `Trash`, danger). Handlers `handleEditOrder(order)` e `handleDeleteOrder(order.id)` preservados. 7 novos testes TDD verdes. **168 backend tests, 289 frontend tests, 457 total tests (zero regressões)**
+
 ## 🏆 Project Highlights
 
 - **Zero Floating-Point Errors**: All financial calculations use integer cents arithmetic
-- **100% Test Coverage**: 450 tests covering all critical paths, edge cases, and regressions
+- **100% Test Coverage**: 457 tests covering all critical paths, edge cases, and regressions
 - **Financial Precision**: Decimal(10,2) database fields, accurate status transitions, zero-value "Dar baixa" (only for gift items), zero-against-positive rejection, and confirmed overpayments
 - **User Experience**: PT-BR localization, responsive Tailwind design, toast feedback, loading states
 - **Code Quality**: TDD methodology, clear error messages, proper auth guards, documented pitfalls
