@@ -25,6 +25,21 @@ const renderPage = () => {
   );
 };
 
+const openClientActionsMenu = async (clientId) => {
+  await waitFor(() => {
+    expect(screen.getByTestId(`client-actions-${clientId}-trigger`)).toBeInTheDocument();
+  });
+  fireEvent.click(screen.getByTestId(`client-actions-${clientId}-trigger`));
+  await waitFor(() => {
+    expect(screen.getByTestId(`client-actions-${clientId}-menu`)).toBeInTheDocument();
+  });
+};
+
+const clickClientAction = async (clientId, label) => {
+  await openClientActionsMenu(clientId);
+  fireEvent.click(screen.getByTestId(`client-actions-${clientId}-item-${label}`));
+};
+
 const mockPeople = [
   {
     id: '1',
@@ -142,13 +157,12 @@ describe('PeoplePage', () => {
       });
     });
 
-    it('should display Edit and Delete buttons', async () => {
+    it('should display one kebab trigger per row', async () => {
       mockGet.mockResolvedValue({ data: mockPeople });
       renderPage();
 
       await waitFor(() => {
-        expect(screen.getAllByText('Editar')).toHaveLength(2);
-        expect(screen.getAllByText('Excluir')).toHaveLength(2);
+        expect(screen.getAllByTestId(/client-actions-.*-trigger/)).toHaveLength(2);
       });
     });
   });
@@ -314,7 +328,7 @@ describe('PeoplePage', () => {
         expect(screen.getByText('João Silva')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('Editar'));
+      await clickClientAction('1', 'Editar');
 
       await waitFor(() => {
         expect(screen.getByText('Editar Cliente')).toBeInTheDocument();
@@ -334,7 +348,7 @@ describe('PeoplePage', () => {
         expect(screen.getByText('Maria Santos')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('Editar'));
+      await clickClientAction('2', 'Editar');
 
       await waitFor(() => {
         expect(screen.getByDisplayValue('joao@email.com')).toBeInTheDocument();
@@ -352,7 +366,7 @@ describe('PeoplePage', () => {
         expect(screen.getByText('João Silva')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('Editar'));
+      await clickClientAction('1', 'Editar');
 
       const nameInput = await screen.findByDisplayValue('João Silva');
       fireEvent.change(nameInput, { target: { value: 'Updated' } });
@@ -391,7 +405,7 @@ describe('PeoplePage', () => {
         expect(screen.getByText('João Silva')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('Excluir'));
+      await clickClientAction('1', 'Excluir');
 
       expect(window.confirm).toHaveBeenCalled();
       await waitFor(() => {
@@ -409,9 +423,93 @@ describe('PeoplePage', () => {
         expect(screen.getByText('João Silva')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('Excluir'));
+      await clickClientAction('1', 'Excluir');
 
       expect(mockDelete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Action Menu (kebab)', () => {
+    it('should render one kebab trigger per row', async () => {
+      mockGet.mockResolvedValue({ data: mockPeople });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getAllByTestId(/client-actions-.*-trigger/)).toHaveLength(2);
+      });
+    });
+
+    it('should keep the menu hidden until the trigger is clicked', async () => {
+      mockGet.mockResolvedValue({ data: [mockPeople[0]] });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('client-actions-1-trigger')).toBeInTheDocument();
+      });
+      expect(screen.queryByTestId('client-actions-1-menu')).not.toBeInTheDocument();
+    });
+
+    it('should show Editar and Excluir items when the trigger is clicked', async () => {
+      mockGet.mockResolvedValue({ data: [mockPeople[0]] });
+      renderPage();
+
+      await openClientActionsMenu('1');
+
+      expect(screen.getByTestId('client-actions-1-item-Editar')).toHaveTextContent('Editar');
+      expect(screen.getByTestId('client-actions-1-item-Excluir')).toHaveTextContent('Excluir');
+    });
+
+    it('should render the Excluir item with danger styling', async () => {
+      mockGet.mockResolvedValue({ data: [mockPeople[0]] });
+      renderPage();
+
+      await openClientActionsMenu('1');
+
+      const excluirItem = screen.getByTestId('client-actions-1-item-Excluir');
+      expect(excluirItem.className).toMatch(/text-red-600/);
+      expect(excluirItem.className).toMatch(/hover:bg-red/);
+    });
+
+    it('should expose correct a11y semantics on trigger, menu and items', async () => {
+      mockGet.mockResolvedValue({ data: [mockPeople[0]] });
+      renderPage();
+
+      const trigger = await screen.findByTestId('client-actions-1-trigger');
+      expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
+      expect(trigger).toHaveAttribute('aria-expanded', 'false');
+
+      await openClientActionsMenu('1');
+
+      expect(trigger).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getByTestId('client-actions-1-menu')).toHaveAttribute('role', 'menu');
+      expect(screen.getByTestId('client-actions-1-item-Editar')).toHaveAttribute('role', 'menuitem');
+      expect(screen.getByTestId('client-actions-1-item-Excluir')).toHaveAttribute('role', 'menuitem');
+    });
+
+    it('should close the menu when clicking the backdrop', async () => {
+      mockGet.mockResolvedValue({ data: [mockPeople[0]] });
+      renderPage();
+
+      await openClientActionsMenu('1');
+
+      fireEvent.click(screen.getByTestId('client-actions-1-backdrop'));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('client-actions-1-menu')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should close the menu when pressing Escape', async () => {
+      mockGet.mockResolvedValue({ data: [mockPeople[0]] });
+      renderPage();
+
+      await openClientActionsMenu('1');
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('client-actions-1-menu')).not.toBeInTheDocument();
+      });
     });
   });
 });

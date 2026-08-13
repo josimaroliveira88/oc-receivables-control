@@ -99,6 +99,21 @@ const renderPage = () => {
   );
 };
 
+const openProductActionsMenu = async (productId) => {
+  await waitFor(() => {
+    expect(screen.getByTestId(`product-actions-${productId}-trigger`)).toBeInTheDocument();
+  });
+  fireEvent.click(screen.getByTestId(`product-actions-${productId}-trigger`));
+  await waitFor(() => {
+    expect(screen.getByTestId(`product-actions-${productId}-menu`)).toBeInTheDocument();
+  });
+};
+
+const clickProductAction = async (productId, label) => {
+  await openProductActionsMenu(productId);
+  fireEvent.click(screen.getByTestId(`product-actions-${productId}-item-${label}`));
+};
+
 const rowNames = () =>
   screen.getAllByRole('row').slice(1).map((row) => row.querySelector('td:nth-child(2)').textContent);
 
@@ -528,7 +543,7 @@ describe('ProductsPage', () => {
         expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('Editar'));
+      await clickProductAction('1', 'Editar');
 
       await waitFor(() => {
         expect(screen.getByText('Editar Produto')).toBeInTheDocument();
@@ -547,7 +562,7 @@ describe('ProductsPage', () => {
         expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('Editar'));
+      await clickProductAction('1', 'Editar');
 
       const nameInput = await screen.findByDisplayValue('Adaptiv® Pastilhas');
       fireEvent.change(nameInput, { target: { value: 'Adaptiv® Atualizado' } });
@@ -575,7 +590,7 @@ describe('ProductsPage', () => {
         expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('Editar'));
+      await clickProductAction('1', 'Editar');
 
       const statusSelect = await screen.findByTestId('edit-status-select');
       fireEvent.change(statusSelect, { target: { value: 'INDISPONIVEL' } });
@@ -624,6 +639,92 @@ describe('ProductsPage', () => {
       fireEvent.change(screen.getByLabelText('Alterar status'), { target: { value: 'INATIVO' } });
 
       expect(mockPut).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Action Menu (kebab)', () => {
+    it('should render one kebab trigger per row', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockProduct, mockInactiveProduct]) });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getAllByTestId(/product-actions-.*-trigger/)).toHaveLength(2);
+      });
+    });
+
+    it('should keep the menu hidden until the trigger is clicked', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('product-actions-1-trigger')).toBeInTheDocument();
+      });
+      expect(screen.queryByTestId('product-actions-1-menu')).not.toBeInTheDocument();
+    });
+
+    it('should show Editar item when the trigger is clicked', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
+      renderPage();
+
+      await openProductActionsMenu('1');
+
+      expect(screen.getByTestId('product-actions-1-item-Editar')).toHaveTextContent('Editar');
+    });
+
+    it('should expose correct a11y semantics on trigger, menu and items', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
+      renderPage();
+
+      const trigger = await screen.findByTestId('product-actions-1-trigger');
+      expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
+      expect(trigger).toHaveAttribute('aria-expanded', 'false');
+
+      await openProductActionsMenu('1');
+
+      expect(trigger).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getByTestId('product-actions-1-menu')).toHaveAttribute('role', 'menu');
+      expect(screen.getByTestId('product-actions-1-item-Editar')).toHaveAttribute('role', 'menuitem');
+    });
+
+    it('should close the menu when clicking the backdrop', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
+      renderPage();
+
+      await openProductActionsMenu('1');
+
+      fireEvent.click(screen.getByTestId('product-actions-1-backdrop'));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('product-actions-1-menu')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should close the menu when pressing Escape', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
+      renderPage();
+
+      await openProductActionsMenu('1');
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('product-actions-1-menu')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should open the edit modal when clicking the Editar item', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      await clickProductAction('1', 'Editar');
+
+      await waitFor(() => {
+        expect(screen.getByText('Editar Produto')).toBeInTheDocument();
+      });
     });
   });
 });

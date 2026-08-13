@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Pencil, Trash } from 'lucide-react';
 import api from '../services/api';
+import ActionMenu from '../components/ActionMenu';
 import {
   onlyDigits,
   isDigitsOnly,
@@ -359,19 +360,17 @@ const PeoplePage = () => {
                         <td data-label="Membro doTERRA" className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden">
                           <BoolBadge value={person.isDoterraMember} />
                         </td>
-                        <td data-label="Ações" className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 text-left lg:text-right text-sm font-medium before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden">
-                          <button
-                            onClick={() => openEditModal(person)}
-                            className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 mr-3 transition-colors"
-                          >
-                            Editar
-                          </button>
-                          <button
-                            onClick={() => handleDeletePerson(person.id)}
-                            className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 transition-colors"
-                          >
-                            Excluir
-                          </button>
+                        <td data-label="Ações" className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 text-left lg:text-right text-sm font-medium before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden relative">
+                          <div className="flex justify-end">
+                            <ActionMenu
+                              actions={[
+                                { label: 'Editar', icon: Pencil, onClick: () => openEditModal(person) },
+                                { label: 'Excluir', icon: Trash, onClick: () => handleDeletePerson(person.id), variant: 'danger' },
+                              ]}
+                              ariaLabel="Ações do cliente"
+                              testIdPrefix={`client-actions-${person.id}`}
+                            />
+                          </div>
                         </td>
                       </tr>
                     );
