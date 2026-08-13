@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ExternalLink, Plus } from 'lucide-react';
+import { ExternalLink, Plus, Pencil, Trash } from 'lucide-react';
 import api from '../services/api';
 import { toCents, formatBRL } from '../utils/money';
 import { formatDateBR } from '../utils/dates';
+import ActionMenu from '../components/ActionMenu';
 
 const emptyItem = () => ({
   id: Date.now(),
@@ -442,8 +443,25 @@ const OrdersPage = () => {
                       </td>
                       <td data-label="Status" className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden">{statusBadge(order.status)}</td>
                       <td data-label="Ações" className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 text-left lg:text-right text-sm font-medium before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden">
-                        <button onClick={() => handleEditOrder(order)} className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 mr-3 transition-colors">Editar</button>
-                        <button onClick={() => handleDeleteOrder(order.id)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 transition-colors">Excluir</button>
+                        <div className="flex justify-end">
+                          <ActionMenu
+                            actions={[
+                              {
+                                label: 'Editar',
+                                icon: Pencil,
+                                onClick: () => handleEditOrder(order),
+                              },
+                              {
+                                label: 'Excluir',
+                                icon: Trash,
+                                onClick: () => handleDeleteOrder(order.id),
+                                variant: 'danger',
+                              },
+                            ]}
+                            ariaLabel="Ações do pedido"
+                            testIdPrefix={`order-actions-${order.id}`}
+                          />
+                        </div>
                       </td>
                     </tr>
             );

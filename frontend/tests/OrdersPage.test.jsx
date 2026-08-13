@@ -102,6 +102,21 @@ const renderPage = () => {
   );
 };
 
+const openOrderActionsMenu = async (orderId) => {
+  await waitFor(() => {
+    expect(screen.getByTestId(`order-actions-${orderId}-trigger`)).toBeInTheDocument();
+  });
+  fireEvent.click(screen.getByTestId(`order-actions-${orderId}-trigger`));
+  await waitFor(() => {
+    expect(screen.getByTestId(`order-actions-${orderId}-menu`)).toBeInTheDocument();
+  });
+};
+
+const clickOrderAction = async (orderId, label) => {
+  await openOrderActionsMenu(orderId);
+  fireEvent.click(screen.getByTestId(`order-actions-${orderId}-item-${label}`));
+};
+
 describe('OrdersPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -168,13 +183,122 @@ describe('OrdersPage', () => {
       });
     });
 
-    it('should display Edit and Delete buttons for each order', async () => {
+    it('should display an actions kebab trigger for each order', async () => {
       renderPage();
       await waitFor(() => {
-        const editButtons = screen.getAllByText('Editar');
-        const deleteButtons = screen.getAllByText('Excluir');
-        expect(editButtons).toHaveLength(2);
-        expect(deleteButtons).toHaveLength(2);
+        const triggers = screen.getAllByTestId(/^order-actions-\d+-trigger$/);
+        expect(triggers).toHaveLength(2);
+      });
+    });
+
+    it('should not show menu items until the trigger is clicked', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId('order-actions-1-trigger')).toBeInTheDocument();
+      });
+      expect(screen.queryByTestId('order-actions-1-menu')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('order-actions-1-item-Editar')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('order-actions-1-item-Excluir')).not.toBeInTheDocument();
+    });
+
+    it('should open the menu with Editar and Excluir items when the kebab is clicked', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId('order-actions-1-trigger')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('order-actions-1-trigger'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('order-actions-1-menu')).toBeInTheDocument();
+        expect(screen.getByTestId('order-actions-1-item-Editar')).toBeInTheDocument();
+        expect(screen.getByTestId('order-actions-1-item-Excluir')).toBeInTheDocument();
+      });
+    });
+
+    it('should mark the Excluir item with danger styling', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId('order-actions-1-trigger')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('order-actions-1-trigger'));
+
+      await waitFor(() => {
+        const deleteItem = screen.getByTestId('order-actions-1-item-Excluir');
+        expect(deleteItem.className).toMatch(/text-red-600/);
+        expect(deleteItem.className).toMatch(/hover:bg-red/);
+      });
+    });
+
+    it('should expose menu semantics via aria attributes on the trigger', async () => {
+      renderPage();
+      await waitFor(() => {
+        const trigger = screen.getByTestId('order-actions-1-trigger');
+        expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
+        expect(trigger).toHaveAttribute('aria-expanded', 'false');
+      });
+
+      fireEvent.click(screen.getByTestId('order-actions-1-trigger'));
+
+      await waitFor(() => {
+        const trigger = screen.getByTestId('order-actions-1-trigger');
+        expect(trigger).toHaveAttribute('aria-expanded', 'true');
+        expect(screen.getByRole('menu')).toBeInTheDocument();
+        const items = screen.getAllByRole('menuitem');
+        expect(items).toHaveLength(2);
+      });
+    });
+
+    it('should close the menu when clicking the backdrop', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId('order-actions-1-trigger')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('order-actions-1-trigger'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('order-actions-1-menu')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('order-actions-1-backdrop'));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('order-actions-1-menu')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should close the menu when pressing Escape', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId('order-actions-1-trigger')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('order-actions-1-trigger'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('order-actions-1-menu')).toBeInTheDocument();
+      });
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('order-actions-1-menu')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should close the menu after selecting an item', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId('order-actions-1-trigger')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('order-actions-1-trigger'));
+      fireEvent.click(screen.getByTestId('order-actions-1-item-Editar'));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('order-actions-1-menu')).not.toBeInTheDocument();
       });
     });
 
@@ -905,8 +1029,7 @@ describe('OrdersPage', () => {
         expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
 
-      const editButtons = screen.getAllByText('Editar');
-      fireEvent.click(editButtons[0]);
+      await clickOrderAction('1', 'Editar');
 
       await waitFor(() => {
         expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
@@ -921,8 +1044,7 @@ describe('OrdersPage', () => {
         expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
 
-      const editButtons = screen.getAllByText('Editar');
-      fireEvent.click(editButtons[0]);
+      await clickOrderAction('1', 'Editar');
 
       await waitFor(() => {
         expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
@@ -938,8 +1060,7 @@ describe('OrdersPage', () => {
         expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
 
-      const editButtons = screen.getAllByText('Editar');
-      fireEvent.click(editButtons[0]);
+      await clickOrderAction('1', 'Editar');
 
       await waitFor(() => {
         expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
@@ -987,7 +1108,7 @@ describe('OrdersPage', () => {
         expect(screen.getByText('ORD-INATIVO')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('Editar'));
+      await clickOrderAction('10', 'Editar');
 
       await waitFor(() => {
         expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
@@ -1004,8 +1125,7 @@ describe('OrdersPage', () => {
         expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
 
-      const editButtons = screen.getAllByText('Editar');
-      fireEvent.click(editButtons[0]);
+      await clickOrderAction('1', 'Editar');
 
       await waitFor(() => {
         expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
@@ -1024,8 +1144,7 @@ describe('OrdersPage', () => {
         expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
 
-      const editButtons = screen.getAllByText('Editar');
-      fireEvent.click(editButtons[0]);
+      await clickOrderAction('1', 'Editar');
 
       await waitFor(() => {
         expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
@@ -1055,8 +1174,7 @@ describe('OrdersPage', () => {
         expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
 
-      const editButtons = screen.getAllByText('Editar');
-      fireEvent.click(editButtons[0]);
+      await clickOrderAction('1', 'Editar');
 
       await waitFor(() => {
         expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
@@ -1104,8 +1222,7 @@ describe('OrdersPage', () => {
         expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
 
-      const deleteButtons = screen.getAllByText('Excluir');
-      fireEvent.click(deleteButtons[0]);
+      await clickOrderAction('1', 'Excluir');
 
       expect(window.confirm).toHaveBeenCalled();
       await waitFor(() => {
@@ -1122,8 +1239,7 @@ describe('OrdersPage', () => {
         expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
 
-      const deleteButtons = screen.getAllByText('Excluir');
-      fireEvent.click(deleteButtons[0]);
+      await clickOrderAction('1', 'Excluir');
 
       expect(mockDelete).not.toHaveBeenCalled();
     });
