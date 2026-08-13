@@ -78,10 +78,13 @@ const ActionMenu = ({ actions, ariaLabel = 'Ações', testIdPrefix = 'action-men
             >
               {actions.map((action) => {
                 const Icon = action.icon;
-                const isDanger = action.variant === 'danger';
-                const itemClasses = isDanger
-                  ? 'flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-300 focus:bg-red-50 dark:focus:bg-red-900/20 focus:outline-none transition-colors'
-                  : 'flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 focus:outline-none transition-colors';
+                 const isDanger = action.variant === 'danger';
+                 const isPrimary = action.variant === 'primary';
+                 const itemClasses = isDanger
+                   ? 'flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-300 focus:bg-red-50 dark:focus:bg-red-900/20 focus:outline-none transition-colors'
+                   : isPrimary
+                     ? 'flex w-full items-center gap-2 px-4 py-2 text-left text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 focus:outline-none transition-colors'
+                   : 'flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 focus:outline-none transition-colors';
 
                 return (
                   <button
@@ -92,8 +95,10 @@ const ActionMenu = ({ actions, ariaLabel = 'Ações', testIdPrefix = 'action-men
                     data-testid={`${testIdPrefix}-item-${slugify(action.label)}`}
                     className={itemClasses}
                   >
-                    {Icon ? <Icon className="w-4 h-4" aria-hidden="true" /> : null}
-                    <span>{action.label}</span>
+                     <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+                       {Icon ? <Icon className="w-4 h-4" aria-hidden="true" /> : null}
+                     </span>
+                     <span className="flex-1 text-left">{action.label}</span>
                   </button>
                 );
               })}
