@@ -8,6 +8,7 @@ import {
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ProductsPage from '../src/pages/ProductsPage';
+import { ToastProvider } from '../src/components/Toast';
 
 const mockGet = vi.fn();
 const mockPost = vi.fn();
@@ -100,7 +101,9 @@ const manyProducts = Array.from({ length: 25 }, (_, i) => ({
 const renderPage = () => {
   return render(
     <MemoryRouter>
-      <ProductsPage />
+      <ToastProvider>
+        <ProductsPage />
+      </ToastProvider>
     </MemoryRouter>,
   );
 };
@@ -746,7 +749,6 @@ describe('ProductsPage', () => {
       mockPut.mockResolvedValue({
         data: { ...mockProduct, status: 'INATIVO' },
       });
-      window.confirm = vi.fn(() => true);
 
       renderPage();
 
@@ -758,7 +760,11 @@ describe('ProductsPage', () => {
         target: { value: 'INATIVO' },
       });
 
-      expect(window.confirm).toHaveBeenCalled();
+      expect(await screen.findByRole('dialog')).toBeInTheDocument();
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Confirmar alteração' }),
+      );
+
       await waitFor(() => {
         expect(mockPut).toHaveBeenCalledWith('/products/1', {
           status: 'INATIVO',
@@ -768,7 +774,6 @@ describe('ProductsPage', () => {
 
     it('should not change status when cancelling', async () => {
       mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
-      window.confirm = vi.fn(() => false);
 
       renderPage();
 
@@ -779,6 +784,9 @@ describe('ProductsPage', () => {
       fireEvent.change(screen.getByLabelText('Alterar status'), {
         target: { value: 'INATIVO' },
       });
+
+      expect(await screen.findByRole('dialog')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
 
       expect(mockPut).not.toHaveBeenCalled();
     });

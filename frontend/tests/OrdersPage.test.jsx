@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import OrdersPage from '../src/pages/OrdersPage';
+import { ToastProvider } from '../src/components/Toast';
 
 const mockGet = vi.fn();
 const mockPost = vi.fn();
@@ -119,7 +120,9 @@ const mockGetImplementation = (ordersData = [], peopleData = mockPeople) => {
 const renderPage = () => {
   return render(
     <MemoryRouter>
-      <OrdersPage />
+      <ToastProvider>
+        <OrdersPage />
+      </ToastProvider>
     </MemoryRouter>,
   );
 };
@@ -1443,7 +1446,6 @@ describe('OrdersPage', () => {
       mockDelete.mockResolvedValue({
         data: { message: 'Order deleted successfully' },
       });
-      window.confirm = vi.fn(() => true);
 
       renderPage();
 
@@ -1453,15 +1455,15 @@ describe('OrdersPage', () => {
 
       await clickOrderAction('1', 'Excluir');
 
-      expect(window.confirm).toHaveBeenCalled();
+      expect(await screen.findByRole('dialog')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Excluir' }));
+
       await waitFor(() => {
         expect(mockDelete).toHaveBeenCalledWith('/orders/1');
       });
     });
 
     it('should not delete when user cancels', async () => {
-      window.confirm = vi.fn(() => false);
-
       renderPage();
 
       await waitFor(() => {
@@ -1469,6 +1471,9 @@ describe('OrdersPage', () => {
       });
 
       await clickOrderAction('1', 'Excluir');
+
+      expect(await screen.findByRole('dialog')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
 
       expect(mockDelete).not.toHaveBeenCalled();
     });

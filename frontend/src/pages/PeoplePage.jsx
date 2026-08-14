@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Pencil, Trash } from 'lucide-react';
 import api from '../services/api';
 import ActionMenu from '../components/ActionMenu';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { useToast } from '../components/Toast';
 import {
   onlyDigits,
   isDigitsOnly,
@@ -161,6 +163,9 @@ const PeoplePage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editPersonId, setEditPersonId] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const { addToast } = useToast();
 
   const emptyForm = () => ({
     name: '',
@@ -235,15 +240,21 @@ const PeoplePage = () => {
     }
   };
 
-  const handleDeletePerson = async (id) => {
-    if (!window.confirm('Tem certeza que deseja excluir este cliente?')) {
-      return;
-    }
+  const handleDeletePerson = (id) => {
+    setConfirmDeleteId(id);
+  };
+
+  const confirmDeletePerson = async () => {
     try {
-      await api.delete(`/people/${id}`);
+      setDeleting(true);
+      await api.delete(`/people/${confirmDeleteId}`);
+      addToast('Cliente excluído com sucesso!', 'success');
       fetchPeople();
     } catch (err) {
       setError('Erro ao excluir cliente. Tente novamente.');
+    } finally {
+      setDeleting(false);
+      setConfirmDeleteId(null);
     }
   };
 
@@ -552,6 +563,17 @@ const PeoplePage = () => {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!confirmDeleteId}
+        title="Excluir cliente"
+        message="Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita."
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+        loading={deleting}
+        onConfirm={confirmDeletePerson}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </>
   );
 };

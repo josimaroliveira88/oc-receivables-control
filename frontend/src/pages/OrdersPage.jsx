@@ -4,6 +4,8 @@ import api from '../services/api';
 import { toCents, formatBRL } from '../utils/money';
 import { formatDateBR } from '../utils/dates';
 import ActionMenu from '../components/ActionMenu';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { useToast } from '../components/Toast';
 
 const emptyItem = () => ({
   id: Date.now(),
@@ -214,6 +216,9 @@ const OrdersPage = () => {
   const [orderNotes, setOrderNotes] = useState('');
   const [items, setItems] = useState([emptyItem()]);
   const addItemBtnRef = useRef(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const { addToast } = useToast();
 
   const fetchData = async () => {
     try {
@@ -426,13 +431,21 @@ const OrdersPage = () => {
     }
   };
 
-  const handleDeleteOrder = async (id) => {
-    if (!window.confirm('Tem certeza que deseja excluir este pedido?')) return;
+  const handleDeleteOrder = (id) => {
+    setConfirmDeleteId(id);
+  };
+
+  const confirmDeleteOrder = async () => {
     try {
-      await api.delete(`/orders/${id}`);
+      setDeleting(true);
+      await api.delete(`/orders/${confirmDeleteId}`);
+      addToast('Pedido excluído com sucesso!', 'success');
       fetchData();
     } catch (err) {
       setError('Erro ao excluir pedido. Tente novamente.');
+    } finally {
+      setDeleting(false);
+      setConfirmDeleteId(null);
     }
   };
 
@@ -946,6 +959,17 @@ const OrdersPage = () => {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!confirmDeleteId}
+        title="Excluir pedido"
+        message="Tem certeza que deseja excluir este pedido? Esta ação não pode ser desfeita."
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+        loading={deleting}
+        onConfirm={confirmDeleteOrder}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </>
   );
 };

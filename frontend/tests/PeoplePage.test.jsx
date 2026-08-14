@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import PeoplePage from '../src/pages/PeoplePage';
+import { ToastProvider } from '../src/components/Toast';
 
 const mockGet = vi.fn();
 const mockPost = vi.fn();
@@ -20,7 +21,9 @@ vi.mock('../src/services/api', () => ({
 const renderPage = () => {
   return render(
     <MemoryRouter>
-      <PeoplePage />
+      <ToastProvider>
+        <PeoplePage />
+      </ToastProvider>
     </MemoryRouter>,
   );
 };
@@ -435,7 +438,6 @@ describe('PeoplePage', () => {
     it('should delete when confirming', async () => {
       mockGet.mockResolvedValue({ data: [mockPeople[0]] });
       mockDelete.mockResolvedValue({ data: { message: 'Person deleted' } });
-      window.confirm = vi.fn(() => true);
 
       renderPage();
 
@@ -445,7 +447,9 @@ describe('PeoplePage', () => {
 
       await clickClientAction('1', 'Excluir');
 
-      expect(window.confirm).toHaveBeenCalled();
+      expect(await screen.findByRole('dialog')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Excluir' }));
+
       await waitFor(() => {
         expect(mockDelete).toHaveBeenCalledWith('/people/1');
       });
@@ -453,7 +457,6 @@ describe('PeoplePage', () => {
 
     it('should not delete when cancelling', async () => {
       mockGet.mockResolvedValue({ data: [mockPeople[0]] });
-      window.confirm = vi.fn(() => false);
 
       renderPage();
 
@@ -462,6 +465,9 @@ describe('PeoplePage', () => {
       });
 
       await clickClientAction('1', 'Excluir');
+
+      expect(await screen.findByRole('dialog')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
 
       expect(mockDelete).not.toHaveBeenCalled();
     });

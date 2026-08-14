@@ -8,6 +8,8 @@ import React, {
 import { Search, ExternalLink, AlertCircle, Pencil } from 'lucide-react';
 import api from '../services/api';
 import ActionMenu from '../components/ActionMenu';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { useToast } from '../components/Toast';
 import { formatBRL } from '../utils/money';
 
 const PAGE_SIZE = 20;
@@ -90,6 +92,9 @@ const ProductsPage = () => {
   const [editProduct, setEditProduct] = useState(emptyForm);
   const [editStatus, setEditStatus] = useState('ATIVO');
   const [createForm, setCreateForm] = useState(emptyForm);
+  const [confirmStatus, setConfirmStatus] = useState(null);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const { addToast } = useToast();
 
   const sentinelRef = useRef(null);
 
@@ -231,19 +236,24 @@ const ProductsPage = () => {
     }
   };
 
-  const handleStatusChange = async (product, newStatus) => {
-    if (
-      !window.confirm(
-        `Tem certeza que deseja alterar o status deste produto para "${PRODUCT_STATUS[newStatus].label}"?`,
-      )
-    ) {
-      return;
-    }
+  const handleStatusChange = (product, newStatus) => {
+    setConfirmStatus({ product, newStatus });
+  };
+
+  const confirmChangeStatus = async () => {
+    if (!confirmStatus) return;
     try {
-      await api.put(`/products/${product.id}`, { status: newStatus });
+      setUpdatingStatus(true);
+      await api.put(`/products/${confirmStatus.product.id}`, {
+        status: confirmStatus.newStatus,
+      });
+      addToast('Status do produto atualizado com sucesso!', 'success');
       loadProducts();
     } catch (err) {
       setError('Erro ao atualizar produto. Tente novamente.');
+    } finally {
+      setUpdatingStatus(false);
+      setConfirmStatus(null);
     }
   };
 
@@ -823,6 +833,28 @@ const ProductsPage = () => {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!confirmStatus}
+        title="Alterar status do produto"
+        message={
+          <>
+            Tem certeza que deseja alterar o status deste produto para "
+            <strong>
+              {confirmStatus
+                ? PRODUCT_STATUS[confirmStatus.newStatus]?.label ||
+                  confirmStatus.newStatus
+                : ''}
+            </strong>
+            "?
+          </>
+        }
+        confirmLabel="Confirmar alteração"
+        cancelLabel="Cancelar"
+        loading={updatingStatus}
+        onConfirm={confirmChangeStatus}
+        onCancel={() => setConfirmStatus(null)}
+      />
     </>
   );
 };
