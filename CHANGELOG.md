@@ -37,8 +37,20 @@ Why the feature is needed.
 
 ## [Unreleased]
 
+
+## Phase 45 — Replace window.confirm with ConfirmDialog (2026-08-14)
+
 ### Added
 - Prettier 3 support (root, `backend/`, `frontend/`): `prettier` pinned as a devDependency in every workspace, root `.prettierrc` (single quotes, semicolons, trailing commas, 80 cols) and `.prettierignore`, and `npm run format` / `npm run format:check` scripts.
+
+### Changed
+- Replaced browser-native `window.confirm` prompts with the shared `ConfirmDialog` component on PeoplePage delete, OrdersPage delete, and ProductsPage inline status change, following the ReceivablesPage overpayment-confirmation pattern.
+- Each dialog shows a PT-BR title/message, confirm label ("Excluir" for deletes, "Confirmar alteração" for product status), and "Cancelar"; the confirm button shows "Processando..." and Cancel/Esc are disabled while the API call is in flight.
+- Success toasts added for delete and status-change operations.
+
+### Tests
+- Updated PeoplePage, OrdersPage, and ProductsPage suites to interact with the dialog buttons instead of stubbing `window.confirm`; test renders now wrap pages in `ToastProvider`.
+- Verified: 168 backend + 319 frontend tests passing, `npm run build` clean, Prettier `format:check` clean.
 
 ## Phases 1-16 — MVP Foundation
 
