@@ -48,7 +48,12 @@ const mockPeople = [
     isVip: true,
     isDoterraMember: true,
   },
-  { name: 'Maria Santos', whatsapp: null, isVip: false, isDoterraMember: false },
+  {
+    name: 'Maria Santos',
+    whatsapp: null,
+    isVip: false,
+    isDoterraMember: false,
+  },
 ];
 
 const mockDashboard = {
@@ -56,8 +61,18 @@ const mockDashboard = {
   totalPaid: 3000.0,
   currentMonthReceipts: 750.25,
   personBalances: [
-    { personName: 'João Silva', itemTotal: '2000.00', paymentTotal: '500.25', pending: '1499.75' },
-    { personName: 'Maria Santos', itemTotal: '1500.00', paymentTotal: '1500.00', pending: '0.00' },
+    {
+      personName: 'João Silva',
+      itemTotal: '2000.00',
+      paymentTotal: '500.25',
+      pending: '1499.75',
+    },
+    {
+      personName: 'Maria Santos',
+      itemTotal: '1500.00',
+      paymentTotal: '1500.00',
+      pending: '0.00',
+    },
   ],
 };
 
@@ -68,7 +83,11 @@ describe('exportExcel', () => {
 
   describe('Workbook Structure', () => {
     it('should create a workbook with 4 sheets', () => {
-      exportExcel({ orders: mockOrders, people: mockPeople, dashboard: mockDashboard });
+      exportExcel({
+        orders: mockOrders,
+        people: mockPeople,
+        dashboard: mockDashboard,
+      });
 
       const writeFileCalls = XLSX.writeFile.mock.calls;
       expect(writeFileCalls).toHaveLength(1);
@@ -78,7 +97,11 @@ describe('exportExcel', () => {
     });
 
     it('should have sheet names: Pedidos, Clientes, Histórico de Pagamentos, Saldo Pendente', () => {
-      exportExcel({ orders: mockOrders, people: mockPeople, dashboard: mockDashboard });
+      exportExcel({
+        orders: mockOrders,
+        people: mockPeople,
+        dashboard: mockDashboard,
+      });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
       expect(wb.SheetNames).toEqual([
@@ -90,18 +113,26 @@ describe('exportExcel', () => {
     });
 
     it('should call XLSX.writeFile with filename "relatorio-recebiveis.xlsx"', () => {
-      exportExcel({ orders: mockOrders, people: mockPeople, dashboard: mockDashboard });
+      exportExcel({
+        orders: mockOrders,
+        people: mockPeople,
+        dashboard: mockDashboard,
+      });
 
       expect(XLSX.writeFile).toHaveBeenCalledWith(
         expect.anything(),
-        'relatorio-recebiveis.xlsx'
+        'relatorio-recebiveis.xlsx',
       );
     });
   });
 
   describe('Pedidos Sheet', () => {
     it('should have correct headers', () => {
-      exportExcel({ orders: mockOrders, people: [], dashboard: { personBalances: [] } });
+      exportExcel({
+        orders: mockOrders,
+        people: [],
+        dashboard: { personBalances: [] },
+      });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
       const ws = wb.Sheets['Pedidos'];
@@ -111,7 +142,11 @@ describe('exportExcel', () => {
     });
 
     it('should populate order rows with correct data', () => {
-      exportExcel({ orders: mockOrders, people: [], dashboard: { personBalances: [] } });
+      exportExcel({
+        orders: mockOrders,
+        people: [],
+        dashboard: { personBalances: [] },
+      });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
       const ws = wb.Sheets['Pedidos'];
@@ -125,7 +160,11 @@ describe('exportExcel', () => {
     });
 
     it('should format order dates as DD/MM/YYYY', () => {
-      exportExcel({ orders: mockOrders, people: [], dashboard: { personBalances: [] } });
+      exportExcel({
+        orders: mockOrders,
+        people: [],
+        dashboard: { personBalances: [] },
+      });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
       const ws = wb.Sheets['Pedidos'];
@@ -136,7 +175,11 @@ describe('exportExcel', () => {
     });
 
     it('should format monetary cells as numbers with BRL format', () => {
-      exportExcel({ orders: mockOrders, people: [], dashboard: { personBalances: [] } });
+      exportExcel({
+        orders: mockOrders,
+        people: [],
+        dashboard: { personBalances: [] },
+      });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
       const ws = wb.Sheets['Pedidos'];
@@ -152,17 +195,33 @@ describe('exportExcel', () => {
 
   describe('Clientes Sheet', () => {
     it('should have correct headers', () => {
-      exportExcel({ orders: [], people: mockPeople, dashboard: { personBalances: [] } });
+      exportExcel({
+        orders: [],
+        people: mockPeople,
+        dashboard: { personBalances: [] },
+      });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
       const ws = wb.Sheets['Clientes'];
       const headers = XLSX.utils.sheet_to_json(ws, { header: 1 })[0];
 
-      expect(headers).toEqual(['Nome', 'Grupos em Comum', 'WhatsApp', 'Instagram', 'Endereço', 'VIP', 'Membro doTERRA']);
+      expect(headers).toEqual([
+        'Nome',
+        'Grupos em Comum',
+        'WhatsApp',
+        'Instagram',
+        'Endereço',
+        'VIP',
+        'Membro doTERRA',
+      ]);
     });
 
     it('should populate client rows with correct data', () => {
-      exportExcel({ orders: [], people: mockPeople, dashboard: { personBalances: [] } });
+      exportExcel({
+        orders: [],
+        people: mockPeople,
+        dashboard: { personBalances: [] },
+      });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
       const ws = wb.Sheets['Clientes'];
@@ -182,7 +241,11 @@ describe('exportExcel', () => {
     });
 
     it('should show empty string for null whatsapp', () => {
-      exportExcel({ orders: [], people: mockPeople, dashboard: { personBalances: [] } });
+      exportExcel({
+        orders: [],
+        people: mockPeople,
+        dashboard: { personBalances: [] },
+      });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
       const ws = wb.Sheets['Clientes'];
@@ -194,17 +257,31 @@ describe('exportExcel', () => {
 
   describe('Histórico de Pagamentos Sheet', () => {
     it('should have correct headers', () => {
-      exportExcel({ orders: mockOrders, people: [], dashboard: { personBalances: [] } });
+      exportExcel({
+        orders: mockOrders,
+        people: [],
+        dashboard: { personBalances: [] },
+      });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
       const ws = wb.Sheets['Histórico de Pagamentos'];
       const headers = XLSX.utils.sheet_to_json(ws, { header: 1 })[0];
 
-      expect(headers).toEqual(['Pedido', 'Pessoa', 'Valor (R$)', 'Data', 'Notas']);
+      expect(headers).toEqual([
+        'Pedido',
+        'Pessoa',
+        'Valor (R$)',
+        'Data',
+        'Notas',
+      ]);
     });
 
     it('should include payment rows from orders with payments', () => {
-      exportExcel({ orders: mockOrders, people: [], dashboard: { personBalances: [] } });
+      exportExcel({
+        orders: mockOrders,
+        people: [],
+        dashboard: { personBalances: [] },
+      });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
       const ws = wb.Sheets['Histórico de Pagamentos'];
@@ -216,7 +293,11 @@ describe('exportExcel', () => {
     });
 
     it('should format payment amounts as numbers with BRL format', () => {
-      exportExcel({ orders: mockOrders, people: [], dashboard: { personBalances: [] } });
+      exportExcel({
+        orders: mockOrders,
+        people: [],
+        dashboard: { personBalances: [] },
+      });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
       const ws = wb.Sheets['Histórico de Pagamentos'];
@@ -230,7 +311,11 @@ describe('exportExcel', () => {
     });
 
     it('should format payment dates as DD/MM/YYYY', () => {
-      exportExcel({ orders: mockOrders, people: [], dashboard: { personBalances: [] } });
+      exportExcel({
+        orders: mockOrders,
+        people: [],
+        dashboard: { personBalances: [] },
+      });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
       const ws = wb.Sheets['Histórico de Pagamentos'];
@@ -240,7 +325,11 @@ describe('exportExcel', () => {
     });
 
     it('should include notes field', () => {
-      exportExcel({ orders: mockOrders, people: [], dashboard: { personBalances: [] } });
+      exportExcel({
+        orders: mockOrders,
+        people: [],
+        dashboard: { personBalances: [] },
+      });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
       const ws = wb.Sheets['Histórico de Pagamentos'];
@@ -269,7 +358,11 @@ describe('exportExcel', () => {
         },
       ];
 
-      exportExcel({ orders: ordersWithDeletedPerson, people: [], dashboard: { personBalances: [] } });
+      exportExcel({
+        orders: ordersWithDeletedPerson,
+        people: [],
+        dashboard: { personBalances: [] },
+      });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
       const ws = wb.Sheets['Histórico de Pagamentos'];
@@ -290,7 +383,11 @@ describe('exportExcel', () => {
         },
       ];
 
-      exportExcel({ orders: ordersNoPayments, people: [], dashboard: { personBalances: [] } });
+      exportExcel({
+        orders: ordersNoPayments,
+        people: [],
+        dashboard: { personBalances: [] },
+      });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
       const ws = wb.Sheets['Histórico de Pagamentos'];
@@ -308,7 +405,12 @@ describe('exportExcel', () => {
       const ws = wb.Sheets['Saldo Pendente'];
       const headers = XLSX.utils.sheet_to_json(ws, { header: 1 })[0];
 
-      expect(headers).toEqual(['Pessoa', 'Total Itens (R$)', 'Total Pagamentos (R$)', 'Saldo Pendente (R$)']);
+      expect(headers).toEqual([
+        'Pessoa',
+        'Total Itens (R$)',
+        'Total Pagamentos (R$)',
+        'Saldo Pendente (R$)',
+      ]);
     });
 
     it('should populate person balance rows', () => {
@@ -349,7 +451,12 @@ describe('exportExcel', () => {
     it('should handle string monetary values from Prisma Decimal', () => {
       const dashboardStringValues = {
         personBalances: [
-          { personName: 'Test', itemTotal: '1234.56', paymentTotal: '1233.00', pending: '1.56' },
+          {
+            personName: 'Test',
+            itemTotal: '1234.56',
+            paymentTotal: '1233.00',
+            pending: '1.56',
+          },
         ],
       };
 
@@ -366,14 +473,22 @@ describe('exportExcel', () => {
 
   describe('Empty Data Handling', () => {
     it('should create all 4 sheets even with empty orders', () => {
-      exportExcel({ orders: [], people: [], dashboard: { personBalances: [] } });
+      exportExcel({
+        orders: [],
+        people: [],
+        dashboard: { personBalances: [] },
+      });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
       expect(wb.SheetNames).toHaveLength(4);
     });
 
     it('should create Pedidos sheet with only headers when no orders', () => {
-      exportExcel({ orders: [], people: [], dashboard: { personBalances: [] } });
+      exportExcel({
+        orders: [],
+        people: [],
+        dashboard: { personBalances: [] },
+      });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
       const ws = wb.Sheets['Pedidos'];
@@ -384,18 +499,34 @@ describe('exportExcel', () => {
     });
 
     it('should create Clientes sheet with only headers when no people', () => {
-      exportExcel({ orders: [], people: [], dashboard: { personBalances: [] } });
+      exportExcel({
+        orders: [],
+        people: [],
+        dashboard: { personBalances: [] },
+      });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
       const ws = wb.Sheets['Clientes'];
       const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
 
       expect(rows).toHaveLength(1);
-      expect(rows[0]).toEqual(['Nome', 'Grupos em Comum', 'WhatsApp', 'Instagram', 'Endereço', 'VIP', 'Membro doTERRA']);
+      expect(rows[0]).toEqual([
+        'Nome',
+        'Grupos em Comum',
+        'WhatsApp',
+        'Instagram',
+        'Endereço',
+        'VIP',
+        'Membro doTERRA',
+      ]);
     });
 
     it('should create Histórico sheet with only headers when no payments exist', () => {
-      exportExcel({ orders: [], people: [], dashboard: { personBalances: [] } });
+      exportExcel({
+        orders: [],
+        people: [],
+        dashboard: { personBalances: [] },
+      });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
       const ws = wb.Sheets['Histórico de Pagamentos'];
@@ -405,7 +536,11 @@ describe('exportExcel', () => {
     });
 
     it('should create Saldo Pendente sheet with only headers when no personBalances', () => {
-      exportExcel({ orders: [], people: [], dashboard: { personBalances: [] } });
+      exportExcel({
+        orders: [],
+        people: [],
+        dashboard: { personBalances: [] },
+      });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
       const ws = wb.Sheets['Saldo Pendente'];
@@ -424,7 +559,11 @@ describe('exportExcel', () => {
 
   describe('Column Widths', () => {
     it('should set column widths on Pedidos sheet', () => {
-      exportExcel({ orders: mockOrders, people: [], dashboard: { personBalances: [] } });
+      exportExcel({
+        orders: mockOrders,
+        people: [],
+        dashboard: { personBalances: [] },
+      });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
       const ws = wb.Sheets['Pedidos'];
@@ -434,7 +573,11 @@ describe('exportExcel', () => {
     });
 
     it('should set column widths on Clientes sheet', () => {
-      exportExcel({ orders: [], people: mockPeople, dashboard: { personBalances: [] } });
+      exportExcel({
+        orders: [],
+        people: mockPeople,
+        dashboard: { personBalances: [] },
+      });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
       const ws = wb.Sheets['Clientes'];
@@ -444,7 +587,11 @@ describe('exportExcel', () => {
     });
 
     it('should set column widths on Histórico de Pagamentos sheet', () => {
-      exportExcel({ orders: mockOrders, people: [], dashboard: { personBalances: [] } });
+      exportExcel({
+        orders: mockOrders,
+        people: [],
+        dashboard: { personBalances: [] },
+      });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
       const ws = wb.Sheets['Histórico de Pagamentos'];
@@ -468,7 +615,12 @@ describe('exportExcel', () => {
     it('should correctly format 1234.56 - 1233 = 1.56 pending balance without FP errors', () => {
       const dashboardFP = {
         personBalances: [
-          { personName: 'Precision Test', itemTotal: '1234.56', paymentTotal: '1233.00', pending: '1.56' },
+          {
+            personName: 'Precision Test',
+            itemTotal: '1234.56',
+            paymentTotal: '1233.00',
+            pending: '1.56',
+          },
         ],
       };
 

@@ -30,7 +30,9 @@ describe('People CRUD', () => {
 
   afterEach(async () => {
     if (createdPersonId) {
-      await prisma.person.delete({ where: { id: createdPersonId } }).catch(() => {});
+      await prisma.person
+        .delete({ where: { id: createdPersonId } })
+        .catch(() => {});
       createdPersonId = null;
     }
   });
@@ -142,7 +144,10 @@ describe('People CRUD', () => {
       const response = await request(app)
         .post('/api/people')
         .set('Authorization', `Bearer ${authToken}`)
-        .send({ name: 'Too Long Insta', instagram: `https://instagram.com/${'a'.repeat(250)}` });
+        .send({
+          name: 'Too Long Insta',
+          instagram: `https://instagram.com/${'a'.repeat(250)}`,
+        });
 
       expect(response.status).toBe(400);
     });

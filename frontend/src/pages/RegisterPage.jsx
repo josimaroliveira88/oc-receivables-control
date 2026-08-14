@@ -38,7 +38,9 @@ const RegisterPage = () => {
     try {
       await register(username, password);
       localStorage.setItem('show_onboarding', 'true');
-      navigate('/login', { state: { message: 'Conta criada com sucesso! Faça login.' } });
+      navigate('/login', {
+        state: { message: 'Conta criada com sucesso! Faça login.' },
+      });
     } catch (err) {
       if (err.response && err.response.status === 409) {
         setError('Usuário já existe');
@@ -136,7 +138,11 @@ const RegisterPage = () => {
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                   tabIndex={-1}
                 >
-                  {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showConfirmPassword ? (
+                    <EyeOff size={20} />
+                  ) : (
+                    <Eye size={20} />
+                  )}
                 </button>
               </div>
             </div>
@@ -152,7 +158,10 @@ const RegisterPage = () => {
 
           <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
             Já tem uma conta?{' '}
-            <Link to="/login" className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium">
+            <Link
+              to="/login"
+              className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium"
+            >
               Faça login
             </Link>
           </p>

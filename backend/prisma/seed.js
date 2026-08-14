@@ -9,7 +9,7 @@ async function main() {
 
   // Check if admin user already exists
   const existingUser = await prisma.user.findUnique({
-    where: { username: adminUsername }
+    where: { username: adminUsername },
   });
 
   if (existingUser) {
@@ -24,8 +24,8 @@ async function main() {
   await prisma.user.create({
     data: {
       username: adminUsername,
-      password: hashedPassword
-    }
+      password: hashedPassword,
+    },
   });
 
   console.log('Admin user created successfully');

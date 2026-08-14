@@ -7,13 +7,13 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 3000,
     watch: {
-      usePolling: true
+      usePolling: true,
     },
     proxy: {
       '/api': {
         target: process.env.API_URL || 'http://localhost:4000',
         changeOrigin: true,
-      }
-    }
-  }
+      },
+    },
+  },
 });

@@ -11,17 +11,23 @@ const app = express();
 
 // Request logging
 if (process.env.NODE_ENV !== 'test') {
-  app.use(morgan(':method :url :status :res[content-length] - :response-time ms - origin: :req[origin]'));
+  app.use(
+    morgan(
+      ':method :url :status :res[content-length] - :response-time ms - origin: :req[origin]',
+    ),
+  );
 }
 
 // Middleware
 const corsOrigins = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(',').map(s => s.trim())
+  ? process.env.CORS_ORIGIN.split(',').map((s) => s.trim())
   : true;
-app.use(cors({
-  origin: corsOrigins,
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: corsOrigins,
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 // Routes will be mounted here
@@ -57,7 +63,7 @@ app.use((error, req, res, next) => {
     method: req.method,
     url: req.originalUrl,
     origin: req.get('origin'),
-    ip: req.ip
+    ip: req.ip,
   });
   if (error instanceof ZodError) {
     return res.status(400).json({ error: error.errors });

@@ -46,7 +46,7 @@ const renderPage = () => {
       <ToastProvider>
         <DashboardPage />
       </ToastProvider>
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 };
 
@@ -74,7 +74,11 @@ describe('DashboardPage', () => {
       mockGet.mockRejectedValue(new Error('Network Error'));
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('Erro ao carregar dados do dashboard. Tente novamente.')).toBeInTheDocument();
+        expect(
+          screen.getByText(
+            'Erro ao carregar dados do dashboard. Tente novamente.',
+          ),
+        ).toBeInTheDocument();
       });
     });
 
@@ -82,7 +86,9 @@ describe('DashboardPage', () => {
       mockGet.mockRejectedValue({ response: { status: 401 } });
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('Sessão expirada. Faça login novamente.')).toBeInTheDocument();
+        expect(
+          screen.getByText('Sessão expirada. Faça login novamente.'),
+        ).toBeInTheDocument();
       });
     });
   });
@@ -109,7 +115,9 @@ describe('DashboardPage', () => {
     it('should display "Recebimentos (Mês Atual)" KPI with emoji', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('Recebimentos (Mês Atual)')).toBeInTheDocument();
+        expect(
+          screen.getByText('Recebimentos (Mês Atual)'),
+        ).toBeInTheDocument();
       });
     });
 
@@ -164,7 +172,9 @@ describe('DashboardPage', () => {
       renderPage();
       await waitFor(() => {
         expect(screen.getByText('Saldos por Pessoa')).toBeInTheDocument();
-        expect(document.querySelector('.recharts-responsive-container')).toBeInTheDocument();
+        expect(
+          document.querySelector('.recharts-responsive-container'),
+        ).toBeInTheDocument();
       });
     });
   });
@@ -217,7 +227,9 @@ describe('DashboardPage', () => {
     it('should render the correct number of year rows', async () => {
       renderPage();
       await waitFor(() => {
-        const rows = document.querySelectorAll('[data-testid="yearly-breakdown"] tbody tr');
+        const rows = document.querySelectorAll(
+          '[data-testid="yearly-breakdown"] tbody tr',
+        );
         expect(rows.length).toBe(2);
       });
     });
@@ -274,7 +286,8 @@ describe('DashboardPage', () => {
       const mockPeople = [{ name: 'João Silva', contact: 'joao@email.com' }];
 
       mockGet.mockImplementation((url) => {
-        if (url === '/dashboard') return Promise.resolve({ data: mockDashboardData });
+        if (url === '/dashboard')
+          return Promise.resolve({ data: mockDashboardData });
         if (url === '/orders') return Promise.resolve({ data: mockOrders });
         if (url === '/people') return Promise.resolve({ data: mockPeople });
         return Promise.resolve({ data: {} });
@@ -314,14 +327,18 @@ describe('DashboardPage', () => {
       fireEvent.click(btn);
 
       await waitFor(() => {
-        expect(screen.getByText('Relatório exportado com sucesso!')).toBeInTheDocument();
+        expect(
+          screen.getByText('Relatório exportado com sucesso!'),
+        ).toBeInTheDocument();
       });
     });
 
     it('should show error toast "Erro ao exportar relatório." when export fails', async () => {
       mockGet.mockImplementation((url) => {
-        if (url === '/dashboard') return Promise.resolve({ data: mockDashboardData });
-        if (url === '/orders') return Promise.reject(new Error('Network error'));
+        if (url === '/dashboard')
+          return Promise.resolve({ data: mockDashboardData });
+        if (url === '/orders')
+          return Promise.reject(new Error('Network error'));
         if (url === '/people') return Promise.resolve({ data: [] });
         return Promise.resolve({ data: {} });
       });
@@ -335,14 +352,21 @@ describe('DashboardPage', () => {
       fireEvent.click(btn);
 
       await waitFor(() => {
-        expect(screen.getByText('Erro ao exportar relatório.')).toBeInTheDocument();
+        expect(
+          screen.getByText('Erro ao exportar relatório.'),
+        ).toBeInTheDocument();
       });
     });
 
     it('should show "Exportando..." loading state while exporting', async () => {
       let resolveExport;
       mockGetImplementation();
-      mockExportExcel.mockImplementation(() => new Promise((resolve) => { resolveExport = resolve; }));
+      mockExportExcel.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveExport = resolve;
+          }),
+      );
 
       renderPage();
       await waitFor(() => {

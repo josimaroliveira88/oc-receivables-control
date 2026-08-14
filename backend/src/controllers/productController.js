@@ -12,21 +12,39 @@ const createProductSchema = z.object({
   regularPrice: z.number().nonnegative('Regular price must be non-negative'),
   memberPrice: z.number().nonnegative('Member price must be non-negative'),
   pv: z.number().nonnegative('PV must be non-negative'),
-  doterraUrl: z.string().url('Invalid product URL').max(2048, 'Product URL is too long').optional().nullable(),
+  doterraUrl: z
+    .string()
+    .url('Invalid product URL')
+    .max(2048, 'Product URL is too long')
+    .optional()
+    .nullable(),
 });
 
 const updateProductSchema = z.object({
   name: z.string().min(1, 'Name is required').optional(),
   size: z.string().min(1, 'Size is required').optional(),
   status: productStatusSchema.optional(),
-  doterraUrl: z.string().url('Invalid product URL').max(2048, 'Product URL is too long').optional().nullable(),
-  regularPrice: z.number().nonnegative('Regular price must be non-negative').optional(),
-  memberPrice: z.number().nonnegative('Member price must be non-negative').optional(),
+  doterraUrl: z
+    .string()
+    .url('Invalid product URL')
+    .max(2048, 'Product URL is too long')
+    .optional()
+    .nullable(),
+  regularPrice: z
+    .number()
+    .nonnegative('Regular price must be non-negative')
+    .optional(),
+  memberPrice: z
+    .number()
+    .nonnegative('Member price must be non-negative')
+    .optional(),
   pv: z.number().nonnegative('PV must be non-negative').optional(),
 });
 
 const priceFieldsPresent = (data) =>
-  data.regularPrice !== undefined || data.memberPrice !== undefined || data.pv !== undefined;
+  data.regularPrice !== undefined ||
+  data.memberPrice !== undefined ||
+  data.pv !== undefined;
 
 const priceFieldsEqual = (a, b) =>
   toCents(a.regularPrice) === toCents(b.regularPrice) &&
@@ -66,7 +84,10 @@ const sortProducts = (products, sortBy, sortDir) => {
     if (NUMERIC_SORT_FIELDS.includes(field)) {
       result = (parseFloat(a[field]) || 0) - (parseFloat(b[field]) || 0);
     } else {
-      result = String(a[field] ?? '').localeCompare(String(b[field] ?? ''), 'pt-BR');
+      result = String(a[field] ?? '').localeCompare(
+        String(b[field] ?? ''),
+        'pt-BR',
+      );
     }
     return result * direction;
   });
@@ -74,16 +95,30 @@ const sortProducts = (products, sortBy, sortDir) => {
 
 const getProducts = async (req, res) => {
   try {
-    const { active, status, available, q, sortBy, sortDir, page: pageParam, pageSize: pageSizeParam } = req.query;
+    const {
+      active,
+      status,
+      available,
+      q,
+      sortBy,
+      sortDir,
+      page: pageParam,
+      pageSize: pageSizeParam,
+    } = req.query;
 
     const where = {};
 
-    const statusValues = Array.isArray(status) ? status : status ? [status] : [];
+    const statusValues = Array.isArray(status)
+      ? status
+      : status
+        ? [status]
+        : [];
 
     if (available === 'true') {
       where.status = { in: ['ATIVO', 'INDISPONIVEL'] };
     } else if (statusValues.length > 0) {
-      where.status = statusValues.length === 1 ? statusValues[0] : { in: statusValues };
+      where.status =
+        statusValues.length === 1 ? statusValues[0] : { in: statusValues };
     } else if (active !== undefined) {
       where.status = active === 'true' ? 'ATIVO' : 'INATIVO';
     }
@@ -107,11 +142,20 @@ const getProducts = async (req, res) => {
       },
     });
 
-    const sorted = sortProducts(products.map(projectCurrentPrice), sortBy, sortDir);
+    const sorted = sortProducts(
+      products.map(projectCurrentPrice),
+      sortBy,
+      sortDir,
+    );
 
     const total = sorted.length;
     const pageSize =
-      pageSizeParam === 'all' ? Math.max(total, 1) : Math.min(Math.max(parseInt(pageSizeParam, 10) || DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
+      pageSizeParam === 'all'
+        ? Math.max(total, 1)
+        : Math.min(
+            Math.max(parseInt(pageSizeParam, 10) || DEFAULT_PAGE_SIZE, 1),
+            MAX_PAGE_SIZE,
+          );
     const page = Math.max(parseInt(pageParam, 10) || 1, 1);
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
     const start = (page - 1) * pageSize;
@@ -227,11 +271,17 @@ const updateProduct = async (req, res) => {
       const updateData = {
         ...(validatedData.name !== undefined && { name: validatedData.name }),
         ...(validatedData.size !== undefined && { size: validatedData.size }),
-        ...(validatedData.status !== undefined && { status: validatedData.status }),
-        ...(validatedData.doterraUrl !== undefined && { doterraUrl: validatedData.doterraUrl }),
+        ...(validatedData.status !== undefined && {
+          status: validatedData.status,
+        }),
+        ...(validatedData.doterraUrl !== undefined && {
+          doterraUrl: validatedData.doterraUrl,
+        }),
       };
 
-      let currentPrice = existingProduct.prices.find((price) => price.validTo === null);
+      let currentPrice = existingProduct.prices.find(
+        (price) => price.validTo === null,
+      );
 
       if (priceFieldsPresent(validatedData)) {
         const newPrice = {

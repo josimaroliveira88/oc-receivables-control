@@ -21,23 +21,29 @@ const renderPage = () => {
   return render(
     <MemoryRouter>
       <PeoplePage />
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 };
 
 const openClientActionsMenu = async (clientId) => {
   await waitFor(() => {
-    expect(screen.getByTestId(`client-actions-${clientId}-trigger`)).toBeInTheDocument();
+    expect(
+      screen.getByTestId(`client-actions-${clientId}-trigger`),
+    ).toBeInTheDocument();
   });
   fireEvent.click(screen.getByTestId(`client-actions-${clientId}-trigger`));
   await waitFor(() => {
-    expect(screen.getByTestId(`client-actions-${clientId}-menu`)).toBeInTheDocument();
+    expect(
+      screen.getByTestId(`client-actions-${clientId}-menu`),
+    ).toBeInTheDocument();
   });
 };
 
 const clickClientAction = async (clientId, label) => {
   await openClientActionsMenu(clientId);
-  fireEvent.click(screen.getByTestId(`client-actions-${clientId}-item-${label}`));
+  fireEvent.click(
+    screen.getByTestId(`client-actions-${clientId}-item-${label}`),
+  );
 };
 
 const mockPeople = [
@@ -89,7 +95,9 @@ describe('PeoplePage', () => {
       mockGet.mockResolvedValue({ data: [] });
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('Nenhum cliente cadastrado')).toBeInTheDocument();
+        expect(
+          screen.getByText('Nenhum cliente cadastrado'),
+        ).toBeInTheDocument();
       });
     });
 
@@ -162,7 +170,9 @@ describe('PeoplePage', () => {
       renderPage();
 
       await waitFor(() => {
-        expect(screen.getAllByTestId(/client-actions-.*-trigger/)).toHaveLength(2);
+        expect(screen.getAllByTestId(/client-actions-.*-trigger/)).toHaveLength(
+          2,
+        );
       });
     });
   });
@@ -227,7 +237,9 @@ describe('PeoplePage', () => {
         fireEvent.click(screen.getByText('Novo'));
       });
 
-      const whatsappInput = await screen.findByPlaceholderText('+55 (11) 99999-8888');
+      const whatsappInput = await screen.findByPlaceholderText(
+        '+55 (11) 99999-8888',
+      );
       expect(whatsappInput.value).toBe('+55');
     });
 
@@ -239,7 +251,9 @@ describe('PeoplePage', () => {
         fireEvent.click(screen.getByText('Novo'));
       });
 
-      const whatsappInput = await screen.findByPlaceholderText('+55 (11) 99999-8888');
+      const whatsappInput = await screen.findByPlaceholderText(
+        '+55 (11) 99999-8888',
+      );
       fireEvent.change(whatsappInput, { target: { value: '5511999998888' } });
 
       await waitFor(() => {
@@ -255,13 +269,13 @@ describe('PeoplePage', () => {
         fireEvent.click(screen.getByText('Novo'));
       });
 
-      const whatsappInput = await screen.findByPlaceholderText('+55 (11) 99999-8888');
+      const whatsappInput = await screen.findByPlaceholderText(
+        '+55 (11) 99999-8888',
+      );
       fireEvent.change(whatsappInput, { target: { value: '5511' } });
 
       await waitFor(() => {
-        expect(
-          screen.getByText(/Número fora do padrão/)
-        ).toBeInTheDocument();
+        expect(screen.getByText(/Número fora do padrão/)).toBeInTheDocument();
       });
     });
 
@@ -273,11 +287,15 @@ describe('PeoplePage', () => {
         fireEvent.click(screen.getByText('Novo'));
       });
 
-      const whatsappInput = await screen.findByPlaceholderText('+55 (11) 99999-8888');
+      const whatsappInput = await screen.findByPlaceholderText(
+        '+55 (11) 99999-8888',
+      );
       fireEvent.change(whatsappInput, { target: { value: '5511999998888' } });
 
       await waitFor(() => {
-        expect(screen.queryByText(/Número fora do padrão/)).not.toBeInTheDocument();
+        expect(
+          screen.queryByText(/Número fora do padrão/),
+        ).not.toBeInTheDocument();
       });
     });
 
@@ -293,16 +311,26 @@ describe('PeoplePage', () => {
 
       const nameInput = await screen.findByPlaceholderText('Digite o nome');
       const whatsappInput = screen.getByPlaceholderText('+55 (11) 99999-8888');
-      const groupsInput = screen.getByPlaceholderText('Ex.: Grupo do WhatsApp, vizinho, família...');
-      const instagramInput = screen.getByPlaceholderText('https://instagram.com/usuario');
-      const addressInput = screen.getByPlaceholderText('Digite o endereço completo');
+      const groupsInput = screen.getByPlaceholderText(
+        'Ex.: Grupo do WhatsApp, vizinho, família...',
+      );
+      const instagramInput = screen.getByPlaceholderText(
+        'https://instagram.com/usuario',
+      );
+      const addressInput = screen.getByPlaceholderText(
+        'Digite o endereço completo',
+      );
 
       fireEvent.change(nameInput, { target: { value: 'Novo' } });
       fireEvent.change(groupsInput, { target: { value: 'Família' } });
       fireEvent.change(whatsappInput, { target: { value: '5511999998888' } });
-      fireEvent.change(instagramInput, { target: { value: 'https://instagram.com/novo' } });
+      fireEvent.change(instagramInput, {
+        target: { value: 'https://instagram.com/novo' },
+      });
       fireEvent.change(addressInput, { target: { value: 'Rua Nova, 1' } });
-      fireEvent.change(screen.getByLabelText('Grupo VIP'), { target: { value: 'true' } });
+      fireEvent.change(screen.getByLabelText('Grupo VIP'), {
+        target: { value: 'true' },
+      });
       fireEvent.click(screen.getByText('Salvar'));
 
       await waitFor(() => {
@@ -333,10 +361,18 @@ describe('PeoplePage', () => {
       await waitFor(() => {
         expect(screen.getByText('Editar Cliente')).toBeInTheDocument();
         expect(screen.getByDisplayValue('João Silva')).toBeInTheDocument();
-        expect(screen.getByDisplayValue('Grupo do WhatsApp')).toBeInTheDocument();
-        expect(screen.getByDisplayValue('+55 (11) 99999-8888')).toBeInTheDocument();
-        expect(screen.getByDisplayValue('https://instagram.com/joao')).toBeInTheDocument();
-        expect(screen.getByDisplayValue('Rua das Flores, 123')).toBeInTheDocument();
+        expect(
+          screen.getByDisplayValue('Grupo do WhatsApp'),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByDisplayValue('+55 (11) 99999-8888'),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByDisplayValue('https://instagram.com/joao'),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByDisplayValue('Rua das Flores, 123'),
+        ).toBeInTheDocument();
       });
     });
 
@@ -370,7 +406,9 @@ describe('PeoplePage', () => {
 
       const nameInput = await screen.findByDisplayValue('João Silva');
       fireEvent.change(nameInput, { target: { value: 'Updated' } });
-      fireEvent.change(screen.getByLabelText('Cadastrado/Membro doTERRA'), { target: { value: 'false' } });
+      fireEvent.change(screen.getByLabelText('Cadastrado/Membro doTERRA'), {
+        target: { value: 'false' },
+      });
 
       await waitFor(() => {
         expect(screen.getByText('Editar Cliente')).toBeInTheDocument();
@@ -435,7 +473,9 @@ describe('PeoplePage', () => {
       renderPage();
 
       await waitFor(() => {
-        expect(screen.getAllByTestId(/client-actions-.*-trigger/)).toHaveLength(2);
+        expect(screen.getAllByTestId(/client-actions-.*-trigger/)).toHaveLength(
+          2,
+        );
       });
     });
 
@@ -444,9 +484,13 @@ describe('PeoplePage', () => {
       renderPage();
 
       await waitFor(() => {
-        expect(screen.getByTestId('client-actions-1-trigger')).toBeInTheDocument();
+        expect(
+          screen.getByTestId('client-actions-1-trigger'),
+        ).toBeInTheDocument();
       });
-      expect(screen.queryByTestId('client-actions-1-menu')).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('client-actions-1-menu'),
+      ).not.toBeInTheDocument();
     });
 
     it('should show Editar and Excluir items when the trigger is clicked', async () => {
@@ -455,8 +499,12 @@ describe('PeoplePage', () => {
 
       await openClientActionsMenu('1');
 
-      expect(screen.getByTestId('client-actions-1-item-Editar')).toHaveTextContent('Editar');
-      expect(screen.getByTestId('client-actions-1-item-Excluir')).toHaveTextContent('Excluir');
+      expect(
+        screen.getByTestId('client-actions-1-item-Editar'),
+      ).toHaveTextContent('Editar');
+      expect(
+        screen.getByTestId('client-actions-1-item-Excluir'),
+      ).toHaveTextContent('Excluir');
     });
 
     it('should render the Excluir item with danger styling', async () => {
@@ -481,9 +529,16 @@ describe('PeoplePage', () => {
       await openClientActionsMenu('1');
 
       expect(trigger).toHaveAttribute('aria-expanded', 'true');
-      expect(screen.getByTestId('client-actions-1-menu')).toHaveAttribute('role', 'menu');
-      expect(screen.getByTestId('client-actions-1-item-Editar')).toHaveAttribute('role', 'menuitem');
-      expect(screen.getByTestId('client-actions-1-item-Excluir')).toHaveAttribute('role', 'menuitem');
+      expect(screen.getByTestId('client-actions-1-menu')).toHaveAttribute(
+        'role',
+        'menu',
+      );
+      expect(
+        screen.getByTestId('client-actions-1-item-Editar'),
+      ).toHaveAttribute('role', 'menuitem');
+      expect(
+        screen.getByTestId('client-actions-1-item-Excluir'),
+      ).toHaveAttribute('role', 'menuitem');
     });
 
     it('should close the menu when clicking the backdrop', async () => {
@@ -495,7 +550,9 @@ describe('PeoplePage', () => {
       fireEvent.click(screen.getByTestId('client-actions-1-backdrop'));
 
       await waitFor(() => {
-        expect(screen.queryByTestId('client-actions-1-menu')).not.toBeInTheDocument();
+        expect(
+          screen.queryByTestId('client-actions-1-menu'),
+        ).not.toBeInTheDocument();
       });
     });
 
@@ -508,7 +565,9 @@ describe('PeoplePage', () => {
       fireEvent.keyDown(document, { key: 'Escape' });
 
       await waitFor(() => {
-        expect(screen.queryByTestId('client-actions-1-menu')).not.toBeInTheDocument();
+        expect(
+          screen.queryByTestId('client-actions-1-menu'),
+        ).not.toBeInTheDocument();
       });
     });
   });

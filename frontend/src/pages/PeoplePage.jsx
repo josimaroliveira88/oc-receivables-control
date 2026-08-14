@@ -13,10 +13,13 @@ import {
 const fieldClass =
   'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors';
 
-const inputLabelClass = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
+const inputLabelClass =
+  'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
 
 const instagramHref = (value) =>
-  value.startsWith('http://') || value.startsWith('https://') ? value : `https://${value}`;
+  value.startsWith('http://') || value.startsWith('https://')
+    ? value
+    : `https://${value}`;
 
 const BoolBadge = ({ value }) => (
   <span
@@ -61,7 +64,8 @@ const WhatsappField = ({ value, onChange }) => {
         <div className="mt-2 flex items-start gap-2 p-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
           <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
           <p className="text-xs text-amber-700 dark:text-amber-300">
-            Número fora do padrão (código do país + DDD + número). Ex.: +55 (11) 99999-8888. Você pode salvar mesmo assim.
+            Número fora do padrão (código do país + DDD + número). Ex.: +55 (11)
+            99999-8888. Você pode salvar mesmo assim.
           </p>
         </div>
       )}
@@ -96,7 +100,10 @@ const PersonFormFields = ({ values, onChange }) => {
         />
       </div>
 
-      <WhatsappField value={values.whatsapp} onChange={(v) => onChange('whatsapp', v)} />
+      <WhatsappField
+        value={values.whatsapp}
+        onChange={(v) => onChange('whatsapp', v)}
+      />
 
       <div className="mb-4">
         <label className={inputLabelClass}>Instagram</label>
@@ -123,13 +130,25 @@ const PersonFormFields = ({ values, onChange }) => {
       </div>
 
       <div className="mb-4">
-        <label className={inputLabelClass} htmlFor="person-vip">Grupo VIP</label>
-        <SimNaoSelect id="person-vip" value={values.isVip} onChange={(v) => onChange('isVip', v)} />
+        <label className={inputLabelClass} htmlFor="person-vip">
+          Grupo VIP
+        </label>
+        <SimNaoSelect
+          id="person-vip"
+          value={values.isVip}
+          onChange={(v) => onChange('isVip', v)}
+        />
       </div>
 
       <div className="mb-4">
-        <label className={inputLabelClass} htmlFor="person-member">Cadastrado/Membro doTERRA</label>
-        <SimNaoSelect id="person-member" value={values.isDoterraMember} onChange={(v) => onChange('isDoterraMember', v)} />
+        <label className={inputLabelClass} htmlFor="person-member">
+          Cadastrado/Membro doTERRA
+        </label>
+        <SimNaoSelect
+          id="person-member"
+          value={values.isDoterraMember}
+          onChange={(v) => onChange('isDoterraMember', v)}
+        />
       </div>
     </>
   );
@@ -157,7 +176,9 @@ const PeoplePage = () => {
   const [editForm, setEditForm] = useState(emptyForm());
 
   const updateField = (form, field) => (value) =>
-    form === 'create' ? setCreateForm((f) => ({ ...f, [field]: value })) : setEditForm((f) => ({ ...f, [field]: value }));
+    form === 'create'
+      ? setCreateForm((f) => ({ ...f, [field]: value }))
+      : setEditForm((f) => ({ ...f, [field]: value }));
 
   const fetchPeople = async () => {
     try {
@@ -248,7 +269,9 @@ const PeoplePage = () => {
     return (
       <div className="flex items-center justify-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        <span className="ml-2 text-gray-500 dark:text-gray-400">Carregando...</span>
+        <span className="ml-2 text-gray-500 dark:text-gray-400">
+          Carregando...
+        </span>
       </div>
     );
   }
@@ -277,35 +300,61 @@ const PeoplePage = () => {
 
           {people.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-500 dark:text-gray-400">Nenhum cliente cadastrado</p>
+              <p className="text-gray-500 dark:text-gray-400">
+                Nenhum cliente cadastrado
+              </p>
             </div>
           ) : (
             <div>
               <table className="w-full text-sm text-left block lg:table lg:table-fixed">
                 <thead className="hidden lg:table-header-group bg-gray-50 dark:bg-gray-700">
                   <tr>
-                    <th scope="col" className="w-[16%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      className="w-[16%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                    >
                       Nome
                     </th>
-                    <th scope="col" className="w-[12%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      className="w-[12%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                    >
                       Grupos em Comum
                     </th>
-                    <th scope="col" className="w-[15%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      className="w-[15%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                    >
                       WhatsApp
                     </th>
-                    <th scope="col" className="w-[10%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      className="w-[10%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                    >
                       Instagram
                     </th>
-                    <th scope="col" className="w-[15%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      className="w-[15%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                    >
                       Endereço
                     </th>
-                    <th scope="col" className="w-[6%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      className="w-[6%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                    >
                       VIP
                     </th>
-                    <th scope="col" className="w-[8%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      className="w-[8%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                    >
                       Membro doTERRA
                     </th>
-                    <th scope="col" className="w-[18%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      className="w-[18%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                    >
                       Ações
                     </th>
                   </tr>
@@ -314,14 +363,26 @@ const PeoplePage = () => {
                   {people.map((person) => {
                     const waLink = whatsAppLink(person.whatsapp);
                     return (
-                      <tr key={person.id} className="block lg:table-row border border-gray-200 dark:border-gray-700 lg:border-0 rounded-lg lg:rounded-none shadow-sm lg:shadow-none mb-3 lg:mb-0 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                        <td data-label="Nome" className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 break-words text-sm text-gray-900 dark:text-gray-100 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden">
+                      <tr
+                        key={person.id}
+                        className="block lg:table-row border border-gray-200 dark:border-gray-700 lg:border-0 rounded-lg lg:rounded-none shadow-sm lg:shadow-none mb-3 lg:mb-0 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <td
+                          data-label="Nome"
+                          className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 break-words text-sm text-gray-900 dark:text-gray-100 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                        >
                           {person.name}
                         </td>
-                        <td data-label="Grupos em Comum" className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 break-words text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden">
+                        <td
+                          data-label="Grupos em Comum"
+                          className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 break-words text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                        >
                           {person.commonGroups || '-'}
                         </td>
-                        <td data-label="WhatsApp" className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden">
+                        <td
+                          data-label="WhatsApp"
+                          className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                        >
                           {waLink ? (
                             <a
                               href={waLink}
@@ -336,7 +397,10 @@ const PeoplePage = () => {
                             person.whatsapp || '-'
                           )}
                         </td>
-                        <td data-label="Instagram" className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 break-words text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden">
+                        <td
+                          data-label="Instagram"
+                          className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 break-words text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                        >
                           {person.instagram ? (
                             <a
                               href={instagramHref(person.instagram)}
@@ -351,21 +415,42 @@ const PeoplePage = () => {
                             '-'
                           )}
                         </td>
-                        <td data-label="Endereço" className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 break-words text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden">
+                        <td
+                          data-label="Endereço"
+                          className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 break-words text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                        >
                           {person.address || '-'}
                         </td>
-                        <td data-label="VIP" className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden">
+                        <td
+                          data-label="VIP"
+                          className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                        >
                           <BoolBadge value={person.isVip} />
                         </td>
-                        <td data-label="Membro doTERRA" className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden">
+                        <td
+                          data-label="Membro doTERRA"
+                          className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                        >
                           <BoolBadge value={person.isDoterraMember} />
                         </td>
-                        <td data-label="Ações" className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 text-left lg:text-right text-sm font-medium before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden relative">
+                        <td
+                          data-label="Ações"
+                          className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 text-left lg:text-right text-sm font-medium before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden relative"
+                        >
                           <div className="flex justify-end">
                             <ActionMenu
                               actions={[
-                                { label: 'Editar', icon: Pencil, onClick: () => openEditModal(person) },
-                                { label: 'Excluir', icon: Trash, onClick: () => handleDeletePerson(person.id), variant: 'danger' },
+                                {
+                                  label: 'Editar',
+                                  icon: Pencil,
+                                  onClick: () => openEditModal(person),
+                                },
+                                {
+                                  label: 'Excluir',
+                                  icon: Trash,
+                                  onClick: () => handleDeletePerson(person.id),
+                                  variant: 'danger',
+                                },
                               ]}
                               ariaLabel="Ações do cliente"
                               testIdPrefix={`client-actions-${person.id}`}
@@ -386,16 +471,33 @@ const PeoplePage = () => {
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Novo Cliente</h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-2xl leading-none">&times;</button>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                Novo Cliente
+              </h3>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-2xl leading-none"
+              >
+                &times;
+              </button>
             </div>
             <form onSubmit={handleCreatePerson} className="px-6 py-4">
-              <PersonFormFields values={createForm} onChange={(field, value) => updateField('create', field)(value)} />
+              <PersonFormFields
+                values={createForm}
+                onChange={(field, value) => updateField('create', field)(value)}
+              />
               <div className="flex items-center justify-end space-x-3">
-                <button type="button" onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
+                >
                   Fechar
                 </button>
-                <button type="submit" className="px-4 py-2 bg-gradient-to-r from-primary-700 to-primary-500 hover:from-primary-800 hover:to-primary-600 text-white font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-gradient-to-r from-primary-700 to-primary-500 hover:from-primary-800 hover:to-primary-600 text-white font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                >
                   Salvar
                 </button>
               </div>
@@ -408,21 +510,41 @@ const PeoplePage = () => {
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Editar Cliente</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                Editar Cliente
+              </h3>
               <button
-                onClick={() => { setShowEditModal(false); setEditPersonId(null); setEditForm(emptyForm()); }}
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditPersonId(null);
+                  setEditForm(emptyForm());
+                }}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-2xl leading-none"
-              >&times;</button>
+              >
+                &times;
+              </button>
             </div>
             <form onSubmit={handleUpdatePerson} className="px-6 py-4">
-              <PersonFormFields values={editForm} onChange={(field, value) => updateField('edit', field)(value)} />
+              <PersonFormFields
+                values={editForm}
+                onChange={(field, value) => updateField('edit', field)(value)}
+              />
               <div className="flex items-center justify-end space-x-3">
                 <button
                   type="button"
-                  onClick={() => { setShowEditModal(false); setEditPersonId(null); setEditForm(emptyForm()); }}
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditPersonId(null);
+                    setEditForm(emptyForm());
+                  }}
                   className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
-                >Fechar</button>
-                <button type="submit" className="px-4 py-2 bg-gradient-to-r from-primary-700 to-primary-500 hover:from-primary-800 hover:to-primary-600 text-white font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                >
+                  Fechar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-gradient-to-r from-primary-700 to-primary-500 hover:from-primary-800 hover:to-primary-600 text-white font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                >
                   Salvar
                 </button>
               </div>

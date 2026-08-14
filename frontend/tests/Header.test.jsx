@@ -20,7 +20,7 @@ const renderHeader = (initialEntries = ['/']) => {
   return render(
     <MemoryRouter initialEntries={initialEntries}>
       <Header />
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 };
 

@@ -1,4 +1,10 @@
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ReceivablesPage from '../src/pages/ReceivablesPage';
@@ -82,9 +88,30 @@ const richOrder = {
   totalValue: '234.56',
   status: 'PARCIAL',
   items: [
-    { id: 'item-1', personId: 'p1', description: 'Lemongrass Óleo Essencial 15ml', details: 'Uso doméstico', chargedValue: '89.00', pv: '10.00' },
-    { id: 'item-2', personId: 'p1', description: 'On Guard + 30ml', details: null, chargedValue: '145.56', pv: '20.00' },
-    { id: 'item-3', personId: 'p2', description: 'Deep Blue Rub', details: 'Para o cliente X', chargedValue: '50.00', pv: '5.00' },
+    {
+      id: 'item-1',
+      personId: 'p1',
+      description: 'Lemongrass Óleo Essencial 15ml',
+      details: 'Uso doméstico',
+      chargedValue: '89.00',
+      pv: '10.00',
+    },
+    {
+      id: 'item-2',
+      personId: 'p1',
+      description: 'On Guard + 30ml',
+      details: null,
+      chargedValue: '145.56',
+      pv: '20.00',
+    },
+    {
+      id: 'item-3',
+      personId: 'p2',
+      description: 'Deep Blue Rub',
+      details: 'Para o cliente X',
+      chargedValue: '50.00',
+      pv: '5.00',
+    },
   ],
   payments: [],
 };
@@ -127,48 +154,122 @@ const detailRichOrder = {
     },
   ],
   payments: [
-    { id: 'detail-payment-1', personId: 'p1', person: { name: 'João Silva' }, amount: '100.00', paidAt: '2026-08-06T12:00:00.000Z', notes: 'Pix recebido' },
-    { id: 'detail-payment-2', personId: 'p2', person: { name: 'Maria Santos' }, amount: '50.00', paidAt: '2026-08-07T12:00:00.000Z', notes: null },
+    {
+      id: 'detail-payment-1',
+      personId: 'p1',
+      person: { name: 'João Silva' },
+      amount: '100.00',
+      paidAt: '2026-08-06T12:00:00.000Z',
+      notes: 'Pix recebido',
+    },
+    {
+      id: 'detail-payment-2',
+      personId: 'p2',
+      person: { name: 'Maria Santos' },
+      amount: '50.00',
+      paidAt: '2026-08-07T12:00:00.000Z',
+      notes: null,
+    },
   ],
 };
 
 const mockBalances = {
   'order-1': {
     balances: [
-      { personId: 'p1', personName: 'João Silva', itemTotal: '300.00', paymentTotal: '0.00', pending: '300.00' },
+      {
+        personId: 'p1',
+        personName: 'João Silva',
+        itemTotal: '300.00',
+        paymentTotal: '0.00',
+        pending: '300.00',
+      },
     ],
   },
   'order-2': {
     balances: [
-      { personId: 'p1', personName: 'João Silva', itemTotal: '200.00', paymentTotal: '50.00', pending: '150.00' },
-      { personId: 'p2', personName: 'Maria Santos', itemTotal: '300.00', paymentTotal: '300.00', pending: '0.00' },
+      {
+        personId: 'p1',
+        personName: 'João Silva',
+        itemTotal: '200.00',
+        paymentTotal: '50.00',
+        pending: '150.00',
+      },
+      {
+        personId: 'p2',
+        personName: 'Maria Santos',
+        itemTotal: '300.00',
+        paymentTotal: '300.00',
+        pending: '0.00',
+      },
     ],
   },
   'order-4': {
     balances: [
-      { personId: 'p4', personName: 'Brinde Person', itemTotal: '0.00', paymentTotal: '0.00', pending: '0.00' },
+      {
+        personId: 'p4',
+        personName: 'Brinde Person',
+        itemTotal: '0.00',
+        paymentTotal: '0.00',
+        pending: '0.00',
+      },
     ],
   },
   'order-paid': {
     balances: [
-      { personId: 'p1', personName: 'João Silva', itemTotal: '100.00', paymentTotal: '100.00', pending: '0.00' },
+      {
+        personId: 'p1',
+        personName: 'João Silva',
+        itemTotal: '100.00',
+        paymentTotal: '100.00',
+        pending: '0.00',
+      },
     ],
   },
   'order-overpaid': {
     balances: [
-      { personId: 'p1', personName: 'João Silva', itemTotal: '100.00', paymentTotal: '150.00', pending: '0.00' },
+      {
+        personId: 'p1',
+        personName: 'João Silva',
+        itemTotal: '100.00',
+        paymentTotal: '150.00',
+        pending: '0.00',
+      },
     ],
   },
   'order-rich': {
     balances: [
-      { personId: 'p1', personName: 'João Silva', itemTotal: '234.56', paymentTotal: '0.00', pending: '234.56' },
-      { personId: 'p2', personName: 'Maria Santos', itemTotal: '50.00', paymentTotal: '0.00', pending: '50.00' },
+      {
+        personId: 'p1',
+        personName: 'João Silva',
+        itemTotal: '234.56',
+        paymentTotal: '0.00',
+        pending: '234.56',
+      },
+      {
+        personId: 'p2',
+        personName: 'Maria Santos',
+        itemTotal: '50.00',
+        paymentTotal: '0.00',
+        pending: '50.00',
+      },
     ],
   },
   'order-detail-rich': {
     balances: [
-      { personId: 'p1', personName: 'João Silva', itemTotal: '234.56', paymentTotal: '100.00', pending: '134.56' },
-      { personId: 'p2', personName: 'Maria Santos', itemTotal: '50.00', paymentTotal: '50.00', pending: '0.00' },
+      {
+        personId: 'p1',
+        personName: 'João Silva',
+        itemTotal: '234.56',
+        paymentTotal: '100.00',
+        pending: '134.56',
+      },
+      {
+        personId: 'p2',
+        personName: 'Maria Santos',
+        itemTotal: '50.00',
+        paymentTotal: '50.00',
+        pending: '0.00',
+      },
     ],
   },
 };
@@ -192,20 +293,26 @@ const renderPage = () => {
       <ToastProvider>
         <ReceivablesPage />
       </ToastProvider>
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 };
 
 const openPaymentAction = async (orderId, label = 'Registrar Pagamento') => {
   await waitFor(() => {
-    expect(screen.getByTestId(`receivable-actions-${orderId}-trigger`)).toBeInTheDocument();
+    expect(
+      screen.getByTestId(`receivable-actions-${orderId}-trigger`),
+    ).toBeInTheDocument();
   });
   fireEvent.click(screen.getByTestId(`receivable-actions-${orderId}-trigger`));
   await waitFor(() => {
-    expect(screen.getByTestId(`receivable-actions-${orderId}-menu`)).toBeInTheDocument();
+    expect(
+      screen.getByTestId(`receivable-actions-${orderId}-menu`),
+    ).toBeInTheDocument();
   });
   const itemId = label === 'Dar baixa' ? 'Dar-baixa' : 'Registrar-Pagamento';
-  fireEvent.click(screen.getByTestId(`receivable-actions-${orderId}-item-${itemId}`));
+  fireEvent.click(
+    screen.getByTestId(`receivable-actions-${orderId}-item-${itemId}`),
+  );
   await waitFor(() => {
     expect(screen.getByTestId('payment-modal')).toBeInTheDocument();
   });
@@ -235,7 +342,9 @@ describe('ReceivablesPage', () => {
       mockGetImplementation([]);
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('Nenhum pedido cadastrado')).toBeInTheDocument();
+        expect(
+          screen.getByText('Nenhum pedido cadastrado'),
+        ).toBeInTheDocument();
       });
     });
 
@@ -243,7 +352,9 @@ describe('ReceivablesPage', () => {
       mockGet.mockRejectedValue(new Error('Network error'));
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('Erro ao carregar pedidos. Tente novamente.')).toBeInTheDocument();
+        expect(
+          screen.getByText('Erro ao carregar pedidos. Tente novamente.'),
+        ).toBeInTheDocument();
       });
     });
   });
@@ -279,11 +390,19 @@ describe('ReceivablesPage', () => {
       mockGetImplementation([mockOrders[0], mockOrders[1]]);
       renderPage();
       await waitFor(() => {
-        expect(screen.getAllByTestId(/^receivable-actions-.*-trigger$/)).toHaveLength(2);
+        expect(
+          screen.getAllByTestId(/^receivable-actions-.*-trigger$/),
+        ).toHaveLength(2);
       });
       fireEvent.click(screen.getByTestId('receivable-actions-order-1-trigger'));
-      expect(screen.getByTestId('receivable-actions-order-1-item-Registrar-Pagamento')).toHaveTextContent('Registrar Pagamento');
-      expect(screen.getByTestId('receivable-actions-order-1-item-Detalhar')).toBeInTheDocument();
+      expect(
+        screen.getByTestId(
+          'receivable-actions-order-1-item-Registrar-Pagamento',
+        ),
+      ).toHaveTextContent('Registrar Pagamento');
+      expect(
+        screen.getByTestId('receivable-actions-order-1-item-Detalhar'),
+      ).toBeInTheDocument();
     });
 
     it('should show only the kebab trigger (no "Pago" text, no payment button) for QUITADO orders', async () => {
@@ -294,20 +413,29 @@ describe('ReceivablesPage', () => {
       });
       expect(screen.queryByText('Pago')).not.toBeInTheDocument();
       expect(screen.queryByText('Registrar Pagamento')).not.toBeInTheDocument();
-      expect(screen.getByTestId('receivable-actions-order-3-trigger')).toBeInTheDocument();
+      expect(
+        screen.getByTestId('receivable-actions-order-3-trigger'),
+      ).toBeInTheDocument();
     });
   });
 
   describe('Action Menu (kebab)', () => {
-    const rowForOrder = (orderNumber) => screen.getByText(orderNumber).closest('tr');
+    const rowForOrder = (orderNumber) =>
+      screen.getByText(orderNumber).closest('tr');
 
     const openReceivableMenu = async (orderId) => {
       await waitFor(() => {
-        expect(screen.getByTestId(`receivable-actions-${orderId}-trigger`)).toBeInTheDocument();
+        expect(
+          screen.getByTestId(`receivable-actions-${orderId}-trigger`),
+        ).toBeInTheDocument();
       });
-      fireEvent.click(screen.getByTestId(`receivable-actions-${orderId}-trigger`));
+      fireEvent.click(
+        screen.getByTestId(`receivable-actions-${orderId}-trigger`),
+      );
       await waitFor(() => {
-        expect(screen.getByTestId(`receivable-actions-${orderId}-menu`)).toBeInTheDocument();
+        expect(
+          screen.getByTestId(`receivable-actions-${orderId}-menu`),
+        ).toBeInTheDocument();
       });
     };
 
@@ -315,7 +443,9 @@ describe('ReceivablesPage', () => {
       mockGetImplementation(mockOrders);
       renderPage();
       await waitFor(() => {
-        expect(screen.getAllByTestId(/^receivable-actions-.*-trigger$/)).toHaveLength(4);
+        expect(
+          screen.getAllByTestId(/^receivable-actions-.*-trigger$/),
+        ).toHaveLength(4);
       });
     });
 
@@ -323,11 +453,19 @@ describe('ReceivablesPage', () => {
       mockGetImplementation([mockOrders[0], mockOrders[1]]);
       renderPage();
       await waitFor(() => {
-        expect(screen.getByTestId('receivable-actions-order-1-trigger')).toBeInTheDocument();
+        expect(
+          screen.getByTestId('receivable-actions-order-1-trigger'),
+        ).toBeInTheDocument();
       });
       fireEvent.click(screen.getByTestId('receivable-actions-order-1-trigger'));
-      expect(screen.getByTestId('receivable-actions-order-1-item-Registrar-Pagamento')).toHaveClass('bg-primary-600');
-      expect(screen.getByTestId('receivable-actions-order-1-item-Detalhar')).toBeInTheDocument();
+      expect(
+        screen.getByTestId(
+          'receivable-actions-order-1-item-Registrar-Pagamento',
+        ),
+      ).toHaveClass('bg-primary-600');
+      expect(
+        screen.getByTestId('receivable-actions-order-1-item-Detalhar'),
+      ).toBeInTheDocument();
     });
 
     it('should show "Dar baixa" inside the dropdown for zero-value orders still pending settlement', async () => {
@@ -337,9 +475,17 @@ describe('ReceivablesPage', () => {
         expect(screen.getByText('ORD-004')).toBeInTheDocument();
       });
       fireEvent.click(screen.getByTestId('receivable-actions-order-4-trigger'));
-      expect(screen.getByTestId('receivable-actions-order-4-item-Dar-baixa')).toBeInTheDocument();
-      expect(screen.getByTestId('receivable-actions-order-4-item-Detalhar')).toBeInTheDocument();
-      expect(screen.queryByTestId('receivable-actions-order-4-item-Registrar-Pagamento')).not.toBeInTheDocument();
+      expect(
+        screen.getByTestId('receivable-actions-order-4-item-Dar-baixa'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId('receivable-actions-order-4-item-Detalhar'),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId(
+          'receivable-actions-order-4-item-Registrar-Pagamento',
+        ),
+      ).not.toBeInTheDocument();
     });
 
     it('should treat fully paid PARCIAL orders as quitado (kebab only)', async () => {
@@ -349,7 +495,9 @@ describe('ReceivablesPage', () => {
         expect(screen.getByText('ORD-PAID')).toBeInTheDocument();
       });
       expect(screen.queryByText('Registrar Pagamento')).not.toBeInTheDocument();
-      expect(screen.getByTestId('receivable-actions-order-paid-trigger')).toBeInTheDocument();
+      expect(
+        screen.getByTestId('receivable-actions-order-paid-trigger'),
+      ).toBeInTheDocument();
     });
 
     it('should keep the menu hidden until the trigger is clicked', async () => {
@@ -358,7 +506,9 @@ describe('ReceivablesPage', () => {
       await waitFor(() => {
         expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
-      expect(screen.queryByTestId('receivable-actions-order-1-menu')).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('receivable-actions-order-1-menu'),
+      ).not.toBeInTheDocument();
     });
 
     it('should show "Detalhar" when the kebab is opened for a pending order', async () => {
@@ -378,9 +528,17 @@ describe('ReceivablesPage', () => {
         expect(screen.getByText('ORD-DETAIL')).toBeInTheDocument();
       });
       await openReceivableMenu('order-detail-rich');
-      fireEvent.click(screen.getByTestId('receivable-actions-order-detail-rich-item-Detalhar'));
-      await waitFor(() => expect(screen.getByTestId('details-modal')).toBeInTheDocument());
-      expect(screen.queryByTestId('receivable-actions-order-detail-rich-menu')).not.toBeInTheDocument();
+      fireEvent.click(
+        screen.getByTestId(
+          'receivable-actions-order-detail-rich-item-Detalhar',
+        ),
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId('details-modal')).toBeInTheDocument(),
+      );
+      expect(
+        screen.queryByTestId('receivable-actions-order-detail-rich-menu'),
+      ).not.toBeInTheDocument();
     });
 
     it('should set a11y semantics on trigger and menu', async () => {
@@ -410,9 +568,13 @@ describe('ReceivablesPage', () => {
         expect(screen.getByText('ORD-003')).toBeInTheDocument();
       });
       await openReceivableMenu('order-3');
-      fireEvent.click(screen.getByTestId('receivable-actions-order-3-backdrop'));
+      fireEvent.click(
+        screen.getByTestId('receivable-actions-order-3-backdrop'),
+      );
       await waitFor(() => {
-        expect(screen.queryByTestId('receivable-actions-order-3-menu')).not.toBeInTheDocument();
+        expect(
+          screen.queryByTestId('receivable-actions-order-3-menu'),
+        ).not.toBeInTheDocument();
       });
     });
 
@@ -425,7 +587,9 @@ describe('ReceivablesPage', () => {
       await openReceivableMenu('order-3');
       fireEvent.keyDown(document, { key: 'Escape' });
       await waitFor(() => {
-        expect(screen.queryByTestId('receivable-actions-order-3-menu')).not.toBeInTheDocument();
+        expect(
+          screen.queryByTestId('receivable-actions-order-3-menu'),
+        ).not.toBeInTheDocument();
       });
     });
 
@@ -435,7 +599,9 @@ describe('ReceivablesPage', () => {
       await waitFor(() => {
         expect(screen.getByText('ORD-003')).toBeInTheDocument();
       });
-      const pendingCell = rowForOrder('ORD-003').querySelector('td[data-label="Valor Pendente"]');
+      const pendingCell = rowForOrder('ORD-003').querySelector(
+        'td[data-label="Valor Pendente"]',
+      );
       expect(pendingCell).toHaveClass('text-gray-400');
       expect(pendingCell).toHaveClass('dark:text-gray-500');
     });
@@ -446,7 +612,9 @@ describe('ReceivablesPage', () => {
       await waitFor(() => {
         expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
-      const pendingCell = rowForOrder('ORD-001').querySelector('td[data-label="Valor Pendente"]');
+      const pendingCell = rowForOrder('ORD-001').querySelector(
+        'td[data-label="Valor Pendente"]',
+      );
       expect(pendingCell).toHaveClass('text-gray-900');
       expect(pendingCell).toHaveClass('dark:text-gray-100');
     });
@@ -463,7 +631,9 @@ describe('ReceivablesPage', () => {
         expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
 
-      expect(within(rowFor('ORD-001')).getByText('01/08/2026')).toBeInTheDocument();
+      expect(
+        within(rowFor('ORD-001')).getByText('01/08/2026'),
+      ).toBeInTheDocument();
     });
 
     it('should render responsible owner', async () => {
@@ -474,7 +644,9 @@ describe('ReceivablesPage', () => {
         expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
 
-      expect(within(rowFor('ORD-001')).getByText('Ana Silva')).toBeInTheDocument();
+      expect(
+        within(rowFor('ORD-001')).getByText('Ana Silva'),
+      ).toBeInTheDocument();
     });
 
     it('should render a dash when responsible owner is absent', async () => {
@@ -508,7 +680,9 @@ describe('ReceivablesPage', () => {
         expect(screen.getByText('ORD-002')).toBeInTheDocument();
       });
 
-      expect(within(rowFor('ORD-002')).getByText(/R\$\s*450,00/)).toBeInTheDocument();
+      expect(
+        within(rowFor('ORD-002')).getByText(/R\$\s*450,00/),
+      ).toBeInTheDocument();
     });
 
     it('should clamp pending value to R$ 0,00 on overpayment', async () => {
@@ -519,7 +693,9 @@ describe('ReceivablesPage', () => {
         expect(screen.getByText('ORD-003')).toBeInTheDocument();
       });
 
-      expect(within(rowFor('ORD-003')).getByText(/R\$\s*0,00/)).toBeInTheDocument();
+      expect(
+        within(rowFor('ORD-003')).getByText(/R\$\s*0,00/),
+      ).toBeInTheDocument();
     });
 
     it('should render PV Total as the sum of item pv', async () => {
@@ -565,7 +741,9 @@ describe('ReceivablesPage', () => {
 
       await waitFor(() => {
         expect(mockGet).toHaveBeenCalledWith('/orders/order-1/balance');
-        expect(screen.getByText(/Registrar Pagamento — ORD-001/)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Registrar Pagamento — ORD-001/),
+        ).toBeInTheDocument();
       });
     });
 
@@ -575,7 +753,9 @@ describe('ReceivablesPage', () => {
       await openPaymentAction('order-2');
 
       await waitFor(() => {
-        expect(screen.getByText(/João Silva — Pendente: R\$\s*150,00/)).toBeInTheDocument();
+        expect(
+          screen.getByText(/João Silva — Pendente: R\$\s*150,00/),
+        ).toBeInTheDocument();
       });
     });
 
@@ -595,11 +775,17 @@ describe('ReceivablesPage', () => {
       await openPaymentAction('order-4', 'Dar baixa');
 
       await waitFor(() => {
-        expect(screen.getByText(/Registrar Pagamento — ORD-004/)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Registrar Pagamento — ORD-004/),
+        ).toBeInTheDocument();
       });
 
-      expect(screen.queryByText('Nenhuma pessoa neste pedido')).not.toBeInTheDocument();
-      expect(screen.getByText(/Brinde Person — Nada a receber/)).toBeInTheDocument();
+      expect(
+        screen.queryByText('Nenhuma pessoa neste pedido'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByText(/Brinde Person — Nada a receber/),
+      ).toBeInTheDocument();
     });
 
     it('should show "Dar baixa" button and submit a zero payment for a zero-balance person', async () => {
@@ -608,10 +794,14 @@ describe('ReceivablesPage', () => {
       await openPaymentAction('order-4', 'Dar baixa');
 
       await waitFor(() => {
-        expect(screen.getByText(/Registrar Pagamento — ORD-004/)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Registrar Pagamento — ORD-004/),
+        ).toBeInTheDocument();
       });
 
-      expect(screen.getByText(/Nada a receber — baixa sem valor/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Nada a receber — baixa sem valor/),
+      ).toBeInTheDocument();
       expect(screen.getByText('Dar baixa')).toBeInTheDocument();
 
       const amountInput = screen.getByPlaceholderText('0.00');
@@ -634,13 +824,17 @@ describe('ReceivablesPage', () => {
       await openPaymentAction('order-1');
 
       await waitFor(() => {
-        expect(screen.getByText(/Registrar Pagamento — ORD-001/)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Registrar Pagamento — ORD-001/),
+        ).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByText('Cancelar'));
 
       await waitFor(() => {
-        expect(screen.queryByText(/Registrar Pagamento — ORD-001/)).not.toBeInTheDocument();
+        expect(
+          screen.queryByText(/Registrar Pagamento — ORD-001/),
+        ).not.toBeInTheDocument();
       });
     });
 
@@ -650,14 +844,21 @@ describe('ReceivablesPage', () => {
       await openPaymentAction('order-1');
 
       await waitFor(() => {
-        expect(screen.getByText(/Registrar Pagamento — ORD-001/)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Registrar Pagamento — ORD-001/),
+        ).toBeInTheDocument();
       });
 
-      const closeButton = screen.getByText(/Registrar Pagamento — ORD-001/).closest('div').querySelector('button');
+      const closeButton = screen
+        .getByText(/Registrar Pagamento — ORD-001/)
+        .closest('div')
+        .querySelector('button');
       fireEvent.click(closeButton);
 
       await waitFor(() => {
-        expect(screen.queryByText(/Registrar Pagamento — ORD-001/)).not.toBeInTheDocument();
+        expect(
+          screen.queryByText(/Registrar Pagamento — ORD-001/),
+        ).not.toBeInTheDocument();
       });
     });
   });
@@ -666,7 +867,10 @@ describe('ReceivablesPage', () => {
     const openModalFor = async (order) => {
       mockGetImplementation([order]);
       renderPage();
-      await openPaymentAction(order.id, order.totalValue === '0.00' ? 'Dar baixa' : 'Registrar Pagamento');
+      await openPaymentAction(
+        order.id,
+        order.totalValue === '0.00' ? 'Dar baixa' : 'Registrar Pagamento',
+      );
 
       return within(screen.getByTestId('payment-modal'));
     };
@@ -688,21 +892,31 @@ describe('ReceivablesPage', () => {
       expect(modal.getByText('ORD-001')).toBeInTheDocument();
       expect(modal.getByText('01/08/2026')).toBeInTheDocument();
       expect(modal.getByText('Ana Silva')).toBeInTheDocument();
-      expect(modal.getByTestId('order-summary-description')).toHaveTextContent('Pedido de teste');
+      expect(modal.getByTestId('order-summary-description')).toHaveTextContent(
+        'Pedido de teste',
+      );
     });
 
     it('should show pending equal to total when there are no payments', async () => {
       const modal = await openModalFor(mockOrders[0]);
 
-      expect(modal.getByTestId('order-summary-total')).toHaveTextContent(/R\$\s*300,00/);
-      expect(modal.getByTestId('order-summary-pending')).toHaveTextContent(/R\$\s*300,00/);
+      expect(modal.getByTestId('order-summary-total')).toHaveTextContent(
+        /R\$\s*300,00/,
+      );
+      expect(modal.getByTestId('order-summary-pending')).toHaveTextContent(
+        /R\$\s*300,00/,
+      );
     });
 
     it('should show pending R$ 0,00 for a zero-value order', async () => {
       const modal = await openModalFor(mockOrders[3]);
 
-      expect(modal.getByTestId('order-summary-total')).toHaveTextContent(/R\$\s*0,00/);
-      expect(modal.getByTestId('order-summary-pending')).toHaveTextContent(/R\$\s*0,00/);
+      expect(modal.getByTestId('order-summary-total')).toHaveTextContent(
+        /R\$\s*0,00/,
+      );
+      expect(modal.getByTestId('order-summary-pending')).toHaveTextContent(
+        /R\$\s*0,00/,
+      );
     });
 
     it('should set the title attribute on the description for tooltip', async () => {
@@ -734,7 +948,9 @@ describe('ReceivablesPage', () => {
       const modal = await openRichOrderModal();
 
       expect(modal.getByText('Itens desta pessoa')).toBeInTheDocument();
-      expect(modal.getByText('Lemongrass Óleo Essencial 15ml')).toBeInTheDocument();
+      expect(
+        modal.getByText('Lemongrass Óleo Essencial 15ml'),
+      ).toBeInTheDocument();
       expect(modal.getByText(/R\$\s*89,00/)).toBeInTheDocument();
       expect(modal.getByText(/Uso doméstico/)).toBeInTheDocument();
       expect(modal.getByText('On Guard + 30ml')).toBeInTheDocument();
@@ -757,13 +973,17 @@ describe('ReceivablesPage', () => {
     it('should show only the selected person items when changing the person', async () => {
       const modal = await openRichOrderModal();
 
-      fireEvent.change(modal.getByRole('combobox'), { target: { value: 'p2' } });
+      fireEvent.change(modal.getByRole('combobox'), {
+        target: { value: 'p2' },
+      });
 
       await waitFor(() => {
         expect(modal.getByText('Deep Blue Rub')).toBeInTheDocument();
       });
 
-      expect(modal.queryByText('Lemongrass Óleo Essencial 15ml')).not.toBeInTheDocument();
+      expect(
+        modal.queryByText('Lemongrass Óleo Essencial 15ml'),
+      ).not.toBeInTheDocument();
       expect(modal.queryByText('On Guard + 30ml')).not.toBeInTheDocument();
     });
   });
@@ -772,10 +992,20 @@ describe('ReceivablesPage', () => {
     const openDetailsModal = async () => {
       mockGetImplementation([detailRichOrder]);
       renderPage();
-      await waitFor(() => expect(screen.getByText('ORD-DETAIL')).toBeInTheDocument());
-      fireEvent.click(screen.getByTestId('receivable-actions-order-detail-rich-trigger'));
-      fireEvent.click(screen.getByTestId('receivable-actions-order-detail-rich-item-Detalhar'));
-      await waitFor(() => expect(screen.getByTestId('details-modal')).toBeInTheDocument());
+      await waitFor(() =>
+        expect(screen.getByText('ORD-DETAIL')).toBeInTheDocument(),
+      );
+      fireEvent.click(
+        screen.getByTestId('receivable-actions-order-detail-rich-trigger'),
+      );
+      fireEvent.click(
+        screen.getByTestId(
+          'receivable-actions-order-detail-rich-item-Detalhar',
+        ),
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId('details-modal')).toBeInTheDocument(),
+      );
       return within(screen.getByTestId('details-modal'));
     };
 
@@ -790,19 +1020,35 @@ describe('ReceivablesPage', () => {
       expect(modal.getByText('Valor Total')).toBeInTheDocument();
       expect(modal.getByText('Valor Pendente')).toBeInTheDocument();
       expect(modal.getByText('Descrição')).toBeInTheDocument();
-      expect(modal.getByTestId('details-summary-total')).toHaveTextContent(/R\$\s*234,56/);
-      expect(modal.getByTestId('details-summary-pending')).toHaveTextContent(/R\$\s*84,56/);
-      expect(modal.getByTestId('details-summary-description')).toHaveTextContent('Detalhes do pedido');
+      expect(modal.getByTestId('details-summary-total')).toHaveTextContent(
+        /R\$\s*234,56/,
+      );
+      expect(modal.getByTestId('details-summary-pending')).toHaveTextContent(
+        /R\$\s*84,56/,
+      );
+      expect(
+        modal.getByTestId('details-summary-description'),
+      ).toHaveTextContent('Detalhes do pedido');
     });
 
     it('should render one person row with total and pending values', async () => {
       const modal = await openDetailsModal();
 
-      expect(modal.getByTestId('detail-person-p1')).toHaveTextContent('João Silva');
-      expect(modal.getByTestId('detail-person-p1')).toHaveTextContent(/R\$\s*234,56/);
-      expect(modal.getByTestId('detail-person-p1')).toHaveTextContent(/R\$\s*134,56/);
-      expect(modal.getByTestId('detail-person-p2')).toHaveTextContent('Maria Santos');
-      expect(modal.getByTestId('detail-person-p2')).toHaveTextContent(/R\$\s*50,00/);
+      expect(modal.getByTestId('detail-person-p1')).toHaveTextContent(
+        'João Silva',
+      );
+      expect(modal.getByTestId('detail-person-p1')).toHaveTextContent(
+        /R\$\s*234,56/,
+      );
+      expect(modal.getByTestId('detail-person-p1')).toHaveTextContent(
+        /R\$\s*134,56/,
+      );
+      expect(modal.getByTestId('detail-person-p2')).toHaveTextContent(
+        'Maria Santos',
+      );
+      expect(modal.getByTestId('detail-person-p2')).toHaveTextContent(
+        /R\$\s*50,00/,
+      );
     });
 
     it('should show the selected person items and payments in the lower panel', async () => {
@@ -812,7 +1058,9 @@ describe('ReceivablesPage', () => {
       fireEvent.click(modal.getByTestId('detail-person-p1'));
 
       expect(modal.getByTestId('detail-panel-p1')).toBeInTheDocument();
-      expect(modal.getByText('Lemongrass Óleo Essencial 15ml')).toBeInTheDocument();
+      expect(
+        modal.getByText('Lemongrass Óleo Essencial 15ml'),
+      ).toBeInTheDocument();
       expect(modal.getByText('Detalhes: Uso doméstico')).toBeInTheDocument();
       expect(modal.getByText('On Guard + 30ml')).toBeInTheDocument();
       expect(modal.getByText('Pagamentos recebidos')).toBeInTheDocument();
@@ -838,8 +1086,12 @@ describe('ReceivablesPage', () => {
     it('should close with the close button', async () => {
       const modal = await openDetailsModal();
 
-      fireEvent.click(modal.getByRole('button', { name: 'Fechar detalhamento' }));
-      await waitFor(() => expect(screen.queryByTestId('details-modal')).not.toBeInTheDocument());
+      fireEvent.click(
+        modal.getByRole('button', { name: 'Fechar detalhamento' }),
+      );
+      await waitFor(() =>
+        expect(screen.queryByTestId('details-modal')).not.toBeInTheDocument(),
+      );
     });
   });
 
@@ -876,7 +1128,9 @@ describe('ReceivablesPage', () => {
       fireEvent.submit(form);
 
       await waitFor(() => {
-        expect(screen.getByText('Valor deve ser maior que zero')).toBeInTheDocument();
+        expect(
+          screen.getByText('Valor deve ser maior que zero'),
+        ).toBeInTheDocument();
       });
       expect(mockPost).not.toHaveBeenCalled();
     });
@@ -891,7 +1145,9 @@ describe('ReceivablesPage', () => {
       fireEvent.submit(form);
 
       await waitFor(() => {
-        expect(screen.getByText('Valor não pode ser negativo')).toBeInTheDocument();
+        expect(
+          screen.getByText('Valor não pode ser negativo'),
+        ).toBeInTheDocument();
       });
       expect(mockPost).not.toHaveBeenCalled();
     });
@@ -902,17 +1158,23 @@ describe('ReceivablesPage', () => {
       const amountInput = screen.getByPlaceholderText('0.00');
       fireEvent.change(amountInput, { target: { value: '999' } });
 
-      mockPost.mockResolvedValue({ data: { id: 'pay-over', amount: '999.00' } });
+      mockPost.mockResolvedValue({
+        data: { id: 'pay-over', amount: '999.00' },
+      });
       mockGet.mockResolvedValue({ data: [] });
 
       const form = amountInput.closest('form');
       fireEvent.submit(form);
 
       const dialog = await screen.findByRole('dialog');
-      expect(within(dialog).getByText(/maior que o saldo pendente/)).toBeInTheDocument();
+      expect(
+        within(dialog).getByText(/maior que o saldo pendente/),
+      ).toBeInTheDocument();
       expect(within(dialog).getByText(/R\$\s*999,00/)).toBeInTheDocument();
 
-      fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmar recebimento' }));
+      fireEvent.click(
+        within(dialog).getByRole('button', { name: 'Confirmar recebimento' }),
+      );
 
       await waitFor(() => {
         expect(mockPost).toHaveBeenCalledWith('/orders/order-1/payments', {
@@ -934,7 +1196,9 @@ describe('ReceivablesPage', () => {
       fireEvent.submit(form);
 
       const dialog = await screen.findByRole('dialog');
-      expect(within(dialog).getByText(/maior que o saldo pendente/)).toBeInTheDocument();
+      expect(
+        within(dialog).getByText(/maior que o saldo pendente/),
+      ).toBeInTheDocument();
 
       fireEvent.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
 
@@ -950,7 +1214,9 @@ describe('ReceivablesPage', () => {
       const amountInput = screen.getByPlaceholderText('0.00');
       fireEvent.change(amountInput, { target: { value: '300' } });
 
-      mockPost.mockResolvedValue({ data: { id: 'pay-full', amount: '300.00', personId: 'p1' } });
+      mockPost.mockResolvedValue({
+        data: { id: 'pay-full', amount: '300.00', personId: 'p1' },
+      });
       mockGet.mockResolvedValue({ data: [] });
 
       const form = amountInput.closest('form');
@@ -973,7 +1239,9 @@ describe('ReceivablesPage', () => {
       const amountInput = screen.getByPlaceholderText('0.00');
       fireEvent.change(amountInput, { target: { value: '100' } });
 
-      mockPost.mockResolvedValue({ data: { id: 'pay-1', amount: '100.00', personId: 'p1' } });
+      mockPost.mockResolvedValue({
+        data: { id: 'pay-1', amount: '100.00', personId: 'p1' },
+      });
       mockGet.mockResolvedValue({ data: [] });
 
       const form = amountInput.closest('form');
@@ -994,19 +1262,31 @@ describe('ReceivablesPage', () => {
     it('should accept exact remaining balance without floating point rejection', async () => {
       mockGet.mockImplementation((url) => {
         if (url === '/orders') {
-          return Promise.resolve({ data: [{
-            id: 'order-fp',
-            orderNumber: 'ORD-FP',
-            totalValue: '1234.56',
-            status: 'PARCIAL',
-          }] });
+          return Promise.resolve({
+            data: [
+              {
+                id: 'order-fp',
+                orderNumber: 'ORD-FP',
+                totalValue: '1234.56',
+                status: 'PARCIAL',
+              },
+            ],
+          });
         }
         if (url === '/orders/order-fp/balance') {
-          return Promise.resolve({ data: {
-            balances: [
-              { personId: 'p1', personName: 'João', itemTotal: 1234.56, paymentTotal: 1233, pending: 1.56 },
-            ],
-          } });
+          return Promise.resolve({
+            data: {
+              balances: [
+                {
+                  personId: 'p1',
+                  personName: 'João',
+                  itemTotal: 1234.56,
+                  paymentTotal: 1233,
+                  pending: 1.56,
+                },
+              ],
+            },
+          });
         }
         return Promise.resolve({ data: [] });
       });
@@ -1017,7 +1297,9 @@ describe('ReceivablesPage', () => {
       const amountInput = screen.getByPlaceholderText('0.00');
       fireEvent.change(amountInput, { target: { value: '1.56' } });
 
-      mockPost.mockResolvedValue({ data: { id: 'pay-fp', amount: '1.56', personId: 'p1' } });
+      mockPost.mockResolvedValue({
+        data: { id: 'pay-fp', amount: '1.56', personId: 'p1' },
+      });
       mockGet.mockResolvedValue({ data: [] });
 
       const form = amountInput.closest('form');
@@ -1032,7 +1314,9 @@ describe('ReceivablesPage', () => {
         });
       });
 
-      expect(screen.queryByText('Valor excede o saldo pendente')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('Valor excede o saldo pendente'),
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -1076,7 +1360,9 @@ describe('ReceivablesPage', () => {
       const amountInput = screen.getByPlaceholderText('0.00');
       fireEvent.change(amountInput, { target: { value: '100' } });
 
-      mockPost.mockResolvedValue({ data: { id: 'pay-1', amount: '100.00', personId: 'p1' } });
+      mockPost.mockResolvedValue({
+        data: { id: 'pay-1', amount: '100.00', personId: 'p1' },
+      });
       mockGet.mockResolvedValue({ data: [] });
 
       const form = amountInput.closest('form');
@@ -1102,7 +1388,9 @@ describe('ReceivablesPage', () => {
       fireEvent.click(screen.getByText('Cancelar'));
 
       await waitFor(() => {
-        expect(screen.queryByText(/Registrar Pagamento — ORD-001/)).not.toBeInTheDocument();
+        expect(
+          screen.queryByText(/Registrar Pagamento — ORD-001/),
+        ).not.toBeInTheDocument();
       });
 
       await openPaymentAction('order-1');
@@ -1125,14 +1413,18 @@ describe('ReceivablesPage', () => {
       const amountInput = screen.getByPlaceholderText('0.00');
       fireEvent.change(amountInput, { target: { value: '50' } });
 
-      mockPost.mockResolvedValue({ data: { id: 'pay-1', amount: '50.00', personId: 'p1' } });
+      mockPost.mockResolvedValue({
+        data: { id: 'pay-1', amount: '50.00', personId: 'p1' },
+      });
       mockGet.mockResolvedValue({ data: [] });
 
       const form = amountInput.closest('form');
       fireEvent.submit(form);
 
       await waitFor(() => {
-        expect(screen.getByText('Pagamento registrado com sucesso!')).toBeInTheDocument();
+        expect(
+          screen.getByText('Pagamento registrado com sucesso!'),
+        ).toBeInTheDocument();
       });
     });
 
@@ -1152,7 +1444,9 @@ describe('ReceivablesPage', () => {
       fireEvent.submit(form);
 
       await waitFor(() => {
-        expect(screen.getByText('Valor excede o saldo pendente')).toBeInTheDocument();
+        expect(
+          screen.getByText('Valor excede o saldo pendente'),
+        ).toBeInTheDocument();
       });
     });
   });

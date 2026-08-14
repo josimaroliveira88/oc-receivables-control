@@ -27,7 +27,7 @@ const renderPage = (initialEntries = ['/register']) => {
       <AuthProvider>
         <RegisterPage />
       </AuthProvider>
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 };
 
@@ -60,7 +60,9 @@ describe('RegisterPage', () => {
 
     it('should render "Cadastrar" submit button', () => {
       renderPage();
-      expect(screen.getByRole('button', { name: 'Cadastrar' })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Cadastrar' }),
+      ).toBeInTheDocument();
     });
 
     it('should render link to login page', () => {
@@ -89,7 +91,9 @@ describe('RegisterPage', () => {
       fireEvent.submit(form);
 
       await waitFor(() => {
-        expect(screen.getByText('Usuário deve ter pelo menos 3 caracteres')).toBeInTheDocument();
+        expect(
+          screen.getByText('Usuário deve ter pelo menos 3 caracteres'),
+        ).toBeInTheDocument();
       });
     });
 
@@ -103,7 +107,9 @@ describe('RegisterPage', () => {
       fireEvent.submit(form);
 
       await waitFor(() => {
-        expect(screen.getByText('Senha deve ter pelo menos 6 caracteres')).toBeInTheDocument();
+        expect(
+          screen.getByText('Senha deve ter pelo menos 6 caracteres'),
+        ).toBeInTheDocument();
       });
     });
 
@@ -114,7 +120,9 @@ describe('RegisterPage', () => {
       const confirmPasswordInput = screen.getByLabelText('Confirmar Senha');
       fireEvent.change(usernameInput, { target: { value: 'testuser' } });
       fireEvent.change(passwordInput, { target: { value: 'senha123' } });
-      fireEvent.change(confirmPasswordInput, { target: { value: 'diferente' } });
+      fireEvent.change(confirmPasswordInput, {
+        target: { value: 'diferente' },
+      });
       const form = usernameInput.closest('form');
       fireEvent.submit(form);
 
@@ -218,7 +226,9 @@ describe('RegisterPage', () => {
       fireEvent.submit(form);
 
       await waitFor(() => {
-        expect(screen.getByText('Erro ao cadastrar. Tente novamente.')).toBeInTheDocument();
+        expect(
+          screen.getByText('Erro ao cadastrar. Tente novamente.'),
+        ).toBeInTheDocument();
       });
     });
   });
@@ -226,7 +236,12 @@ describe('RegisterPage', () => {
   describe('Loading State', () => {
     it('should show "Cadastrando..." and disable button while submitting', async () => {
       let resolvePost;
-      mockPost.mockImplementation(() => new Promise((resolve) => { resolvePost = resolve; }));
+      mockPost.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolvePost = resolve;
+          }),
+      );
       renderPage();
 
       const usernameInput = screen.getByLabelText('Usuário');

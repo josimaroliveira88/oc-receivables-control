@@ -8,7 +8,11 @@ require('dotenv').config();
 const prisma = new PrismaClient();
 
 function printSummary(summary, dryRun) {
-  console.log(dryRun ? '=== Simulação (nenhuma alteração aplicada) ===' : '=== Resultado da carga ===');
+  console.log(
+    dryRun
+      ? '=== Simulação (nenhuma alteração aplicada) ==='
+      : '=== Resultado da carga ===',
+  );
   console.log(`Criados: ${summary.created}`);
   console.log(`Atualizados (nome/tamanho): ${summary.updated}`);
   console.log(`Preços alterados (novo histórico): ${summary.priceChanged}`);
@@ -21,8 +25,8 @@ function printSummary(summary, dryRun) {
   if (!dryRun && summary.deactivated > 0) {
     console.warn(
       `Atenção: ${summary.deactivated} produto(s) foi(foram) desativado(s). ` +
-      'Isso acontece para itens presentes no banco, mas ausentes do CSV. ' +
-      'Se você carregou uma lista parcial por engano, restaure carregando o catálogo completo.'
+        'Isso acontece para itens presentes no banco, mas ausentes do CSV. ' +
+        'Se você carregou uma lista parcial por engano, restaure carregando o catálogo completo.',
     );
   }
 }
@@ -51,7 +55,9 @@ function parseArgs(argv) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const csvPath = args.csvPath || path.join(__dirname, '../../docs/tabela_produtos_doterra_2026.csv');
+  const csvPath =
+    args.csvPath ||
+    path.join(__dirname, '../../docs/tabela_produtos_doterra_2026.csv');
 
   console.log(`Lendo arquivo: ${csvPath}`);
   const rows = parseProductCsvFile(csvPath);
@@ -61,7 +67,9 @@ async function main() {
   if (args.validFrom) {
     const parsed = new Date(`${args.validFrom}T00:00:00`);
     if (Number.isNaN(parsed.getTime())) {
-      console.error(`Data inválida: ${args.validFrom}. Use o formato YYYY-MM-DD.`);
+      console.error(
+        `Data inválida: ${args.validFrom}. Use o formato YYYY-MM-DD.`,
+      );
       process.exit(1);
     }
     options.validFrom = parsed;

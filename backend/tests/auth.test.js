@@ -17,7 +17,9 @@ describe('User Registration', () => {
 
   afterEach(async () => {
     if (createdUserId) {
-      await prisma.user.delete({ where: { id: createdUserId } }).catch(() => {});
+      await prisma.user
+        .delete({ where: { id: createdUserId } })
+        .catch(() => {});
       createdUserId = null;
     }
   });

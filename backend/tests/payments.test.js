@@ -69,12 +69,20 @@ describe('Payments & Balance', () => {
       const order = await prisma.order.create({
         data: {
           orderNumber: uniqueOrderNumber('ORD-PAY'),
-          totalValue: 400.00,
+          totalValue: 400.0,
           userId,
           items: {
             create: [
-              { description: 'Item for Person 1', chargedValue: 150.00, personId: testPersonId },
-              { description: 'Item for Person 2', chargedValue: 250.00, personId: testPerson2Id },
+              {
+                description: 'Item for Person 1',
+                chargedValue: 150.0,
+                personId: testPersonId,
+              },
+              {
+                description: 'Item for Person 2',
+                chargedValue: 250.0,
+                personId: testPerson2Id,
+              },
             ],
           },
         },
@@ -88,11 +96,15 @@ describe('Payments & Balance', () => {
       const response = await request(app)
         .post(`/api/orders/${testOrderId}/payments`)
         .set('Authorization', `Bearer ${authToken}`)
-        .send({ amount: 100.00, personId: testPersonId, notes: 'Partial payment' });
+        .send({
+          amount: 100.0,
+          personId: testPersonId,
+          notes: 'Partial payment',
+        });
 
       expect(response.status).toBe(201);
       expect(response.body.message).toBe('Payment created successfully');
-      expect(parseFloat(response.body.payment.amount)).toBe(100.00);
+      expect(parseFloat(response.body.payment.amount)).toBe(100.0);
       expect(response.body.payment.personId).toBe(testPersonId);
       expect(response.body.payment.notes).toBe('Partial payment');
       expect(response.body.order.status).toBe('PARCIAL');
@@ -107,11 +119,15 @@ describe('Payments & Balance', () => {
       const order = await prisma.order.create({
         data: {
           orderNumber: uniqueOrderNumber('ORD-SINGLE'),
-          totalValue: 300.00,
+          totalValue: 300.0,
           userId,
           items: {
             create: [
-              { description: 'Item for Single Person', chargedValue: 300.00, personId: person.id },
+              {
+                description: 'Item for Single Person',
+                chargedValue: 300.0,
+                personId: person.id,
+              },
             ],
           },
         },
@@ -122,7 +138,7 @@ describe('Payments & Balance', () => {
       const response = await request(app)
         .post(`/api/orders/${order.id}/payments`)
         .set('Authorization', `Bearer ${authToken}`)
-        .send({ amount: 300.00, personId: person.id });
+        .send({ amount: 300.0, personId: person.id });
 
       expect(response.status).toBe(201);
       expect(response.body.order.status).toBe('QUITADO');
@@ -137,11 +153,15 @@ describe('Payments & Balance', () => {
       const order = await prisma.order.create({
         data: {
           orderNumber: uniqueOrderNumber('ORD-OVERPAY'),
-          totalValue: 19.90,
+          totalValue: 19.9,
           userId,
           items: {
             create: [
-              { description: 'Produto negociado', chargedValue: 19.90, personId: person.id },
+              {
+                description: 'Produto negociado',
+                chargedValue: 19.9,
+                personId: person.id,
+              },
             ],
           },
         },
@@ -152,7 +172,7 @@ describe('Payments & Balance', () => {
       const response = await request(app)
         .post(`/api/orders/${order.id}/payments`)
         .set('Authorization', `Bearer ${authToken}`)
-        .send({ amount: 20.00, personId: person.id });
+        .send({ amount: 20.0, personId: person.id });
 
       expect(response.status).toBe(201);
       expect(response.body.order.status).toBe('QUITADO');
@@ -162,9 +182,11 @@ describe('Payments & Balance', () => {
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(balanceRes.status).toBe(200);
-      const balance = balanceRes.body.balances.find((b) => b.personId === person.id);
+      const balance = balanceRes.body.balances.find(
+        (b) => b.personId === person.id,
+      );
       expect(parseFloat(balance.pending)).toBe(0);
-      expect(parseFloat(balance.paymentTotal)).toBe(20.00);
+      expect(parseFloat(balance.paymentTotal)).toBe(20.0);
     });
 
     it('should reject zero payment when the person has chargeable items', async () => {
@@ -181,7 +203,7 @@ describe('Payments & Balance', () => {
       const response = await request(app)
         .post(`/api/orders/${testOrderId}/payments`)
         .set('Authorization', `Bearer ${authToken}`)
-        .send({ amount: 500.00, personId: testPersonId });
+        .send({ amount: 500.0, personId: testPersonId });
 
       expect(response.status).toBe(201);
       expect(response.body.order.status).toBe('PARCIAL');
@@ -191,10 +213,14 @@ describe('Payments & Balance', () => {
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(balanceRes.status).toBe(200);
-      const paidPerson = balanceRes.body.balances.find((b) => b.personId === testPersonId);
-      const otherPerson = balanceRes.body.balances.find((b) => b.personId === testPerson2Id);
+      const paidPerson = balanceRes.body.balances.find(
+        (b) => b.personId === testPersonId,
+      );
+      const otherPerson = balanceRes.body.balances.find(
+        (b) => b.personId === testPerson2Id,
+      );
       expect(parseFloat(paidPerson.pending)).toBe(0);
-      expect(parseFloat(otherPerson.pending)).toBe(250.00);
+      expect(parseFloat(otherPerson.pending)).toBe(250.0);
     });
 
     it('should accept zero amount payment for a zero-value item and mark order as QUITADO', async () => {
@@ -206,11 +232,11 @@ describe('Payments & Balance', () => {
       const order = await prisma.order.create({
         data: {
           orderNumber: uniqueOrderNumber('ORD-FREE'),
-          totalValue: 0.00,
+          totalValue: 0.0,
           userId,
           items: {
             create: [
-              { description: 'Brinde', chargedValue: 0.00, personId: person.id },
+              { description: 'Brinde', chargedValue: 0.0, personId: person.id },
             ],
           },
         },
@@ -243,12 +269,20 @@ describe('Payments & Balance', () => {
       const order = await prisma.order.create({
         data: {
           orderNumber: uniqueOrderNumber('ORD-MIXED'),
-          totalValue: 100.00,
+          totalValue: 100.0,
           userId,
           items: {
             create: [
-              { description: 'Brinde para Zero', chargedValue: 0.00, personId: zeroPerson.id },
-              { description: 'Item real', chargedValue: 100.00, personId: testPersonId },
+              {
+                description: 'Brinde para Zero',
+                chargedValue: 0.0,
+                personId: zeroPerson.id,
+              },
+              {
+                description: 'Item real',
+                chargedValue: 100.0,
+                personId: testPersonId,
+              },
             ],
           },
         },
@@ -271,10 +305,14 @@ describe('Payments & Balance', () => {
       expect(balanceRes.status).toBe(200);
       expect(balanceRes.body.orderStatus).toBe('PENDENTE');
 
-      const zeroBalance = balanceRes.body.balances.find((b) => b.personId === zeroPerson.id);
-      const realBalance = balanceRes.body.balances.find((b) => b.personId === testPersonId);
+      const zeroBalance = balanceRes.body.balances.find(
+        (b) => b.personId === zeroPerson.id,
+      );
+      const realBalance = balanceRes.body.balances.find(
+        (b) => b.personId === testPersonId,
+      );
       expect(parseFloat(zeroBalance.pending)).toBe(0);
-      expect(parseFloat(realBalance.pending)).toBe(100.00);
+      expect(parseFloat(realBalance.pending)).toBe(100.0);
     });
 
     it('should reject payment with negative amount (Zod validation)', async () => {
@@ -301,7 +339,10 @@ describe('Payments & Balance', () => {
       const response = await request(app)
         .post(`/api/orders/${testOrderId}/payments`)
         .set('Authorization', `Bearer ${authToken}`)
-        .send({ amount: 100, personId: '00000000-0000-0000-0000-000000000000' });
+        .send({
+          amount: 100,
+          personId: '00000000-0000-0000-0000-000000000000',
+        });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBe('Person not found');
@@ -337,15 +378,19 @@ describe('Payments & Balance', () => {
     });
 
     it('should transition status from PENDENTE to PARCIAL after first partial payment', async () => {
-      const orderBefore = await prisma.order.findUnique({ where: { id: testOrderId } });
+      const orderBefore = await prisma.order.findUnique({
+        where: { id: testOrderId },
+      });
       expect(orderBefore.status).toBe('PENDENTE');
 
       await request(app)
         .post(`/api/orders/${testOrderId}/payments`)
         .set('Authorization', `Bearer ${authToken}`)
-        .send({ amount: 150.00, personId: testPersonId });
+        .send({ amount: 150.0, personId: testPersonId });
 
-      const orderAfter = await prisma.order.findUnique({ where: { id: testOrderId } });
+      const orderAfter = await prisma.order.findUnique({
+        where: { id: testOrderId },
+      });
       expect(orderAfter.status).toBe('PARCIAL');
     });
 
@@ -371,7 +416,11 @@ describe('Payments & Balance', () => {
       const response = await request(app)
         .post(`/api/orders/${testOrderId}/payments`)
         .set('Authorization', `Bearer ${authToken}`)
-        .send({ amount: 100, personId: testPersonId, notes: 'Payment for materials' });
+        .send({
+          amount: 100,
+          personId: testPersonId,
+          notes: 'Payment for materials',
+        });
 
       expect(response.status).toBe(201);
       expect(response.body.payment.notes).toBe('Payment for materials');
@@ -406,7 +455,7 @@ describe('Payments & Balance', () => {
       const response = await request(app)
         .post(`/api/orders/${testOrderId}/payments`)
         .set('Authorization', `Bearer ${authToken}`)
-        .send({ amount: 100.00, personId: testPersonId, paidAt: '2025-03-15' });
+        .send({ amount: 100.0, personId: testPersonId, paidAt: '2025-03-15' });
 
       expect(response.status).toBe(201);
       const paidAt = new Date(response.body.payment.paidAt);
@@ -420,7 +469,7 @@ describe('Payments & Balance', () => {
       const response = await request(app)
         .post(`/api/orders/${testOrderId}/payments`)
         .set('Authorization', `Bearer ${authToken}`)
-        .send({ amount: 50.00, personId: testPersonId });
+        .send({ amount: 50.0, personId: testPersonId });
 
       expect(response.status).toBe(201);
       const paidAt = new Date(response.body.payment.paidAt);
@@ -429,7 +478,7 @@ describe('Payments & Balance', () => {
       expect(paidAt.getTime()).toBeLessThanOrEqual(after.getTime());
     });
 
-    it('should reject payment for another user\'s order', async () => {
+    it("should reject payment for another user's order", async () => {
       const otherUser = `other_pay_${Date.now()}`;
       const regRes = await request(app)
         .post('/api/auth/register')
@@ -474,12 +523,20 @@ describe('Payments & Balance', () => {
       const order = await prisma.order.create({
         data: {
           orderNumber: uniqueOrderNumber('ORD-BAL'),
-          totalValue: 500.00,
+          totalValue: 500.0,
           userId,
           items: {
             create: [
-              { description: 'Item 1', chargedValue: 300.00, personId: balancePersonId },
-              { description: 'Item 2', chargedValue: 200.00, personId: balancePerson2Id },
+              {
+                description: 'Item 1',
+                chargedValue: 300.0,
+                personId: balancePersonId,
+              },
+              {
+                description: 'Item 2',
+                chargedValue: 200.0,
+                personId: balancePerson2Id,
+              },
             ],
           },
         },
@@ -497,26 +554,30 @@ describe('Payments & Balance', () => {
       expect(response.status).toBe(200);
       expect(response.body.balances).toHaveLength(2);
 
-      const balance1 = response.body.balances.find(b => b.personId === balancePersonId);
-      const balance2 = response.body.balances.find(b => b.personId === balancePerson2Id);
+      const balance1 = response.body.balances.find(
+        (b) => b.personId === balancePersonId,
+      );
+      const balance2 = response.body.balances.find(
+        (b) => b.personId === balancePerson2Id,
+      );
 
       expect(balance1).toBeDefined();
       expect(balance1.personName).toBe('Balance Person 1');
-      expect(parseFloat(balance1.itemTotal)).toBe(300.00);
+      expect(parseFloat(balance1.itemTotal)).toBe(300.0);
       expect(parseFloat(balance1.paymentTotal)).toBe(0);
-      expect(parseFloat(balance1.pending)).toBe(300.00);
+      expect(parseFloat(balance1.pending)).toBe(300.0);
 
       expect(balance2).toBeDefined();
       expect(balance2.personName).toBe('Balance Person 2');
-      expect(parseFloat(balance2.itemTotal)).toBe(200.00);
+      expect(parseFloat(balance2.itemTotal)).toBe(200.0);
       expect(parseFloat(balance2.paymentTotal)).toBe(0);
-      expect(parseFloat(balance2.pending)).toBe(200.00);
+      expect(parseFloat(balance2.pending)).toBe(200.0);
     });
 
     it('should return correct balance after partial payments', async () => {
       await prisma.payment.create({
         data: {
-          amount: 100.00,
+          amount: 100.0,
           orderId: balanceOrderId,
           personId: balancePersonId,
         },
@@ -529,28 +590,32 @@ describe('Payments & Balance', () => {
       expect(response.status).toBe(200);
       expect(response.body.balances).toHaveLength(2);
 
-      const balance1 = response.body.balances.find(b => b.personId === balancePersonId);
-      const balance2 = response.body.balances.find(b => b.personId === balancePerson2Id);
+      const balance1 = response.body.balances.find(
+        (b) => b.personId === balancePersonId,
+      );
+      const balance2 = response.body.balances.find(
+        (b) => b.personId === balancePerson2Id,
+      );
 
-      expect(parseFloat(balance1.itemTotal)).toBe(300.00);
-      expect(parseFloat(balance1.paymentTotal)).toBe(100.00);
-      expect(parseFloat(balance1.pending)).toBe(200.00);
+      expect(parseFloat(balance1.itemTotal)).toBe(300.0);
+      expect(parseFloat(balance1.paymentTotal)).toBe(100.0);
+      expect(parseFloat(balance1.pending)).toBe(200.0);
 
-      expect(parseFloat(balance2.itemTotal)).toBe(200.00);
+      expect(parseFloat(balance2.itemTotal)).toBe(200.0);
       expect(parseFloat(balance2.paymentTotal)).toBe(0);
-      expect(parseFloat(balance2.pending)).toBe(200.00);
+      expect(parseFloat(balance2.pending)).toBe(200.0);
     });
 
     it('should return zero pending for fully paid order', async () => {
       await request(app)
         .post(`/api/orders/${balanceOrderId}/payments`)
         .set('Authorization', `Bearer ${authToken}`)
-        .send({ amount: 300.00, personId: balancePersonId });
+        .send({ amount: 300.0, personId: balancePersonId });
 
       await request(app)
         .post(`/api/orders/${balanceOrderId}/payments`)
         .set('Authorization', `Bearer ${authToken}`)
-        .send({ amount: 200.00, personId: balancePerson2Id });
+        .send({ amount: 200.0, personId: balancePerson2Id });
 
       const response = await request(app)
         .get(`/api/orders/${balanceOrderId}/balance`)
@@ -559,8 +624,12 @@ describe('Payments & Balance', () => {
       expect(response.status).toBe(200);
       expect(response.body.balances).toHaveLength(2);
 
-      const balance1 = response.body.balances.find(b => b.personId === balancePersonId);
-      const balance2 = response.body.balances.find(b => b.personId === balancePerson2Id);
+      const balance1 = response.body.balances.find(
+        (b) => b.personId === balancePersonId,
+      );
+      const balance2 = response.body.balances.find(
+        (b) => b.personId === balancePerson2Id,
+      );
 
       expect(parseFloat(balance1.pending)).toBe(0);
       expect(parseFloat(balance2.pending)).toBe(0);
@@ -577,8 +646,9 @@ describe('Payments & Balance', () => {
     });
 
     it('should return 401 when no authentication token is provided', async () => {
-      const response = await request(app)
-        .get(`/api/orders/${balanceOrderId}/balance`);
+      const response = await request(app).get(
+        `/api/orders/${balanceOrderId}/balance`,
+      );
 
       expect(response.status).toBe(401);
       expect(response.body.error).toBe('Access token required');
@@ -633,210 +703,240 @@ describe('Floating point precision (cents)', () => {
     createdPersonIds = [];
   });
 
-    it('should accept exact remaining balance without floating point errors', async () => {
-      const person = await prisma.person.create({
-        data: { name: 'Cents Test', whatsapp: 'cents@test.com', userId },
-      });
-      createdPersonIds.push(person.id);
-
-      const order = await prisma.order.create({
-        data: {
-          orderNumber: uniqueOrderNumber('ORD-CENTS'),
-          totalValue: 1234.56,
-          userId,
-          items: {
-            create: [
-              { description: 'Item 1234.56', chargedValue: 1234.56, personId: person.id },
-            ],
-          },
-        },
-        include: { items: true },
-      });
-      createdOrderIds.push(order.id);
-
-      const firstPayment = await request(app)
-        .post(`/api/orders/${order.id}/payments`)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({ amount: 1233.00, personId: person.id });
-
-      expect(firstPayment.status).toBe(201);
-      expect(firstPayment.body.order.status).toBe('PARCIAL');
-
-      const finalPayment = await request(app)
-        .post(`/api/orders/${order.id}/payments`)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({ amount: 1.56, personId: person.id });
-
-      expect(finalPayment.status).toBe(201);
-      expect(finalPayment.body.order.status).toBe('QUITADO');
-
-      const balanceRes = await request(app)
-        .get(`/api/orders/${order.id}/balance`)
-        .set('Authorization', `Bearer ${authToken}`);
-
-      expect(balanceRes.status).toBe(200);
-      expect(parseFloat(balanceRes.body.balances[0].pending)).toBe(0);
+  it('should accept exact remaining balance without floating point errors', async () => {
+    const person = await prisma.person.create({
+      data: { name: 'Cents Test', whatsapp: 'cents@test.com', userId },
     });
+    createdPersonIds.push(person.id);
 
-    it('should accept overpayment and keep balance pending at zero with cents-based calculation', async () => {
-      const person = await prisma.person.create({
-        data: { name: 'Cents Over Test', whatsapp: 'centsover@test.com', userId },
-      });
-      createdPersonIds.push(person.id);
-
-      const order = await prisma.order.create({
-        data: {
-          orderNumber: uniqueOrderNumber('ORD-CENTS-OVER'),
-          totalValue: 1234.56,
-          userId,
-          items: {
-            create: [
-              { description: 'Item 1234.56', chargedValue: 1234.56, personId: person.id },
-            ],
-          },
+    const order = await prisma.order.create({
+      data: {
+        orderNumber: uniqueOrderNumber('ORD-CENTS'),
+        totalValue: 1234.56,
+        userId,
+        items: {
+          create: [
+            {
+              description: 'Item 1234.56',
+              chargedValue: 1234.56,
+              personId: person.id,
+            },
+          ],
         },
-        include: { items: true },
-      });
-      createdOrderIds.push(order.id);
-
-      await request(app)
-        .post(`/api/orders/${order.id}/payments`)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({ amount: 1233.00, personId: person.id });
-
-      const overpaymentRes = await request(app)
-        .post(`/api/orders/${order.id}/payments`)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({ amount: 1.57, personId: person.id });
-
-      expect(overpaymentRes.status).toBe(201);
-      expect(overpaymentRes.body.order.status).toBe('QUITADO');
-
-      const balanceRes = await request(app)
-        .get(`/api/orders/${order.id}/balance`)
-        .set('Authorization', `Bearer ${authToken}`);
-
-      expect(balanceRes.status).toBe(200);
-      const balance = balanceRes.body.balances.find((b) => b.personId === person.id);
-      expect(parseFloat(balance.pending)).toBe(0);
-      expect(parseFloat(balance.paymentTotal)).toBe(1234.57);
+      },
+      include: { items: true },
     });
+    createdOrderIds.push(order.id);
+
+    const firstPayment = await request(app)
+      .post(`/api/orders/${order.id}/payments`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ amount: 1233.0, personId: person.id });
+
+    expect(firstPayment.status).toBe(201);
+    expect(firstPayment.body.order.status).toBe('PARCIAL');
+
+    const finalPayment = await request(app)
+      .post(`/api/orders/${order.id}/payments`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ amount: 1.56, personId: person.id });
+
+    expect(finalPayment.status).toBe(201);
+    expect(finalPayment.body.order.status).toBe('QUITADO');
+
+    const balanceRes = await request(app)
+      .get(`/api/orders/${order.id}/balance`)
+      .set('Authorization', `Bearer ${authToken}`);
+
+    expect(balanceRes.status).toBe(200);
+    expect(parseFloat(balanceRes.body.balances[0].pending)).toBe(0);
   });
 
-  describe('Transactional consistency', () => {
-    let tAuthToken;
-    let tUserId;
-    let tCreatedOrderIds = [];
-    let tCreatedPersonIds = [];
-
-    beforeAll(async () => {
-      const username = `trans_test_${Date.now()}`;
-      const regRes = await request(app)
-        .post('/api/auth/register')
-        .send({ username, password: 'testpass123' });
-      tUserId = regRes.body.id;
-
-      const loginRes = await request(app)
-        .post('/api/auth/login')
-        .send({ username, password: 'testpass123' });
-      tAuthToken = loginRes.body.token;
+  it('should accept overpayment and keep balance pending at zero with cents-based calculation', async () => {
+    const person = await prisma.person.create({
+      data: { name: 'Cents Over Test', whatsapp: 'centsover@test.com', userId },
     });
+    createdPersonIds.push(person.id);
 
-    afterAll(async () => {
-      if (tUserId) {
-        await prisma.user.delete({ where: { id: tUserId } }).catch(() => {});
-      }
-    });
-
-    afterEach(async () => {
-      for (const id of tCreatedOrderIds) {
-        await prisma.order.delete({ where: { id } }).catch(() => {});
-      }
-      tCreatedOrderIds = [];
-
-      for (const id of tCreatedPersonIds) {
-        await prisma.person.delete({ where: { id } }).catch(() => {});
-      }
-      tCreatedPersonIds = [];
-    });
-
-    it('should update order status atomically within the payment transaction', async () => {
-      const person = await prisma.person.create({
-        data: { name: 'Transactional Test', whatsapp: 'trans@test.com', userId: tUserId },
-      });
-      tCreatedPersonIds.push(person.id);
-
-      const order = await prisma.order.create({
-        data: {
-          orderNumber: uniqueOrderNumber('ORD-TRANS'),
-          totalValue: 100.00,
-          userId: tUserId,
-          items: {
-            create: [
-              { description: 'Test Item', chargedValue: 100.00, personId: person.id },
-            ],
-          },
+    const order = await prisma.order.create({
+      data: {
+        orderNumber: uniqueOrderNumber('ORD-CENTS-OVER'),
+        totalValue: 1234.56,
+        userId,
+        items: {
+          create: [
+            {
+              description: 'Item 1234.56',
+              chargedValue: 1234.56,
+              personId: person.id,
+            },
+          ],
         },
-        include: { items: true },
-      });
-      tCreatedOrderIds.push(order.id);
-
-      const currentOrder = await prisma.order.findUnique({ where: { id: order.id } });
-      expect(currentOrder.status).toBe('PENDENTE');
-
-      const paymentRes = await request(app)
-        .post(`/api/orders/${order.id}/payments`)
-        .set('Authorization', `Bearer ${tAuthToken}`)
-        .send({ amount: 100, personId: person.id });
-
-      expect(paymentRes.status).toBe(201);
-      expect(paymentRes.body.order.status).toBe('QUITADO');
-
-      const balanceRes = await request(app)
-        .get(`/api/orders/${order.id}/balance`)
-        .set('Authorization', `Bearer ${tAuthToken}`);
-
-      expect(balanceRes.status).toBe(200);
-      expect(balanceRes.body.orderStatus).toBe('QUITADO');
-      expect(parseFloat(balanceRes.body.balances[0].pending)).toBe(0);
+      },
+      include: { items: true },
     });
+    createdOrderIds.push(order.id);
 
-    it('should persist overpayment and update order status inside the transaction', async () => {
-      const person = await prisma.person.create({
-        data: { name: 'Rollback Test', whatsapp: 'rollback@test.com', userId: tUserId },
-      });
-      tCreatedPersonIds.push(person.id);
+    await request(app)
+      .post(`/api/orders/${order.id}/payments`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ amount: 1233.0, personId: person.id });
 
-      const order = await prisma.order.create({
-        data: {
-          orderNumber: uniqueOrderNumber('ORD-ROLLBACK'),
-          totalValue: 50.00,
-          userId: tUserId,
-          items: {
-            create: [
-              { description: 'Cheap Item', chargedValue: 50.00, personId: person.id },
-            ],
-          },
-        },
-        include: { items: true },
-      });
-      tCreatedOrderIds.push(order.id);
+    const overpaymentRes = await request(app)
+      .post(`/api/orders/${order.id}/payments`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ amount: 1.57, personId: person.id });
 
-      const overpaymentRes = await request(app)
-        .post(`/api/orders/${order.id}/payments`)
-        .set('Authorization', `Bearer ${tAuthToken}`)
-        .send({ amount: 200, personId: person.id });
+    expect(overpaymentRes.status).toBe(201);
+    expect(overpaymentRes.body.order.status).toBe('QUITADO');
 
-      expect(overpaymentRes.status).toBe(201);
-      expect(overpaymentRes.body.order.status).toBe('QUITADO');
+    const balanceRes = await request(app)
+      .get(`/api/orders/${order.id}/balance`)
+      .set('Authorization', `Bearer ${authToken}`);
 
-      const payments = await prisma.payment.findMany({
-        where: { orderId: order.id },
-      });
-      expect(payments).toHaveLength(1);
-      expect(parseFloat(payments[0].amount)).toBe(200.00);
-
-      const orderAfter = await prisma.order.findUnique({ where: { id: order.id } });
-      expect(orderAfter.status).toBe('QUITADO');
-    });
+    expect(balanceRes.status).toBe(200);
+    const balance = balanceRes.body.balances.find(
+      (b) => b.personId === person.id,
+    );
+    expect(parseFloat(balance.pending)).toBe(0);
+    expect(parseFloat(balance.paymentTotal)).toBe(1234.57);
   });
+});
+
+describe('Transactional consistency', () => {
+  let tAuthToken;
+  let tUserId;
+  let tCreatedOrderIds = [];
+  let tCreatedPersonIds = [];
+
+  beforeAll(async () => {
+    const username = `trans_test_${Date.now()}`;
+    const regRes = await request(app)
+      .post('/api/auth/register')
+      .send({ username, password: 'testpass123' });
+    tUserId = regRes.body.id;
+
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ username, password: 'testpass123' });
+    tAuthToken = loginRes.body.token;
+  });
+
+  afterAll(async () => {
+    if (tUserId) {
+      await prisma.user.delete({ where: { id: tUserId } }).catch(() => {});
+    }
+  });
+
+  afterEach(async () => {
+    for (const id of tCreatedOrderIds) {
+      await prisma.order.delete({ where: { id } }).catch(() => {});
+    }
+    tCreatedOrderIds = [];
+
+    for (const id of tCreatedPersonIds) {
+      await prisma.person.delete({ where: { id } }).catch(() => {});
+    }
+    tCreatedPersonIds = [];
+  });
+
+  it('should update order status atomically within the payment transaction', async () => {
+    const person = await prisma.person.create({
+      data: {
+        name: 'Transactional Test',
+        whatsapp: 'trans@test.com',
+        userId: tUserId,
+      },
+    });
+    tCreatedPersonIds.push(person.id);
+
+    const order = await prisma.order.create({
+      data: {
+        orderNumber: uniqueOrderNumber('ORD-TRANS'),
+        totalValue: 100.0,
+        userId: tUserId,
+        items: {
+          create: [
+            {
+              description: 'Test Item',
+              chargedValue: 100.0,
+              personId: person.id,
+            },
+          ],
+        },
+      },
+      include: { items: true },
+    });
+    tCreatedOrderIds.push(order.id);
+
+    const currentOrder = await prisma.order.findUnique({
+      where: { id: order.id },
+    });
+    expect(currentOrder.status).toBe('PENDENTE');
+
+    const paymentRes = await request(app)
+      .post(`/api/orders/${order.id}/payments`)
+      .set('Authorization', `Bearer ${tAuthToken}`)
+      .send({ amount: 100, personId: person.id });
+
+    expect(paymentRes.status).toBe(201);
+    expect(paymentRes.body.order.status).toBe('QUITADO');
+
+    const balanceRes = await request(app)
+      .get(`/api/orders/${order.id}/balance`)
+      .set('Authorization', `Bearer ${tAuthToken}`);
+
+    expect(balanceRes.status).toBe(200);
+    expect(balanceRes.body.orderStatus).toBe('QUITADO');
+    expect(parseFloat(balanceRes.body.balances[0].pending)).toBe(0);
+  });
+
+  it('should persist overpayment and update order status inside the transaction', async () => {
+    const person = await prisma.person.create({
+      data: {
+        name: 'Rollback Test',
+        whatsapp: 'rollback@test.com',
+        userId: tUserId,
+      },
+    });
+    tCreatedPersonIds.push(person.id);
+
+    const order = await prisma.order.create({
+      data: {
+        orderNumber: uniqueOrderNumber('ORD-ROLLBACK'),
+        totalValue: 50.0,
+        userId: tUserId,
+        items: {
+          create: [
+            {
+              description: 'Cheap Item',
+              chargedValue: 50.0,
+              personId: person.id,
+            },
+          ],
+        },
+      },
+      include: { items: true },
+    });
+    tCreatedOrderIds.push(order.id);
+
+    const overpaymentRes = await request(app)
+      .post(`/api/orders/${order.id}/payments`)
+      .set('Authorization', `Bearer ${tAuthToken}`)
+      .send({ amount: 200, personId: person.id });
+
+    expect(overpaymentRes.status).toBe(201);
+    expect(overpaymentRes.body.order.status).toBe('QUITADO');
+
+    const payments = await prisma.payment.findMany({
+      where: { orderId: order.id },
+    });
+    expect(payments).toHaveLength(1);
+    expect(parseFloat(payments[0].amount)).toBe(200.0);
+
+    const orderAfter = await prisma.order.findUnique({
+      where: { id: order.id },
+    });
+    expect(orderAfter.status).toBe('QUITADO');
+  });
+});

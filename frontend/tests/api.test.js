@@ -29,7 +29,8 @@ describe('API Interceptors', () => {
   beforeEach(() => {
     localStorage.clear();
     [onRequest] = mockAxiosInstance.interceptors.request.use.mock.calls[0];
-    [, onResponseError] = mockAxiosInstance.interceptors.response.use.mock.calls[0];
+    [, onResponseError] =
+      mockAxiosInstance.interceptors.response.use.mock.calls[0];
     delete window.location;
     window.location = { href: '' };
   });
@@ -82,7 +83,10 @@ describe('API Interceptors', () => {
     });
 
     it('should call Promise.reject with the original error on 403', async () => {
-      const error = { response: { status: 403 }, message: 'Invalid or expired token' };
+      const error = {
+        response: { status: 403 },
+        message: 'Invalid or expired token',
+      };
       await expect(onResponseError(error)).rejects.toBe(error);
     });
   });

@@ -9,20 +9,43 @@ const parseLocalDate = (dateStr) => {
 
 const itemSchema = z.object({
   description: z.string().max(500).optional().nullable(),
-  chargedValue: z.number().min(0, 'Charged value must not be negative').default(0),
+  chargedValue: z
+    .number()
+    .min(0, 'Charged value must not be negative')
+    .default(0),
   personId: z.string().uuid('Person ID must be a valid UUID'),
-  productId: z.string().uuid('Product ID must be a valid UUID').optional().nullable(),
-  memberPrice: z.number().nonnegative('Member price must not be negative').optional().nullable(),
+  productId: z
+    .string()
+    .uuid('Product ID must be a valid UUID')
+    .optional()
+    .nullable(),
+  memberPrice: z
+    .number()
+    .nonnegative('Member price must not be negative')
+    .optional()
+    .nullable(),
   pv: z.number().nonnegative('PV must not be negative').optional().nullable(),
-  details: z.string().max(500, 'Details must be at most 500 characters').optional().nullable(),
+  details: z
+    .string()
+    .max(500, 'Details must be at most 500 characters')
+    .optional()
+    .nullable(),
 });
 
 const paymentTypeSchema = z.enum(['PIX', 'BOLETO', 'CARTAO_CREDITO']);
 
 const orderDescriptiveSchema = {
-  accountOwner: z.string().max(120, 'Account owner must be at most 120 characters').optional().nullable(),
+  accountOwner: z
+    .string()
+    .max(120, 'Account owner must be at most 120 characters')
+    .optional()
+    .nullable(),
   paymentType: paymentTypeSchema.optional().nullable(),
-  orderNotes: z.string().max(500, 'Order notes must be at most 500 characters').optional().nullable(),
+  orderNotes: z
+    .string()
+    .max(500, 'Order notes must be at most 500 characters')
+    .optional()
+    .nullable(),
 };
 
 const createOrderSchema = z.object({
@@ -41,15 +64,22 @@ const updateOrderSchema = z.object({
 
 // Verify all products exist and are available (ATIVO or INDISPONIVEL; INATIVO is rejected)
 const validateProducts = async (items) => {
-  const productIds = [...new Set(items.map(item => item.productId).filter(Boolean))];
+  const productIds = [
+    ...new Set(items.map((item) => item.productId).filter(Boolean)),
+  ];
   if (productIds.length === 0) return;
 
   const products = await prisma.product.findMany({
-    where: { id: { in: productIds }, status: { in: ['ATIVO', 'INDISPONIVEL'] } },
+    where: {
+      id: { in: productIds },
+      status: { in: ['ATIVO', 'INDISPONIVEL'] },
+    },
   });
 
   if (products.length !== productIds.length) {
-    const error = new Error('One or more products are inactive or do not exist');
+    const error = new Error(
+      'One or more products are inactive or do not exist',
+    );
     error.status = 400;
     throw error;
   }
@@ -130,7 +160,9 @@ const createOrder = async (req, res) => {
     const validatedData = createOrderSchema.parse(req.body);
 
     // Verify all persons exist and belong to user
-    const personIds = [...new Set(validatedData.items.map(item => item.personId))];
+    const personIds = [
+      ...new Set(validatedData.items.map((item) => item.personId)),
+    ];
     const persons = await prisma.person.findMany({
       where: { id: { in: personIds }, userId: req.user.userId },
     });
@@ -143,14 +175,19 @@ const createOrder = async (req, res) => {
     await validateProducts(validatedData.items);
 
     // Calculate total value
-    const totalValue = validatedData.items.reduce((sum, item) => sum + item.chargedValue, 0);
+    const totalValue = validatedData.items.reduce(
+      (sum, item) => sum + item.chargedValue,
+      0,
+    );
 
     // Create order with items
     const order = await prisma.order.create({
       data: {
         orderNumber: validatedData.orderNumber,
         totalValue: totalValue,
-        orderDate: validatedData.orderDate ? parseLocalDate(validatedData.orderDate) : undefined,
+        orderDate: validatedData.orderDate
+          ? parseLocalDate(validatedData.orderDate)
+          : undefined,
         accountOwner: validatedData.accountOwner ?? null,
         paymentType: validatedData.paymentType ?? null,
         orderNotes: validatedData.orderNotes ?? null,
@@ -187,80 +224,101 @@ const createOrder = async (req, res) => {
 const updateOrder = async (req, res) => {
   try {
     const { id } = req.params;
-  const validatedData = updateOrderSchema.parse(req.body);
+    const validatedData = updateOrderSchema.parse(req.body);
 
-  // Check if order exists and belongs to user
-  const existingOrder = await prisma.order.findFirst({
-    where: { id, userId: req.user.userId },
-    include: { items: true },
-  });
-
-  if (!existingOrder) {
-    return res.status(404).json({ error: 'Order not found' });
-  }
-
-  if (validatedData.items) {
-    const personIds = [...new Set(validatedData.items.map(item => item.personId))];
-    const persons = await prisma.person.findMany({
-      where: { id: { in: personIds }, userId: req.user.userId },
+    // Check if order exists and belongs to user
+    const existingOrder = await prisma.order.findFirst({
+      where: { id, userId: req.user.userId },
+      include: { items: true },
     });
 
-    if (persons.length !== personIds.length) {
-      return res.status(400).json({ error: 'One or more persons not found' });
+    if (!existingOrder) {
+      return res.status(404).json({ error: 'Order not found' });
     }
 
-    // Verify all products exist and are available (ATIVO or INDISPONIVEL)
-    await validateProducts(validatedData.items);
+    if (validatedData.items) {
+      const personIds = [
+        ...new Set(validatedData.items.map((item) => item.personId)),
+      ];
+      const persons = await prisma.person.findMany({
+        where: { id: { in: personIds }, userId: req.user.userId },
+      });
 
-    const totalValue = validatedData.items.reduce((sum, item) => sum + item.chargedValue, 0);
+      if (persons.length !== personIds.length) {
+        return res.status(400).json({ error: 'One or more persons not found' });
+      }
 
-    const order = await prisma.order.update({
-      where: { id },
-      data: {
-        orderNumber: validatedData.orderNumber || existingOrder.orderNumber,
-        totalValue: totalValue,
-        orderDate: validatedData.orderDate ? parseLocalDate(validatedData.orderDate) : undefined,
-        ...(validatedData.accountOwner !== undefined && { accountOwner: validatedData.accountOwner }),
-        ...(validatedData.paymentType !== undefined && { paymentType: validatedData.paymentType }),
-        ...(validatedData.orderNotes !== undefined && { orderNotes: validatedData.orderNotes }),
-        items: {
-          deleteMany: {},
-          create: validatedData.items.map(itemCreateData),
-        },
-      },
-      include: {
-        items: {
-          include: {
-            person: true,
-            product: true,
+      // Verify all products exist and are available (ATIVO or INDISPONIVEL)
+      await validateProducts(validatedData.items);
+
+      const totalValue = validatedData.items.reduce(
+        (sum, item) => sum + item.chargedValue,
+        0,
+      );
+
+      const order = await prisma.order.update({
+        where: { id },
+        data: {
+          orderNumber: validatedData.orderNumber || existingOrder.orderNumber,
+          totalValue: totalValue,
+          orderDate: validatedData.orderDate
+            ? parseLocalDate(validatedData.orderDate)
+            : undefined,
+          ...(validatedData.accountOwner !== undefined && {
+            accountOwner: validatedData.accountOwner,
+          }),
+          ...(validatedData.paymentType !== undefined && {
+            paymentType: validatedData.paymentType,
+          }),
+          ...(validatedData.orderNotes !== undefined && {
+            orderNotes: validatedData.orderNotes,
+          }),
+          items: {
+            deleteMany: {},
+            create: validatedData.items.map(itemCreateData),
           },
         },
-      },
-    });
-
-    res.status(200).json(order);
-  } else {
-    const order = await prisma.order.update({
-      where: { id },
-      data: {
-        orderNumber: validatedData.orderNumber || existingOrder.orderNumber,
-        ...(validatedData.orderDate && { orderDate: parseLocalDate(validatedData.orderDate) }),
-        ...(validatedData.accountOwner !== undefined && { accountOwner: validatedData.accountOwner }),
-        ...(validatedData.paymentType !== undefined && { paymentType: validatedData.paymentType }),
-        ...(validatedData.orderNotes !== undefined && { orderNotes: validatedData.orderNotes }),
-      },
-      include: {
-        items: {
-          include: {
-            person: true,
-            product: true,
+        include: {
+          items: {
+            include: {
+              person: true,
+              product: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    res.status(200).json(order);
-  }
+      res.status(200).json(order);
+    } else {
+      const order = await prisma.order.update({
+        where: { id },
+        data: {
+          orderNumber: validatedData.orderNumber || existingOrder.orderNumber,
+          ...(validatedData.orderDate && {
+            orderDate: parseLocalDate(validatedData.orderDate),
+          }),
+          ...(validatedData.accountOwner !== undefined && {
+            accountOwner: validatedData.accountOwner,
+          }),
+          ...(validatedData.paymentType !== undefined && {
+            paymentType: validatedData.paymentType,
+          }),
+          ...(validatedData.orderNotes !== undefined && {
+            orderNotes: validatedData.orderNotes,
+          }),
+        },
+        include: {
+          items: {
+            include: {
+              person: true,
+              product: true,
+            },
+          },
+        },
+      });
+
+      res.status(200).json(order);
+    }
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors });
@@ -418,7 +476,8 @@ const updateItem = async (req, res) => {
 
     // Update order total value if charged value changed
     if (validatedData.chargedValue !== undefined) {
-      const valueChange = validatedData.chargedValue - existingItem.chargedValue;
+      const valueChange =
+        validatedData.chargedValue - existingItem.chargedValue;
       await prisma.order.update({
         where: { id: existingItem.orderId },
         data: {

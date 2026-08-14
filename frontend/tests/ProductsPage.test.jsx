@@ -1,4 +1,10 @@
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ProductsPage from '../src/pages/ProductsPage';
@@ -95,27 +101,36 @@ const renderPage = () => {
   return render(
     <MemoryRouter>
       <ProductsPage />
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 };
 
 const openProductActionsMenu = async (productId) => {
   await waitFor(() => {
-    expect(screen.getByTestId(`product-actions-${productId}-trigger`)).toBeInTheDocument();
+    expect(
+      screen.getByTestId(`product-actions-${productId}-trigger`),
+    ).toBeInTheDocument();
   });
   fireEvent.click(screen.getByTestId(`product-actions-${productId}-trigger`));
   await waitFor(() => {
-    expect(screen.getByTestId(`product-actions-${productId}-menu`)).toBeInTheDocument();
+    expect(
+      screen.getByTestId(`product-actions-${productId}-menu`),
+    ).toBeInTheDocument();
   });
 };
 
 const clickProductAction = async (productId, label) => {
   await openProductActionsMenu(productId);
-  fireEvent.click(screen.getByTestId(`product-actions-${productId}-item-${label}`));
+  fireEvent.click(
+    screen.getByTestId(`product-actions-${productId}-item-${label}`),
+  );
 };
 
 const rowNames = () =>
-  screen.getAllByRole('row').slice(1).map((row) => row.querySelector('td:nth-child(2)').textContent);
+  screen
+    .getAllByRole('row')
+    .slice(1)
+    .map((row) => row.querySelector('td:nth-child(2)').textContent);
 
 describe('ProductsPage', () => {
   beforeEach(() => {
@@ -138,7 +153,9 @@ describe('ProductsPage', () => {
       renderPage();
       await waitFor(() => {
         expect(screen.getByText('Novo')).toBeInTheDocument();
-        expect(screen.getByPlaceholderText('Buscar por nome ou código...')).toBeInTheDocument();
+        expect(
+          screen.getByPlaceholderText('Buscar por nome ou código...'),
+        ).toBeInTheDocument();
         expect(screen.getByLabelText('Ordenar por')).toBeInTheDocument();
         expect(screen.getByLabelText('Status')).toBeInTheDocument();
       });
@@ -148,7 +165,9 @@ describe('ProductsPage', () => {
       mockGet.mockResolvedValue({ data: fullResponse([]) });
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('Nenhum produto cadastrado')).toBeInTheDocument();
+        expect(
+          screen.getByText('Nenhum produto cadastrado'),
+        ).toBeInTheDocument();
       });
     });
 
@@ -175,19 +194,29 @@ describe('ProductsPage', () => {
 
     it('should display status badge for active, unavailable and inactive products', async () => {
       mockGet.mockResolvedValue({
-        data: fullResponse([mockProduct, mockUnavailableProduct, mockInactiveProduct]),
+        data: fullResponse([
+          mockProduct,
+          mockUnavailableProduct,
+          mockInactiveProduct,
+        ]),
       });
       renderPage();
 
       await waitFor(() => {
         expect(screen.getByTestId('product-status-ATIVO')).toBeInTheDocument();
-        expect(screen.getByTestId('product-status-INDISPONIVEL')).toBeInTheDocument();
-        expect(screen.getByTestId('product-status-INATIVO')).toBeInTheDocument();
+        expect(
+          screen.getByTestId('product-status-INDISPONIVEL'),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByTestId('product-status-INATIVO'),
+        ).toBeInTheDocument();
       });
     });
 
     it('should show the product count from the in-memory list', async () => {
-      mockGet.mockResolvedValue({ data: fullResponse([mockProduct, mockInactiveProduct]) });
+      mockGet.mockResolvedValue({
+        data: fullResponse([mockProduct, mockInactiveProduct]),
+      });
       renderPage();
 
       await waitFor(() => {
@@ -198,12 +227,17 @@ describe('ProductsPage', () => {
 
   describe('Site column', () => {
     it('should render an external link when the product has a doterraUrl', async () => {
-      mockGet.mockResolvedValue({ data: fullResponse([mockUnavailableProduct]) });
+      mockGet.mockResolvedValue({
+        data: fullResponse([mockUnavailableProduct]),
+      });
       renderPage();
 
       await waitFor(() => {
         const link = screen.getByLabelText('Ver produto no site');
-        expect(link).toHaveAttribute('href', 'https://www.doterra.com/BR/pt_BR/p/deep-blue');
+        expect(link).toHaveAttribute(
+          'href',
+          'https://www.doterra.com/BR/pt_BR/p/deep-blue',
+        );
         expect(link).toHaveAttribute('target', '_blank');
       });
     });
@@ -213,7 +247,9 @@ describe('ProductsPage', () => {
       renderPage();
 
       await waitFor(() => {
-        expect(screen.queryByLabelText('Ver produto no site')).not.toBeInTheDocument();
+        expect(
+          screen.queryByLabelText('Ver produto no site'),
+        ).not.toBeInTheDocument();
         expect(screen.getByText('—')).toBeInTheDocument();
       });
     });
@@ -221,7 +257,9 @@ describe('ProductsPage', () => {
 
   describe('Client-side Search, Filter and Sort', () => {
     it('should filter the list by name without a new API call', async () => {
-      mockGet.mockResolvedValue({ data: fullResponse([mockProduct, mockInactiveProduct]) });
+      mockGet.mockResolvedValue({
+        data: fullResponse([mockProduct, mockInactiveProduct]),
+      });
       renderPage();
 
       await waitFor(() => {
@@ -229,28 +267,38 @@ describe('ProductsPage', () => {
       });
       expect(mockGet).toHaveBeenCalledTimes(1);
 
-      fireEvent.change(screen.getByPlaceholderText('Buscar por nome ou código...'), {
-        target: { value: 'Basil' },
-      });
+      fireEvent.change(
+        screen.getByPlaceholderText('Buscar por nome ou código...'),
+        {
+          target: { value: 'Basil' },
+        },
+      );
 
       await waitFor(() => {
         expect(screen.getByText('Basil')).toBeInTheDocument();
-        expect(screen.queryByText('Adaptiv® Pastilhas')).not.toBeInTheDocument();
+        expect(
+          screen.queryByText('Adaptiv® Pastilhas'),
+        ).not.toBeInTheDocument();
       });
       expect(mockGet).toHaveBeenCalledTimes(1);
     });
 
     it('should filter the list by code without a new API call', async () => {
-      mockGet.mockResolvedValue({ data: fullResponse([mockProduct, mockInactiveProduct]) });
+      mockGet.mockResolvedValue({
+        data: fullResponse([mockProduct, mockInactiveProduct]),
+      });
       renderPage();
 
       await waitFor(() => {
         expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
       });
 
-      fireEvent.change(screen.getByPlaceholderText('Buscar por nome ou código...'), {
-        target: { value: '60226006' },
-      });
+      fireEvent.change(
+        screen.getByPlaceholderText('Buscar por nome ou código...'),
+        {
+          target: { value: '60226006' },
+        },
+      );
 
       await waitFor(() => {
         expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
@@ -260,14 +308,18 @@ describe('ProductsPage', () => {
     });
 
     it('should filter the list by ATIVO status without a new API call', async () => {
-      mockGet.mockResolvedValue({ data: fullResponse([mockProduct, mockInactiveProduct]) });
+      mockGet.mockResolvedValue({
+        data: fullResponse([mockProduct, mockInactiveProduct]),
+      });
       renderPage();
 
       await waitFor(() => {
         expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
       });
 
-      fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'ATIVO' } });
+      fireEvent.change(screen.getByLabelText('Status'), {
+        target: { value: 'ATIVO' },
+      });
 
       await waitFor(() => {
         expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
@@ -277,25 +329,35 @@ describe('ProductsPage', () => {
     });
 
     it('should filter the list by INATIVO status without a new API call', async () => {
-      mockGet.mockResolvedValue({ data: fullResponse([mockProduct, mockInactiveProduct]) });
+      mockGet.mockResolvedValue({
+        data: fullResponse([mockProduct, mockInactiveProduct]),
+      });
       renderPage();
 
       await waitFor(() => {
         expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
       });
 
-      fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'INATIVO' } });
+      fireEvent.change(screen.getByLabelText('Status'), {
+        target: { value: 'INATIVO' },
+      });
 
       await waitFor(() => {
         expect(screen.getByText('Basil')).toBeInTheDocument();
-        expect(screen.queryByText('Adaptiv® Pastilhas')).not.toBeInTheDocument();
+        expect(
+          screen.queryByText('Adaptiv® Pastilhas'),
+        ).not.toBeInTheDocument();
       });
       expect(mockGet).toHaveBeenCalledTimes(1);
     });
 
     it('should filter the list by INDISPONIVEL status without a new API call', async () => {
       mockGet.mockResolvedValue({
-        data: fullResponse([mockProduct, mockUnavailableProduct, mockInactiveProduct]),
+        data: fullResponse([
+          mockProduct,
+          mockUnavailableProduct,
+          mockInactiveProduct,
+        ]),
       });
       renderPage();
 
@@ -303,25 +365,33 @@ describe('ProductsPage', () => {
         expect(screen.getByText('Deep Blue')).toBeInTheDocument();
       });
 
-      fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'INDISPONIVEL' } });
+      fireEvent.change(screen.getByLabelText('Status'), {
+        target: { value: 'INDISPONIVEL' },
+      });
 
       await waitFor(() => {
         expect(screen.getByText('Deep Blue')).toBeInTheDocument();
-        expect(screen.queryByText('Adaptiv® Pastilhas')).not.toBeInTheDocument();
+        expect(
+          screen.queryByText('Adaptiv® Pastilhas'),
+        ).not.toBeInTheDocument();
         expect(screen.queryByText('Basil')).not.toBeInTheDocument();
       });
       expect(mockGet).toHaveBeenCalledTimes(1);
     });
 
     it('should sort the list by PV ascending without a new API call', async () => {
-      mockGet.mockResolvedValue({ data: fullResponse([mockProduct, mockInactiveProduct]) });
+      mockGet.mockResolvedValue({
+        data: fullResponse([mockProduct, mockInactiveProduct]),
+      });
       renderPage();
 
       await waitFor(() => {
         expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
       });
 
-      fireEvent.change(screen.getByLabelText('Ordenar por'), { target: { value: 'pv:asc' } });
+      fireEvent.change(screen.getByLabelText('Ordenar por'), {
+        target: { value: 'pv:asc' },
+      });
 
       await waitFor(() => {
         expect(rowNames()).toEqual(['Basil', 'Adaptiv® Pastilhas']);
@@ -330,14 +400,18 @@ describe('ProductsPage', () => {
     });
 
     it('should sort the list by name descending without a new API call', async () => {
-      mockGet.mockResolvedValue({ data: fullResponse([mockProduct, mockInactiveProduct]) });
+      mockGet.mockResolvedValue({
+        data: fullResponse([mockProduct, mockInactiveProduct]),
+      });
       renderPage();
 
       await waitFor(() => {
         expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
       });
 
-      fireEvent.change(screen.getByLabelText('Ordenar por'), { target: { value: 'name:desc' } });
+      fireEvent.change(screen.getByLabelText('Ordenar por'), {
+        target: { value: 'name:desc' },
+      });
 
       await waitFor(() => {
         expect(rowNames()).toEqual(['Basil', 'Adaptiv® Pastilhas']);
@@ -346,19 +420,28 @@ describe('ProductsPage', () => {
     });
 
     it('should show filtered empty state when a filter yields no results', async () => {
-      mockGet.mockResolvedValue({ data: fullResponse([mockProduct, mockInactiveProduct]) });
+      mockGet.mockResolvedValue({
+        data: fullResponse([mockProduct, mockInactiveProduct]),
+      });
       renderPage();
 
       await waitFor(() => {
         expect(screen.getByText('Novo')).toBeInTheDocument();
       });
 
-      fireEvent.change(screen.getByPlaceholderText('Buscar por nome ou código...'), {
-        target: { value: 'NãoExiste' },
-      });
+      fireEvent.change(
+        screen.getByPlaceholderText('Buscar por nome ou código...'),
+        {
+          target: { value: 'NãoExiste' },
+        },
+      );
 
       await waitFor(() => {
-        expect(screen.getByText('Nenhum produto encontrado para os filtros aplicados.')).toBeInTheDocument();
+        expect(
+          screen.getByText(
+            'Nenhum produto encontrado para os filtros aplicados.',
+          ),
+        ).toBeInTheDocument();
       });
     });
   });
@@ -386,7 +469,9 @@ describe('ProductsPage', () => {
     });
 
     it('should not reveal more rows when the filtered list fits the page size', async () => {
-      mockGet.mockResolvedValue({ data: fullResponse([mockProduct, mockInactiveProduct]) });
+      mockGet.mockResolvedValue({
+        data: fullResponse([mockProduct, mockInactiveProduct]),
+      });
 
       renderPage();
 
@@ -430,7 +515,9 @@ describe('ProductsPage', () => {
         fireEvent.click(screen.getByText('Novo'));
       });
 
-      const form = (await screen.findByPlaceholderText('Digite o código')).closest('form');
+      const form = (
+        await screen.findByPlaceholderText('Digite o código')
+      ).closest('form');
       fireEvent.submit(form);
 
       await waitFor(() => {
@@ -448,14 +535,29 @@ describe('ProductsPage', () => {
 
       const codeInput = await screen.findByPlaceholderText('Digite o código');
       fireEvent.change(codeInput, { target: { value: '60226006' } });
-      fireEvent.change(screen.getByPlaceholderText('Digite o nome do produto'), { target: { value: 'Adaptiv® Pastilhas' } });
-      fireEvent.change(screen.getByPlaceholderText('Digite o tamanho'), { target: { value: '60 pastilhas' } });
-      fireEvent.change(screen.getByPlaceholderText('Digite o preço regular'), { target: { value: '308.00' } });
-      fireEvent.change(screen.getByPlaceholderText('Digite o preço de membro'), { target: { value: '231.25' } });
-      fireEvent.change(screen.getByPlaceholderText('Digite o PV'), { target: { value: '31' } });
-      fireEvent.change(screen.getByPlaceholderText('https://www.doterra.com/BR/pt_BR/...'), {
-        target: { value: 'não é uma url' },
+      fireEvent.change(
+        screen.getByPlaceholderText('Digite o nome do produto'),
+        { target: { value: 'Adaptiv® Pastilhas' } },
+      );
+      fireEvent.change(screen.getByPlaceholderText('Digite o tamanho'), {
+        target: { value: '60 pastilhas' },
       });
+      fireEvent.change(screen.getByPlaceholderText('Digite o preço regular'), {
+        target: { value: '308.00' },
+      });
+      fireEvent.change(
+        screen.getByPlaceholderText('Digite o preço de membro'),
+        { target: { value: '231.25' } },
+      );
+      fireEvent.change(screen.getByPlaceholderText('Digite o PV'), {
+        target: { value: '31' },
+      });
+      fireEvent.change(
+        screen.getByPlaceholderText('https://www.doterra.com/BR/pt_BR/...'),
+        {
+          target: { value: 'não é uma url' },
+        },
+      );
 
       const form = codeInput.closest('form');
       fireEvent.submit(form);
@@ -479,10 +581,16 @@ describe('ProductsPage', () => {
       const codeInput = await screen.findByPlaceholderText('Digite o código');
       const nameInput = screen.getByPlaceholderText('Digite o nome do produto');
       const sizeInput = screen.getByPlaceholderText('Digite o tamanho');
-      const regularInput = screen.getByPlaceholderText('Digite o preço regular');
-      const memberInput = screen.getByPlaceholderText('Digite o preço de membro');
+      const regularInput = screen.getByPlaceholderText(
+        'Digite o preço regular',
+      );
+      const memberInput = screen.getByPlaceholderText(
+        'Digite o preço de membro',
+      );
       const pvInput = screen.getByPlaceholderText('Digite o PV');
-      const urlInput = screen.getByPlaceholderText('https://www.doterra.com/BR/pt_BR/...');
+      const urlInput = screen.getByPlaceholderText(
+        'https://www.doterra.com/BR/pt_BR/...',
+      );
 
       fireEvent.change(codeInput, { target: { value: '60226006' } });
       fireEvent.change(nameInput, { target: { value: 'Adaptiv® Pastilhas' } });
@@ -490,7 +598,9 @@ describe('ProductsPage', () => {
       fireEvent.change(regularInput, { target: { value: '308.00' } });
       fireEvent.change(memberInput, { target: { value: '231.25' } });
       fireEvent.change(pvInput, { target: { value: '31' } });
-      fireEvent.change(urlInput, { target: { value: 'https://www.doterra.com/BR/pt_BR/p/adaptiv' } });
+      fireEvent.change(urlInput, {
+        target: { value: 'https://www.doterra.com/BR/pt_BR/p/adaptiv' },
+      });
       fireEvent.click(screen.getByText('Salvar'));
 
       await waitFor(() => {
@@ -518,18 +628,33 @@ describe('ProductsPage', () => {
 
       const codeInput = await screen.findByPlaceholderText('Digite o código');
       fireEvent.change(codeInput, { target: { value: '60226006' } });
-      fireEvent.change(screen.getByPlaceholderText('Digite o nome do produto'), { target: { value: 'Adaptiv® Pastilhas' } });
-      fireEvent.change(screen.getByPlaceholderText('Digite o tamanho'), { target: { value: '60 pastilhas' } });
-      fireEvent.change(screen.getByPlaceholderText('Digite o preço regular'), { target: { value: '308.00' } });
-      fireEvent.change(screen.getByPlaceholderText('Digite o preço de membro'), { target: { value: '231.25' } });
-      fireEvent.change(screen.getByPlaceholderText('Digite o PV'), { target: { value: '31' } });
+      fireEvent.change(
+        screen.getByPlaceholderText('Digite o nome do produto'),
+        { target: { value: 'Adaptiv® Pastilhas' } },
+      );
+      fireEvent.change(screen.getByPlaceholderText('Digite o tamanho'), {
+        target: { value: '60 pastilhas' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('Digite o preço regular'), {
+        target: { value: '308.00' },
+      });
+      fireEvent.change(
+        screen.getByPlaceholderText('Digite o preço de membro'),
+        { target: { value: '231.25' } },
+      );
+      fireEvent.change(screen.getByPlaceholderText('Digite o PV'), {
+        target: { value: '31' },
+      });
 
       fireEvent.click(screen.getByText('Salvar'));
 
       await waitFor(() => {
-        expect(mockPost).toHaveBeenCalledWith('/products', expect.objectContaining({
-          doterraUrl: null,
-        }));
+        expect(mockPost).toHaveBeenCalledWith(
+          '/products',
+          expect.objectContaining({
+            doterraUrl: null,
+          }),
+        );
       });
     });
   });
@@ -548,13 +673,17 @@ describe('ProductsPage', () => {
       await waitFor(() => {
         expect(screen.getByText('Editar Produto')).toBeInTheDocument();
         expect(screen.getByDisplayValue('60226006')).toBeDisabled();
-        expect(screen.getByDisplayValue('Adaptiv® Pastilhas')).toBeInTheDocument();
+        expect(
+          screen.getByDisplayValue('Adaptiv® Pastilhas'),
+        ).toBeInTheDocument();
       });
     });
 
     it('should call PUT API on form submit with status and doterraUrl', async () => {
       mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
-      mockPut.mockResolvedValue({ data: { ...mockProduct, name: 'Adaptiv® Atualizado' } });
+      mockPut.mockResolvedValue({
+        data: { ...mockProduct, name: 'Adaptiv® Atualizado' },
+      });
 
       renderPage();
 
@@ -582,7 +711,9 @@ describe('ProductsPage', () => {
 
     it('should update the status select to INDISPONIVEL and send it', async () => {
       mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
-      mockPut.mockResolvedValue({ data: { ...mockProduct, status: 'INDISPONIVEL' } });
+      mockPut.mockResolvedValue({
+        data: { ...mockProduct, status: 'INDISPONIVEL' },
+      });
 
       renderPage();
 
@@ -599,9 +730,12 @@ describe('ProductsPage', () => {
       fireEvent.submit(form);
 
       await waitFor(() => {
-        expect(mockPut).toHaveBeenCalledWith('/products/1', expect.objectContaining({
-          status: 'INDISPONIVEL',
-        }));
+        expect(mockPut).toHaveBeenCalledWith(
+          '/products/1',
+          expect.objectContaining({
+            status: 'INDISPONIVEL',
+          }),
+        );
       });
     });
   });
@@ -609,7 +743,9 @@ describe('ProductsPage', () => {
   describe('Inline status change', () => {
     it('should call PUT to change status when confirming', async () => {
       mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
-      mockPut.mockResolvedValue({ data: { ...mockProduct, status: 'INATIVO' } });
+      mockPut.mockResolvedValue({
+        data: { ...mockProduct, status: 'INATIVO' },
+      });
       window.confirm = vi.fn(() => true);
 
       renderPage();
@@ -618,11 +754,15 @@ describe('ProductsPage', () => {
         expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
       });
 
-      fireEvent.change(screen.getByLabelText('Alterar status'), { target: { value: 'INATIVO' } });
+      fireEvent.change(screen.getByLabelText('Alterar status'), {
+        target: { value: 'INATIVO' },
+      });
 
       expect(window.confirm).toHaveBeenCalled();
       await waitFor(() => {
-        expect(mockPut).toHaveBeenCalledWith('/products/1', { status: 'INATIVO' });
+        expect(mockPut).toHaveBeenCalledWith('/products/1', {
+          status: 'INATIVO',
+        });
       });
     });
 
@@ -636,7 +776,9 @@ describe('ProductsPage', () => {
         expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
       });
 
-      fireEvent.change(screen.getByLabelText('Alterar status'), { target: { value: 'INATIVO' } });
+      fireEvent.change(screen.getByLabelText('Alterar status'), {
+        target: { value: 'INATIVO' },
+      });
 
       expect(mockPut).not.toHaveBeenCalled();
     });
@@ -644,11 +786,15 @@ describe('ProductsPage', () => {
 
   describe('Action Menu (kebab)', () => {
     it('should render one kebab trigger per row', async () => {
-      mockGet.mockResolvedValue({ data: fullResponse([mockProduct, mockInactiveProduct]) });
+      mockGet.mockResolvedValue({
+        data: fullResponse([mockProduct, mockInactiveProduct]),
+      });
       renderPage();
 
       await waitFor(() => {
-        expect(screen.getAllByTestId(/product-actions-.*-trigger/)).toHaveLength(2);
+        expect(
+          screen.getAllByTestId(/product-actions-.*-trigger/),
+        ).toHaveLength(2);
       });
     });
 
@@ -657,9 +803,13 @@ describe('ProductsPage', () => {
       renderPage();
 
       await waitFor(() => {
-        expect(screen.getByTestId('product-actions-1-trigger')).toBeInTheDocument();
+        expect(
+          screen.getByTestId('product-actions-1-trigger'),
+        ).toBeInTheDocument();
       });
-      expect(screen.queryByTestId('product-actions-1-menu')).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('product-actions-1-menu'),
+      ).not.toBeInTheDocument();
     });
 
     it('should show Editar item when the trigger is clicked', async () => {
@@ -668,7 +818,9 @@ describe('ProductsPage', () => {
 
       await openProductActionsMenu('1');
 
-      expect(screen.getByTestId('product-actions-1-item-Editar')).toHaveTextContent('Editar');
+      expect(
+        screen.getByTestId('product-actions-1-item-Editar'),
+      ).toHaveTextContent('Editar');
     });
 
     it('should expose correct a11y semantics on trigger, menu and items', async () => {
@@ -682,8 +834,13 @@ describe('ProductsPage', () => {
       await openProductActionsMenu('1');
 
       expect(trigger).toHaveAttribute('aria-expanded', 'true');
-      expect(screen.getByTestId('product-actions-1-menu')).toHaveAttribute('role', 'menu');
-      expect(screen.getByTestId('product-actions-1-item-Editar')).toHaveAttribute('role', 'menuitem');
+      expect(screen.getByTestId('product-actions-1-menu')).toHaveAttribute(
+        'role',
+        'menu',
+      );
+      expect(
+        screen.getByTestId('product-actions-1-item-Editar'),
+      ).toHaveAttribute('role', 'menuitem');
     });
 
     it('should close the menu when clicking the backdrop', async () => {
@@ -695,7 +852,9 @@ describe('ProductsPage', () => {
       fireEvent.click(screen.getByTestId('product-actions-1-backdrop'));
 
       await waitFor(() => {
-        expect(screen.queryByTestId('product-actions-1-menu')).not.toBeInTheDocument();
+        expect(
+          screen.queryByTestId('product-actions-1-menu'),
+        ).not.toBeInTheDocument();
       });
     });
 
@@ -708,7 +867,9 @@ describe('ProductsPage', () => {
       fireEvent.keyDown(document, { key: 'Escape' });
 
       await waitFor(() => {
-        expect(screen.queryByTestId('product-actions-1-menu')).not.toBeInTheDocument();
+        expect(
+          screen.queryByTestId('product-actions-1-menu'),
+        ).not.toBeInTheDocument();
       });
     });
 

@@ -44,14 +44,20 @@ describe('Dashboard Yearly Breakdown', () => {
     }
     createdOrderIds = [];
     if (testPersonId) {
-      await prisma.person.delete({ where: { id: testPersonId } }).catch(() => {});
+      await prisma.person
+        .delete({ where: { id: testPersonId } })
+        .catch(() => {});
       testPersonId = null;
     }
   });
 
   beforeEach(async () => {
     const person = await prisma.person.create({
-      data: { name: 'Dashboard Year Test Person', whatsapp: 'year@test.com', userId },
+      data: {
+        name: 'Dashboard Year Test Person',
+        whatsapp: 'year@test.com',
+        userId,
+      },
     });
     testPersonId = person.id;
   });
@@ -79,12 +85,18 @@ describe('Dashboard Yearly Breakdown', () => {
     const order = await prisma.order.create({
       data: {
         orderNumber: uniqueOrderNumber('YR-QUIT'),
-        totalValue: 777.00,
+        totalValue: 777.0,
         orderDate: parseLocalDate('2022-06-15'),
         status: 'QUITADO',
         userId,
         items: {
-          create: [{ description: 'Item Quitado', chargedValue: 777.00, personId: testPersonId }],
+          create: [
+            {
+              description: 'Item Quitado',
+              chargedValue: 777.0,
+              personId: testPersonId,
+            },
+          ],
         },
       },
     });
@@ -96,21 +108,31 @@ describe('Dashboard Yearly Breakdown', () => {
       .set('Authorization', `Bearer ${authToken}`);
 
     expect(response.status).toBe(200);
-    const breakdown2022 = response.body.yearlyBreakdown.find((y) => y.year === 2022);
+    const breakdown2022 = response.body.yearlyBreakdown.find(
+      (y) => y.year === 2022,
+    );
     expect(breakdown2022).toBeDefined();
-    expect(parseFloat(breakdown2022.totalQuitado)).toBeGreaterThanOrEqual(777.00);
+    expect(parseFloat(breakdown2022.totalQuitado)).toBeGreaterThanOrEqual(
+      777.0,
+    );
   });
 
   it('should include PENDENTE and PARCIAL orders in totalPending for their year', async () => {
     const orderPendente = await prisma.order.create({
       data: {
         orderNumber: uniqueOrderNumber('YR-PEND'),
-        totalValue: 555.00,
+        totalValue: 555.0,
         orderDate: parseLocalDate('2021-03-10'),
         status: 'PENDENTE',
         userId,
         items: {
-          create: [{ description: 'Item Pendente', chargedValue: 555.00, personId: testPersonId }],
+          create: [
+            {
+              description: 'Item Pendente',
+              chargedValue: 555.0,
+              personId: testPersonId,
+            },
+          ],
         },
       },
     });
@@ -118,12 +140,18 @@ describe('Dashboard Yearly Breakdown', () => {
     const orderParcial = await prisma.order.create({
       data: {
         orderNumber: uniqueOrderNumber('YR-PARC2'),
-        totalValue: 444.00,
+        totalValue: 444.0,
         orderDate: parseLocalDate('2021-07-20'),
         status: 'PARCIAL',
         userId,
         items: {
-          create: [{ description: 'Item Parcial', chargedValue: 444.00, personId: testPersonId }],
+          create: [
+            {
+              description: 'Item Parcial',
+              chargedValue: 444.0,
+              personId: testPersonId,
+            },
+          ],
         },
       },
     });
@@ -135,9 +163,13 @@ describe('Dashboard Yearly Breakdown', () => {
       .set('Authorization', `Bearer ${authToken}`);
 
     expect(response.status).toBe(200);
-    const breakdown2021 = response.body.yearlyBreakdown.find((y) => y.year === 2021);
+    const breakdown2021 = response.body.yearlyBreakdown.find(
+      (y) => y.year === 2021,
+    );
     expect(breakdown2021).toBeDefined();
-    expect(parseFloat(breakdown2021.totalPending)).toBeGreaterThanOrEqual(555.00 + 444.00);
+    expect(parseFloat(breakdown2021.totalPending)).toBeGreaterThanOrEqual(
+      555.0 + 444.0,
+    );
     expect(parseFloat(breakdown2021.totalQuitado)).toBe(0);
   });
 
@@ -157,17 +189,23 @@ describe('Dashboard Yearly Breakdown', () => {
     const order2023 = await prisma.order.create({
       data: {
         orderNumber: uniqueOrderNumber('YR-2023-PAY'),
-        totalValue: 666.00,
+        totalValue: 666.0,
         orderDate: parseLocalDate('2023-12-01'),
         status: 'QUITADO',
         userId,
         items: {
-          create: [{ description: 'Item Dec 2023', chargedValue: 666.00, personId: testPersonId }],
+          create: [
+            {
+              description: 'Item Dec 2023',
+              chargedValue: 666.0,
+              personId: testPersonId,
+            },
+          ],
         },
         payments: {
           create: [
             {
-              amount: 666.00,
+              amount: 666.0,
               personId: testPersonId,
               paidAt: parseLocalDate('2027-01-15'),
             },
@@ -183,11 +221,17 @@ describe('Dashboard Yearly Breakdown', () => {
       .set('Authorization', `Bearer ${authToken}`);
 
     expect(response.status).toBe(200);
-    const breakdown2023 = response.body.yearlyBreakdown.find((y) => y.year === 2023);
-    const breakdown2027 = response.body.yearlyBreakdown.find((y) => y.year === 2027);
+    const breakdown2023 = response.body.yearlyBreakdown.find(
+      (y) => y.year === 2023,
+    );
+    const breakdown2027 = response.body.yearlyBreakdown.find(
+      (y) => y.year === 2027,
+    );
 
     expect(breakdown2023).toBeDefined();
-    expect(parseFloat(breakdown2023.totalQuitado)).toBeGreaterThanOrEqual(666.00);
+    expect(parseFloat(breakdown2023.totalQuitado)).toBeGreaterThanOrEqual(
+      666.0,
+    );
 
     expect(breakdown2027).toBeUndefined();
   });

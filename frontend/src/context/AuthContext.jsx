@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from 'react';
 import { jwtDecode } from 'jwt-decode';
 import api from '../services/api';
 
@@ -58,7 +64,9 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, loading, login, register, logout, user }}>
+    <AuthContext.Provider
+      value={{ isAuthenticated, loading, login, register, logout, user }}
+    >
       {children}
     </AuthContext.Provider>
   );

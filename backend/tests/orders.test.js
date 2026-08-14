@@ -35,11 +35,15 @@ describe('Orders CRUD with Items', () => {
 
   afterEach(async () => {
     if (createdOrderId) {
-      await prisma.order.delete({ where: { id: createdOrderId } }).catch(() => {});
+      await prisma.order
+        .delete({ where: { id: createdOrderId } })
+        .catch(() => {});
       createdOrderId = null;
     }
     if (testPersonId) {
-      await prisma.person.delete({ where: { id: testPersonId } }).catch(() => {});
+      await prisma.person
+        .delete({ where: { id: testPersonId } })
+        .catch(() => {});
       testPersonId = null;
     }
   });
@@ -47,7 +51,11 @@ describe('Orders CRUD with Items', () => {
   describe('POST /api/orders', () => {
     beforeEach(async () => {
       const person = await prisma.person.create({
-        data: { name: 'Test Person for Order', whatsapp: 'person@test.com', userId },
+        data: {
+          name: 'Test Person for Order',
+          whatsapp: 'person@test.com',
+          userId,
+        },
       });
       testPersonId = person.id;
     });
@@ -59,14 +67,22 @@ describe('Orders CRUD with Items', () => {
         .send({
           orderNumber: uniqueOrderNumber('ORD'),
           items: [
-            { description: 'Item 1', chargedValue: 100.00, personId: testPersonId },
-            { description: 'Item 2', chargedValue: 200.00, personId: testPersonId },
+            {
+              description: 'Item 1',
+              chargedValue: 100.0,
+              personId: testPersonId,
+            },
+            {
+              description: 'Item 2',
+              chargedValue: 200.0,
+              personId: testPersonId,
+            },
           ],
         });
 
       expect(response.status).toBe(201);
       expect(response.body.orderNumber).toBeDefined();
-      expect(parseFloat(response.body.totalValue)).toBe(300.00);
+      expect(parseFloat(response.body.totalValue)).toBe(300.0);
       expect(response.body.status).toBe('PENDENTE');
       expect(response.body.items).toHaveLength(2);
       expect(response.body.items[0].description).toBe('Item 1');
@@ -80,12 +96,16 @@ describe('Orders CRUD with Items', () => {
         .send({
           orderNumber: uniqueOrderNumber('ORD'),
           items: [
-            { description: 'Single Item', chargedValue: 500.00, personId: testPersonId },
+            {
+              description: 'Single Item',
+              chargedValue: 500.0,
+              personId: testPersonId,
+            },
           ],
         });
 
       expect(response.status).toBe(201);
-      expect(parseFloat(response.body.totalValue)).toBe(500.00);
+      expect(parseFloat(response.body.totalValue)).toBe(500.0);
       expect(response.body.items).toHaveLength(1);
       createdOrderId = response.body.id;
     });
@@ -95,7 +115,9 @@ describe('Orders CRUD with Items', () => {
         .post('/api/orders')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          items: [{ description: 'Item', chargedValue: 100, personId: testPersonId }],
+          items: [
+            { description: 'Item', chargedValue: 100, personId: testPersonId },
+          ],
         });
 
       expect(response.status).toBe(400);
@@ -107,7 +129,9 @@ describe('Orders CRUD with Items', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           orderNumber: uniqueOrderNumber('ORD'),
-          items: [{ description: 'Item', chargedValue: -100, personId: testPersonId }],
+          items: [
+            { description: 'Item', chargedValue: -100, personId: testPersonId },
+          ],
         });
 
       expect(response.status).toBe(400);
@@ -119,7 +143,9 @@ describe('Orders CRUD with Items', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           orderNumber: uniqueOrderNumber('ORD-GIFT'),
-          items: [{ description: 'Brinde', chargedValue: 0, personId: testPersonId }],
+          items: [
+            { description: 'Brinde', chargedValue: 0, personId: testPersonId },
+          ],
         });
 
       expect(response.status).toBe(201);
@@ -163,7 +189,13 @@ describe('Orders CRUD with Items', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           orderNumber: uniqueOrderNumber('ORD'),
-          items: [{ description: 'Item', chargedValue: 100, personId: '00000000-0000-0000-0000-000000000000' }],
+          items: [
+            {
+              description: 'Item',
+              chargedValue: 100,
+              personId: '00000000-0000-0000-0000-000000000000',
+            },
+          ],
         });
 
       expect(response.status).toBe(400);
@@ -177,7 +209,11 @@ describe('Orders CRUD with Items', () => {
           orderNumber: uniqueOrderNumber('ORD'),
           orderDate: '2026-05-15',
           items: [
-            { description: 'Item 1', chargedValue: 100.00, personId: testPersonId },
+            {
+              description: 'Item 1',
+              chargedValue: 100.0,
+              personId: testPersonId,
+            },
           ],
         });
 
@@ -197,7 +233,11 @@ describe('Orders CRUD with Items', () => {
         .send({
           orderNumber: uniqueOrderNumber('ORD'),
           items: [
-            { description: 'Item 1', chargedValue: 100.00, personId: testPersonId },
+            {
+              description: 'Item 1',
+              chargedValue: 100.0,
+              personId: testPersonId,
+            },
           ],
         });
 
@@ -216,7 +256,9 @@ describe('Orders CRUD with Items', () => {
         .post('/api/orders')
         .send({
           orderNumber: uniqueOrderNumber('ORD'),
-          items: [{ description: 'Item', chargedValue: 100, personId: testPersonId }],
+          items: [
+            { description: 'Item', chargedValue: 100, personId: testPersonId },
+          ],
         });
 
       expect(response.status).toBe(401);
@@ -228,36 +270,42 @@ describe('Orders CRUD with Items', () => {
         .set('Authorization', 'Bearer invalid-token')
         .send({
           orderNumber: uniqueOrderNumber('ORD'),
-          items: [{ description: 'Item', chargedValue: 100, personId: testPersonId }],
+          items: [
+            { description: 'Item', chargedValue: 100, personId: testPersonId },
+          ],
         });
 
       expect(response.status).toBe(403);
     });
   });
 
-    describe('GET /api/orders', () => {
-      beforeEach(async () => {
-        const person = await prisma.person.create({
-          data: { name: 'Test Person', whatsapp: 'test@test.com', userId },
-        });
-        testPersonId = person.id;
-
-        const order = await prisma.order.create({
-          data: {
-            orderNumber: `ORD-TEST-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
-            totalValue: 150.00,
-            status: 'PENDENTE',
-            userId,
-            items: {
-              create: [
-                { description: 'Test Item', chargedValue: 150.00, personId: testPersonId },
-              ],
-            },
-          },
-          include: { items: true },
-        });
-        createdOrderId = order.id;
+  describe('GET /api/orders', () => {
+    beforeEach(async () => {
+      const person = await prisma.person.create({
+        data: { name: 'Test Person', whatsapp: 'test@test.com', userId },
       });
+      testPersonId = person.id;
+
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: `ORD-TEST-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+          totalValue: 150.0,
+          status: 'PENDENTE',
+          userId,
+          items: {
+            create: [
+              {
+                description: 'Test Item',
+                chargedValue: 150.0,
+                personId: testPersonId,
+              },
+            ],
+          },
+        },
+        include: { items: true },
+      });
+      createdOrderId = order.id;
+    });
 
     it('should return all orders with items', async () => {
       const response = await request(app)
@@ -305,12 +353,16 @@ describe('Orders CRUD with Items', () => {
       const order = await prisma.order.create({
         data: {
           orderNumber: uniqueOrderNumber('ORD-PUT'),
-          totalValue: 100.00,
+          totalValue: 100.0,
           status: 'PENDENTE',
           userId,
           items: {
             create: [
-              { description: 'Original Item', chargedValue: 100.00, personId: testPersonId },
+              {
+                description: 'Original Item',
+                chargedValue: 100.0,
+                personId: testPersonId,
+              },
             ],
           },
         },
@@ -326,14 +378,22 @@ describe('Orders CRUD with Items', () => {
         .send({
           orderNumber: 'ORD-UPDATED',
           items: [
-            { description: 'New Item 1', chargedValue: 200.00, personId: testPersonId },
-            { description: 'New Item 2', chargedValue: 300.00, personId: testPersonId },
+            {
+              description: 'New Item 1',
+              chargedValue: 200.0,
+              personId: testPersonId,
+            },
+            {
+              description: 'New Item 2',
+              chargedValue: 300.0,
+              personId: testPersonId,
+            },
           ],
         });
 
       expect(response.status).toBe(200);
       expect(response.body.orderNumber).toBe('ORD-UPDATED');
-      expect(parseFloat(response.body.totalValue)).toBe(500.00);
+      expect(parseFloat(response.body.totalValue)).toBe(500.0);
       expect(response.body.items).toHaveLength(2);
     });
 
@@ -363,7 +423,9 @@ describe('Orders CRUD with Items', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           orderNumber: 'ORD-INVALID',
-          items: [{ description: 'Item', chargedValue: -50, personId: testPersonId }],
+          items: [
+            { description: 'Item', chargedValue: -50, personId: testPersonId },
+          ],
         });
 
       expect(response.status).toBe(400);
@@ -393,12 +455,16 @@ describe('Orders CRUD with Items', () => {
       const order = await prisma.order.create({
         data: {
           orderNumber: uniqueOrderNumber('ORD-DEL'),
-          totalValue: 100.00,
+          totalValue: 100.0,
           status: 'PENDENTE',
           userId,
           items: {
             create: [
-              { description: 'Item to Delete', chargedValue: 100.00, personId: testPersonId },
+              {
+                description: 'Item to Delete',
+                chargedValue: 100.0,
+                personId: testPersonId,
+              },
             ],
           },
         },
@@ -442,12 +508,16 @@ describe('Orders CRUD with Items', () => {
       const order = await prisma.order.create({
         data: {
           orderNumber: uniqueOrderNumber('ORD-ITEM'),
-          totalValue: 100.00,
+          totalValue: 100.0,
           status: 'PENDENTE',
           userId,
           items: {
             create: [
-              { description: 'Original Item', chargedValue: 100.00, personId: testPersonId },
+              {
+                description: 'Original Item',
+                chargedValue: 100.0,
+                personId: testPersonId,
+              },
             ],
           },
         },
@@ -459,7 +529,9 @@ describe('Orders CRUD with Items', () => {
 
     afterEach(async () => {
       if (createdItemId) {
-        await prisma.item.delete({ where: { id: createdItemId } }).catch(() => {});
+        await prisma.item
+          .delete({ where: { id: createdItemId } })
+          .catch(() => {});
       }
     });
 
@@ -469,19 +541,19 @@ describe('Orders CRUD with Items', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           description: 'New Item',
-          chargedValue: 50.00,
+          chargedValue: 50.0,
           personId: testPersonId,
         });
 
       expect(response.status).toBe(201);
       expect(response.body.description).toBe('New Item');
-      expect(parseFloat(response.body.chargedValue)).toBe(50.00);
+      expect(parseFloat(response.body.chargedValue)).toBe(50.0);
       expect(response.body.orderId).toBe(createdOrderId);
 
       const orderResponse = await request(app)
         .get(`/api/orders/${createdOrderId}`)
         .set('Authorization', `Bearer ${authToken}`);
-      expect(parseFloat(orderResponse.body.totalValue)).toBe(150.00);
+      expect(parseFloat(orderResponse.body.totalValue)).toBe(150.0);
     });
 
     it('should update an item', async () => {
@@ -490,12 +562,12 @@ describe('Orders CRUD with Items', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           description: 'Updated Item',
-          chargedValue: 200.00,
+          chargedValue: 200.0,
         });
 
       expect(response.status).toBe(200);
       expect(response.body.description).toBe('Updated Item');
-      expect(parseFloat(response.body.chargedValue)).toBe(200.00);
+      expect(parseFloat(response.body.chargedValue)).toBe(200.0);
     });
 
     it('should delete an item from an order', async () => {
@@ -519,7 +591,7 @@ describe('Orders CRUD with Items', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           description: 'Orphan Item',
-          chargedValue: 50.00,
+          chargedValue: 50.0,
           personId: testPersonId,
         });
 
@@ -539,7 +611,7 @@ describe('Orders CRUD with Items', () => {
       expect(response.status).toBe(400);
     });
 
-    it('should reject adding item to another user\'s order', async () => {
+    it("should reject adding item to another user's order", async () => {
       const otherUser = `other_items_${Date.now()}`;
       const regRes = await request(app)
         .post('/api/auth/register')
@@ -556,7 +628,7 @@ describe('Orders CRUD with Items', () => {
         .set('Authorization', `Bearer ${otherToken}`)
         .send({
           description: 'Sneaky Item',
-          chargedValue: 10.00,
+          chargedValue: 10.0,
           personId: testPersonId,
         });
 
@@ -571,7 +643,11 @@ describe('Orders CRUD with Items', () => {
 
     beforeEach(async () => {
       const person = await prisma.person.create({
-        data: { name: 'Test Person Enhanced', whatsapp: 'enhanced@test.com', userId },
+        data: {
+          name: 'Test Person Enhanced',
+          whatsapp: 'enhanced@test.com',
+          userId,
+        },
       });
       testPersonId = person.id;
 
@@ -583,7 +659,7 @@ describe('Orders CRUD with Items', () => {
           size: '1',
           prices: {
             create: {
-              regularPrice: 300.00,
+              regularPrice: 300.0,
               memberPrice: 231.25,
               pv: 31,
             },
@@ -595,7 +671,9 @@ describe('Orders CRUD with Items', () => {
 
     afterEach(async () => {
       if (testProductId) {
-        await prisma.product.delete({ where: { id: testProductId } }).catch(() => {});
+        await prisma.product
+          .delete({ where: { id: testProductId } })
+          .catch(() => {});
         testProductId = null;
       }
     });
@@ -640,7 +718,7 @@ describe('Orders CRUD with Items', () => {
           items: [
             {
               description: 'Frete',
-              chargedValue: 15.00,
+              chargedValue: 15.0,
               personId: testPersonId,
             },
           ],
@@ -648,7 +726,7 @@ describe('Orders CRUD with Items', () => {
 
       expect(response.status).toBe(201);
       expect(response.body.items[0].productId).toBeNull();
-      expect(parseFloat(response.body.totalValue)).toBe(15.00);
+      expect(parseFloat(response.body.totalValue)).toBe(15.0);
       createdOrderId = response.body.id;
     });
 
@@ -661,7 +739,7 @@ describe('Orders CRUD with Items', () => {
           items: [
             {
               description: 'Item',
-              chargedValue: 50.00,
+              chargedValue: 50.0,
               personId: testPersonId,
               productId: '00000000-0000-0000-0000-000000000000',
             },
@@ -669,7 +747,9 @@ describe('Orders CRUD with Items', () => {
         });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('One or more products are inactive or do not exist');
+      expect(response.body.error).toBe(
+        'One or more products are inactive or do not exist',
+      );
     });
 
     it('should reject order with inactive productId', async () => {
@@ -686,7 +766,7 @@ describe('Orders CRUD with Items', () => {
           items: [
             {
               description: 'Item',
-              chargedValue: 50.00,
+              chargedValue: 50.0,
               personId: testPersonId,
               productId: testProductId,
             },
@@ -694,7 +774,9 @@ describe('Orders CRUD with Items', () => {
         });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('One or more products are inactive or do not exist');
+      expect(response.body.error).toBe(
+        'One or more products are inactive or do not exist',
+      );
     });
 
     it('should accept order with an INDISPONIVEL productId', async () => {
@@ -711,7 +793,7 @@ describe('Orders CRUD with Items', () => {
           items: [
             {
               description: 'Item',
-              chargedValue: 50.00,
+              chargedValue: 50.0,
               personId: testPersonId,
               productId: testProductId,
             },
@@ -731,7 +813,7 @@ describe('Orders CRUD with Items', () => {
           items: [
             {
               description: 'Item',
-              chargedValue: 50.00,
+              chargedValue: 50.0,
               personId: testPersonId,
               details: 'x'.repeat(501),
             },
@@ -745,14 +827,14 @@ describe('Orders CRUD with Items', () => {
       const order = await prisma.order.create({
         data: {
           orderNumber: uniqueOrderNumber('ORD-UPD-ENH'),
-          totalValue: 100.00,
+          totalValue: 100.0,
           status: 'PENDENTE',
           userId,
           items: {
             create: [
               {
                 description: 'Original',
-                chargedValue: 100.00,
+                chargedValue: 100.0,
                 personId: testPersonId,
               },
             ],
@@ -800,7 +882,11 @@ describe('Orders CRUD with Items', () => {
           paymentType: 'PIX',
           orderNotes: 'Pedido de promoção de março',
           items: [
-            { description: 'Item', chargedValue: 100.00, personId: testPersonId },
+            {
+              description: 'Item',
+              chargedValue: 100.0,
+              personId: testPersonId,
+            },
           ],
         });
 
@@ -808,7 +894,7 @@ describe('Orders CRUD with Items', () => {
       expect(response.body.accountOwner).toBe('6254862 - Ana Silva');
       expect(response.body.paymentType).toBe('PIX');
       expect(response.body.orderNotes).toBe('Pedido de promoção de março');
-      expect(parseFloat(response.body.totalValue)).toBe(100.00);
+      expect(parseFloat(response.body.totalValue)).toBe(100.0);
       createdOrderId = response.body.id;
     });
 
@@ -819,7 +905,7 @@ describe('Orders CRUD with Items', () => {
         .send({
           orderNumber: uniqueOrderNumber('ORD-NOPGTO'),
           items: [
-            { description: 'Item', chargedValue: 50.00, personId: testPersonId },
+            { description: 'Item', chargedValue: 50.0, personId: testPersonId },
           ],
         });
 
@@ -839,7 +925,11 @@ describe('Orders CRUD with Items', () => {
             orderNumber: uniqueOrderNumber('ORD-PGTO'),
             paymentType,
             items: [
-              { description: 'Item', chargedValue: 50.00, personId: testPersonId },
+              {
+                description: 'Item',
+                chargedValue: 50.0,
+                personId: testPersonId,
+              },
             ],
           });
         expect(response.status).toBe(201);
@@ -856,7 +946,7 @@ describe('Orders CRUD with Items', () => {
           orderNumber: uniqueOrderNumber('ORD-BADPGTO'),
           paymentType: 'DINHEIRO',
           items: [
-            { description: 'Item', chargedValue: 50.00, personId: testPersonId },
+            { description: 'Item', chargedValue: 50.0, personId: testPersonId },
           ],
         });
 
@@ -873,7 +963,7 @@ describe('Orders CRUD with Items', () => {
           orderNumber: uniqueOrderNumber('ORD-LONGOWN'),
           accountOwner: 'x'.repeat(121),
           items: [
-            { description: 'Item', chargedValue: 50.00, personId: testPersonId },
+            { description: 'Item', chargedValue: 50.0, personId: testPersonId },
           ],
         });
 
@@ -889,7 +979,7 @@ describe('Orders CRUD with Items', () => {
           orderNumber: uniqueOrderNumber('ORD-LONGNOTES'),
           orderNotes: 'y'.repeat(501),
           items: [
-            { description: 'Item', chargedValue: 50.00, personId: testPersonId },
+            { description: 'Item', chargedValue: 50.0, personId: testPersonId },
           ],
         });
 
@@ -901,12 +991,16 @@ describe('Orders CRUD with Items', () => {
       const order = await prisma.order.create({
         data: {
           orderNumber: uniqueOrderNumber('ORD-UPD-DESC'),
-          totalValue: 100.00,
+          totalValue: 100.0,
           status: 'PENDENTE',
           userId,
           items: {
             create: [
-              { description: 'Item', chargedValue: 100.00, personId: testPersonId },
+              {
+                description: 'Item',
+                chargedValue: 100.0,
+                personId: testPersonId,
+              },
             ],
           },
         },
@@ -926,20 +1020,24 @@ describe('Orders CRUD with Items', () => {
       expect(response.body.accountOwner).toBe('João Pereira');
       expect(response.body.paymentType).toBe('BOLETO');
       expect(response.body.orderNotes).toBe('Encomenda para revenda');
-      expect(parseFloat(response.body.totalValue)).toBe(100.00);
+      expect(parseFloat(response.body.totalValue)).toBe(100.0);
     });
 
     it('should update order clearing payment type with explicit null', async () => {
       const order = await prisma.order.create({
         data: {
           orderNumber: uniqueOrderNumber('ORD-CLEAR-PGTO'),
-          totalValue: 100.00,
+          totalValue: 100.0,
           status: 'PENDENTE',
           paymentType: 'PIX',
           userId,
           items: {
             create: [
-              { description: 'Item', chargedValue: 100.00, personId: testPersonId },
+              {
+                description: 'Item',
+                chargedValue: 100.0,
+                personId: testPersonId,
+              },
             ],
           },
         },
@@ -959,7 +1057,7 @@ describe('Orders CRUD with Items', () => {
       const order = await prisma.order.create({
         data: {
           orderNumber: uniqueOrderNumber('ORD-UPD-ITEMS-DESC'),
-          totalValue: 100.00,
+          totalValue: 100.0,
           status: 'PENDENTE',
           accountOwner: 'Maria',
           paymentType: 'CARTAO_CREDITO',
@@ -967,7 +1065,11 @@ describe('Orders CRUD with Items', () => {
           userId,
           items: {
             create: [
-              { description: 'Item 1', chargedValue: 100.00, personId: testPersonId },
+              {
+                description: 'Item 1',
+                chargedValue: 100.0,
+                personId: testPersonId,
+              },
             ],
           },
         },
@@ -979,8 +1081,16 @@ describe('Orders CRUD with Items', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           items: [
-            { description: 'Item 1', chargedValue: 60.00, personId: testPersonId },
-            { description: 'Item 2', chargedValue: 40.00, personId: testPersonId },
+            {
+              description: 'Item 1',
+              chargedValue: 60.0,
+              personId: testPersonId,
+            },
+            {
+              description: 'Item 2',
+              chargedValue: 40.0,
+              personId: testPersonId,
+            },
           ],
         });
 
@@ -989,7 +1099,7 @@ describe('Orders CRUD with Items', () => {
       expect(response.body.accountOwner).toBe('Maria');
       expect(response.body.paymentType).toBe('CARTAO_CREDITO');
       expect(response.body.orderNotes).toBe('Original');
-      expect(parseFloat(response.body.totalValue)).toBe(100.00);
+      expect(parseFloat(response.body.totalValue)).toBe(100.0);
     });
   });
 });

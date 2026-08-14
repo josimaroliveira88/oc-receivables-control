@@ -28,7 +28,9 @@ function samePriceValues(current, row) {
  *  - dryRun: boolean — compute the summary without persisting any change
  */
 async function loadProductCatalog(prisma, rows, options = {}) {
-  const validFrom = options.validFrom ? new Date(options.validFrom) : new Date();
+  const validFrom = options.validFrom
+    ? new Date(options.validFrom)
+    : new Date();
   const dryRun = Boolean(options.dryRun);
   const codes = new Set();
   const summary = {
@@ -45,7 +47,9 @@ async function loadProductCatalog(prisma, rows, options = {}) {
       for (const row of rows) {
         codes.add(row.code);
 
-        const existing = await tx.product.findUnique({ where: { code: row.code } });
+        const existing = await tx.product.findUnique({
+          where: { code: row.code },
+        });
 
         if (!existing) {
           await tx.product.create({
@@ -68,7 +72,8 @@ async function loadProductCatalog(prisma, rows, options = {}) {
           continue;
         }
 
-        const nameOrSizeChanged = existing.name !== row.name || existing.size !== row.size;
+        const nameOrSizeChanged =
+          existing.name !== row.name || existing.size !== row.size;
         const needsReactivation = existing.status === 'INATIVO';
 
         if (nameOrSizeChanged || needsReactivation) {
@@ -131,7 +136,9 @@ async function loadProductCatalog(prisma, rows, options = {}) {
         }
       }
 
-      const activeProducts = await tx.product.findMany({ where: { status: 'ATIVO' } });
+      const activeProducts = await tx.product.findMany({
+        where: { status: 'ATIVO' },
+      });
       for (const product of activeProducts) {
         if (!codes.has(product.code)) {
           await tx.product.update({

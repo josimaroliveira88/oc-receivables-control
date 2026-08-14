@@ -30,7 +30,7 @@ const renderPage = (initialEntries = ['/login'], routeState = undefined) => {
       <AuthProvider>
         <LoginPage />
       </AuthProvider>
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 };
 
@@ -58,7 +58,9 @@ describe('LoginPage', () => {
 
     it('should render "Acessar" button', () => {
       renderPage();
-      expect(screen.getByRole('button', { name: 'Acessar' })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Acessar' }),
+      ).toBeInTheDocument();
     });
   });
 
@@ -77,13 +79,19 @@ describe('LoginPage', () => {
 
   describe('Registration Success Message', () => {
     it('should display success message when arriving from registration', () => {
-      renderPage(undefined, { message: 'Conta criada com sucesso! Faça login.' });
-      expect(screen.getByText('Conta criada com sucesso! Faça login.')).toBeInTheDocument();
+      renderPage(undefined, {
+        message: 'Conta criada com sucesso! Faça login.',
+      });
+      expect(
+        screen.getByText('Conta criada com sucesso! Faça login.'),
+      ).toBeInTheDocument();
     });
 
     it('should not display success message on normal login visit', () => {
       renderPage();
-      expect(screen.queryByText('Conta criada com sucesso! Faça login.')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('Conta criada com sucesso! Faça login.'),
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -101,7 +109,9 @@ describe('LoginPage', () => {
       fireEvent.submit(form);
 
       await waitFor(() => {
-        expect(screen.getByText('Usuário ou senha inválidos. Tente novamente.')).toBeInTheDocument();
+        expect(
+          screen.getByText('Usuário ou senha inválidos. Tente novamente.'),
+        ).toBeInTheDocument();
       });
     });
   });

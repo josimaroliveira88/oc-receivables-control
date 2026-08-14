@@ -1,7 +1,18 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LayoutDashboard, Users, ClipboardList, DollarSign, Package, LogOut, Sun, Moon, User, HelpCircle } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Users,
+  ClipboardList,
+  DollarSign,
+  Package,
+  LogOut,
+  Sun,
+  Moon,
+  User,
+  HelpCircle,
+} from 'lucide-react';
 
 const navLinks = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -40,7 +51,9 @@ const Header = () => {
             ))}
           </nav>
           <button
-            onClick={() => window.dispatchEvent(new Event('start-onboarding-tour'))}
+            onClick={() =>
+              window.dispatchEvent(new Event('start-onboarding-tour'))
+            }
             className="hidden md:inline-flex items-center p-2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-md transition-colors"
             aria-label="Tutorial"
             title="Tutorial"
@@ -52,7 +65,11 @@ const Header = () => {
             className="hidden md:inline-flex items-center p-2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-md transition-colors"
             aria-label={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
           >
-            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            {theme === 'dark' ? (
+              <Sun className="w-4 h-4" />
+            ) : (
+              <Moon className="w-4 h-4" />
+            )}
           </button>
           {user && (
             <span className="hidden md:inline-flex items-center px-3 py-1.5 text-sm text-white/80 bg-white/10 rounded-md">

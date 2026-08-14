@@ -50,12 +50,12 @@ const DashboardPage = () => {
     fetchDashboard();
   }, []);
 
-  const hasData = data && (
-    (data.personBalances && data.personBalances.length > 0) ||
-    data.totalPending > 0 ||
-    data.totalPaid > 0 ||
-    data.currentMonthReceipts > 0
-  );
+  const hasData =
+    data &&
+    ((data.personBalances && data.personBalances.length > 0) ||
+      data.totalPending > 0 ||
+      data.totalPaid > 0 ||
+      data.currentMonthReceipts > 0);
 
   const handleExport = async () => {
     try {
@@ -82,7 +82,9 @@ const DashboardPage = () => {
     return (
       <div className="flex items-center justify-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        <span className="ml-2 text-gray-500 dark:text-gray-400">Carregando...</span>
+        <span className="ml-2 text-gray-500 dark:text-gray-400">
+          Carregando...
+        </span>
       </div>
     );
   }
@@ -142,7 +144,9 @@ const DashboardPage = () => {
     <div className="space-y-6">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border-t-4 border-primary-600 dark:border-primary-400">
         <div className="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Dashboard</h2>
+          <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
+            Dashboard
+          </h2>
           <button
             onClick={handleExport}
             disabled={exporting || !hasData}
@@ -154,7 +158,9 @@ const DashboardPage = () => {
                 Exportando...
               </>
             ) : (
-              <><Download className="w-4 h-4" /> Exportar para Excel</>
+              <>
+                <Download className="w-4 h-4" /> Exportar para Excel
+              </>
             )}
           </button>
         </div>
@@ -170,7 +176,9 @@ const DashboardPage = () => {
                 >
                   <div className="flex items-center gap-2 mb-2">
                     {kpi.fill ? (
-                      <Icon className={`w-5 h-5 ${kpi.iconColor} ${kpi.fill}`} />
+                      <Icon
+                        className={`w-5 h-5 ${kpi.iconColor} ${kpi.fill}`}
+                      />
                     ) : (
                       <Icon className={`w-5 h-5 ${kpi.iconColor}`} />
                     )}
@@ -192,45 +200,77 @@ const DashboardPage = () => {
                 Saldos por Pessoa
               </h3>
               <ResponsiveContainer width="100%" height={350}>
-                <BarChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                <BarChart
+                  data={chartData}
+                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                   <XAxis dataKey="name" stroke="#9CA3AF" />
                   <YAxis tickFormatter={brlTickFormatter} stroke="#9CA3AF" />
                   <Tooltip formatter={brlTooltipFormatter} />
                   <Legend />
                   <Bar dataKey="Itens" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Pagamentos" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                  <Bar
+                    dataKey="Pagamentos"
+                    fill="#22c55e"
+                    radius={[4, 4, 0, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           ) : (
             <div className="text-center py-12">
-              <p className="text-gray-500 dark:text-gray-400">Nenhum saldo por pessoa</p>
+              <p className="text-gray-500 dark:text-gray-400">
+                Nenhum saldo por pessoa
+              </p>
             </div>
           )}
 
-          {(data?.yearlyBreakdown && data.yearlyBreakdown.length > 0) ? (
+          {data?.yearlyBreakdown && data.yearlyBreakdown.length > 0 ? (
             <div className="mt-8">
               <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-4">
                 Resumo por Ano
               </h3>
               <div>
-                <table className="w-full text-sm block md:table" data-testid="yearly-breakdown">
+                <table
+                  className="w-full text-sm block md:table"
+                  data-testid="yearly-breakdown"
+                >
                   <thead className="hidden md:table-header-group">
                     <tr className="border-b border-gray-200 dark:border-gray-700">
-                      <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">Ano</th>
-                      <th className="text-right py-3 px-4 font-medium text-gray-600 dark:text-gray-400">Pendente</th>
-                      <th className="text-right py-3 px-4 font-medium text-gray-600 dark:text-gray-400">Quitado</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
+                        Ano
+                      </th>
+                      <th className="text-right py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
+                        Pendente
+                      </th>
+                      <th className="text-right py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
+                        Quitado
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="block md:table-row-group">
                     {data.yearlyBreakdown.map((yearData) => (
-                      <tr key={yearData.year} className="block md:table-row border border-gray-200 dark:border-gray-700 md:border-0 rounded-lg md:rounded-none shadow-sm md:shadow-none mb-3 md:mb-0 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                        <td data-label="Ano" className="block md:table-cell py-2 md:py-3 px-4 font-medium text-gray-800 dark:text-gray-200 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase md:before:hidden">{yearData.year}</td>
-                        <td data-label="Pendente" className="block md:table-cell py-2 md:py-3 px-4 text-left md:text-right text-red-600 dark:text-red-400 font-medium before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase md:before:hidden">
+                      <tr
+                        key={yearData.year}
+                        className="block md:table-row border border-gray-200 dark:border-gray-700 md:border-0 rounded-lg md:rounded-none shadow-sm md:shadow-none mb-3 md:mb-0 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <td
+                          data-label="Ano"
+                          className="block md:table-cell py-2 md:py-3 px-4 font-medium text-gray-800 dark:text-gray-200 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase md:before:hidden"
+                        >
+                          {yearData.year}
+                        </td>
+                        <td
+                          data-label="Pendente"
+                          className="block md:table-cell py-2 md:py-3 px-4 text-left md:text-right text-red-600 dark:text-red-400 font-medium before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase md:before:hidden"
+                        >
                           {formatBRL(yearData.totalPending)}
                         </td>
-                        <td data-label="Quitado" className="block md:table-cell py-2 md:py-3 px-4 text-left md:text-right text-green-600 dark:text-green-400 font-medium before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase md:before:hidden">
+                        <td
+                          data-label="Quitado"
+                          className="block md:table-cell py-2 md:py-3 px-4 text-left md:text-right text-green-600 dark:text-green-400 font-medium before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase md:before:hidden"
+                        >
                           {formatBRL(yearData.totalQuitado)}
                         </td>
                       </tr>
@@ -241,7 +281,9 @@ const DashboardPage = () => {
             </div>
           ) : (
             <div className="text-center py-12 mt-8">
-              <p className="text-gray-500 dark:text-gray-400">Nenhum dado por ano</p>
+              <p className="text-gray-500 dark:text-gray-400">
+                Nenhum dado por ano
+              </p>
             </div>
           )}
         </div>

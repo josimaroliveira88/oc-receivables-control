@@ -173,8 +173,8 @@ const OnboardingTour = () => {
                 index === currentStep
                   ? 'w-3 bg-primary-600 dark:bg-primary-400'
                   : index < currentStep
-                  ? 'w-2 bg-primary-300 dark:bg-primary-600'
-                  : 'w-2 bg-gray-300 dark:bg-gray-600'
+                    ? 'w-2 bg-primary-300 dark:bg-primary-600'
+                    : 'w-2 bg-gray-300 dark:bg-gray-600'
               }`}
             />
           ))}

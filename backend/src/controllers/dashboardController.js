@@ -16,7 +16,7 @@ const getDashboardData = async (req, res) => {
       },
     });
 
-    const orderIds = orders.map(o => o.id);
+    const orderIds = orders.map((o) => o.id);
 
     const allPayments = await prisma.payment.findMany({
       where: {
@@ -33,7 +33,7 @@ const getDashboardData = async (req, res) => {
     for (const order of orders) {
       const orderPaymentSumCents = order.payments.reduce(
         (sum, p) => sum + toCents(p.amount),
-        0
+        0,
       );
       const orderTotalCents = toCents(order.totalValue);
 
@@ -67,7 +67,12 @@ const getDashboardData = async (req, res) => {
         const name = item.person ? item.person.name : 'Sem pessoa';
 
         if (!personMap.has(pid)) {
-          personMap.set(pid, { personId: pid, personName: name, itemTotalCents: 0, paymentTotalCents: 0 });
+          personMap.set(pid, {
+            personId: pid,
+            personName: name,
+            itemTotalCents: 0,
+            paymentTotalCents: 0,
+          });
         }
         personMap.get(pid).itemTotalCents += toCents(item.chargedValue);
       }
@@ -77,7 +82,12 @@ const getDashboardData = async (req, res) => {
         const name = payment.person ? payment.person.name : 'Sem pessoa';
 
         if (!personMap.has(pid)) {
-          personMap.set(pid, { personId: pid, personName: name, itemTotalCents: 0, paymentTotalCents: 0 });
+          personMap.set(pid, {
+            personId: pid,
+            personName: name,
+            itemTotalCents: 0,
+            paymentTotalCents: 0,
+          });
         }
         personMap.get(pid).paymentTotalCents += toCents(payment.amount);
       }

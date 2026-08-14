@@ -38,7 +38,9 @@ const LoginPage = () => {
             <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
               Controle de Recebíveis
             </h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-2">Entrar no Sistema</p>
+            <p className="text-gray-500 dark:text-gray-400 mt-2">
+              Entrar no Sistema
+            </p>
           </div>
 
           {error && (
@@ -49,7 +51,9 @@ const LoginPage = () => {
 
           {successMessage && (
             <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-md">
-              <p className="text-sm text-green-600 dark:text-green-400">{successMessage}</p>
+              <p className="text-sm text-green-600 dark:text-green-400">
+                {successMessage}
+              </p>
             </div>
           )}
 
@@ -113,7 +117,10 @@ const LoginPage = () => {
 
           <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
             Ainda não tem conta?{' '}
-            <Link to="/register" className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium">
+            <Link
+              to="/register"
+              className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium"
+            >
               Criar uma conta
             </Link>
           </p>

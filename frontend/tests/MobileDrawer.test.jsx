@@ -7,7 +7,11 @@ const { mockLogout, mockToggleTheme, mockUserRef } = vi.hoisted(() => {
   const logoutFn = vi.fn();
   const toggleThemeFn = vi.fn();
   const userRef = { value: null };
-  return { mockLogout: logoutFn, mockToggleTheme: toggleThemeFn, mockUserRef: userRef };
+  return {
+    mockLogout: logoutFn,
+    mockToggleTheme: toggleThemeFn,
+    mockUserRef: userRef,
+  };
 });
 
 vi.mock('../src/context/AuthContext', () => ({
@@ -21,7 +25,7 @@ const renderDrawer = (initialEntries = ['/']) => {
   return render(
     <MemoryRouter initialEntries={initialEntries}>
       <MobileDrawer />
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 };
 
@@ -46,7 +50,9 @@ describe('MobileDrawer', () => {
   it('should open the drawer when the hamburger is clicked', () => {
     renderDrawer();
     fireEvent.click(screen.getByLabelText('Abrir menu'));
-    expect(screen.getByRole('complementary').className).toContain('translate-x-0');
+    expect(screen.getByRole('complementary').className).toContain(
+      'translate-x-0',
+    );
   });
 
   it('should render all 5 navigation items in the drawer', () => {
@@ -69,7 +75,9 @@ describe('MobileDrawer', () => {
     renderDrawer();
     fireEvent.click(screen.getByLabelText('Abrir menu'));
     fireEvent.click(screen.getByText('Clientes'));
-    expect(screen.getByRole('complementary').className).toContain('-translate-x-full');
+    expect(screen.getByRole('complementary').className).toContain(
+      '-translate-x-full',
+    );
   });
 
   it('should highlight the active link', () => {
@@ -104,7 +112,9 @@ describe('MobileDrawer', () => {
     renderDrawer();
     fireEvent.click(screen.getByLabelText('Abrir menu'));
     fireEvent.click(screen.getByTestId('drawer-overlay'));
-    expect(screen.getByRole('complementary').className).toContain('-translate-x-full');
+    expect(screen.getByRole('complementary').className).toContain(
+      '-translate-x-full',
+    );
   });
 
   it('should be hidden on desktop with md:hidden class', () => {

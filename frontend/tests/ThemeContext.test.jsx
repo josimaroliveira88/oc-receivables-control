@@ -18,7 +18,7 @@ const renderWithProvider = () => {
   return render(
     <ThemeProvider>
       <TestComponent />
-    </ThemeProvider>
+    </ThemeProvider>,
   );
 };
 
@@ -80,6 +80,8 @@ describe('ThemeContext', () => {
 
   it('should throw error when useTheme is used outside ThemeProvider', () => {
     const renderOutside = () => render(<TestComponent />);
-    expect(renderOutside).toThrow('useTheme must be used within a ThemeProvider');
+    expect(renderOutside).toThrow(
+      'useTheme must be used within a ThemeProvider',
+    );
   });
 });

@@ -25,10 +25,10 @@ const setMonetaryCell = (ws, row, col, value) => {
 const buildPedidosSheet = (orders) => {
   const headers = ['Número', 'Data', 'Valor Total (R$)', 'Status'];
   const rows = orders.map((order) => ({
-    'Número': order.orderNumber,
-    'Data': formatDate(order.orderDate || order.createdAt),
+    Número: order.orderNumber,
+    Data: formatDate(order.orderDate || order.createdAt),
     'Valor Total (R$)': parseFloat(order.totalValue) || 0,
-    'Status': order.status,
+    Status: order.status,
   }));
 
   const ws = XLSX.utils.json_to_sheet(rows, { header: headers });
@@ -42,19 +42,37 @@ const buildPedidosSheet = (orders) => {
 };
 
 const buildClientesSheet = (people) => {
-  const headers = ['Nome', 'Grupos em Comum', 'WhatsApp', 'Instagram', 'Endereço', 'VIP', 'Membro doTERRA'];
+  const headers = [
+    'Nome',
+    'Grupos em Comum',
+    'WhatsApp',
+    'Instagram',
+    'Endereço',
+    'VIP',
+    'Membro doTERRA',
+  ];
   const rows = people.map((person) => ({
-    'Nome': person.name,
+    Nome: person.name,
     'Grupos em Comum': person.commonGroups || '',
-    'WhatsApp': isDigitsOnly(person.whatsapp) ? maskWhatsApp(person.whatsapp) : (person.whatsapp || ''),
-    'Instagram': person.instagram || '',
-    'Endereço': person.address || '',
-    'VIP': person.isVip ? 'Sim' : 'Não',
+    WhatsApp: isDigitsOnly(person.whatsapp)
+      ? maskWhatsApp(person.whatsapp)
+      : person.whatsapp || '',
+    Instagram: person.instagram || '',
+    Endereço: person.address || '',
+    VIP: person.isVip ? 'Sim' : 'Não',
     'Membro doTERRA': person.isDoterraMember ? 'Sim' : 'Não',
   }));
 
   const ws = XLSX.utils.json_to_sheet(rows, { header: headers });
-  ws['!cols'] = [{ wch: 30 }, { wch: 22 }, { wch: 22 }, { wch: 30 }, { wch: 35 }, { wch: 6 }, { wch: 12 }];
+  ws['!cols'] = [
+    { wch: 30 },
+    { wch: 22 },
+    { wch: 22 },
+    { wch: 30 },
+    { wch: 35 },
+    { wch: 6 },
+    { wch: 12 },
+  ];
 
   return ws;
 };
@@ -67,17 +85,23 @@ const buildHistoricoSheet = (orders) => {
     if (!order.payments || order.payments.length === 0) continue;
     for (const payment of order.payments) {
       rows.push({
-        'Pedido': order.orderNumber,
-        'Pessoa': payment.person ? payment.person.name : 'Sem pessoa',
+        Pedido: order.orderNumber,
+        Pessoa: payment.person ? payment.person.name : 'Sem pessoa',
         'Valor (R$)': parseFloat(payment.amount) || 0,
-        'Data': formatDate(payment.paidAt || payment.createdAt),
-        'Notas': payment.notes || '',
+        Data: formatDate(payment.paidAt || payment.createdAt),
+        Notas: payment.notes || '',
       });
     }
   }
 
   const ws = XLSX.utils.json_to_sheet(rows, { header: headers });
-  ws['!cols'] = [{ wch: 20 }, { wch: 30 }, { wch: 15 }, { wch: 12 }, { wch: 30 }];
+  ws['!cols'] = [
+    { wch: 20 },
+    { wch: 30 },
+    { wch: 15 },
+    { wch: 12 },
+    { wch: 30 },
+  ];
 
   for (let i = 1; i <= rows.length; i++) {
     setMonetaryCell(ws, i, 2, rows[i - 1]['Valor (R$)']);
@@ -87,9 +111,14 @@ const buildHistoricoSheet = (orders) => {
 };
 
 const buildSaldoPendenteSheet = (personBalances) => {
-  const headers = ['Pessoa', 'Total Itens (R$)', 'Total Pagamentos (R$)', 'Saldo Pendente (R$)'];
+  const headers = [
+    'Pessoa',
+    'Total Itens (R$)',
+    'Total Pagamentos (R$)',
+    'Saldo Pendente (R$)',
+  ];
   const rows = (personBalances || []).map((p) => ({
-    'Pessoa': p.personName,
+    Pessoa: p.personName,
     'Total Itens (R$)': parseFloat(p.itemTotal) || 0,
     'Total Pagamentos (R$)': parseFloat(p.paymentTotal) || 0,
     'Saldo Pendente (R$)': parseFloat(p.pending) || 0,

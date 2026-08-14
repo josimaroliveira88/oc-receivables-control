@@ -25,7 +25,9 @@ describe('Products CRUD', () => {
     if (userId) {
       await prisma.user.delete({ where: { id: userId } }).catch(() => {});
     }
-    await prisma.product.deleteMany({ where: { code: { startsWith: 'TESTCRUD' } } }).catch(() => {});
+    await prisma.product
+      .deleteMany({ where: { code: { startsWith: 'TESTCRUD' } } })
+      .catch(() => {});
     await prisma.$disconnect();
   });
 
@@ -54,7 +56,7 @@ describe('Products CRUD', () => {
       expect(response.body.code).toBe('TESTCRUD001');
       expect(response.body.name).toBe('Óleo Essencial de Lavanda');
       expect(response.body.size).toBe('15 ml');
-      expect(response.body.status).toBe("ATIVO");
+      expect(response.body.status).toBe('ATIVO');
       expect(parseFloat(response.body.regularPrice)).toBe(103.0);
       expect(parseFloat(response.body.memberPrice)).toBe(77.5);
       expect(parseFloat(response.body.pv)).toBe(9.0);
@@ -83,7 +85,9 @@ describe('Products CRUD', () => {
         });
 
       expect(response.status).toBe(201);
-      expect(response.body.doterraUrl).toBe('https://www.doterra.com/BR/pt_BR/p/produto');
+      expect(response.body.doterraUrl).toBe(
+        'https://www.doterra.com/BR/pt_BR/p/produto',
+      );
       expect(response.body.status).toBe('ATIVO');
     });
 
@@ -180,16 +184,14 @@ describe('Products CRUD', () => {
     });
 
     it('should return 401 when no authentication token is provided', async () => {
-      const response = await request(app)
-        .post('/api/products')
-        .send({
-          code: 'TESTCRUD005',
-          name: 'Sem Auth',
-          size: '15 ml',
-          regularPrice: 10,
-          memberPrice: 7.5,
-          pv: 1,
-        });
+      const response = await request(app).post('/api/products').send({
+        code: 'TESTCRUD005',
+        name: 'Sem Auth',
+        size: '15 ml',
+        regularPrice: 10,
+        memberPrice: 7.5,
+        pv: 1,
+      });
 
       expect(response.status).toBe(401);
       expect(response.body.error).toBe('Access token required');
@@ -220,7 +222,7 @@ describe('Products CRUD', () => {
           code: 'TESTCRUD100',
           name: 'Lavanda',
           size: '15 ml',
-          status: "ATIVO",
+          status: 'ATIVO',
           prices: {
             create: {
               regularPrice: 103,
@@ -235,7 +237,7 @@ describe('Products CRUD', () => {
           code: 'TESTCRUD101',
           name: 'Hortelã-Pimenta',
           size: '15 ml',
-          status: "INATIVO",
+          status: 'INATIVO',
           prices: {
             create: {
               regularPrice: 99,
@@ -275,7 +277,7 @@ describe('Products CRUD', () => {
 
       expect(response.status).toBe(200);
       for (const product of response.body.data) {
-        expect(product.status).toBe("ATIVO");
+        expect(product.status).toBe('ATIVO');
       }
     });
 
@@ -290,7 +292,9 @@ describe('Products CRUD', () => {
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
-      const testProducts = response.body.data.filter((p) => p.code.startsWith('TESTCRUD'));
+      const testProducts = response.body.data.filter((p) =>
+        p.code.startsWith('TESTCRUD'),
+      );
       expect(testProducts).toHaveLength(1);
       expect(testProducts[0].code).toBe('TESTCRUD100');
       expect(testProducts[0].status).toBe('INDISPONIVEL');
@@ -307,7 +311,9 @@ describe('Products CRUD', () => {
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
-      const testProducts = response.body.data.filter((p) => p.code.startsWith('TESTCRUD'));
+      const testProducts = response.body.data.filter((p) =>
+        p.code.startsWith('TESTCRUD'),
+      );
       // TESTCRUD101 is INATIVO, TESTCRUD100 is INDISPONIVEL → only TESTCRUD100 returned
       expect(testProducts).toHaveLength(1);
       expect(testProducts[0].code).toBe('TESTCRUD100');
@@ -319,7 +325,9 @@ describe('Products CRUD', () => {
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
-      const testProducts = response.body.data.filter((p) => p.code.startsWith('TESTCRUD'));
+      const testProducts = response.body.data.filter((p) =>
+        p.code.startsWith('TESTCRUD'),
+      );
       expect(testProducts).toHaveLength(1);
       expect(testProducts[0].code).toBe('TESTCRUD101');
       expect(testProducts[0].name).toBe('Hortelã-Pimenta');
@@ -331,7 +339,9 @@ describe('Products CRUD', () => {
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
-      const testProducts = response.body.data.filter((p) => p.code.startsWith('TESTCRUD'));
+      const testProducts = response.body.data.filter((p) =>
+        p.code.startsWith('TESTCRUD'),
+      );
       expect(testProducts).toHaveLength(1);
       expect(testProducts[0].code).toBe('TESTCRUD100');
     });
@@ -342,7 +352,9 @@ describe('Products CRUD', () => {
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
-      const testProducts = response.body.data.filter((p) => p.code.startsWith('TESTCRUD'));
+      const testProducts = response.body.data.filter((p) =>
+        p.code.startsWith('TESTCRUD'),
+      );
       expect(testProducts).toHaveLength(0);
     });
 
@@ -355,10 +367,38 @@ describe('Products CRUD', () => {
   describe('GET /api/products sorting & pagination', () => {
     beforeEach(async () => {
       const products = [
-        { code: 'TESTCRUD110', name: 'Óleo de Lavanda', size: '15 ml', regularPrice: 103, memberPrice: 77.5, pv: 9 },
-        { code: 'TESTCRUD111', name: 'Óleo de Hortelã', size: '15 ml', regularPrice: 140, memberPrice: 105, pv: 15 },
-        { code: 'TESTCRUD112', name: 'Óleo de Olíbano', size: '15 ml', regularPrice: 250, memberPrice: 187.5, pv: 30 },
-        { code: 'TESTCRUD113', name: 'Óleo de Limão', size: '15 ml', regularPrice: 120, memberPrice: 90, pv: 12 },
+        {
+          code: 'TESTCRUD110',
+          name: 'Óleo de Lavanda',
+          size: '15 ml',
+          regularPrice: 103,
+          memberPrice: 77.5,
+          pv: 9,
+        },
+        {
+          code: 'TESTCRUD111',
+          name: 'Óleo de Hortelã',
+          size: '15 ml',
+          regularPrice: 140,
+          memberPrice: 105,
+          pv: 15,
+        },
+        {
+          code: 'TESTCRUD112',
+          name: 'Óleo de Olíbano',
+          size: '15 ml',
+          regularPrice: 250,
+          memberPrice: 187.5,
+          pv: 30,
+        },
+        {
+          code: 'TESTCRUD113',
+          name: 'Óleo de Limão',
+          size: '15 ml',
+          regularPrice: 120,
+          memberPrice: 90,
+          pv: 12,
+        },
       ];
       for (const product of products) {
         await prisma.product.create({
@@ -366,7 +406,7 @@ describe('Products CRUD', () => {
             code: product.code,
             name: product.name,
             size: product.size,
-            status: "ATIVO",
+            status: 'ATIVO',
             prices: {
               create: {
                 regularPrice: product.regularPrice,
@@ -444,7 +484,10 @@ describe('Products CRUD', () => {
       expect(page1.body.pagination.total).toBe(4);
       expect(page1.body.pagination.totalPages).toBe(2);
       expect(page1.body.pagination.hasMore).toBe(true);
-      expect(page1.body.data.map((p) => p.code)).toEqual(['TESTCRUD111', 'TESTCRUD110']);
+      expect(page1.body.data.map((p) => p.code)).toEqual([
+        'TESTCRUD111',
+        'TESTCRUD110',
+      ]);
 
       const page2 = await request(app)
         .get('/api/products?q=TESTCRUD11&page=2&pageSize=2')
@@ -453,7 +496,10 @@ describe('Products CRUD', () => {
       expect(page2.status).toBe(200);
       expect(page2.body.pagination.page).toBe(2);
       expect(page2.body.pagination.hasMore).toBe(false);
-      expect(page2.body.data.map((p) => p.code)).toEqual(['TESTCRUD113', 'TESTCRUD112']);
+      expect(page2.body.data.map((p) => p.code)).toEqual([
+        'TESTCRUD113',
+        'TESTCRUD112',
+      ]);
     });
 
     it('should clamp pageSize to the maximum allowed', async () => {
@@ -489,7 +535,7 @@ describe('Products CRUD', () => {
           code: 'TESTCRUD200',
           name: 'Olíbano',
           size: '5 ml',
-          status: "ATIVO",
+          status: 'ATIVO',
           prices: {
             create: {
               regularPrice: 250,
@@ -511,7 +557,7 @@ describe('Products CRUD', () => {
       expect(response.body.id).toBe(productId);
       expect(response.body.name).toBe('Olíbano');
       expect(parseFloat(response.body.regularPrice)).toBe(250);
-      expect(response.body.status).toBe("ATIVO");
+      expect(response.body.status).toBe('ATIVO');
     });
 
     it('should return 404 for non-existent product', async () => {
@@ -532,7 +578,7 @@ describe('Products CRUD', () => {
           code: 'TESTCRUD300',
           name: 'Nome Original',
           size: '15 ml',
-          status: "ATIVO",
+          status: 'ATIVO',
           prices: {
             create: {
               regularPrice: 100,
@@ -566,7 +612,9 @@ describe('Products CRUD', () => {
       expect(response.status).toBe(200);
       expect(response.body.code).toBe('TESTCRUD300');
 
-      const product = await prisma.product.findUnique({ where: { id: productId } });
+      const product = await prisma.product.findUnique({
+        where: { id: productId },
+      });
       expect(product.code).toBe('TESTCRUD300');
     });
 
@@ -574,10 +622,10 @@ describe('Products CRUD', () => {
       const response = await request(app)
         .put(`/api/products/${productId}`)
         .set('Authorization', `Bearer ${authToken}`)
-        .send({ status: "INDISPONIVEL" });
+        .send({ status: 'INDISPONIVEL' });
 
       expect(response.status).toBe(200);
-      expect(response.body.status).toBe("INDISPONIVEL");
+      expect(response.body.status).toBe('INDISPONIVEL');
     });
 
     it('should update the doterraUrl field', async () => {
@@ -587,7 +635,9 @@ describe('Products CRUD', () => {
         .send({ doterraUrl: 'https://www.doterra.com/BR/pt_BR/p/lavanda' });
 
       expect(response.status).toBe(200);
-      expect(response.body.doterraUrl).toBe('https://www.doterra.com/BR/pt_BR/p/lavanda');
+      expect(response.body.doterraUrl).toBe(
+        'https://www.doterra.com/BR/pt_BR/p/lavanda',
+      );
     });
 
     it('should clear the doterraUrl field when sent as null', async () => {
@@ -677,7 +727,7 @@ describe('Products CRUD', () => {
           code: 'TESTCRUD400',
           name: 'Produto para Deletar',
           size: '15 ml',
-          status: "ATIVO",
+          status: 'ATIVO',
           prices: {
             create: {
               regularPrice: 50,
@@ -698,8 +748,10 @@ describe('Products CRUD', () => {
       expect(response.status).toBe(200);
       expect(response.body.message).toBe('Product deactivated successfully');
 
-      const product = await prisma.product.findUnique({ where: { id: productId } });
-      expect(product.status).toBe("INATIVO");
+      const product = await prisma.product.findUnique({
+        where: { id: productId },
+      });
+      expect(product.status).toBe('INATIVO');
       expect(product).not.toBeNull();
     });
 

@@ -1,7 +1,10 @@
 // Apply saved theme before React renders to prevent flash
-(function() {
+(function () {
   const theme = localStorage.getItem('theme');
-  if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+  if (
+    theme === 'dark' ||
+    (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)
+  ) {
     document.documentElement.classList.add('dark');
   }
 })();
@@ -23,5 +26,5 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>
-  </React.StrictMode>
+  </React.StrictMode>,
 );

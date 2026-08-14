@@ -9,7 +9,9 @@ const parseLocalDate = (dateStr) => {
 };
 
 const paymentSchema = z.object({
-  amount: z.number().nonnegative('Amount must be greater than or equal to zero'),
+  amount: z
+    .number()
+    .nonnegative('Amount must be greater than or equal to zero'),
   personId: z.string().uuid('Person ID must be a valid UUID'),
   paidAt: z.string().optional(),
   notes: z.string().optional(),
@@ -48,11 +50,13 @@ const createPayment = async (req, res) => {
       }
 
       const itemSumCents = order.items
-        .filter(item => item.personId === validatedData.personId)
+        .filter((item) => item.personId === validatedData.personId)
         .reduce((sum, item) => sum + toCents(item.chargedValue), 0);
 
       if (itemSumCents > 0 && amountCents === 0) {
-        throw new Error('Amount must be greater than zero for a person with chargeable items');
+        throw new Error(
+          'Amount must be greater than zero for a person with chargeable items',
+        );
       }
 
       const payment = await tx.payment.create({
@@ -60,12 +64,14 @@ const createPayment = async (req, res) => {
           amount: validatedData.amount,
           orderId: orderId,
           personId: validatedData.personId,
-          paidAt: validatedData.paidAt ? parseLocalDate(validatedData.paidAt) : undefined,
+          paidAt: validatedData.paidAt
+            ? parseLocalDate(validatedData.paidAt)
+            : undefined,
           notes: validatedData.notes,
         },
       });
 
-      const personIds = [...new Set(order.items.map(item => item.personId))];
+      const personIds = [...new Set(order.items.map((item) => item.personId))];
 
       let allPaid = true;
       let hasAnyPayment = false;
@@ -74,11 +80,11 @@ const createPayment = async (req, res) => {
         if (!pid) continue;
 
         const personItemSumCents = order.items
-          .filter(item => item.personId === pid)
+          .filter((item) => item.personId === pid)
           .reduce((sum, item) => sum + toCents(item.chargedValue), 0);
 
         let personPaymentSumCents = order.payments
-          .filter(payment => payment.personId === pid)
+          .filter((payment) => payment.personId === pid)
           .reduce((sum, payment) => sum + toCents(payment.amount), 0);
 
         if (pid === validatedData.personId) {
@@ -162,7 +168,7 @@ const getOrderBalance = async (req, res) => {
 
     const personMap = new Map();
 
-    order.items.forEach(item => {
+    order.items.forEach((item) => {
       const personId = item.personId;
       if (!personId) return;
 
@@ -183,7 +189,7 @@ const getOrderBalance = async (req, res) => {
       });
     });
 
-    order.payments.forEach(payment => {
+    order.payments.forEach((payment) => {
       const personId = payment.personId;
       if (!personId) return;
 
@@ -204,8 +210,9 @@ const getOrderBalance = async (req, res) => {
       });
     });
 
-    const balances = Array.from(personMap.values()).map(personData => {
-      const pendingCents = personData.itemTotalCents - personData.paymentTotalCents;
+    const balances = Array.from(personMap.values()).map((personData) => {
+      const pendingCents =
+        personData.itemTotalCents - personData.paymentTotalCents;
       return {
         personId: personData.personId,
         personName: personData.personName,
