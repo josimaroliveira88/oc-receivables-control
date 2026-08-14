@@ -1,8 +1,7 @@
 ---
-
 name: docker-standards
 description: Docker and containerization standards.
----------------------------------------------------
+---
 
 # Docker Standards
 

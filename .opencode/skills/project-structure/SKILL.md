@@ -1,8 +1,7 @@
 ---
-
 name: project-structure
 description: Project organization and folder conventions.
----------------------------------------------------------
+---
 
 # Project Structure
 

@@ -1,8 +1,7 @@
 ---
-
 name: security-baseline
 description: Security requirements for authentication, APIs, and infrastructure.
---------------------------------------------------------------------------------
+---
 
 # Security Baseline
 
