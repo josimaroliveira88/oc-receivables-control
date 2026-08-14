@@ -65,11 +65,19 @@ For a database with existing data, apply migrations with `npx prisma migrate dep
 └── frontend/
     ├── src/
     │   ├── App.jsx, main.jsx, index.css
-    │   ├── components/ (layout, auth, dialogs, menus, toast, onboarding)
+    │   ├── components/ (layout, auth, dialogs, menus, toast, onboarding; shared widgets such as `ActionMenu`, `ConfirmDialog`)
     │   ├── context/ (auth and theme)
-    │   ├── pages/ (login, registration, dashboard, clients, orders, receivables, products)
+    │   ├── pages/
+    │   │   ├── LoginPage.jsx, RegisterPage.jsx                # Small pages kept as single files
+    │   │   ├── DashboardPage.jsx, PeoplePage.jsx, OrdersPage.jsx, ProductsPage.jsx, ReceivablesPage.jsx   # One-line shims re-exporting each page folder
+    │   │   ├── Dashboard/   (index.jsx, useDashboard.js, components/, utils/dashboardHelpers.js)
+    │   │   ├── People/      (index.jsx, usePeople.js, components/, utils/peopleHelpers.js)
+    │   │   ├── Orders/      (index.jsx, useOrders.js, components/, utils/orderHelpers.js)
+    │   │   ├── Products/    (index.jsx, useProducts.js, components/, utils/productHelpers.js)
+    │   │   └── Receivables/ (index.jsx, useReceivables.js, components/, utils/receivablesHelpers.js)
     │   ├── services/api.js
     │   └── utils/ (money, dates, WhatsApp, Excel export)
+    ├── docs/frontend-architecture-guide.md   # Progressive complexity policy, conventions, page-refactoring playbook
     └── tests/
 ```
 
@@ -100,3 +108,4 @@ For a database with existing data, apply migrations with `npx prisma migrate dep
 - Responsive tables keep semantic table markup and use Flowbite's Tailwind-only `data-label` card pattern below `md`.
 - `ActionMenu` is the shared kebab menu for row actions. Menu panels use `z-[80]`.
 - The frontend uses a Vite `/api` proxy, avoiding browser-side localhost/CORS issues on local networks.
+- Complex pages follow a "page-as-orchestrator" architecture: each page lives in `pages/{Nome}/` with `index.jsx` (≈60–150 lines), a `use{Nome}.js` custom hook owning state, API calls, and mutation handlers, local `components/` for subcomponents, and `utils/` for pure helpers. The original `*Page.jsx` file is a one-line shim (`export { default } from './{Nome}/index.jsx';`) so existing imports keep working. See `frontend/docs/frontend-architecture-guide.md` for the progressive complexity policy and the page-refactoring playbook.

@@ -2,7 +2,7 @@
 
 ## Current State
 
-MVP and Phases 17-46 are complete. The application provides authenticated, user-isolated client, order, receivables, payment, dashboard, export, and dōTERRA product-catalog workflows.
+MVP and Phases 17-48 are complete. The application provides authenticated, user-isolated client, order, receivables, payment, dashboard, export, and dōTERRA product-catalog workflows.
 
 - Internal documentation and code comments: English.
 - User-facing content: Brazilian Portuguese (PT-BR).
@@ -89,6 +89,7 @@ The project no longer maintains a running `## [Unreleased]` section in `CHANGELO
 - Preserve the z-index hierarchy: navigation `z-50`, modals `z-[60]`, confirmation/tour overlays `z-[70]`, action menus `z-[80]`.
 - In ESM Tailwind config, import Flowbite as `flowbite/plugin.js`.
 - Keep `prettier` declared in the `package.json` of each workspace that owns source files (root, `backend/`, `frontend/`) so the binary resolves in the local `node_modules/.bin`.
+- `frontend/docs/frontend-architecture-guide.md` is the single frontend structure reference: it defines the progressive complexity policy (Level 1 single file → Level 2 point extraction → Level 3 page orchestrator), conventions per file type, and rules for any request. Apply it to every frontend change — new feature, improvement, or maintenance — so files stay cohesive and don't grow past their threshold (the ~400-line trigger is a review signal, not the only one).
 
 ## New Feature Workflow
 
