@@ -1,0 +1,17 @@
+node_modules
+backend/node_modules
+frontend/node_modules
+backend/dist
+frontend/dist
+backend/backend.log
+docs/*.csv
+package-lock.json
+backend/package-lock.json
+frontend/package-lock.json
+
+# Markdown is curated documentation; do not reformat
+*.md
+.opencode/skills/
+
+# Infra config keeps its native quoting convention
+docker-compose.yml

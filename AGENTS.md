@@ -13,6 +13,7 @@ MVP and Phases 17-44 are complete. The application provides authenticated, user-
 - Backend: Node.js, Express, Prisma, Zod, JWT, PostgreSQL 15.
 - Frontend: React 18, Vite, Tailwind CSS 3, Flowbite plugin, Recharts, SheetJS, lucide-react.
 - Infrastructure: Docker Compose; Adminer is included for database inspection.
+- Tooling: Prettier 3 for code formatting.
 - Frontend: `http://localhost:3000`.
 - Backend: `http://localhost:4000`, API prefix `/api`.
 - Database: `localhost:5432`.
@@ -52,6 +53,8 @@ cd backend && npm run test      # Backend Vitest suite (serial DB files)
 cd frontend && npm run test     # Frontend Vitest/RTL suite
 cd backend && npm run test:watch
 cd frontend && npm run test:watch
+npm run format                      # Prettier --write the whole repo
+npm run format:check                # Prettier --check (CI-style verification)
 ```
 
 Catalog loader:
@@ -85,6 +88,7 @@ After a completed feature:
 - Keep backend Vitest `fileParallelism: false` because test files share one database.
 - Preserve the z-index hierarchy: navigation `z-50`, modals `z-[60]`, confirmation/tour overlays `z-[70]`, action menus `z-[80]`.
 - In ESM Tailwind config, import Flowbite as `flowbite/plugin.js`.
+- Keep `prettier` declared in the `package.json` of each workspace that owns source files (root, `backend/`, `frontend/`) so the binary resolves in the local `node_modules/.bin`.
 
 ## New Feature Workflow
 

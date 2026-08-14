@@ -37,7 +37,8 @@ Why the feature is needed.
 
 ## [Unreleased]
 
-_No changes yet._
+### Added
+- Prettier 3 support (root, `backend/`, `frontend/`): `prettier` pinned as a devDependency in every workspace, root `.prettierrc` (single quotes, semicolons, trailing commas, 80 cols) and `.prettierignore`, and `npm run format` / `npm run format:check` scripts.
 
 ## Phases 1-16 — MVP Foundation
 
