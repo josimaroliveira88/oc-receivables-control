@@ -2,11 +2,11 @@
 
 ## Current State
 
-MVP and Phases 17-44 are complete. The application provides authenticated, user-isolated client, order, receivables, payment, dashboard, export, and dōTERRA product-catalog workflows.
+MVP and Phases 17-46 are complete. The application provides authenticated, user-isolated client, order, receivables, payment, dashboard, export, and dōTERRA product-catalog workflows.
 
 - Internal documentation and code comments: English.
 - User-facing content: Brazilian Portuguese (PT-BR).
-- Last recorded test result: 168 backend + 319 frontend = 487 passing tests.
+- Last recorded test result: 168 backend + 321 frontend = 489 passing tests.
 
 ## Stack and Ports
 
@@ -67,12 +67,12 @@ The loader deactivates active products absent from the CSV. Always use the compl
 
 ## Documentation Rules
 
-After a completed feature:
+The project no longer maintains a running `## [Unreleased]` section in `CHANGELOG.md`. After each completed adjustment:
 
-1. Update `CHANGELOG.md` with status, acceptance criteria, and a short completion note.
-2. Update `ARCHITECTURE.md` only when structure, APIs, configuration, or major design decisions change.
-3. Update this file only when agent rules, commands, dependencies, or technical constraints change.
-4. Keep historical detail in the roadmap, not in this operational guide.
+1. **Do not** edit `CHANGELOG.md` until the user confirms no more adjustments are pending for this version. Use `NOTES.md` instead — see step 4 of the **New Feature Workflow** below.
+2. **Do** update `ARCHITECTURE.md` whenever structure, APIs, configuration, or major design decisions change.
+3. **Do** update this file whenever agent rules, commands, dependencies, or technical constraints change.
+4. Keep historical detail out of these operational guides — it belongs in the changelog only.
 
 ## High-Value Pitfalls
 
@@ -92,9 +92,15 @@ After a completed feature:
 
 ## New Feature Workflow
 
-1. Add a planning block under `## [Unreleased]` in `CHANGELOG.md` (template provided there) with goal, acceptance criteria, and tests.
-2. Define acceptance criteria and test cases first; keep money in integer cents and preserve user data isolation.
-3. Write tests first, then implement the smallest correct change using existing patterns.
-4. Run backend and frontend tests (`npm run test` in both `backend/` and `frontend/`); run `npm run build` for frontend changes.
-5. On completion, move the `## [Unreleased]` entry to a new dated section in `CHANGELOG.md`.
-6. Update `ARCHITECTURE.md` or this file only when their scope changes.
+1. Define acceptance criteria and test cases first; keep money in integer cents and preserve user data isolation.
+2. Write tests first, then implement the smallest correct change using existing patterns.
+3. Run backend and frontend tests (`npm run test` in both `backend/` and `frontend/`); run `npm run build` for frontend changes; run `npm run format:check`.
+4. Before declaring the adjustment finished in `CHANGELOG.md`, **stop and ask the user**:
+
+   > Você tem mais algum ajuste a adicionar nesta versão?
+
+   - If the user answers **yes**, append a note block to `NOTES.md` (template at the top of that file) describing what was just changed — files touched, tests added/updated, and the verification result — and end the turn. Do **not** edit `CHANGELOG.md`.
+   - If the user answers **no** (in the current session or in a follow-up coding session), consolidate every entry in `NOTES.md` together with the just-completed work into a single new dated `## Phase N` section at the top of `CHANGELOG.md`. Group items under `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, and `Tests` as appropriate. Then delete the consolidated entries from `NOTES.md`.
+
+   Once the user has answered, **act directly on the chosen branch above with no further analysis**: just run the described file edits. There is no need to think deeply about wording, ordering, or whether to keep `NOTES.md`; the guideline already covers it.
+5. Update `ARCHITECTURE.md` or this file only when their scope changes.

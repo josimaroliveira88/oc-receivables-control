@@ -5,37 +5,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 Guidance for maintainers:
 
-- Append a new entry under `## [Unreleased]` for work in progress.
-- When a milestone (phase or group of phases) is delivered, move its entry to a dated `##` section and group changes under `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, and `Security` as applicable.
+- This changelog does **not** keep a running `## [Unreleased]` section. When the user signals more adjustments may follow, the agent records what was just done in `NOTES.md` instead of editing `CHANGELOG.md`. When the user signals that no more adjustments are pending, those notes are consolidated into a new dated `## Phase N` section (most recent at the top) and grouped under `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, and `Security` as applicable. The agent then clears the entries from `NOTES.md`. See the **New Feature Workflow** in `AGENTS.md` for the full protocol.
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
-### Phase planning template
 
-When a new request is approved, add the planning block below to the `## [Unreleased]` entry until delivery:
+## Phase 46 — Edit all product fields except code (2026-08-14)
 
-```markdown
-## Phase 45: Feature Name
-Status: IN PROGRESS
+### Changed
+- The product edit modal now exposes every editable field: name, size, regular price, member price, PV, URL, and status, all pre-filled from the selected product.
+- Submitting the edit sends the three price fields as numbers via `PUT /api/products/:id`; the backend already supported the update and keeps the existing price-history versioning (unchanged prices do not create a new `ProductPrice` record).
+- The product code remains immutable: the code field is disabled in the UI and the backend never updates `Product.code`.
 
-### Goal
-Why the feature is needed.
+### Fixed
+- Infinite scroll on the products page stopped working after creating or editing a product: the list refetch set the loading state, which unmounted the scroll sentinel and disconnected the `IntersectionObserver`, but the effect did not re-run because its dependencies were unchanged. The observer effect now depends on `loading` and re-attaches to the new sentinel after a refetch, and the visible count resets to the page size so the updated list starts from the top.
 
-### Acceptance Criteria
-- [ ] User-facing behavior and PT-BR labels
-- [ ] Backend/API and data rules
-- [ ] Edge cases and authorization behavior
-- [ ] Backend/frontend tests written before implementation
-
-### Technical Notes
-- Schema, migration, dependency, or environment changes.
-
-### Completion
-- Tests and build results.
-- Documentation updated.
-```
-
-## [Unreleased]
+### Tests
+- `ProductsPage.test.jsx`: updated the edit-form tests to assert the full `PUT` payload (including prices) and added a price-change test; the pre-fill test now also asserts the price inputs.
+- ProductsPage suite: added a regression test that creates a product while infinite scroll is active and asserts the sentinel observer is re-attached (triggering it reveals more rows); the mock `IntersectionObserver` now tracks the observed node and only fires while it remains connected to the DOM.
+- Verified: 168 backend + 321 frontend tests passing, `npm run build` clean, Prettier `format:check` clean.
 
 
 ## Phase 45 — Replace window.confirm with ConfirmDialog (2026-08-14)
