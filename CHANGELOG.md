@@ -10,6 +10,33 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 48 — Frontend documentation and architecture guide (2026-08-14)
+
+### Changed
+- Renamed `frontend/docs/refactoring-guide.md` to `frontend/docs/frontend-architecture-guide.md` (English) and turned it into the single frontend structure reference for every change (new feature, improvement, or maintenance).
+- The guide now defines a progressive complexity policy (Level 1 single file → Level 2 point extraction → Level 3 page orchestrator), conventions per file type (pages, components, hooks, utils, shared components), and rules for any request (assess before editing, do not push a file past its threshold, extract in the same change, preserve an adequate structure, do not over-split simple files, verify after structural changes), keeping the page-refactoring playbook, anti-patterns, and post-refactoring checks.
+- `ARCHITECTURE.md`: repository structure tree and the "page-as-orchestrator" design decision now reference the new guide.
+- `AGENTS.md`: updated the current-state phase range to 17-47 and replaced the page-size pitfall with a pointer to `frontend/docs/frontend-architecture-guide.md` as the single frontend structure reference.
+- Skills `frontend-react` and `project-structure` now point to the new guide for the complexity policy, per-type conventions, and the refactoring playbook.
+
+### Tests
+- Documentation-only change: no test or source-code behavior changed. Verified: Prettier `format:check` clean.
+
+## Phase 47 — Page refactoring to orchestrator architecture (2026-08-14)
+
+### Changed
+- Refactored all five main pages into a "page-as-orchestrator" architecture following a new reusable roadmap in `frontend/docs/refactoring-guide.md`: each page folder now holds a custom hook (state, API calls, handlers), local subcomponents, and pure helpers, while the original `*Page.jsx` file becomes a compatibility shim (`export { default } from './{Nome}/index.jsx';`) so existing imports keep working.
+- PeoplePage (581 lines): extracted `usePeople.js`, `PeopleTable.jsx`, `PersonModal.jsx`, `PersonForm.jsx`, `PersonFormFields.jsx`, `WhatsappField.jsx`, `SimNaoSelect.jsx`, `BoolBadge.jsx`, and `utils/peopleHelpers.js`.
+- OrdersPage (977 lines): extracted `useOrders.js`, `OrdersTable.jsx`, `OrderModal.jsx`, `OrderForm.jsx`, `OrderItemFields.jsx`, `ProductCombobox.jsx`, `Badges.jsx`, and `utils/orderHelpers.js`.
+- ProductsPage (923 lines): extracted `useProducts.js`, `ProductsTable.jsx`, `ProductModal.jsx`, `ProductForm.jsx`, `StatusBadge.jsx`, and `utils/productHelpers.js` (including client-side filter/sort helpers).
+- ReceivablesPage (971 lines): extracted `useReceivables.js`, `ReceivablesTable.jsx`, `PaymentModal.jsx`, `DetailsModal.jsx`, `StatusBadge.jsx`, and `utils/receivablesHelpers.js`.
+- DashboardPage (295 lines → ~90): extracted `useDashboard.js`, `DashboardHeader.jsx`, `KpiCards.jsx`, `BalanceChart.jsx`, `YearlyBreakdown.jsx`, and `utils/dashboardHelpers.js` (BRL formatters, `hasDashboardData`, `buildChartData`).
+- Created `frontend/docs/refactoring-guide.md` documenting when to apply the refactor (line count / responsibility-mixing criteria), the step-by-step extraction process, the final folder structure, and anti-patterns to avoid.
+
+### Tests
+- All existing page suites (PeoplePage, OrdersPage, ProductsPage, ReceivablesPage, DashboardPage) pass unchanged, preserving every `data-testid`, visible PT-BR text, and event-handler behavior.
+- Verified: 321 frontend tests passing, `npm run build` clean, Prettier `format:check` clean.
+
 ## Phase 46 — Edit all product fields except code (2026-08-14)
 
 ### Changed
