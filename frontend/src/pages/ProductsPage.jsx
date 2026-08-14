@@ -103,6 +103,7 @@ const ProductsPage = () => {
     try {
       const response = await api.get('/products?pageSize=all');
       setAllProducts(response.data.data);
+      setVisibleCount(PAGE_SIZE);
       setError('');
     } catch (err) {
       setError('Erro ao carregar produtos. Tente novamente.');
@@ -172,7 +173,7 @@ const ProductsPage = () => {
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [hasMore, visibleProducts.length]);
+  }, [hasMore, visibleProducts.length, loading]);
 
   const handleCreateProduct = async (e) => {
     e.preventDefault();
@@ -226,6 +227,9 @@ const ProductsPage = () => {
         size: editProduct.size.trim(),
         status: editStatus,
         doterraUrl: editProduct.doterraUrl.trim() || null,
+        regularPrice: parseFloat(editProduct.regularPrice),
+        memberPrice: parseFloat(editProduct.memberPrice),
+        pv: parseFloat(editProduct.pv),
       });
       setEditProductId(null);
       setEditProduct(emptyForm);
@@ -780,6 +784,63 @@ const ProductsPage = () => {
                   }
                   required
                   className={inputClass}
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Preço Regular (R$)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={editProduct.regularPrice}
+                  onChange={(e) =>
+                    setEditProduct((prev) => ({
+                      ...prev,
+                      regularPrice: e.target.value,
+                    }))
+                  }
+                  required
+                  className={inputClass}
+                  placeholder="Digite o preço regular"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Preço de Membro (R$)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={editProduct.memberPrice}
+                  onChange={(e) =>
+                    setEditProduct((prev) => ({
+                      ...prev,
+                      memberPrice: e.target.value,
+                    }))
+                  }
+                  required
+                  className={inputClass}
+                  placeholder="Digite o preço de membro"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  PV
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={editProduct.pv}
+                  onChange={(e) =>
+                    setEditProduct((prev) => ({ ...prev, pv: e.target.value }))
+                  }
+                  required
+                  className={inputClass}
+                  placeholder="Digite o PV"
                 />
               </div>
               <div className="mb-4">
