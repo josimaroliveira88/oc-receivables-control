@@ -10,6 +10,25 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 51 — Stock control: database, /api/stock, page, and undo (2026-08-20)
+
+### Added
+- Isolated stock-control database layer: enum `StockMovementType` (`ENTRADA`, `SAIDA`, `AJUSTE`), `Inventory` (current balance, one row per user+product via `@@unique([userId, productId])`) and `StockMovement` (signed-quantity history), both scoped by `userId`. Relation arrays `inventory`/`stockMovements` added to `User` and `Product` (no new business fields). Migration `20260820161530_create_inventory_tables`. FK decisions: `productId` `onDelete: Restrict` (products are deactivated, not deleted), `userId` `onDelete: Cascade`.
+- Backend area `/api/stock` (scoped by `req.user.userId`): `listInventory`, `getProductHistory`, and `registerMovement` — the latter runs in a single `prisma.$transaction` that validates the global `Product`, computes the signed quantity and new balance (`ENTRADA` `+q`, `SAIDA` `-q` forbidding negative stock, `AJUSTE` sets absolute target with signed delta), creates the `StockMovement`, and upserts the `Inventory`. Zod validation (`productId` UUID, `type` enum, integer `quantity`, `reason` ≤ 255).
+- Undo endpoint `POST /api/stock/movements/:id/undo`: undoes the **last** movement of a product in a single transaction. Rejects `404` when the movement does not exist or belongs to another user, and `400` ("Apenas a última movimentação pode ser desfeita") when a newer movement exists (count of movements with `createdAt` greater). Reverses the `Inventory` balance (`quantity − movement.quantity`; negative → `400`), and deletes the `Inventory` row when the undone movement was the only one, so the product leaves the stock list and becomes available for a fresh initialization.
+- Frontend Stock page (`frontend/src/pages/Stock/`): page orchestrator (`index.jsx`, `useStock.js`, `components/StockTable.jsx`, `MovementDialog.jsx`, `HistoryDialog.jsx`, `utils/stockHelpers.js`) plus the `StockPage.jsx` shim, route `/stock`, and the "Estoque" nav item (Header + MobileDrawer).
+- "Adicionar Estoque" initialization flow: button in the page header opens the movement dialog with a product combobox listing all catalog products (any status) not yet in the user's inventory (`availableProducts`, catalog loaded lazily via `GET /products?pageSize=all` on dialog open). When opened from a product row's kebab the dialog shows a read-only "Produto: {name} ({code})" line instead. `productId` is required by `validateMovement` ("Produto é obrigatório").
+- "Desfazer última movimentação" button in the `HistoryDialog` (visible only when `history.length > 0`), backed by the shared `ConfirmDialog` (confirmLabel "Desfazer", loading during the call). After confirming, the movement history and inventory reload so the new last remaining movement can be undone again sequentially; undoing the only movement removes the product from the stock list (the `404` from the history reload is treated as empty history).
+
+### Changed
+- `ProductCombobox` promoted from `frontend/src/pages/Orders/components/` to the shared `frontend/src/components/ProductCombobox.jsx`, gaining an optional `subtitle` prop (default: regular price) and `aria-label="Produto"`. `OrderItemFields.jsx` now imports the shared component (behavior unchanged).
+- `MovementDialog` renders the product combobox (subtitle = product size) when no product is selected, versus a read-only product line in kebab mode.
+
+### Tests
+- Backend: 22 new tests for `/api/stock` (auth `401`/`403`, `ENTRADA`/`SAIDA`/`AJUSTE` with transactional consistency and negative-stock rejection, Zod validation, inventory/history user isolation, and A/B user isolation) plus 9 new tests for the undo endpoint (`401`; `ENTRADA` undone decrements; `SAIDA` undone increments; `AJUSTE` undone reverts to previous value; only-movement deletes the `Inventory`; non-last → `400` without partial writes; sequential double undo; `404` not found; `404` other user).
+- Frontend: 25 new tests in `frontend/tests/StockPage.test.jsx` for the stock page (list, register movement via kebab, validation, history dialog), 6 for "Adicionar Estoque" (button renders; dialog with combobox and `ENTRADA` preselected; `productId` required without POST; happy path reloads `/stock`; unavailable products not listed; `AJUSTE` sets the absolute initial balance), and 7 for "Undo last movement" (button visible/invisible; `ConfirmDialog` opens with product name; cancel makes no POST; confirm POSTs + toasts + reloads history and inventory; sequential undo keeps the button; only-movement removes the row and hides the button). Header/MobileDrawer tests updated for the new nav item.
+- Verified: backend `199 passed`, frontend `360 passed`, `npm run build` clean, and Prettier `format:check` clean.
+
 ## Phase 50 — Move order tracking link to order number (2026-08-20)
 
 ### Changed

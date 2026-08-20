@@ -65,15 +65,16 @@ For a database with existing data, apply migrations with `npx prisma migrate dep
 └── frontend/
     ├── src/
     │   ├── App.jsx, main.jsx, index.css
-    │   ├── components/ (layout, auth, dialogs, menus, toast, onboarding; shared widgets such as `ActionMenu`, `ConfirmDialog`)
+    │   ├── components/ (layout, auth, dialogs, menus, toast, onboarding; shared widgets such as `ActionMenu`, `ConfirmDialog`, `ProductCombobox`)
     │   ├── context/ (auth and theme)
     │   ├── pages/
     │   │   ├── LoginPage.jsx, RegisterPage.jsx                # Small pages kept as single files
-    │   │   ├── DashboardPage.jsx, PeoplePage.jsx, OrdersPage.jsx, ProductsPage.jsx   # One-line shims re-exporting each page folder
+    │   │   ├── DashboardPage.jsx, PeoplePage.jsx, OrdersPage.jsx, ProductsPage.jsx, StockPage.jsx   # One-line shims re-exporting each page folder
     │   │   ├── Dashboard/   (index.jsx, useDashboard.js, components/, utils/dashboardHelpers.js)
     │   │   ├── People/      (index.jsx, usePeople.js, components/, utils/peopleHelpers.js)
     │   │   ├── Orders/      (index.jsx, useOrders.js, useOrderPayments.js, components/, utils/orderHelpers.js, utils/receivablesHelpers.js)
     │   │   ├── Products/    (index.jsx, useProducts.js, components/, utils/productHelpers.js)
+    │   │   ├── Stock/       (index.jsx, useStock.js, components/, utils/stockHelpers.js)
     │   ├── services/api.js
     │   └── utils/ (money, dates, WhatsApp, Excel export)
     ├── docs/frontend-architecture-guide.md   # Progressive complexity policy, conventions, page-refactoring playbook
@@ -89,6 +90,8 @@ For a database with existing data, apply migrations with `npx prisma migrate dep
 - `Payment` belongs to an order and optionally a person. Payment creation runs in a Prisma transaction and recalculates order status.
 - `Product` is a global catalog record with `ProductStatus`: `ATIVO`, `INDISPONIVEL`, or `INATIVO`.
 - `ProductPrice` stores historical regular price, member price, PV, and validity intervals.
+- `Inventory` stores the current stock balance per user+product (`@@unique([userId, productId])`).
+- `StockMovement` records the signed-quantity history (`ENTRADA`/`SAIDA`/`AJUSTE`) for each user+product, used both to compute and to audit the inventory balance.
 
 ## API Areas
 
@@ -97,6 +100,7 @@ For a database with existing data, apply migrations with `npx prisma migrate dep
 - `/api/orders`: authenticated order/item CRUD, payments, and per-person balances.
 - `/api/dashboard`: authenticated KPIs, person balances, and yearly breakdown.
 - `/api/products`: catalog CRUD, status/search/sort/pagination, current prices, and price history.
+- `/api/stock`: authenticated inventory listing, per-product movement history, movement registration (transactional, signed balance), and `POST /movements/:id/undo` to undo the last movement.
 
 ## Important Design Decisions
 
@@ -108,3 +112,6 @@ For a database with existing data, apply migrations with `npx prisma migrate dep
 - `ActionMenu` is the shared kebab menu for row actions. Menu panels use `z-[80]`.
 - The frontend uses a Vite `/api` proxy, avoiding browser-side localhost/CORS issues on local networks.
 - Complex pages follow a "page-as-orchestrator" architecture: each page lives in `pages/{Nome}/` with `index.jsx` (≈60–150 lines), a `use{Nome}.js` custom hook owning state, API calls, and mutation handlers, local `components/` for subcomponents, and `utils/` for pure helpers. The original `*Page.jsx` file is a one-line shim (`export { default } from './{Nome}/index.jsx';`) so existing imports keep working. See `frontend/docs/frontend-architecture-guide.md` for the progressive complexity policy and the page-refactoring playbook.
+- Stock movements are signed (`ENTRADA` `+q`, `SAIDA` `-q` forbidding negative stock, `AJUSTE` absolute target with signed delta); `registerMovement` and `undoLastMovement` each run in a single Prisma transaction.
+- Only the **last** movement of a product can be undone (enforced by counting movements with a greater `createdAt`); undoing the only movement deletes the `Inventory` row so the product leaves the stock list and becomes available for a fresh initialization.
+- The "Adicionar Estoque" product selector is filtered client-side (`availableProducts`) from the catalog loaded lazily on dialog open (`GET /products?pageSize=all`) minus the products already in the user's inventory, regardless of product status.
