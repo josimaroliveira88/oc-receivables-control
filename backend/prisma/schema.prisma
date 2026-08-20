@@ -8,47 +8,49 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(uuid())
-  username  String    @unique
-  password  String
-  people    Person[]
-  orders    Order[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id             String          @id @default(uuid())
+  username       String          @unique
+  password       String
+  people         Person[]
+  orders         Order[]
+  inventory      Inventory[]
+  stockMovements StockMovement[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 }
 
 model Person {
-  id             String   @id @default(uuid())
-  name           String
-  whatsapp       String?
-  commonGroups   String?  @db.VarChar(255)
-  instagram      String?  @db.VarChar(255)
-  address        String?  @db.VarChar(500)
-  isVip          Boolean  @default(false)
-  isDoterraMember Boolean @default(false)
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId         String
-  items          Item[]
-  payments       Payment[]
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id              String    @id @default(uuid())
+  name            String
+  whatsapp        String?
+  commonGroups    String?   @db.VarChar(255)
+  instagram       String?   @db.VarChar(255)
+  address         String?   @db.VarChar(500)
+  isVip           Boolean   @default(false)
+  isDoterraMember Boolean   @default(false)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          String
+  items           Item[]
+  payments        Payment[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 model Order {
-  id          String       @id @default(uuid())
-  orderNumber String
-  totalValue  Decimal      @db.Decimal(10, 2)
-  orderDate   DateTime     @default(now())
-  status      OrderStatus  @default(PENDENTE)
-  accountOwner String?     @db.VarChar(120)
-  paymentType PaymentType?
-  orderNotes  String?      @db.VarChar(500)
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId      String
-  items       Item[]
-  payments    Payment[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id           String       @id @default(uuid())
+  orderNumber  String
+  totalValue   Decimal      @db.Decimal(10, 2)
+  orderDate    DateTime     @default(now())
+  status       OrderStatus  @default(PENDENTE)
+  accountOwner String?      @db.VarChar(120)
+  paymentType  PaymentType?
+  orderNotes   String?      @db.VarChar(500)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  items        Item[]
+  payments     Payment[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
   @@unique([orderNumber, userId])
 }
@@ -85,14 +87,14 @@ model Item {
 }
 
 model Payment {
-  id      String  @id @default(uuid())
-  amount  Decimal @db.Decimal(10, 2)
-  paidAt  DateTime @default(now())
-  notes   String?
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  orderId String
-  person  Person? @relation(fields: [personId], references: [id], onDelete: SetNull)
-  personId String?
+  id        String   @id @default(uuid())
+  amount    Decimal  @db.Decimal(10, 2)
+  paidAt    DateTime @default(now())
+  notes     String?
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId   String
+  person    Person?  @relation(fields: [personId], references: [id], onDelete: SetNull)
+  personId  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -107,8 +109,10 @@ model Product {
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
 
-  prices ProductPrice[]
-  items  Item[]
+  prices         ProductPrice[]
+  items          Item[]
+  inventory      Inventory[]
+  stockMovements StockMovement[]
 
   @@index([status])
 }
@@ -120,15 +124,54 @@ enum ProductStatus {
 }
 
 model ProductPrice {
-  id           String   @id @default(uuid())
-  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id           String    @id @default(uuid())
+  product      Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
   productId    String
-  regularPrice Decimal  @db.Decimal(10, 2)
-  memberPrice  Decimal  @db.Decimal(10, 2)
-  pv           Decimal  @db.Decimal(10, 2)
-  validFrom    DateTime @default(now())
+  regularPrice Decimal   @db.Decimal(10, 2)
+  memberPrice  Decimal   @db.Decimal(10, 2)
+  pv           Decimal   @db.Decimal(10, 2)
+  validFrom    DateTime  @default(now())
   validTo      DateTime?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
 
   @@index([productId, validFrom])
+}
+
+enum StockMovementType {
+  ENTRADA
+  SAIDA
+  AJUSTE
+}
+
+model Inventory {
+  id        String @id @default(uuid())
+  userId    String
+  productId String
+  quantity  Int    @default(0)
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, productId])
+  @@index([userId])
+}
+
+model StockMovement {
+  id        String            @id @default(uuid())
+  userId    String
+  productId String
+  quantity  Int
+  type      StockMovementType
+  reason    String?
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([productId])
 }
