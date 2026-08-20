@@ -55,6 +55,10 @@ app.use('/api/dashboard', dashboardRoutes);
 const productRoutes = require('./routes/productRoutes');
 app.use('/api/products', productRoutes);
 
+// Stock routes
+const stockRoutes = require('./routes/stockRoutes');
+app.use('/api/stock', stockRoutes);
+
 // Centralized error handling middleware
 app.use((error, req, res, next) => {
   console.error('Unhandled error:', {
