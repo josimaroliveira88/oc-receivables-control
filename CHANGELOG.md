@@ -10,6 +10,25 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 49 — Unify Receivables into the Orders page (2026-08-20)
+
+### Changed
+- Removed the "Recebíveis" menu item (header and mobile drawer), the `/receivables` route, and the `ReceivablesPage` shim, unifying receivables management under the "Pedidos" page (`/orders`), since the two lists were practically identical and differed only in their actions.
+- The unified orders list now shows the columns: Número, Data, Responsável, Tipo Pgto, Valor, Valor Pendente, PV Total, Descrição, Rastreio, Status, Ações. Row actions are now: Registrar Pagamento (or "Dar baixa", shown conditionally), Detalhar Pagamentos, Editar, and Excluir.
+- Payment registration and the per-person details modal were carried over exactly as implemented, preserving their behavior unchanged; only the action label "Detalhar" was renamed to "Detalhar Pagamentos".
+- `frontend/src/pages/Orders/`: `useOrders.js` now exposes `refreshOrders` (refetch orders after a payment); new `useOrderPayments.js` hook owns the payment and details state; `PaymentModal.jsx`, `DetailsModal.jsx`, and `utils/receivablesHelpers.js` were moved in from the removed `Receivables/` folder; `OrdersTable.jsx` gained the "Valor Pendente" column and the two new actions; `index.jsx` composes both hooks and renders the payment/details modals and the overpayment confirmation.
+- `frontend/src/App.jsx` (removed route), `frontend/src/components/Header.jsx` and `MobileDrawer.jsx` (removed nav item and unused icon import), and `frontend/src/components/OnboardingTour.jsx` (payment step now points to `/orders`).
+- `ARCHITECTURE.md`: page tree updated to reflect the merged `Orders/` folder and the removal of `Receivables/`.
+
+### Removed
+- `frontend/src/pages/Receivables/` (index.jsx, useReceivables.js, components/, utils/receivablesHelpers.js) and the `frontend/src/pages/ReceivablesPage.jsx` shim.
+
+### Tests
+- `tests/OrdersPage.test.jsx` updated for the new action set and the added "Valor Pendente" column.
+- New `tests/OrdersPayments.test.jsx` covers payment registration, overpayment confirmation, and the details modal (migrated from the removed `tests/ReceivablesPage.test.jsx`).
+- `tests/Header.test.jsx` and `tests/MobileDrawer.test.jsx` updated for the removal of the "Recebíveis" nav item.
+- Verified: 321 frontend tests passing, `npm run build` clean, Prettier `format:check` clean.
+
 ## Phase 48 — Frontend documentation and architecture guide (2026-08-14)
 
 ### Changed

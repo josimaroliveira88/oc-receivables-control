@@ -69,12 +69,11 @@ For a database with existing data, apply migrations with `npx prisma migrate dep
     │   ├── context/ (auth and theme)
     │   ├── pages/
     │   │   ├── LoginPage.jsx, RegisterPage.jsx                # Small pages kept as single files
-    │   │   ├── DashboardPage.jsx, PeoplePage.jsx, OrdersPage.jsx, ProductsPage.jsx, ReceivablesPage.jsx   # One-line shims re-exporting each page folder
+    │   │   ├── DashboardPage.jsx, PeoplePage.jsx, OrdersPage.jsx, ProductsPage.jsx   # One-line shims re-exporting each page folder
     │   │   ├── Dashboard/   (index.jsx, useDashboard.js, components/, utils/dashboardHelpers.js)
     │   │   ├── People/      (index.jsx, usePeople.js, components/, utils/peopleHelpers.js)
-    │   │   ├── Orders/      (index.jsx, useOrders.js, components/, utils/orderHelpers.js)
+    │   │   ├── Orders/      (index.jsx, useOrders.js, useOrderPayments.js, components/, utils/orderHelpers.js, utils/receivablesHelpers.js)
     │   │   ├── Products/    (index.jsx, useProducts.js, components/, utils/productHelpers.js)
-    │   │   └── Receivables/ (index.jsx, useReceivables.js, components/, utils/receivablesHelpers.js)
     │   ├── services/api.js
     │   └── utils/ (money, dates, WhatsApp, Excel export)
     ├── docs/frontend-architecture-guide.md   # Progressive complexity policy, conventions, page-refactoring playbook
