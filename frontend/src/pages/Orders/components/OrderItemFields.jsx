@@ -1,7 +1,7 @@
 import React from 'react';
 import { Plus } from 'lucide-react';
 import { formatBRL } from '../../../utils/money';
-import ProductCombobox from './ProductCombobox';
+import ProductCombobox from '../../../components/ProductCombobox';
 
 const OrderItemFields = ({
   item,

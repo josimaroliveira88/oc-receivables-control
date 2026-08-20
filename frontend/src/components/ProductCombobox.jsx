@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { formatBRL } from '../../../utils/money';
+import { formatBRL } from '../utils/money';
+
+const defaultSubtitle = (p) => formatBRL(parseFloat(p.memberPrice) || 0);
 
 const ProductCombobox = ({
   products,
@@ -7,6 +9,7 @@ const ProductCombobox = ({
   onChange,
   selectedName,
   selectedCode,
+  subtitle = defaultSubtitle,
 }) => {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -54,6 +57,7 @@ const ProductCombobox = ({
             onChange={handleType}
             onFocus={() => setOpen(true)}
             placeholder="Busque um produto..."
+            aria-label="Produto"
             className="w-full px-3 py-2 pr-8 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-sm"
           />
           {open && (
@@ -75,7 +79,7 @@ const ProductCombobox = ({
                     className="cursor-pointer px-3 py-2 text-sm text-gray-900 dark:text-gray-100 hover:bg-primary-50 dark:hover:bg-primary-900/40 transition-colors"
                   >
                     <span className="font-medium">{p.name}</span> ({p.code}) —{' '}
-                    {formatBRL(parseFloat(p.memberPrice) || 0)}
+                    {subtitle(p)}
                   </li>
                 ))}
               </ul>
