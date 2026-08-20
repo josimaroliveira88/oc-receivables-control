@@ -412,6 +412,8 @@ describe('OrdersPage', () => {
       await waitFor(() => {
         const links = screen.getAllByTitle('Ver pedido no site');
         expect(links).toHaveLength(2);
+        expect(links[0]).toHaveTextContent('ORD-001');
+        expect(links[1]).toHaveTextContent('ORD-002');
         expect(links[0]).toHaveAttribute(
           'href',
           'https://status.ondeestameupedido.com/tracking/22747/ORD-001/',
@@ -420,6 +422,15 @@ describe('OrdersPage', () => {
           'href',
           'https://status.ondeestameupedido.com/tracking/22747/ORD-002/',
         );
+      });
+    });
+
+    it('should not render a separate tracking column', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('columnheader', { name: 'Rastreio' }),
+        ).not.toBeInTheDocument();
       });
     });
   });

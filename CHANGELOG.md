@@ -10,6 +10,17 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 50 — Move order tracking link to order number (2026-08-20)
+
+### Changed
+- Removed the separate "Rastreio" column from Gestão de Pedidos and moved its tracking link to the "Número" column, using the order number to build the URL.
+- Increased the "Número" column width to 11%, prevented long order numbers from wrapping, reduced the external-link icon, and right-aligned the column on desktop while preserving left alignment on mobile. The number and icon use fixed visual areas so order numbers of different lengths remain aligned.
+
+### Tests
+- Updated `frontend/tests/OrdersPage.test.jsx` to verify the tracking links are attached to each order number and that the separate column is absent.
+- Verified: 322 frontend tests passing, `npm run build` clean, and Prettier `format:check` clean.
+
+
 ## Phase 49 — Unify Receivables into the Orders page (2026-08-20)
 
 ### Changed
