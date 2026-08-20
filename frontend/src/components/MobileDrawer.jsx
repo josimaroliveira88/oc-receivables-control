@@ -7,6 +7,7 @@ import {
   Users,
   ClipboardList,
   Package,
+  Boxes,
   LogOut,
   Sun,
   Moon,
@@ -21,6 +22,7 @@ const navItems = [
   { to: '/people', icon: Users, label: 'Clientes' },
   { to: '/orders', icon: ClipboardList, label: 'Pedidos' },
   { to: '/products', icon: Package, label: 'Produtos' },
+  { to: '/stock', icon: Boxes, label: 'Estoque' },
 ];
 
 const MobileDrawer = () => {

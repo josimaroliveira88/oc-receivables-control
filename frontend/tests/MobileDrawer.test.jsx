@@ -55,19 +55,20 @@ describe('MobileDrawer', () => {
     );
   });
 
-  it('should render all 4 navigation items in the drawer', () => {
+  it('should render all 5 navigation items in the drawer', () => {
     renderDrawer();
     fireEvent.click(screen.getByLabelText('Abrir menu'));
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Clientes')).toBeInTheDocument();
     expect(screen.getByText('Pedidos')).toBeInTheDocument();
     expect(screen.getByText('Produtos')).toBeInTheDocument();
+    expect(screen.getByText('Estoque')).toBeInTheDocument();
   });
 
-  it('should have 4 links in the drawer', () => {
+  it('should have 5 links in the drawer', () => {
     renderDrawer();
     fireEvent.click(screen.getByLabelText('Abrir menu'));
-    expect(screen.getAllByRole('link')).toHaveLength(4);
+    expect(screen.getAllByRole('link')).toHaveLength(5);
   });
 
   it('should close the drawer when a nav link is clicked', () => {

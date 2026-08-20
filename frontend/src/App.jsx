@@ -7,6 +7,7 @@ import DashboardPage from './pages/DashboardPage';
 import PeoplePage from './pages/PeoplePage';
 import OrdersPage from './pages/OrdersPage';
 import ProductsPage from './pages/ProductsPage';
+import StockPage from './pages/StockPage';
 import ToastProvider from './components/Toast';
 import Header from './components/Header';
 import MobileDrawer from './components/MobileDrawer';
@@ -42,6 +43,7 @@ const App = () => {
           <Route path="/people" element={<PeoplePage />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/products" element={<ProductsPage />} />
+          <Route path="/stock" element={<StockPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
