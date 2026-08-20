@@ -6,7 +6,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 import DashboardPage from './pages/DashboardPage';
 import PeoplePage from './pages/PeoplePage';
 import OrdersPage from './pages/OrdersPage';
-import ReceivablesPage from './pages/ReceivablesPage';
 import ProductsPage from './pages/ProductsPage';
 import ToastProvider from './components/Toast';
 import Header from './components/Header';
@@ -42,7 +41,6 @@ const App = () => {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/people" element={<PeoplePage />} />
           <Route path="/orders" element={<OrdersPage />} />
-          <Route path="/receivables" element={<ReceivablesPage />} />
           <Route path="/products" element={<ProductsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

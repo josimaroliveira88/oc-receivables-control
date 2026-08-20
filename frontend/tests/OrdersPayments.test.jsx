@@ -7,7 +7,7 @@ import {
 } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import ReceivablesPage from '../src/pages/ReceivablesPage';
+import OrdersPage from '../src/pages/OrdersPage';
 import { ToastProvider } from '../src/components/Toast';
 
 const mockGet = vi.fn();
@@ -277,6 +277,9 @@ const mockBalances = {
 const mockGetImplementation = (ordersData = []) => {
   mockGet.mockImplementation((url) => {
     if (url === '/orders') return Promise.resolve({ data: ordersData });
+    if (url === '/people') return Promise.resolve({ data: [] });
+    if (url.startsWith('/products'))
+      return Promise.resolve({ data: { data: [] } });
     const balanceMatch = url.match(/^\/orders\/(.+)\/balance$/);
     if (balanceMatch) {
       const orderId = balanceMatch[1];
@@ -291,7 +294,7 @@ const renderPage = () => {
   return render(
     <MemoryRouter>
       <ToastProvider>
-        <ReceivablesPage />
+        <OrdersPage />
       </ToastProvider>
     </MemoryRouter>,
   );
@@ -300,35 +303,35 @@ const renderPage = () => {
 const openPaymentAction = async (orderId, label = 'Registrar Pagamento') => {
   await waitFor(() => {
     expect(
-      screen.getByTestId(`receivable-actions-${orderId}-trigger`),
+      screen.getByTestId(`order-actions-${orderId}-trigger`),
     ).toBeInTheDocument();
   });
-  fireEvent.click(screen.getByTestId(`receivable-actions-${orderId}-trigger`));
+  fireEvent.click(screen.getByTestId(`order-actions-${orderId}-trigger`));
   await waitFor(() => {
     expect(
-      screen.getByTestId(`receivable-actions-${orderId}-menu`),
+      screen.getByTestId(`order-actions-${orderId}-menu`),
     ).toBeInTheDocument();
   });
   const itemId = label === 'Dar baixa' ? 'Dar-baixa' : 'Registrar-Pagamento';
   fireEvent.click(
-    screen.getByTestId(`receivable-actions-${orderId}-item-${itemId}`),
+    screen.getByTestId(`order-actions-${orderId}-item-${itemId}`),
   );
   await waitFor(() => {
     expect(screen.getByTestId('payment-modal')).toBeInTheDocument();
   });
 };
 
-describe('ReceivablesPage', () => {
+describe('OrdersPayments', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   describe('Rendering', () => {
-    it('should render the page title "Controle de Recebíveis"', async () => {
+    it('should render the page title "Gestão de Pedidos"', async () => {
       mockGetImplementation([]);
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('Controle de Recebíveis')).toBeInTheDocument();
+        expect(screen.getByText('Gestão de Pedidos')).toBeInTheDocument();
       });
     });
 
@@ -353,7 +356,7 @@ describe('ReceivablesPage', () => {
       renderPage();
       await waitFor(() => {
         expect(
-          screen.getByText('Erro ao carregar pedidos. Tente novamente.'),
+          screen.getByText('Erro ao carregar dados. Tente novamente.'),
         ).toBeInTheDocument();
       });
     });
@@ -391,17 +394,15 @@ describe('ReceivablesPage', () => {
       renderPage();
       await waitFor(() => {
         expect(
-          screen.getAllByTestId(/^receivable-actions-.*-trigger$/),
+          screen.getAllByTestId(/^order-actions-.*-trigger$/),
         ).toHaveLength(2);
       });
-      fireEvent.click(screen.getByTestId('receivable-actions-order-1-trigger'));
+      fireEvent.click(screen.getByTestId('order-actions-order-1-trigger'));
       expect(
-        screen.getByTestId(
-          'receivable-actions-order-1-item-Registrar-Pagamento',
-        ),
+        screen.getByTestId('order-actions-order-1-item-Registrar-Pagamento'),
       ).toHaveTextContent('Registrar Pagamento');
       expect(
-        screen.getByTestId('receivable-actions-order-1-item-Detalhar'),
+        screen.getByTestId('order-actions-order-1-item-Detalhar-Pagamentos'),
       ).toBeInTheDocument();
     });
 
@@ -414,7 +415,7 @@ describe('ReceivablesPage', () => {
       expect(screen.queryByText('Pago')).not.toBeInTheDocument();
       expect(screen.queryByText('Registrar Pagamento')).not.toBeInTheDocument();
       expect(
-        screen.getByTestId('receivable-actions-order-3-trigger'),
+        screen.getByTestId('order-actions-order-3-trigger'),
       ).toBeInTheDocument();
     });
   });
@@ -426,15 +427,13 @@ describe('ReceivablesPage', () => {
     const openReceivableMenu = async (orderId) => {
       await waitFor(() => {
         expect(
-          screen.getByTestId(`receivable-actions-${orderId}-trigger`),
+          screen.getByTestId(`order-actions-${orderId}-trigger`),
         ).toBeInTheDocument();
       });
-      fireEvent.click(
-        screen.getByTestId(`receivable-actions-${orderId}-trigger`),
-      );
+      fireEvent.click(screen.getByTestId(`order-actions-${orderId}-trigger`));
       await waitFor(() => {
         expect(
-          screen.getByTestId(`receivable-actions-${orderId}-menu`),
+          screen.getByTestId(`order-actions-${orderId}-menu`),
         ).toBeInTheDocument();
       });
     };
@@ -444,7 +443,7 @@ describe('ReceivablesPage', () => {
       renderPage();
       await waitFor(() => {
         expect(
-          screen.getAllByTestId(/^receivable-actions-.*-trigger$/),
+          screen.getAllByTestId(/^order-actions-.*-trigger$/),
         ).toHaveLength(4);
       });
     });
@@ -454,17 +453,15 @@ describe('ReceivablesPage', () => {
       renderPage();
       await waitFor(() => {
         expect(
-          screen.getByTestId('receivable-actions-order-1-trigger'),
+          screen.getByTestId('order-actions-order-1-trigger'),
         ).toBeInTheDocument();
       });
-      fireEvent.click(screen.getByTestId('receivable-actions-order-1-trigger'));
+      fireEvent.click(screen.getByTestId('order-actions-order-1-trigger'));
       expect(
-        screen.getByTestId(
-          'receivable-actions-order-1-item-Registrar-Pagamento',
-        ),
+        screen.getByTestId('order-actions-order-1-item-Registrar-Pagamento'),
       ).toHaveClass('bg-primary-600');
       expect(
-        screen.getByTestId('receivable-actions-order-1-item-Detalhar'),
+        screen.getByTestId('order-actions-order-1-item-Detalhar-Pagamentos'),
       ).toBeInTheDocument();
     });
 
@@ -474,17 +471,15 @@ describe('ReceivablesPage', () => {
       await waitFor(() => {
         expect(screen.getByText('ORD-004')).toBeInTheDocument();
       });
-      fireEvent.click(screen.getByTestId('receivable-actions-order-4-trigger'));
+      fireEvent.click(screen.getByTestId('order-actions-order-4-trigger'));
       expect(
-        screen.getByTestId('receivable-actions-order-4-item-Dar-baixa'),
+        screen.getByTestId('order-actions-order-4-item-Dar-baixa'),
       ).toBeInTheDocument();
       expect(
-        screen.getByTestId('receivable-actions-order-4-item-Detalhar'),
+        screen.getByTestId('order-actions-order-4-item-Detalhar-Pagamentos'),
       ).toBeInTheDocument();
       expect(
-        screen.queryByTestId(
-          'receivable-actions-order-4-item-Registrar-Pagamento',
-        ),
+        screen.queryByTestId('order-actions-order-4-item-Registrar-Pagamento'),
       ).not.toBeInTheDocument();
     });
 
@@ -496,7 +491,7 @@ describe('ReceivablesPage', () => {
       });
       expect(screen.queryByText('Registrar Pagamento')).not.toBeInTheDocument();
       expect(
-        screen.getByTestId('receivable-actions-order-paid-trigger'),
+        screen.getByTestId('order-actions-order-paid-trigger'),
       ).toBeInTheDocument();
     });
 
@@ -507,18 +502,18 @@ describe('ReceivablesPage', () => {
         expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
       expect(
-        screen.queryByTestId('receivable-actions-order-1-menu'),
+        screen.queryByTestId('order-actions-order-1-menu'),
       ).not.toBeInTheDocument();
     });
 
-    it('should show "Detalhar" when the kebab is opened for a pending order', async () => {
+    it('should show "Detalhar Pagamentos" when the kebab is opened for a pending order', async () => {
       mockGetImplementation([mockOrders[0]]);
       renderPage();
       await waitFor(() => {
         expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
       await openReceivableMenu('order-1');
-      expect(screen.getByText('Detalhar')).toBeInTheDocument();
+      expect(screen.getByText('Detalhar Pagamentos')).toBeInTheDocument();
     });
 
     it('should open the details modal and close the menu on item click', async () => {
@@ -530,14 +525,14 @@ describe('ReceivablesPage', () => {
       await openReceivableMenu('order-detail-rich');
       fireEvent.click(
         screen.getByTestId(
-          'receivable-actions-order-detail-rich-item-Detalhar',
+          'order-actions-order-detail-rich-item-Detalhar-Pagamentos',
         ),
       );
       await waitFor(() =>
         expect(screen.getByTestId('details-modal')).toBeInTheDocument(),
       );
       expect(
-        screen.queryByTestId('receivable-actions-order-detail-rich-menu'),
+        screen.queryByTestId('order-actions-order-detail-rich-menu'),
       ).not.toBeInTheDocument();
     });
 
@@ -547,16 +542,16 @@ describe('ReceivablesPage', () => {
       await waitFor(() => {
         expect(screen.getByText('ORD-003')).toBeInTheDocument();
       });
-      const trigger = screen.getByTestId('receivable-actions-order-3-trigger');
+      const trigger = screen.getByTestId('order-actions-order-3-trigger');
       expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
       expect(trigger).toHaveAttribute('aria-expanded', 'false');
       fireEvent.click(trigger);
       await waitFor(() => {
         expect(trigger).toHaveAttribute('aria-expanded', 'true');
       });
-      const menu = screen.getByTestId('receivable-actions-order-3-menu');
+      const menu = screen.getByTestId('order-actions-order-3-menu');
       expect(menu).toHaveAttribute('role', 'menu');
-      const menuitem = within(menu).getByRole('menuitem');
+      const menuitem = within(menu).getAllByRole('menuitem')[0];
       expect(menuitem).toHaveTextContent('Detalhar');
       expect(menuitem).toHaveAttribute('role', 'menuitem');
     });
@@ -568,12 +563,10 @@ describe('ReceivablesPage', () => {
         expect(screen.getByText('ORD-003')).toBeInTheDocument();
       });
       await openReceivableMenu('order-3');
-      fireEvent.click(
-        screen.getByTestId('receivable-actions-order-3-backdrop'),
-      );
+      fireEvent.click(screen.getByTestId('order-actions-order-3-backdrop'));
       await waitFor(() => {
         expect(
-          screen.queryByTestId('receivable-actions-order-3-menu'),
+          screen.queryByTestId('order-actions-order-3-menu'),
         ).not.toBeInTheDocument();
       });
     });
@@ -588,7 +581,7 @@ describe('ReceivablesPage', () => {
       fireEvent.keyDown(document, { key: 'Escape' });
       await waitFor(() => {
         expect(
-          screen.queryByTestId('receivable-actions-order-3-menu'),
+          screen.queryByTestId('order-actions-order-3-menu'),
         ).not.toBeInTheDocument();
       });
     });
@@ -657,7 +650,9 @@ describe('ReceivablesPage', () => {
         expect(screen.getByText('ORD-002')).toBeInTheDocument();
       });
 
-      expect(within(rowFor('ORD-002')).getByText('—')).toBeInTheDocument();
+      const row = rowFor('ORD-002');
+      const ownerCell = row.querySelector('td[data-label="Responsável"]');
+      expect(ownerCell).toHaveTextContent('—');
     });
 
     it('should render pending value equal to total when no payments exist', async () => {
@@ -729,7 +724,9 @@ describe('ReceivablesPage', () => {
         expect(screen.getByText('ORD-003')).toBeInTheDocument();
       });
 
-      expect(within(rowFor('ORD-003')).getByText('—')).toBeInTheDocument();
+      const row = rowFor('ORD-003');
+      const descCell = row.querySelector('td[data-label="Descrição"]');
+      expect(descCell).toHaveTextContent('—');
     });
   });
 
@@ -996,11 +993,11 @@ describe('ReceivablesPage', () => {
         expect(screen.getByText('ORD-DETAIL')).toBeInTheDocument(),
       );
       fireEvent.click(
-        screen.getByTestId('receivable-actions-order-detail-rich-trigger'),
+        screen.getByTestId('order-actions-order-detail-rich-trigger'),
       );
       fireEvent.click(
         screen.getByTestId(
-          'receivable-actions-order-detail-rich-item-Detalhar',
+          'order-actions-order-detail-rich-item-Detalhar-Pagamentos',
         ),
       );
       await waitFor(() =>

@@ -47,6 +47,15 @@ export function useOrders() {
     }
   }, []);
 
+  const refreshOrders = useCallback(async () => {
+    try {
+      const response = await api.get('/orders');
+      setOrders(response.data);
+    } catch (err) {
+      setError('Erro ao carregar pedidos. Tente novamente.');
+    }
+  }, []);
+
   const addItem = () => {
     setItems([...items, emptyItem()]);
     setTimeout(() => {
@@ -236,6 +245,7 @@ export function useOrders() {
     products,
     loading,
     error,
+    refreshOrders,
     showCreateModal,
     showEditModal,
     editOrderId,

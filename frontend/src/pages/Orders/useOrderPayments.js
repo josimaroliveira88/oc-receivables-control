@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import api from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { toCents } from '../../utils/money';
@@ -13,10 +13,7 @@ import {
   paymentPayload,
 } from './utils/receivablesHelpers';
 
-export function useReceivables() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+export function useOrderPayments({ refreshOrders }) {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [balances, setBalances] = useState([]);
@@ -33,22 +30,6 @@ export function useReceivables() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [expandedPersonId, setExpandedPersonId] = useState('');
   const { addToast } = useToast();
-
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get('/orders');
-      setOrders(response.data);
-    } catch (err) {
-      setError('Erro ao carregar pedidos. Tente novamente.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchOrders();
-  }, []);
 
   const openPaymentModal = async (order) => {
     setSelectedOrder(order);
@@ -121,7 +102,7 @@ export function useReceivables() {
       );
       addToast('Pagamento registrado com sucesso!', 'success');
       closePaymentModal();
-      fetchOrders();
+      refreshOrders();
     } catch (err) {
       const msg =
         err.response?.data?.error ||
@@ -228,9 +209,6 @@ export function useReceivables() {
   const selectedPersonItems = getPersonItems(selectedOrder, selectedPersonId);
 
   return {
-    orders,
-    loading,
-    error,
     showPaymentModal,
     selectedOrder,
     balances,

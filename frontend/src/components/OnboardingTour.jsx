@@ -62,7 +62,7 @@ const steps = [
     description:
       'Registre pagamentos contra pedidos. O sistema atualiza automaticamente o status: Pendente → Parcial → Quitado. Pessoas com itens de brinde (R$ 0,00) podem receber baixa gratuita; para itens com valor, informe um valor maior que zero. Valores acima do pendente são aceitos após confirmação.',
     icon: DollarSign,
-    route: '/receivables',
+    route: '/orders',
   },
   {
     title: 'Navegação e Tema',

@@ -201,8 +201,8 @@ describe('OrdersPage', () => {
     it('should display order total values', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText(/R\$\s*300,00/)).toBeInTheDocument();
-        expect(screen.getByText(/R\$\s*500,00/)).toBeInTheDocument();
+        expect(screen.getAllByText(/R\$\s*300,00/).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/R\$\s*500,00/).length).toBeGreaterThan(0);
       });
     });
 
@@ -293,7 +293,7 @@ describe('OrdersPage', () => {
         expect(trigger).toHaveAttribute('aria-expanded', 'true');
         expect(screen.getByRole('menu')).toBeInTheDocument();
         const items = screen.getAllByRole('menuitem');
-        expect(items).toHaveLength(2);
+        expect(items).toHaveLength(4);
       });
     });
 

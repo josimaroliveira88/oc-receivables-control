@@ -1,8 +1,12 @@
 import React from 'react';
+import { formatBRL, toCents } from '../../utils/money';
 import { useOrders } from './useOrders';
+import { useOrderPayments } from './useOrderPayments';
 import OrdersTable from './components/OrdersTable';
 import OrderModal from './components/OrderModal';
 import OrderForm from './components/OrderForm';
+import PaymentModal from './components/PaymentModal';
+import DetailsModal from './components/DetailsModal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 
 const OrdersPage = () => {
@@ -12,6 +16,7 @@ const OrdersPage = () => {
     products,
     loading,
     error,
+    refreshOrders,
     showCreateModal,
     showEditModal,
     editOrderId,
@@ -39,6 +44,42 @@ const OrdersPage = () => {
     confirmDeleteOrder,
     setShowCreateModal,
   } = useOrders();
+
+  const {
+    showPaymentModal,
+    selectedOrder,
+    balances,
+    selectedPersonId,
+    paymentAmount,
+    paymentNotes,
+    paymentDate,
+    paymentError,
+    submitting,
+    showOverpayConfirm,
+    orderPendingCents,
+    selectedPendingCents,
+    selectedIsZeroItem,
+    selectedPersonItems,
+    showDetailsModal,
+    detailOrder,
+    detailBalances,
+    detailLoading,
+    expandedPersonId,
+    openPaymentModal,
+    closePaymentModal,
+    handleChangePerson,
+    handleChangeAmount,
+    handleChangeNotes,
+    handleChangeDate,
+    handlePaymentSubmit,
+    confirmOverpay,
+    cancelOverpay,
+    openDetailsModal,
+    closeDetailsModal,
+    toggleDetailPerson,
+    getDetailPersonItems,
+    getDetailPersonPayments,
+  } = useOrderPayments({ refreshOrders });
 
   if (loading) {
     return (
@@ -77,6 +118,8 @@ const OrdersPage = () => {
             orders={orders}
             onEdit={handleEditOrder}
             onDelete={handleDeleteOrder}
+            onPayment={openPaymentModal}
+            onDetails={openDetailsModal}
           />
         </div>
       </div>
@@ -107,6 +150,63 @@ const OrdersPage = () => {
           onCancel={resetForm}
         />
       </OrderModal>
+
+      {showPaymentModal && selectedOrder && (
+        <PaymentModal
+          order={selectedOrder}
+          balances={balances}
+          selectedPersonId={selectedPersonId}
+          paymentAmount={paymentAmount}
+          paymentNotes={paymentNotes}
+          paymentDate={paymentDate}
+          paymentError={paymentError}
+          submitting={submitting}
+          orderPendingCents={orderPendingCents}
+          selectedPendingCents={selectedPendingCents}
+          selectedIsZeroItem={selectedIsZeroItem}
+          selectedPersonItems={selectedPersonItems}
+          onClose={closePaymentModal}
+          onChangePerson={handleChangePerson}
+          onChangeAmount={handleChangeAmount}
+          onChangeNotes={handleChangeNotes}
+          onChangeDate={handleChangeDate}
+          onSubmit={handlePaymentSubmit}
+        />
+      )}
+
+      {showDetailsModal && detailOrder && (
+        <DetailsModal
+          order={detailOrder}
+          balances={detailBalances}
+          loading={detailLoading}
+          expandedPersonId={expandedPersonId}
+          onClose={closeDetailsModal}
+          onTogglePerson={toggleDetailPerson}
+          personItems={getDetailPersonItems}
+          personPayments={getDetailPersonPayments}
+        />
+      )}
+
+      <ConfirmDialog
+        open={showOverpayConfirm}
+        title="Confirmar recebimento"
+        message={
+          <>
+            Valor de{' '}
+            <strong>
+              {formatBRL(toCents(parseFloat(paymentAmount || '0')) / 100)}
+            </strong>{' '}
+            é maior que o saldo pendente (
+            <strong>{formatBRL(selectedPendingCents / 100)}</strong>). Deseja
+            mesmo confirmar este recebimento?
+          </>
+        }
+        confirmLabel="Confirmar recebimento"
+        cancelLabel="Cancelar"
+        loading={submitting}
+        onConfirm={confirmOverpay}
+        onCancel={cancelOverpay}
+      />
 
       <ConfirmDialog
         open={!!confirmDeleteId}

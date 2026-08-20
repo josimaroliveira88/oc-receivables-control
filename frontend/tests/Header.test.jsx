@@ -40,7 +40,6 @@ describe('Header', () => {
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Clientes')).toBeInTheDocument();
     expect(screen.getByText('Pedidos')).toBeInTheDocument();
-    expect(screen.getByText('Recebíveis')).toBeInTheDocument();
     expect(screen.getByText('Produtos')).toBeInTheDocument();
   });
 
