@@ -97,15 +97,16 @@ For a database with existing data, apply migrations with `npx prisma migrate dep
 ## API Areas
 
 - `/api/auth`: login and self-registration.
-- `/api/people`: authenticated client CRUD. `GET /api/people` supports `q` (name/WhatsApp, case-insensitive), `classification` (`vip` | `member` | `vip_member` | `none`, mapped to `isVip`/`isDoterraMember`), `sortBy`, and `sortDir`.
-- `/api/orders`: authenticated order/item CRUD, payments, and per-person balances. `GET /api/orders` supports `q` + `searchField` (`all` | `orderNumber` | `accountOwner` | `orderNotes`), `status` (single or comma-separated), `paymentType`, `sortBy` (including computed `pendingValue`/`totalPv`), and `sortDir`. The search term is committed on submit; filter/sort changes refetch server-side.
+- `/api/people`: authenticated client CRUD. `GET /api/people` supports `q` (name/WhatsApp, accent- and case-insensitive via PostgreSQL `unaccent`/`lower`), `classification` (`vip` | `member` | `vip_member` | `none`, mapped to `isVip`/`isDoterraMember`), `sortBy`, and `sortDir`.
+- `/api/orders`: authenticated order/item CRUD, payments, and per-person balances. `GET /api/orders` supports `q` + `searchField` (`all` | `orderNumber` | `accountOwner` | `orderNotes`, all accent- and case-insensitive via `unaccent`/`lower`), `status` (single or comma-separated), `paymentType`, `sortBy` (including computed `pendingValue`/`totalPv`), and `sortDir`. The search term is committed on submit; filter/sort changes refetch server-side.
 - `/api/dashboard`: authenticated KPIs, person balances, and yearly breakdown.
 - `/api/products`: catalog CRUD, status/search/sort/pagination, current prices, and price history.
-- `/api/stock`: authenticated inventory listing, per-product movement history, movement registration (transactional, signed balance), and `POST /movements/:id/undo` to undo the last movement. `GET /api/stock` supports `q` (product code/name, case-insensitive), `sortBy`, and `sortDir`.
+- `/api/stock`: authenticated inventory listing, per-product movement history, movement registration (transactional, signed balance), and `POST /movements/:id` to undo the last movement. `GET /api/stock` supports `q` (product code/name, accent- and case-insensitive), `sortBy`, and `sortDir`.
 
 ## Important Design Decisions
 
 - Financial calculations use integer cents in application code; database monetary fields remain `Decimal(10,2)`.
+- The PostgreSQL `unaccent` extension (enabled by migration `20260821180000_enable_unaccent_extension`) is used by the shared `backend/src/utils/search.js` helper for `q` text searches on `/api/people`, `/api/orders` and `/api/stock`, so that accented and unaccented terms match interchangeably (e.g. `"Cássia"` matches `"cassia"`). The helper escapes LIKE wildcards (`%`, `_`, `\`) and combines with the existing userId/filters via a Prisma `id IN (...)` clause.
 - The frontend loads the product catalog once with `pageSize=all`; search, status filtering, sorting, and infinite-scroll slicing are client-side.
 - Clients (`/people`) and Stock (`/stock`) follow the same client-side pattern: fetch the full list and filter/sort in memory as the user types. Orders (`/orders`) is server-side: the search term is submitted on Enter/button and filters + sort trigger a `GET /api/orders` refetch with all params combined (filters and sorting applied together), with an `AbortController` cancelling in-flight requests on rapid changes.
 - Sortable table headers (`SortableHeader`) and the search input (`SearchInput`) are shared `src/components/` widgets; column headers toggle asc/desc with an `aria-sort` indicator.
