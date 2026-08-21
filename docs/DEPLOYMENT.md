@@ -122,6 +122,39 @@ Esse passo é idempotente e seguro. Ele é importante porque:
 - Garante que o binário do client em `node_modules/.prisma/client` bate com o `schema.prisma`.
 - O `npm install` (etapa 4) já chama `prisma generate` via `postinstall`, mas rodar de novo aqui é uma rede de segurança contra qualquer dessincronia.
 
+> ⚠️ **Windows — problema conhecido (EPERM no `query_engine-windows.dll.node`).**
+> No Windows, `prisma generate` faz um `rename` atômico sobre o DLL do engine (`node_modules\.prisma\client\query_engine-windows.dll.node`). Se esse DLL estiver aberto em modo exclusivo por outro processo, o comando falha com:
+>
+> ```
+> EPERM: operation not permitted, rename '...\query_engine-windows.dll.node.tmpXXXX' ->
+>                                   '...\query_engine-windows.dll.node'
+> ```
+>
+> Os culpados mais comuns são: (a) **o próprio backend Node ainda em execução** (fechar a janela do PowerShell **não** garante que `node.exe` morra), (b) o **VS Code** com o projeto aberto (o TypeScript Language Server carrega o client), ou (c) o **Windows Defender** escaneando o arquivo em tempo real.
+>
+> **Correção** (nesta ordem):
+>
+> ```powershell
+> # 1) Mate qualquer node.exe remanescente
+> Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force
+>
+> # 2) Feche o VS Code (ou Ctrl+Shift+P -> "Reload Window")
+>
+> # 3) Apague a pasta .prisma para forçar uma regeneração limpa
+> Remove-Item -Recurse -Force ".\node_modules\.prisma\client"
+>
+> # 4) Regenere
+> npx prisma generate
+> ```
+>
+> Se ainda falhar, adicione uma exclusão no Windows Defender para `node_modules\.prisma`:
+>
+> ```powershell
+> Add-MpPreference -ExclusionPath "C:\caminho\do\projeto\receivables-control\backend\node_modules\.prisma"
+> ```
+>
+> Em seguida repita os passos 3 e 4. Esse comportamento é exclusivo do Windows e não acontece no Linux/macOS.
+
 ---
 
 ## 7. Build do frontend

@@ -89,6 +89,7 @@ The project no longer maintains a running `## [Unreleased]` section in `CHANGELO
 - Preserve the z-index hierarchy: navigation `z-50`, modals `z-[60]`, confirmation/tour overlays `z-[70]`, action menus `z-[80]`, toasts `z-[90]`.
 - In ESM Tailwind config, import Flowbite as `flowbite/plugin.js`.
 - Keep `prettier` declared in the `package.json` of each workspace that owns source files (root, `backend/`, `frontend/`) so the binary resolves in the local `node_modules/.bin`.
+- On **Windows**, `npx prisma generate` can fail with `EPERM` renaming `query_engine-windows.dll.node` when the backend Node process, VS Code's TS server, or Windows Defender is locking the DLL. Kill `node.exe`, close VS Code, delete `backend/node_modules/.prisma/client`, retry; if it still fails, exclude `node_modules/.prisma` from Defender. See `docs/DEPLOYMENT.md` step 6 for the full procedure.
 - `frontend/docs/frontend-architecture-guide.md` is the single frontend structure reference: it defines the progressive complexity policy (Level 1 single file → Level 2 point extraction → Level 3 page orchestrator), conventions per file type, and rules for any request. Apply it to every frontend change — new feature, improvement, or maintenance — so files stay cohesive and don't grow past their threshold (the ~400-line trigger is a review signal, not the only one).
 
 ## New Feature Workflow
