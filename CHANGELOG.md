@@ -10,6 +10,28 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 58 — Search, filters and sorting on Clients, Orders, and Stock screens (2026-08-21)
+
+### Added
+- **Clients screen**: search box that filters in real time as the user types (name or WhatsApp, case-insensitive, client-side like Products) plus a **Classificação** dropdown (Todas / Somente VIP / Somente Membro doTERRA / VIP + Membro / Sem classificação) mapped to the existing `isVip`/`isDoterraMember` flags. Every data column (Nome, Grupos, WhatsApp, Instagram, Endereço, VIP, Membro doTERRA) is now a clickable sort header that toggles asc/desc.
+- **Stock screen**: search box (product code or name, as-you-type, client-side) and clickable sort headers for Código, Produto, Tamanho and Estoque Atual.
+- **Orders screen**: a filter bar with a search input plus a column selector (Todas as colunas / Número / Responsável / Descrição) that submits on Enter or the **Pesquisar** button, and **Status** + **Tipo de Pagamento** dropdowns that refetch immediately. All data columns (Número, Data, Responsável, Tipo Pgto, Valor, Valor Pendente, PV Total, Descrição, Status) are clickable sort headers. **Server-side**: every request combines the active filters and sort into a single `GET /api/orders` call (e.g. filter + sort applied together), with an `AbortController` cancelling in-flight requests on rapid changes; the filtered empty state shows "Nenhum pedido encontrado para os filtros aplicados."
+- New shared widgets `frontend/src/components/SortableHeader.jsx` (clickable `th` with `aria-sort` and asc/desc icons) and `frontend/src/components/SearchInput.jsx`; new hook `frontend/src/pages/Orders/useOrderFilters.js` owning the orders filter/sort state and query-param builder.
+
+### Changed
+- Backend query support on three list endpoints (all still scoped by `req.user.userId`):
+  - `GET /api/people` now accepts `q` (name/WhatsApp `contains`, case-insensitive), `classification` (`vip` | `member` | `vip_member` | `none`), `sortBy`, and `sortDir` (default `name asc`).
+  - `GET /api/stock` now accepts `q` (product code/name via the `product` relation), `sortBy` (`code` | `name` | `size` | `quantity`), and `sortDir`.
+  - `GET /api/orders` now accepts `q` + `searchField` (`all` | `orderNumber` | `accountOwner` | `orderNotes`), `status` (single or comma-separated), `paymentType`, `sortBy`, and `sortDir`. The computed columns `pendingValue` (total − self − paid) and `totalPv` (Σ item.pv × qty) are sorted in-memory after the filtered Prisma query; other fields use Prisma `orderBy`.
+- `frontend/src/pages/People/`, `frontend/src/pages/Stock/`, and `frontend/src/pages/Orders/` updated to the client-side (People/Stock) and server-side (Orders) filter/sort flows described above; the orders status filter labels use "Somente ..." to avoid clashing with row badges.
+- `ARCHITECTURE.md` updated with the new query params on `/api/people`, `/api/orders`, `/api/stock`, the server-side orders fetch strategy, and the new shared widgets/hook.
+
+### Tests
+- Backend: new search/filter/sort blocks in `tests/people.test.js` (name/WhatsApp search, classification combos, sort + fallback, combination, isolation), `tests/stock.test.js` (name/code search, quantity/name sort, isolation), and `tests/orders.test.js` (per-column search, default-all search, status/paymentType filters, filter+sort combination, computed pendingValue sort, isolation). **287 backend passing** (was 286).
+- Frontend: new shared-widget tests in `tests/SearchSortComponents.test.jsx`; search/classification/sort blocks in `tests/PeoplePage.test.jsx`; search/sort blocks in `tests/StockPage.test.jsx`; server-side search/filter/sort blocks in `tests/OrdersPage.test.jsx` (request params, immediate refetch on filter/sort, combined filter+sort request, direction toggle, filtered empty state). **419 frontend passing** (was 395).
+- Verified: `npm run format:check` clean, `cd frontend && npm run build` clean, backend `npm run test` 287/287, frontend `npm run test` 419/419.
+
+
 ## Phase 57 — Unified status editor on the Products screen (2026-08-21)
 
 ### Changed

@@ -6,7 +6,7 @@ MVP and Phases 17-48 are complete. The application provides authenticated, user-
 
 - Internal documentation and code comments: English.
 - User-facing content: Brazilian Portuguese (PT-BR).
-- Last recorded test result: 168 backend + 321 frontend = 489 passing tests.
+- Last recorded test result: 287 backend + 419 frontend = 706 passing tests.
 
 ## Stack and Ports
 
