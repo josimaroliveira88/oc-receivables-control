@@ -1278,4 +1278,211 @@ describe('Orders CRUD with Items', () => {
       expect(updated.body.status).toBe('PENDENTE');
     });
   });
+
+  describe('GET /api/orders — search, filters and sorting', () => {
+    let alphaOrderId;
+    let betaOrderId;
+    let searchPersonId;
+
+    beforeEach(async () => {
+      searchPersonId = (
+        await prisma.person.create({
+          data: { name: 'Search Person', userId },
+        })
+      ).id;
+
+      const alpha = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: `ALFA-${Date.now()}`,
+          accountOwner: 'Ana Silva',
+          paymentType: 'PIX',
+          orderNotes: 'Pedido alfa',
+          items: [
+            {
+              description: 'Item A',
+              chargedValue: 100.0,
+              personId: searchPersonId,
+            },
+          ],
+        });
+      alphaOrderId = alpha.body.id;
+
+      const beta = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: `BETA-${Date.now()}`,
+          accountOwner: 'Bruno Costa',
+          paymentType: 'BOLETO',
+          orderNotes: 'Pedido beta',
+          items: [
+            {
+              description: 'Item B',
+              chargedValue: 300.0,
+              personId: searchPersonId,
+            },
+          ],
+        });
+      betaOrderId = beta.body.id;
+    });
+
+    afterEach(async () => {
+      await prisma.order
+        .deleteMany({ where: { id: { in: [alphaOrderId, betaOrderId] } } })
+        .catch(() => {});
+      await prisma.person
+        .delete({ where: { id: searchPersonId } })
+        .catch(() => {});
+    });
+
+    it('should search by order number using searchField=orderNumber', async () => {
+      const response = await request(app)
+        .get(`/api/orders?q=ALFA&searchField=orderNumber`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const ids = response.body.map((o) => o.id);
+      expect(ids).toContain(alphaOrderId);
+      expect(ids).not.toContain(betaOrderId);
+    });
+
+    it('should search by account owner using searchField=accountOwner', async () => {
+      const response = await request(app)
+        .get(`/api/orders?q=Ana&searchField=accountOwner`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const ids = response.body.map((o) => o.id);
+      expect(ids).toContain(alphaOrderId);
+      expect(ids).not.toContain(betaOrderId);
+    });
+
+    it('should search by order notes using searchField=orderNotes', async () => {
+      const response = await request(app)
+        .get(`/api/orders?q=beta&searchField=orderNotes`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const ids = response.body.map((o) => o.id);
+      expect(ids).toContain(betaOrderId);
+      expect(ids).not.toContain(alphaOrderId);
+    });
+
+    it('should search across all columns when searchField=all', async () => {
+      const response = await request(app)
+        .get(`/api/orders?q=Bruno&searchField=all`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const ids = response.body.map((o) => o.id);
+      expect(ids).toContain(betaOrderId);
+      expect(ids).not.toContain(alphaOrderId);
+    });
+
+    it('should default to searching across all columns when searchField is omitted', async () => {
+      const response = await request(app)
+        .get(`/api/orders?q=alfa`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const ids = response.body.map((o) => o.id);
+      expect(ids).toContain(alphaOrderId);
+      expect(ids).not.toContain(betaOrderId);
+    });
+
+    it('should filter by status=PENDENTE', async () => {
+      const response = await request(app)
+        .get(`/api/orders?status=PENDENTE`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.length).toBeGreaterThan(0);
+      expect(response.body.every((o) => o.status === 'PENDENTE')).toBe(true);
+    });
+
+    it('should filter by paymentType=PIX', async () => {
+      const response = await request(app)
+        .get(`/api/orders?paymentType=PIX`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const ids = response.body.map((o) => o.id);
+      expect(ids).toContain(alphaOrderId);
+      expect(ids).not.toContain(betaOrderId);
+    });
+
+    it('should combine a filter with sorting by totalValue descending', async () => {
+      const response = await request(app)
+        .get(`/api/orders?paymentType=BOLETO&sortBy=totalValue&sortDir=desc`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const ids = response.body.map((o) => o.id);
+      expect(ids).toContain(betaOrderId);
+      const values = response.body.map((o) => Number(o.totalValue));
+      expect(values).toEqual([...values].sort((a, b) => b - a));
+    });
+
+    it('should sort by orderNumber ascending', async () => {
+      const response = await request(app)
+        .get(`/api/orders?sortBy=orderNumber&sortDir=asc`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const numbers = response.body
+        .map((o) => o.orderNumber)
+        .filter((n) => n.startsWith('ALFA-') || n.startsWith('BETA-'));
+      const sorted = [...numbers].sort((a, b) => a.localeCompare(b));
+      expect(numbers).toEqual(sorted);
+    });
+
+    it('should sort by pending value (computed) with a filter applied', async () => {
+      const response = await request(app)
+        .get(`/api/orders?sortBy=pendingValue&sortDir=desc`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const ids = response.body.map((o) => o.id);
+      expect(ids[0]).toBe(betaOrderId);
+    });
+
+    it('should keep user isolation when filtering', async () => {
+      const otherReg = await request(app)
+        .post('/api/auth/register')
+        .send({
+          username: `orders_other_${Date.now()}`,
+          password: 'testpass123',
+        });
+      const otherLogin = await request(app)
+        .post('/api/auth/login')
+        .send({ username: otherReg.body.username, password: 'testpass123' });
+      const otherPerson = await prisma.person.create({
+        data: { name: 'Other Person', userId: otherReg.body.id },
+      });
+      const otherOrder = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${otherLogin.body.token}`)
+        .send({
+          orderNumber: `OTHER-${Date.now()}`,
+          items: [
+            {
+              description: 'Other Item',
+              chargedValue: 50.0,
+              personId: otherPerson.id,
+            },
+          ],
+        });
+
+      const response = await request(app)
+        .get(`/api/orders?q=OTHER`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(
+        response.body.find((o) => o.id === otherOrder.body.id),
+      ).toBeUndefined();
+    });
+  });
 });

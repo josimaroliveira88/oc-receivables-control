@@ -165,11 +165,119 @@ const itemStockMovements = async (client, order, orderNumber, items) => {
   }
 };
 
+const ORDER_SORTABLE_FIELDS = [
+  'orderNumber',
+  'orderDate',
+  'totalValue',
+  'status',
+  'paymentType',
+  'accountOwner',
+  'orderNotes',
+  'createdAt',
+];
+
+// Computed values used to sort orders that have no direct DB column:
+// - pendingCents: totalValue - (self person items) - (payments)
+// - totalPv: sum of (item.pv * item.quantity)
+const orderSortValue = (order, field) => {
+  if (field === 'pendingCents') {
+    const selfCents = (order.items || [])
+      .filter((item) => item.person && item.person.isSelf)
+      .reduce((sum, item) => sum + lineValueCents(item), 0);
+    const paidCents = (order.payments || []).reduce(
+      (sum, p) => sum + toCents(parseFloat(p.amount)),
+      0,
+    );
+    return Math.max(
+      0,
+      toCents(parseFloat(order.totalValue)) - selfCents - paidCents,
+    );
+  }
+  if (field === 'totalPv') {
+    return (order.items || []).reduce((sum, item) => {
+      const qty = Math.max(1, Number(item.quantity) || 1);
+      return sum + (parseFloat(item.pv) || 0) * qty;
+    }, 0);
+  }
+  return undefined;
+};
+
+const sortOrdersInMemory = (orders, sortBy, sortDir) => {
+  const direction = sortDir === 'desc' ? -1 : 1;
+  const numericFields = ['pendingCents', 'totalPv', 'totalValue'];
+  return [...orders].sort((a, b) => {
+    if (numericFields.includes(sortBy)) {
+      const aComputed = orderSortValue(a, sortBy);
+      const bComputed = orderSortValue(b, sortBy);
+      const aValue =
+        aComputed !== undefined ? aComputed : Number(a[sortBy]) || 0;
+      const bValue =
+        bComputed !== undefined ? bComputed : Number(b[sortBy]) || 0;
+      return (aValue - bValue) * direction;
+    }
+    return (
+      String(a[sortBy] ?? '').localeCompare(String(b[sortBy] ?? ''), 'pt-BR') *
+      direction
+    );
+  });
+};
+
 // Get all orders with items
 const getOrders = async (req, res) => {
   try {
+    const { q, searchField, status, paymentType, sortBy, sortDir } = req.query;
+
+    const where = { userId: req.user.userId };
+
+    if (q && q.trim()) {
+      const search = q.trim();
+      const contains = { contains: search, mode: 'insensitive' };
+      switch (searchField) {
+        case 'orderNumber':
+          where.orderNumber = contains;
+          break;
+        case 'accountOwner':
+          where.accountOwner = contains;
+          break;
+        case 'orderNotes':
+          where.orderNotes = contains;
+          break;
+        default:
+          where.OR = [
+            { orderNumber: contains },
+            { accountOwner: contains },
+            { orderNotes: contains },
+          ];
+      }
+    }
+
+    if (status) {
+      const statusValues = Array.isArray(status)
+        ? status
+        : status.includes(',')
+          ? status.split(',')
+          : [status];
+      where.status =
+        statusValues.length === 1 ? statusValues[0] : { in: statusValues };
+    }
+
+    if (paymentType) {
+      where.paymentType = paymentType;
+    }
+
+    // The pendingValue / totalPv columns are derived from items and payments,
+    // so they are sorted in-memory after fetching the filtered set.
+    const COMPUTED_SORT_FIELDS = ['pendingValue', 'totalPv'];
+    const inMemorySort = COMPUTED_SORT_FIELDS.includes(sortBy);
+
+    const direction = sortDir === 'desc' ? 'desc' : 'asc';
+    let orderBy = [{ orderDate: 'desc' }, { createdAt: 'desc' }];
+    if (!inMemorySort && ORDER_SORTABLE_FIELDS.includes(sortBy)) {
+      orderBy = [{ [sortBy]: direction }];
+    }
+
     const orders = await prisma.order.findMany({
-      where: { userId: req.user.userId },
+      where,
       include: {
         items: {
           include: {
@@ -183,9 +291,16 @@ const getOrders = async (req, res) => {
           },
         },
       },
-      orderBy: [{ orderDate: 'desc' }, { createdAt: 'desc' }],
+      orderBy,
     });
-    res.status(200).json(orders);
+
+    const computedSortField =
+      sortBy === 'pendingValue' ? 'pendingCents' : 'totalPv';
+    const result = inMemorySort
+      ? sortOrdersInMemory(orders, computedSortField, sortDir)
+      : orders;
+
+    res.status(200).json(result);
   } catch (error) {
     console.error('Error fetching orders:', error);
     res.status(500).json({ error: 'Internal server error' });
