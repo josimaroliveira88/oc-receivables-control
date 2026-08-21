@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
 import { ExternalLink, Plus } from 'lucide-react';
 import { formatBRL } from '../../../utils/money';
-import { toCents } from '../../../utils/money';
-import { trackingUrl } from '../utils/orderHelpers';
+import { fromCents } from '../../../utils/money';
+import { trackingUrl, lineValueCents } from '../utils/orderHelpers';
 import OrderItemFields from './OrderItemFields';
 
 const OrderForm = ({
@@ -39,14 +39,17 @@ const OrderForm = ({
 
   const calculateTotal = () => {
     const totalCents = items.reduce(
-      (total, item) => total + (toCents(parseFloat(item.chargedValue)) || 0),
+      (total, item) => total + lineValueCents(item),
       0,
     );
-    return totalCents / 100;
+    return fromCents(totalCents);
   };
 
   const calculateTotalPV = () => {
-    return items.reduce((total, item) => total + (parseFloat(item.pv) || 0), 0);
+    return items.reduce((total, item) => {
+      const qty = Math.max(1, Number(item.quantity) || 1);
+      return total + (parseFloat(item.pv) || 0) * qty;
+    }, 0);
   };
 
   return (
@@ -174,7 +177,10 @@ const OrderForm = ({
             <div className="text-xs text-gray-500 dark:text-gray-400">
               Soma dos Produtos (Valor Cobrado)
             </div>
-            <div className="text-lg font-medium text-gray-900 dark:text-gray-100">
+            <div
+              data-testid="order-totals-charged"
+              className="text-lg font-medium text-gray-900 dark:text-gray-100"
+            >
               {formatBRL(calculateTotal())}
             </div>
           </div>
@@ -182,7 +188,10 @@ const OrderForm = ({
             <div className="text-xs text-gray-500 dark:text-gray-400">
               Soma dos PV
             </div>
-            <div className="text-lg font-medium text-gray-900 dark:text-gray-100">
+            <div
+              data-testid="order-totals-pv"
+              className="text-lg font-medium text-gray-900 dark:text-gray-100"
+            >
               {calculateTotalPV().toFixed(2)}
             </div>
           </div>

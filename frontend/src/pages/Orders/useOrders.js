@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import { useToast } from '../../components/Toast';
 import {
@@ -11,6 +12,7 @@ import {
 } from './utils/orderHelpers';
 
 export function useOrders() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [orders, setOrders] = useState([]);
   const [people, setPeople] = useState([]);
   const [products, setProducts] = useState([]);
@@ -132,10 +134,29 @@ export function useOrders() {
   };
 
   const selfPersonRequestRef = useRef(null);
+  const deepLinkHandledRef = useRef(false);
 
   const onPersonSelect = async (index, value) => {
     if (value !== SELF_PERSON_ID) {
-      updateItemField(index, 'personId', value);
+      // When leaving the self person, the "for stock" toggle no longer applies.
+      // Apply both changes (personId + forStock reset) in a single state update
+      // so that React doesn't lose the personId change to a stale closure.
+      const target = items[index];
+      setItems(
+        items.map((item, i) => {
+          if (i !== index) return item;
+          const updated = { ...item, personId: value };
+          if (updated.forStock) updated.forStock = false;
+          return updated;
+        }),
+      );
+      if (target && itemErrors[target.id]) {
+        setItemErrors((prev) => {
+          const next = { ...prev };
+          delete next[target.id];
+          return next;
+        });
+      }
       return;
     }
 
@@ -224,6 +245,12 @@ export function useOrders() {
         parseFloat(item.chargedValue) < 0
       ) {
         newItemErrors[item.id] = 'Valor não pode ser negativo';
+      } else if (
+        item.quantity !== '' &&
+        item.quantity != null &&
+        (!Number.isInteger(Number(item.quantity)) || Number(item.quantity) < 1)
+      ) {
+        newItemErrors[item.id] = 'Quantidade deve ser maior ou igual a 1';
       } else if (!item.personId) {
         newItemErrors[item.id] = 'Pessoa é obrigatória';
       }
@@ -316,6 +343,18 @@ export function useOrders() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Support deep-linking from the Stock history ("Ver pedido") via ?editOrder=.
+  // Opens the edit modal for the referenced order once data is loaded.
+  useEffect(() => {
+    const editOrderParam = searchParams.get('editOrder');
+    if (!editOrderParam || deepLinkHandledRef.current || loading) return;
+    const order = orders.find((o) => o.id === editOrderParam);
+    if (!order) return;
+    deepLinkHandledRef.current = true;
+    setSearchParams({}, { replace: true });
+    handleEditOrder(order);
+  }, [searchParams, loading, orders, handleEditOrder, setSearchParams]);
 
   return {
     orders,

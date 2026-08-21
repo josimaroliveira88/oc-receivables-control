@@ -1,11 +1,14 @@
 import React from 'react';
 import { Plus } from 'lucide-react';
-import { formatBRL } from '../../../utils/money';
+import { formatBRL, fromCents } from '../../../utils/money';
 import ProductCombobox from '../../../components/ProductCombobox';
 import {
   SELF_PERSON_ID,
   findSelfPerson,
   personSelectLabel,
+  isItemForSelf,
+  memberLineTotal,
+  lineValueCents,
 } from '../utils/orderHelpers';
 
 const OrderItemFields = ({
@@ -21,6 +24,7 @@ const OrderItemFields = ({
   onRemove,
 }) => {
   const selfPerson = findSelfPerson(people);
+  const isSelfItem = isItemForSelf(item, people);
 
   return (
     <div
@@ -92,7 +96,7 @@ const OrderItemFields = ({
 
         <div>
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-            Valor Membro (R$)
+            Valor Membro (unidade)
           </label>
           <input
             type="text"
@@ -134,6 +138,85 @@ const OrderItemFields = ({
             placeholder="—"
           />
         </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+            Quantidade
+          </label>
+          <input
+            type="number"
+            min="1"
+            step="1"
+            data-testid={`order-item-quantity-${index}`}
+            value={item.quantity}
+            onChange={(e) => onUpdateField('quantity', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-sm"
+            placeholder="1"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+            Valor Cobrado (total)
+          </label>
+          <input
+            type="text"
+            value={formatBRL(fromCents(lineValueCents(item)))}
+            readOnly
+            tabIndex={-1}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md shadow-sm cursor-not-allowed text-sm"
+            placeholder="—"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+            Valor Membro (total)
+          </label>
+          <input
+            type="text"
+            value={
+              item.memberPrice !== '' ? formatBRL(memberLineTotal(item)) : ''
+            }
+            readOnly
+            tabIndex={-1}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md shadow-sm cursor-not-allowed text-sm"
+            placeholder="—"
+          />
+        </div>
+
+        <div className="md:col-span-3">
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+            O valor cobrado é
+          </label>
+          <select
+            data-testid={`order-item-price-mode-${index}`}
+            value={item.chargedValueMode}
+            onChange={(e) => onUpdateField('chargedValueMode', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-sm"
+          >
+            <option value="UNIT">Preço por unidade</option>
+            <option value="TOTAL">Valor total da linha</option>
+          </select>
+        </div>
+
+        {isSelfItem && (
+          <div className="md:col-span-3">
+            <label className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+              <input
+                type="checkbox"
+                data-testid={`order-item-stock-toggle-${index}`}
+                checked={item.forStock}
+                onChange={(e) => onUpdateField('forStock', e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              />
+              <span>
+                Este item é para meu estoque
+                <span className="block text-xs text-gray-500 dark:text-gray-400">
+                  Adiciona ao seu estoque; não gera cobrança pendente.
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
 
         <div className="md:col-span-3">
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">

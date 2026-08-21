@@ -1,3 +1,5 @@
+import { toCents, fromCents, formatBRL } from '../../../utils/money';
+
 export const emptyItem = () => ({
   id: Date.now(),
   description: '',
@@ -9,6 +11,9 @@ export const emptyItem = () => ({
   memberPrice: '',
   pv: '',
   details: '',
+  quantity: 1,
+  forStock: false,
+  chargedValueMode: 'UNIT',
 });
 
 // Sentinel value used by the person <select> to represent the logged-in user
@@ -57,6 +62,9 @@ export const itemPayload = (item) => ({
       : null,
   pv: item.pv !== '' && item.pv != null ? parseFloat(item.pv) : null,
   details: item.details.trim() || null,
+  quantity: Number(item.quantity) || 1,
+  forStock: !!item.forStock,
+  chargedValueMode: item.chargedValueMode || 'UNIT',
 });
 
 export const editItemFromApi = (item) => ({
@@ -72,4 +80,33 @@ export const editItemFromApi = (item) => ({
     item.memberPrice != null ? parseFloat(item.memberPrice).toString() : '',
   pv: item.pv != null ? parseFloat(item.pv).toString() : '',
   details: item.details || '',
+  quantity: item.quantity != null ? Number(item.quantity) : 1,
+  forStock: !!item.forStock,
+  chargedValueMode: item.chargedValueMode || 'UNIT',
 });
+
+// Whether an order item belongs to the logged-in user themselves.
+export const isItemForSelf = (item, people) => {
+  const self = findSelfPerson(people);
+  return !!self && item.personId === self.id;
+};
+
+// Line value in cents for an item, honoring the per-item price mode:
+// - 'UNIT' (default): chargedValue is the unit price -> unit * quantity.
+// - 'TOTAL': chargedValue already is the full line value.
+export const lineValueCents = (item) => {
+  const base = toCents(parseFloat(item.chargedValue) || 0);
+  if (item.chargedValueMode === 'TOTAL') return base;
+  const qty = Math.max(1, Number(item.quantity) || 1);
+  return base * qty;
+};
+
+// Member price total for display: unit member price * quantity.
+export const memberLineTotal = (item) => {
+  const member = parseFloat(item.memberPrice) || 0;
+  return member * Math.max(1, Number(item.quantity) || 1);
+};
+
+// Display the line total (chargedValue respecting mode) as a BRL string.
+export const lineTotalBRL = (item) =>
+  formatBRL(fromCents(lineValueCents(item)));
