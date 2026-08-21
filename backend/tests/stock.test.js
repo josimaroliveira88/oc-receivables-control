@@ -121,6 +121,8 @@ describe('Stock API', () => {
       expect(response.body.movement.type).toBe('ENTRADA');
       expect(response.body.movement.quantity).toBe(5);
       expect(response.body.movement.reason).toBe('Compra inicial');
+      expect(response.body.movement.orderId).toBeNull();
+      expect(response.body.movement.itemId).toBeNull();
       expect(response.body.inventory.quantity).toBe(5);
 
       const inventory = await prisma.inventory.findUnique({
