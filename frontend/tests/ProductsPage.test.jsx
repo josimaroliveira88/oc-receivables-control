@@ -4,6 +4,7 @@ import {
   fireEvent,
   waitFor,
   act,
+  within,
 } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -598,6 +599,30 @@ describe('ProductsPage', () => {
       await waitFor(() => {
         expect(screen.getByText('Código é obrigatório')).toBeInTheDocument();
       });
+    });
+
+    it('should render the form validation error inside the modal (not behind it)', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([]) });
+      renderPage();
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByText('Novo'));
+      });
+
+      const form = (
+        await screen.findByPlaceholderText('Digite o código')
+      ).closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(screen.getByText('Código é obrigatório')).toBeInTheDocument();
+      });
+
+      const modal = document.querySelector('.fixed.inset-0.z-\\[60\\]');
+      expect(modal).not.toBeNull();
+      expect(
+        within(modal).getByText('Código é obrigatório'),
+      ).toBeInTheDocument();
     });
 
     it('should show validation error when doterraUrl is invalid', async () => {

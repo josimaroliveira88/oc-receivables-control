@@ -5,6 +5,7 @@ const ProductForm = ({
   values,
   isEdit,
   status,
+  error,
   onChangeField,
   onChangeStatus,
   onSubmit,
@@ -12,6 +13,14 @@ const ProductForm = ({
 }) => {
   return (
     <form onSubmit={onSubmit} className="px-6 py-4">
+      {error && (
+        <div
+          data-testid="product-form-error"
+          className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md"
+        >
+          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        </div>
+      )}
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Código
