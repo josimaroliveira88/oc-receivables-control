@@ -8,6 +8,7 @@ const {
 const { lineValueCents, fromCents, toCents } = require('../utils/money');
 const { applyMovement } = require('../services/stockService');
 const { computeStockDiff } = require('../utils/stockDiff');
+const { findIdsByTextSearch } = require('../utils/search');
 
 const parseLocalDate = (dateStr) => {
   const [year, month, day] = dateStr.split('-').map(Number);
@@ -230,24 +231,30 @@ const getOrders = async (req, res) => {
     const where = { userId: req.user.userId };
 
     if (q && q.trim()) {
-      const search = q.trim();
-      const contains = { contains: search, mode: 'insensitive' };
+      let columns;
       switch (searchField) {
         case 'orderNumber':
-          where.orderNumber = contains;
+          columns = ['orderNumber'];
           break;
         case 'accountOwner':
-          where.accountOwner = contains;
+          columns = ['accountOwner'];
           break;
         case 'orderNotes':
-          where.orderNotes = contains;
+          columns = ['orderNotes'];
           break;
         default:
-          where.OR = [
-            { orderNumber: contains },
-            { accountOwner: contains },
-            { orderNotes: contains },
-          ];
+          columns = ['orderNumber', 'accountOwner', 'orderNotes'];
+      }
+      const matchingIds = await findIdsByTextSearch({
+        table: 'Order',
+        columns,
+        q,
+      });
+      if (matchingIds !== null) {
+        if (matchingIds.length === 0) {
+          return res.status(200).json([]);
+        }
+        where.id = { in: matchingIds };
       }
     }
 
