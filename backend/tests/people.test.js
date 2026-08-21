@@ -247,6 +247,178 @@ describe('People CRUD', () => {
     });
   });
 
+  describe('GET /api/people — search, classification and sorting', () => {
+    let vipPersonId;
+    let memberPersonId;
+    let nonePersonId;
+
+    beforeEach(async () => {
+      vipPersonId = (
+        await prisma.person.create({
+          data: {
+            name: 'Vip Cliente',
+            whatsapp: '5511911110000',
+            commonGroups: 'Grupo VIP',
+            isVip: true,
+            isDoterraMember: false,
+            userId,
+          },
+        })
+      ).id;
+      memberPersonId = (
+        await prisma.person.create({
+          data: {
+            name: 'Membro Cliente',
+            whatsapp: '5511922220000',
+            isVip: false,
+            isDoterraMember: true,
+            userId,
+          },
+        })
+      ).id;
+      nonePersonId = (
+        await prisma.person.create({
+          data: {
+            name: 'Comum Cliente',
+            whatsapp: '5511933330000',
+            isVip: false,
+            isDoterraMember: false,
+            userId,
+          },
+        })
+      ).id;
+    });
+
+    afterEach(async () => {
+      await prisma.person
+        .deleteMany({
+          where: { id: { in: [vipPersonId, memberPersonId, nonePersonId] } },
+        })
+        .catch(() => {});
+      vipPersonId = null;
+      memberPersonId = null;
+      nonePersonId = null;
+    });
+
+    it('should search people by name (case-insensitive)', async () => {
+      const response = await request(app)
+        .get('/api/people?q=vip')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const names = response.body.map((p) => p.name);
+      expect(names).toContain('Vip Cliente');
+      expect(names).not.toContain('Membro Cliente');
+    });
+
+    it('should search people by whatsapp (case-insensitive)', async () => {
+      const response = await request(app)
+        .get('/api/people?q=551192222')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const ids = response.body.map((p) => p.id);
+      expect(ids).toContain(memberPersonId);
+      expect(ids).not.toContain(vipPersonId);
+    });
+
+    it('should filter by classification=member', async () => {
+      const response = await request(app)
+        .get('/api/people?classification=member')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const ids = response.body.map((p) => p.id);
+      expect(ids).toContain(memberPersonId);
+      expect(ids).not.toContain(vipPersonId);
+      expect(ids).not.toContain(nonePersonId);
+    });
+
+    it('should filter by classification=vip_member', async () => {
+      await prisma.person.update({
+        where: { id: vipPersonId },
+        data: { isDoterraMember: true },
+      });
+      const response = await request(app)
+        .get('/api/people?classification=vip_member')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const ids = response.body.map((p) => p.id);
+      expect(ids).toContain(vipPersonId);
+      expect(ids).not.toContain(memberPersonId);
+      expect(ids).not.toContain(nonePersonId);
+    });
+
+    it('should filter by classification=none', async () => {
+      const response = await request(app)
+        .get('/api/people?classification=none')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const ids = response.body.map((p) => p.id);
+      expect(ids).toContain(nonePersonId);
+      expect(ids).not.toContain(vipPersonId);
+      expect(ids).not.toContain(memberPersonId);
+    });
+
+    it('should sort by whatsapp descending', async () => {
+      const response = await request(app)
+        .get('/api/people?sortBy=whatsapp&sortDir=desc')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const whatsapps = response.body
+        .map((p) => p.whatsapp)
+        .filter(Boolean)
+        .map(String);
+      const sorted = [...whatsapps].sort((a, b) => b.localeCompare(a));
+      expect(whatsapps).toEqual(sorted);
+    });
+
+    it('should fall back to name asc when sortBy is invalid', async () => {
+      const response = await request(app)
+        .get('/api/people?sortBy=invalid')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const names = response.body.map((p) => p.name);
+      const sorted = [...names].sort((a, b) => a.localeCompare(b));
+      expect(names).toEqual(sorted);
+    });
+
+    it('should combine q, classification and sort', async () => {
+      const response = await request(app)
+        .get('/api/people?q=cliente&classification=vip&sortBy=name&sortDir=asc')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const names = response.body.map((p) => p.name);
+      expect(names).toEqual(['Vip Cliente']);
+    });
+
+    it('should not leak other users people when filters are applied', async () => {
+      const other = await request(app)
+        .post('/api/auth/register')
+        .send({ username: `other_${Date.now()}`, password: 'testpass123' });
+      const otherLogin = await request(app)
+        .post('/api/auth/login')
+        .send({ username: other.body.username, password: 'testpass123' });
+      await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${otherLogin.body.token}`)
+        .send({ name: 'Outro Cliente', whatsapp: '5511999990000' });
+
+      const response = await request(app)
+        .get('/api/people?q=cliente')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const names = response.body.map((p) => p.name);
+      expect(names).not.toContain('Outro Cliente');
+    });
+  });
+
   describe('PUT /api/people/:id', () => {
     beforeEach(async () => {
       const person = await prisma.person.create({

@@ -15,12 +15,58 @@ const personSchema = z.object({
   isSelf: z.boolean().optional(),
 });
 
+const SORTABLE_FIELDS = [
+  'name',
+  'whatsapp',
+  'commonGroups',
+  'instagram',
+  'address',
+  'isVip',
+  'isDoterraMember',
+  'createdAt',
+  'updatedAt',
+];
+
+// Maps the frontend classification filter onto the isVip/isDoterraMember flags.
+const classificationToFlags = (classification) => {
+  switch (classification) {
+    case 'vip':
+      return { isVip: true, isDoterraMember: false };
+    case 'member':
+      return { isVip: false, isDoterraMember: true };
+    case 'vip_member':
+      return { isVip: true, isDoterraMember: true };
+    case 'none':
+      return { isVip: false, isDoterraMember: false };
+    default:
+      return null;
+  }
+};
+
 // Get all people
 const getPeople = async (req, res) => {
   try {
+    const { q, classification, sortBy, sortDir } = req.query;
+
+    const where = { userId: req.user.userId };
+
+    if (q && q.trim()) {
+      const search = q.trim();
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { whatsapp: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const flags = classificationToFlags(classification);
+    if (flags) Object.assign(where, flags);
+
+    const field = SORTABLE_FIELDS.includes(sortBy) ? sortBy : 'name';
+    const direction = sortDir === 'desc' ? 'desc' : 'asc';
+
     const people = await prisma.person.findMany({
-      where: { userId: req.user.userId },
-      orderBy: { name: 'asc' },
+      where,
+      orderBy: { [field]: direction },
     });
     res.status(200).json(people);
   } catch (error) {
