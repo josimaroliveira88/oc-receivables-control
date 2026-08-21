@@ -2,7 +2,7 @@ import React from 'react';
 import { Search, ExternalLink, Pencil } from 'lucide-react';
 import { formatBRL } from '../../../utils/money';
 import { SORT_OPTIONS } from '../utils/productHelpers';
-import StatusBadge from './StatusBadge';
+import StatusBadgeDropdown from './StatusBadgeDropdown';
 import ActionMenu from '../../../components/ActionMenu';
 
 const ProductsTable = ({
@@ -211,25 +211,16 @@ const ProductsTable = ({
                       data-label="Status"
                       className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 text-left lg:text-center before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
                     >
-                      <StatusBadge status={product.status} />
+                      <StatusBadgeDropdown
+                        product={product}
+                        onStatusChange={onStatusChange}
+                      />
                     </td>
                     <td
                       data-label="Ações"
                       className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 text-left lg:text-right text-sm font-medium before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden relative"
                     >
                       <div className="flex items-center justify-end gap-2">
-                        <select
-                          value={product.status}
-                          onChange={(e) =>
-                            onStatusChange(product, e.target.value)
-                          }
-                          className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-                          aria-label="Alterar status"
-                        >
-                          <option value="ATIVO">Ativo</option>
-                          <option value="INDISPONIVEL">Indisponível</option>
-                          <option value="INATIVO">Inativo</option>
-                        </select>
                         <ActionMenu
                           actions={[
                             {

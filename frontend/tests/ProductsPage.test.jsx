@@ -963,6 +963,30 @@ describe('ProductsPage', () => {
   });
 
   describe('Inline status change', () => {
+    it('should open the status menu when clicking the badge', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('product-status-ATIVO'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('product-status-menu-1')).toBeInTheDocument();
+        expect(
+          screen.getByTestId('product-status-1-option-ATIVO'),
+        ).toHaveTextContent('Ativo');
+        expect(
+          screen.getByTestId('product-status-1-option-INDISPONIVEL'),
+        ).toHaveTextContent('Indisponível');
+        expect(
+          screen.getByTestId('product-status-1-option-INATIVO'),
+        ).toHaveTextContent('Inativo');
+      });
+    });
+
     it('should call PUT to change status when confirming', async () => {
       mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
       mockPut.mockResolvedValue({
@@ -975,9 +999,8 @@ describe('ProductsPage', () => {
         expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
       });
 
-      fireEvent.change(screen.getByLabelText('Alterar status'), {
-        target: { value: 'INATIVO' },
-      });
+      fireEvent.click(screen.getByTestId('product-status-ATIVO'));
+      fireEvent.click(screen.getByTestId('product-status-1-option-INATIVO'));
 
       expect(await screen.findByRole('dialog')).toBeInTheDocument();
       fireEvent.click(
@@ -1000,14 +1023,52 @@ describe('ProductsPage', () => {
         expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
       });
 
-      fireEvent.change(screen.getByLabelText('Alterar status'), {
-        target: { value: 'INATIVO' },
-      });
+      fireEvent.click(screen.getByTestId('product-status-ATIVO'));
+      fireEvent.click(screen.getByTestId('product-status-1-option-INATIVO'));
 
       expect(await screen.findByRole('dialog')).toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
 
       expect(mockPut).not.toHaveBeenCalled();
+    });
+
+    it('should not open the confirm dialog when selecting the current status', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('product-status-ATIVO'));
+      fireEvent.click(screen.getByTestId('product-status-1-option-ATIVO'));
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(mockPut).not.toHaveBeenCalled();
+    });
+
+    it('should close the status menu when clicking the backdrop', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('product-status-ATIVO'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('product-status-menu-1')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('product-status-1-backdrop'));
+
+      await waitFor(() => {
+        expect(
+          screen.queryByTestId('product-status-menu-1'),
+        ).not.toBeInTheDocument();
+      });
     });
   });
 
