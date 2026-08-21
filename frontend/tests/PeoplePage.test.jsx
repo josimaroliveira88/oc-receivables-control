@@ -345,6 +345,37 @@ describe('PeoplePage', () => {
           address: 'Rua Nova, 1',
           isVip: true,
           isDoterraMember: false,
+          isSelf: false,
+        });
+      });
+    });
+
+    it('should send isSelf true when "Esta pessoa sou eu" is checked', async () => {
+      mockGet.mockResolvedValue({ data: [] });
+      mockPost.mockResolvedValue({ data: { id: '3', name: 'Novo' } });
+
+      renderPage();
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByText('Novo'));
+      });
+
+      const nameInput = await screen.findByPlaceholderText('Digite o nome');
+      fireEvent.change(nameInput, { target: { value: 'Eu' } });
+      fireEvent.click(screen.getByLabelText('Esta pessoa sou eu'));
+
+      fireEvent.click(screen.getByText('Salvar'));
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith('/people', {
+          name: 'Eu',
+          whatsapp: '55',
+          commonGroups: null,
+          instagram: null,
+          address: null,
+          isVip: false,
+          isDoterraMember: false,
+          isSelf: true,
         });
       });
     });
@@ -429,6 +460,7 @@ describe('PeoplePage', () => {
           address: 'Rua das Flores, 123',
           isVip: true,
           isDoterraMember: false,
+          isSelf: false,
         });
       });
     });

@@ -89,6 +89,7 @@ export function usePeople() {
       address: person.address || '',
       isVip: person.isVip || false,
       isDoterraMember: person.isDoterraMember || false,
+      isSelf: person.isSelf || false,
     });
     setShowEditModal(true);
   };

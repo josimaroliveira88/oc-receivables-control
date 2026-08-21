@@ -60,6 +60,22 @@ const PersonFormFields = ({ values, onChange }) => {
       </div>
 
       <div className="mb-4">
+        <label
+          htmlFor="person-self"
+          className="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
+        >
+          <input
+            id="person-self"
+            type="checkbox"
+            checked={values.isSelf}
+            onChange={(e) => onChange('isSelf', e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+          />
+          Esta pessoa sou eu
+        </label>
+      </div>
+
+      <div className="mb-4">
         <label className={inputLabelClass} htmlFor="person-vip">
           Grupo VIP
         </label>

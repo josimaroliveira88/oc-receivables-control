@@ -17,6 +17,7 @@ export const emptyForm = () => ({
   address: '',
   isVip: false,
   isDoterraMember: false,
+  isSelf: false,
 });
 
 export const buildPayload = (form) => ({
@@ -27,4 +28,5 @@ export const buildPayload = (form) => ({
   address: form.address.trim() || null,
   isVip: form.isVip,
   isDoterraMember: form.isDoterraMember,
+  isSelf: form.isSelf,
 });
