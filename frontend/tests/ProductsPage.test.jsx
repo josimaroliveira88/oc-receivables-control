@@ -625,6 +625,78 @@ describe('ProductsPage', () => {
       ).toBeInTheDocument();
     });
 
+    it('should clear the validation error once a field is typed', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([]) });
+      renderPage();
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByText('Novo'));
+      });
+
+      const codeInput = await screen.findByPlaceholderText('Digite o código');
+      const form = codeInput.closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(screen.getByText('Código é obrigatório')).toBeInTheDocument();
+      });
+
+      fireEvent.change(codeInput, { target: { value: 'ABC' } });
+
+      expect(
+        screen.queryByText('Código é obrigatório'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should show backend submit failure as a toast', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([]) });
+      mockPost.mockRejectedValue({
+        response: {
+          data: { error: 'Erro ao criar produto. Tente novamente.' },
+        },
+      });
+      renderPage();
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByText('Novo'));
+      });
+
+      const codeInput = await screen.findByPlaceholderText('Digite o código');
+      fireEvent.change(codeInput, { target: { value: 'ABC' } });
+      fireEvent.change(
+        screen.getByPlaceholderText('Digite o nome do produto'),
+        {
+          target: { value: 'Produto Teste' },
+        },
+      );
+      fireEvent.change(screen.getByPlaceholderText('Digite o tamanho'), {
+        target: { value: '10' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('Digite o preço regular'), {
+        target: { value: '10.00' },
+      });
+      fireEvent.change(
+        screen.getByPlaceholderText('Digite o preço de membro'),
+        { target: { value: '8.00' } },
+      );
+      fireEvent.change(screen.getByPlaceholderText('Digite o PV'), {
+        target: { value: '1' },
+      });
+      fireEvent.change(
+        screen.getByPlaceholderText('https://www.doterra.com/BR/pt_BR/...'),
+        { target: { value: 'https://www.doterra.com/BR/pt_BR/p' } },
+      );
+
+      const form = codeInput.closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Erro ao criar produto. Tente novamente.'),
+        ).toBeInTheDocument();
+      });
+    });
+
     it('should show validation error when doterraUrl is invalid', async () => {
       mockGet.mockResolvedValue({ data: fullResponse([]) });
       renderPage();

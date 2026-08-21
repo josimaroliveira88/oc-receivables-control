@@ -79,15 +79,23 @@ export function useProducts() {
 
   const setCreateField = (field, value) => {
     setCreateForm((prev) => ({ ...prev, [field]: value }));
+    setError('');
   };
 
   const setEditField = (field, value) => {
     setEditProduct((prev) => ({ ...prev, [field]: value }));
+    setError('');
+  };
+
+  const openCreateModal = () => {
+    setShowCreateModal(true);
+    setError('');
   };
 
   const closeCreateModal = () => {
     setShowCreateModal(false);
     setCreateForm(emptyForm());
+    setError('');
   };
 
   const handleCreateProduct = async (e) => {
@@ -112,9 +120,13 @@ export function useProducts() {
       await api.post('/products', createProductPayload(createForm));
       setCreateForm(emptyForm());
       setShowCreateModal(false);
+      setError('');
       loadProducts();
     } catch (err) {
-      setError('Erro ao criar produto. Tente novamente.');
+      addToast(
+        err.response?.data?.error || 'Erro ao criar produto. Tente novamente.',
+        'error',
+      );
     }
   };
 
@@ -136,9 +148,14 @@ export function useProducts() {
       setEditProductId(null);
       setEditProduct(emptyForm());
       setShowEditModal(false);
+      setError('');
       loadProducts();
     } catch (err) {
-      setError('Erro ao atualizar produto. Tente novamente.');
+      addToast(
+        err.response?.data?.error ||
+          'Erro ao atualizar produto. Tente novamente.',
+        'error',
+      );
     }
   };
 
@@ -156,7 +173,11 @@ export function useProducts() {
       addToast('Status do produto atualizado com sucesso!', 'success');
       loadProducts();
     } catch (err) {
-      setError('Erro ao atualizar produto. Tente novamente.');
+      addToast(
+        err.response?.data?.error ||
+          'Erro ao atualizar produto. Tente novamente.',
+        'error',
+      );
     } finally {
       setUpdatingStatus(false);
       setConfirmStatus(null);
@@ -175,6 +196,7 @@ export function useProducts() {
       doterraUrl: product.doterraUrl || '',
     });
     setEditStatus(product.status || 'ATIVO');
+    setError('');
     setShowEditModal(true);
   };
 
@@ -182,6 +204,7 @@ export function useProducts() {
     setShowEditModal(false);
     setEditProductId(null);
     setEditProduct(emptyForm());
+    setError('');
   };
 
   const hasActiveFilters = search.trim() !== '' || statusFilter !== '';
@@ -205,6 +228,7 @@ export function useProducts() {
     confirmStatus,
     updatingStatus,
     setShowCreateModal,
+    openCreateModal,
     setSearch,
     setStatusFilter,
     setSort,
