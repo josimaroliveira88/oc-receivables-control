@@ -26,6 +26,8 @@ export function useOrders() {
   const [paymentType, setPaymentType] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
   const [items, setItems] = useState([emptyItem()]);
+  const [orderNumberError, setOrderNumberError] = useState('');
+  const [itemErrors, setItemErrors] = useState({});
   const addItemBtnRef = useRef(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -60,6 +62,7 @@ export function useOrders() {
 
   const addItem = () => {
     setItems([...items, emptyItem()]);
+    setItemErrors({});
     setTimeout(() => {
       if (
         addItemBtnRef.current &&
@@ -76,9 +79,18 @@ export function useOrders() {
   const removeItem = (index) => {
     if (items.length <= 1) return;
     setItems(items.filter((_, i) => i !== index));
+    setItemErrors({});
   };
 
   const updateItemField = (index, field, value) => {
+    const target = items[index];
+    if (target && itemErrors[target.id]) {
+      setItemErrors((prev) => {
+        const next = { ...prev };
+        delete next[target.id];
+        return next;
+      });
+    }
     setItems(
       items.map((item, i) =>
         i === index ? { ...item, [field]: value } : item,
@@ -88,6 +100,14 @@ export function useOrders() {
 
   const onProductSelect = (index, productId) => {
     const product = products.find((p) => p.id === productId);
+    const target = items[index];
+    if (target && itemErrors[target.id]) {
+      setItemErrors((prev) => {
+        const next = { ...prev };
+        delete next[target.id];
+        return next;
+      });
+    }
     setItems(
       items.map((item, i) =>
         i === index
@@ -156,6 +176,9 @@ export function useOrders() {
     setPaymentType('');
     setOrderNotes('');
     setItems([emptyItem()]);
+    setOrderNumberError('');
+    setItemErrors({});
+    setError('');
     setShowCreateModal(false);
     setShowEditModal(false);
     setEditOrderId(null);
@@ -165,6 +188,7 @@ export function useOrders() {
     switch (field) {
       case 'orderNumber':
         setOrderNumber(value);
+        setOrderNumberError('');
         break;
       case 'orderNumberBlurred':
         setOrderNumberBlurred(value);
@@ -187,22 +211,27 @@ export function useOrders() {
   };
 
   const validateForm = () => {
-    if (!orderNumber.trim()) {
-      setError('Número do pedido é obrigatório');
-      return false;
-    }
-    const invalidItems = items.filter(
-      (item) =>
-        (item.chargedValue !== '' &&
-          item.chargedValue != null &&
-          parseFloat(item.chargedValue) < 0) ||
-        !item.personId,
-    );
-    if (invalidItems.length > 0) {
-      setError('Preencha todos os campos dos itens corretamente');
-      return false;
-    }
-    return true;
+    const newOrderNumberError = orderNumber.trim()
+      ? ''
+      : 'Número do pedido é obrigatório';
+    setOrderNumberError(newOrderNumberError);
+
+    const newItemErrors = {};
+    items.forEach((item) => {
+      if (
+        item.chargedValue !== '' &&
+        item.chargedValue != null &&
+        parseFloat(item.chargedValue) < 0
+      ) {
+        newItemErrors[item.id] = 'Valor não pode ser negativo';
+      } else if (!item.personId) {
+        newItemErrors[item.id] = 'Pessoa é obrigatória';
+      }
+    });
+    setItemErrors(newItemErrors);
+
+    if (newOrderNumberError) return false;
+    return Object.keys(newItemErrors).length === 0;
   };
 
   const buildPayload = () => ({
@@ -222,7 +251,10 @@ export function useOrders() {
       resetForm();
       fetchData();
     } catch (err) {
-      setError('Erro ao criar pedido. Tente novamente.');
+      addToast(
+        err.response?.data?.error || 'Erro ao criar pedido. Tente novamente.',
+        'error',
+      );
     }
   };
 
@@ -230,6 +262,9 @@ export function useOrders() {
     setEditOrderId(order.id);
     setOrderNumber(order.orderNumber);
     setOrderNumberBlurred(true);
+    setOrderNumberError('');
+    setItemErrors({});
+    setError('');
     setOrderDate(
       order.orderDate ? order.orderDate.split('T')[0] : getTodayString(),
     );
@@ -248,7 +283,11 @@ export function useOrders() {
       resetForm();
       fetchData();
     } catch (err) {
-      setError('Erro ao atualizar pedido. Tente novamente.');
+      addToast(
+        err.response?.data?.error ||
+          'Erro ao atualizar pedido. Tente novamente.',
+        'error',
+      );
     }
   };
 
@@ -267,7 +306,7 @@ export function useOrders() {
       addToast('Pedido excluído com sucesso!', 'success');
       fetchData();
     } catch (err) {
-      setError('Erro ao excluir pedido. Tente novamente.');
+      addToast('Erro ao excluir pedido. Tente novamente.', 'error');
     } finally {
       setDeleting(false);
       setConfirmDeleteId(null);
@@ -295,6 +334,8 @@ export function useOrders() {
     paymentType,
     orderNotes,
     items,
+    orderNumberError,
+    itemErrors,
     addItemBtnRef,
     confirmDeleteId,
     deleting,

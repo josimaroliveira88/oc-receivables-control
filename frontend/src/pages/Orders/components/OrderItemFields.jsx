@@ -11,6 +11,7 @@ import {
 const OrderItemFields = ({
   item,
   index,
+  error,
   people,
   products,
   canRemove,
@@ -22,7 +23,14 @@ const OrderItemFields = ({
   const selfPerson = findSelfPerson(people);
 
   return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded-md p-4 mb-3">
+    <div
+      data-testid={`order-item-${index}`}
+      className={`border rounded-md p-4 mb-3 ${
+        error
+          ? 'border-red-400 dark:border-red-500'
+          : 'border-gray-200 dark:border-gray-700'
+      }`}
+    >
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
           Item {index + 1}
@@ -37,6 +45,14 @@ const OrderItemFields = ({
           </button>
         )}
       </div>
+      {error && (
+        <div
+          data-testid={`order-item-error-${item.id}`}
+          className="mb-3 p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md"
+        >
+          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="md:col-span-3">
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">

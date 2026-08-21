@@ -559,7 +559,9 @@ describe('OrdersPage', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByText('Número do pedido é obrigatório'),
+          within(screen.getByTestId('order-number-error')).getByText(
+            'Número do pedido é obrigatório',
+          ),
         ).toBeInTheDocument();
       });
     });
@@ -1195,12 +1197,14 @@ describe('OrdersPage', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByText('Preencha todos os campos dos itens corretamente'),
+          within(screen.getByTestId('order-item-0')).getByText(
+            'Valor não pode ser negativo',
+          ),
         ).toBeInTheDocument();
       });
     });
 
-    it('should render the form validation error inside the modal (not behind it)', async () => {
+    it('should render the per-item validation error inside the item card (not behind the modal)', async () => {
       renderPage();
       await waitFor(() => {
         expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
@@ -1221,17 +1225,76 @@ describe('OrdersPage', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByText('Preencha todos os campos dos itens corretamente'),
+          within(screen.getByTestId('order-item-0')).getByText(
+            'Pessoa é obrigatória',
+          ),
         ).toBeInTheDocument();
       });
 
       const modal = document.querySelector('.fixed.inset-0.z-\\[60\\]');
       expect(modal).not.toBeNull();
       expect(
-        within(modal).getByText(
-          'Preencha todos os campos dos itens corretamente',
-        ),
+        within(modal).getByText('Pessoa é obrigatória'),
       ).toBeInTheDocument();
+    });
+
+    it('should clear the item error once the item is fixed', async () => {
+      await openModal();
+      fireEvent.change(
+        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        { target: { value: 'ORD-FIXED' } },
+      );
+      const form = screen
+        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
+        .closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(
+          within(screen.getByTestId('order-item-0')).getByText(
+            'Pessoa é obrigatória',
+          ),
+        ).toBeInTheDocument();
+      });
+
+      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
+      fireEvent.change(personSelect, { target: { value: 'p1' } });
+
+      expect(
+        within(screen.getByTestId('order-item-0')).queryByText(
+          'Pessoa é obrigatória',
+        ),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should show backend submit failure as a toast (not the inline banner)', async () => {
+      mockPost.mockRejectedValue({
+        response: { data: { error: 'Erro ao criar pedido. Tente novamente.' } },
+      });
+      await openModal();
+
+      fireEvent.change(
+        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        { target: { value: 'ORD-FAIL' } },
+      );
+      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
+      fireEvent.change(personSelect, { target: { value: 'p1' } });
+      const valueInput = screen.getByPlaceholderText('0.00');
+      fireEvent.change(valueInput, { target: { value: '100' } });
+
+      const form = screen
+        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
+        .closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Erro ao criar pedido. Tente novamente.'),
+        ).toBeInTheDocument();
+      });
+      expect(
+        screen.queryByTestId('order-number-error'),
+      ).not.toBeInTheDocument();
     });
 
     it('should allow zero charged value (free item / gift)', async () => {

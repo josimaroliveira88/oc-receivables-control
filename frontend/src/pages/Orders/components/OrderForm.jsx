@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ExternalLink, Plus } from 'lucide-react';
 import { formatBRL } from '../../../utils/money';
 import { toCents } from '../../../utils/money';
@@ -16,7 +16,8 @@ const OrderForm = ({
   people,
   products,
   isEdit,
-  error,
+  orderNumberError,
+  itemErrors,
   onChangeField,
   onItemUpdate,
   onItemPersonSelect,
@@ -27,6 +28,15 @@ const OrderForm = ({
   onSubmit,
   onCancel,
 }) => {
+  useEffect(() => {
+    const firstError = document.querySelector(
+      '[data-testid^="order-item-error-"]',
+    );
+    if (firstError && typeof firstError.scrollIntoView === 'function') {
+      firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [itemErrors]);
+
   const calculateTotal = () => {
     const totalCents = items.reduce(
       (total, item) => total + (toCents(parseFloat(item.chargedValue)) || 0),
@@ -69,6 +79,16 @@ const OrderForm = ({
               <ExternalLink className="w-3.5 h-3.5" />
               Ver pedido no site
             </a>
+          </div>
+        )}
+        {orderNumberError && (
+          <div
+            data-testid="order-number-error"
+            className="mt-1 p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md"
+          >
+            <p className="text-sm text-red-600 dark:text-red-400">
+              {orderNumberError}
+            </p>
           </div>
         )}
       </div>
@@ -170,14 +190,6 @@ const OrderForm = ({
       </div>
 
       <div className="mb-4">
-        {error && (
-          <div
-            data-testid="order-form-error"
-            className="mb-3 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md"
-          >
-            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-          </div>
-        )}
         <div className="flex items-center justify-between mb-3">
           <span className="font-medium text-gray-700 dark:text-gray-300">
             Itens do Pedido
@@ -189,6 +201,7 @@ const OrderForm = ({
             key={item.id}
             item={item}
             index={index}
+            error={itemErrors[item.id]}
             people={people}
             products={products}
             canRemove={items.length > 1}

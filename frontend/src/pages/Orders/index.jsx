@@ -27,6 +27,8 @@ const OrdersPage = () => {
     paymentType,
     orderNotes,
     items,
+    orderNumberError,
+    itemErrors,
     addItemBtnRef,
     confirmDeleteId,
     deleting,
@@ -142,7 +144,8 @@ const OrdersPage = () => {
           people={people}
           products={products}
           isEdit={showEditModal}
-          error={error}
+          orderNumberError={orderNumberError}
+          itemErrors={itemErrors}
           onChangeField={setFormField}
           onItemUpdate={updateItemField}
           onItemPersonSelect={onPersonSelect}
