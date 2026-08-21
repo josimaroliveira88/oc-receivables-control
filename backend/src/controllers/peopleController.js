@@ -2,6 +2,7 @@ const { PrismaClient } = require('@prisma/client');
 const { z } = require('zod');
 const prisma = new PrismaClient();
 const { syncOrderStatusesForPersons } = require('../utils/receivables');
+const { findIdsByTextSearch } = require('../utils/search');
 
 // Zod schema for person validation
 const personSchema = z.object({
@@ -51,11 +52,17 @@ const getPeople = async (req, res) => {
     const where = { userId: req.user.userId };
 
     if (q && q.trim()) {
-      const search = q.trim();
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { whatsapp: { contains: search, mode: 'insensitive' } },
-      ];
+      const matchingIds = await findIdsByTextSearch({
+        table: 'Person',
+        columns: ['name', 'whatsapp'],
+        q,
+      });
+      if (matchingIds !== null) {
+        if (matchingIds.length === 0) {
+          return res.status(200).json([]);
+        }
+        where.id = { in: matchingIds };
+      }
     }
 
     const flags = classificationToFlags(classification);
