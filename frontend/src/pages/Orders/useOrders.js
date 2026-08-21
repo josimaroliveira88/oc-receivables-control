@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import { useToast } from '../../components/Toast';
+import { useOrderFilters } from './useOrderFilters';
 import {
   emptyItem,
   getTodayString,
@@ -13,6 +14,21 @@ import {
 
 export function useOrders() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const {
+    search,
+    searchField,
+    statusFilter,
+    paymentTypeFilter,
+    sortBy,
+    sortDir,
+    setSearch,
+    setSearchField,
+    setStatusFilter,
+    setPaymentTypeFilter,
+    buildOrderParams,
+    handleSort,
+    hasActiveFilters,
+  } = useOrderFilters();
   const [orders, setOrders] = useState([]);
   const [people, setPeople] = useState([]);
   const [products, setProducts] = useState([]);
@@ -33,34 +49,67 @@ export function useOrders() {
   const addItemBtnRef = useRef(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const ordersAbortRef = useRef(null);
   const { addToast } = useToast();
+
+  const fetchOrders = useCallback(
+    async ({ showLoading = true } = {}) => {
+      if (ordersAbortRef.current) ordersAbortRef.current.abort();
+      const controller = new AbortController();
+      ordersAbortRef.current = controller;
+      if (showLoading) setLoading(true);
+      try {
+        const response = await api.get('/orders', {
+          params: buildOrderParams(),
+          signal: controller.signal,
+        });
+        setOrders(response.data);
+        setError('');
+      } catch (err) {
+        if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') return;
+        setError('Erro ao carregar pedidos. Tente novamente.');
+      } finally {
+        if (!controller.signal.aborted && showLoading) setLoading(false);
+      }
+    },
+    [buildOrderParams],
+  );
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const [ordersRes, peopleRes, productsRes] = await Promise.all([
-        api.get('/orders'),
+        api.get('/orders', { params: buildOrderParams() }),
         api.get('/people'),
         api.get('/products?available=true&pageSize=all'),
       ]);
       setOrders(ordersRes.data);
       setPeople(peopleRes.data);
       setProducts(productsRes.data.data);
+      setError('');
     } catch (err) {
+      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') return;
       setError('Erro ao carregar dados. Tente novamente.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [buildOrderParams]);
 
   const refreshOrders = useCallback(async () => {
     try {
-      const response = await api.get('/orders');
+      const response = await api.get('/orders', {
+        params: buildOrderParams(),
+      });
       setOrders(response.data);
     } catch (err) {
       setError('Erro ao carregar pedidos. Tente novamente.');
     }
-  }, []);
+  }, [buildOrderParams]);
+
+  const handleSearchSubmit = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    fetchOrders();
+  };
 
   const addItem = () => {
     setItems([...items, emptyItem()]);
@@ -342,9 +391,32 @@ export function useOrders() {
     }
   };
 
+  const loadSupportData = useCallback(async () => {
+    try {
+      const [peopleRes, productsRes] = await Promise.all([
+        api.get('/people'),
+        api.get('/products?available=true&pageSize=all'),
+      ]);
+      setPeople(peopleRes.data);
+      setProducts(productsRes.data.data);
+    } catch (err) {
+      setError('Erro ao carregar dados. Tente novamente.');
+    }
+  }, []);
+
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    loadSupportData();
+  }, [loadSupportData]);
+
+  const fetchOrdersRef = useRef(fetchOrders);
+  fetchOrdersRef.current = fetchOrders;
+
+  // Auto-refetch when a filter or the sort changes. Search text is excluded on
+  // purpose: the search term is only committed when the user presses Enter or
+  // clicks the search button (handleSearchSubmit).
+  useEffect(() => {
+    fetchOrdersRef.current();
+  }, [searchField, statusFilter, paymentTypeFilter, sortBy, sortDir]);
 
   // Support deep-linking from the Stock history ("Ver pedido") via ?editOrder=.
   // Opens the edit modal for the referenced order once data is loaded.
@@ -365,6 +437,19 @@ export function useOrders() {
     loading,
     error,
     refreshOrders,
+    search,
+    searchField,
+    statusFilter,
+    paymentTypeFilter,
+    sortBy,
+    sortDir,
+    hasActiveFilters,
+    setSearch,
+    setSearchField,
+    setStatusFilter,
+    setPaymentTypeFilter,
+    handleSearchSubmit,
+    handleSort,
     showCreateModal,
     showEditModal,
     editOrderId,

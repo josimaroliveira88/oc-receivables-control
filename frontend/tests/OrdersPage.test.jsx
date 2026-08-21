@@ -1997,4 +1997,172 @@ describe('OrdersPage', () => {
       expect(screen.getByTestId('order-item-price-mode-0').value).toBe('TOTAL');
     });
   });
+
+  describe('Search, filters and sorting (server-side)', () => {
+    it('should fetch orders with the committed search term when submitting', async () => {
+      mockGetImplementation(mockOrders);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+      const initialCalls = mockGet.mock.calls.filter(
+        ([url]) => url === '/orders',
+      );
+
+      fireEvent.change(screen.getByLabelText('Buscar pedidos'), {
+        target: { value: 'ORD-002' },
+      });
+      fireEvent.submit(screen.getByLabelText('Filtros de pedidos'));
+
+      await waitFor(() => {
+        const orderCalls = mockGet.mock.calls.filter(
+          ([url]) => url === '/orders',
+        );
+        expect(orderCalls.length).toBeGreaterThan(initialCalls.length);
+      });
+      const lastOrderCall = mockGet.mock.calls[mockGet.mock.calls.length - 1];
+      expect(lastOrderCall[0]).toBe('/orders');
+      expect(lastOrderCall[1].params.q).toBe('ORD-002');
+      expect(lastOrderCall[1].params.searchField).toBeUndefined();
+    });
+
+    it('should include the selected search column in the request', async () => {
+      mockGetImplementation(mockOrders);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByLabelText('Coluna de busca'), {
+        target: { value: 'orderNumber' },
+      });
+
+      await waitFor(() => {
+        const lastOrderCall = mockGet.mock.calls
+          .filter(([url]) => url === '/orders')
+          .at(-1);
+        expect(lastOrderCall[1].params.searchField).toBe('orderNumber');
+      });
+    });
+
+    it('should refetch immediately when the status filter changes', async () => {
+      mockGetImplementation(mockOrders);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByLabelText('Status'), {
+        target: { value: 'QUITADO' },
+      });
+
+      await waitFor(() => {
+        const lastOrderCall = mockGet.mock.calls
+          .filter(([url]) => url === '/orders')
+          .at(-1);
+        expect(lastOrderCall[1].params.status).toBe('QUITADO');
+      });
+    });
+
+    it('should refetch immediately when the payment type filter changes', async () => {
+      mockGetImplementation(mockOrders);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByLabelText('Tipo de pagamento'), {
+        target: { value: 'PIX' },
+      });
+
+      await waitFor(() => {
+        const lastOrderCall = mockGet.mock.calls
+          .filter(([url]) => url === '/orders')
+          .at(-1);
+        expect(lastOrderCall[1].params.paymentType).toBe('PIX');
+      });
+    });
+
+    it('should combine an active filter with a sort in a single request', async () => {
+      mockGetImplementation(mockOrders);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByLabelText('Status'), {
+        target: { value: 'QUITADO' },
+      });
+      await waitFor(() => {
+        const calls = mockGet.mock.calls.filter(([url]) => url === '/orders');
+        expect(calls.at(-1)[1].params.status).toBe('QUITADO');
+      });
+
+      fireEvent.click(screen.getByTestId('orders-sort-totalValue'));
+
+      await waitFor(() => {
+        const calls = mockGet.mock.calls.filter(([url]) => url === '/orders');
+        const last = calls.at(-1);
+        expect(last[1].params.status).toBe('QUITADO');
+        expect(last[1].params.sortBy).toBe('totalValue');
+        expect(last[1].params.sortDir).toBe('asc');
+      });
+    });
+
+    it('should toggle the sort direction when clicking an active header twice', async () => {
+      mockGetImplementation(mockOrders);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('orders-sort-totalValue'));
+      await waitFor(() => {
+        const last = mockGet.mock.calls
+          .filter(([url]) => url === '/orders')
+          .at(-1);
+        expect(last[1].params.sortBy).toBe('totalValue');
+        expect(last[1].params.sortDir).toBe('asc');
+      });
+
+      fireEvent.click(screen.getByTestId('orders-sort-totalValue'));
+      await waitFor(() => {
+        const last = mockGet.mock.calls
+          .filter(([url]) => url === '/orders')
+          .at(-1);
+        expect(last[1].params.sortBy).toBe('totalValue');
+        expect(last[1].params.sortDir).toBe('desc');
+      });
+    });
+
+    it('should show the filtered empty state when no order matches', async () => {
+      mockGetImplementation([]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Nenhum pedido cadastrado'),
+        ).toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByLabelText('Buscar pedidos'), {
+        target: { value: 'NãoExiste' },
+      });
+      fireEvent.submit(screen.getByLabelText('Filtros de pedidos'));
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(
+            'Nenhum pedido encontrado para os filtros aplicados.',
+          ),
+        ).toBeInTheDocument();
+      });
+    });
+  });
 });

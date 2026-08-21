@@ -48,6 +48,30 @@ export const paymentTypeLabel = (type) => {
   return map[type] || type;
 };
 
+// Options for the column selector next to the orders search input.
+export const SEARCH_FIELD_OPTIONS = [
+  { value: 'all', label: 'Todas as colunas' },
+  { value: 'orderNumber', label: 'Número do pedido' },
+  { value: 'accountOwner', label: 'Responsável' },
+  { value: 'orderNotes', label: 'Descrição' },
+];
+
+// Options for the order status filter.
+export const STATUS_FILTER_OPTIONS = [
+  { value: '', label: 'Todos os status' },
+  { value: 'PENDENTE', label: 'Somente pendentes' },
+  { value: 'PARCIAL', label: 'Somente parciais' },
+  { value: 'QUITADO', label: 'Somente quitados' },
+];
+
+// Options for the payment type filter.
+export const PAYMENT_TYPE_FILTER_OPTIONS = [
+  { value: '', label: 'Todos os tipos de pagamento' },
+  { value: 'PIX', label: 'Somente PIX' },
+  { value: 'BOLETO', label: 'Somente Boleto' },
+  { value: 'CARTAO_CREDITO', label: 'Somente Cartão de Crédito' },
+];
+
 export const itemPayload = (item) => ({
   description: item.description.trim() || null,
   chargedValue:

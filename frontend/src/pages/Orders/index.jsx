@@ -17,6 +17,19 @@ const OrdersPage = () => {
     loading,
     error,
     refreshOrders,
+    search,
+    searchField,
+    statusFilter,
+    paymentTypeFilter,
+    sortBy,
+    sortDir,
+    hasActiveFilters,
+    setSearch,
+    setSearchField,
+    setStatusFilter,
+    setPaymentTypeFilter,
+    handleSearchSubmit,
+    handleSort,
     showCreateModal,
     showEditModal,
     editOrderId,
@@ -120,6 +133,19 @@ const OrdersPage = () => {
 
           <OrdersTable
             orders={orders}
+            search={search}
+            searchField={searchField}
+            statusFilter={statusFilter}
+            paymentTypeFilter={paymentTypeFilter}
+            sortBy={sortBy}
+            sortDir={sortDir}
+            hasActiveFilters={hasActiveFilters}
+            onSearchChange={setSearch}
+            onSearchFieldChange={setSearchField}
+            onStatusFilterChange={setStatusFilter}
+            onPaymentTypeFilterChange={setPaymentTypeFilter}
+            onSearchSubmit={handleSearchSubmit}
+            onSort={handleSort}
             onEdit={handleEditOrder}
             onDelete={handleDeleteOrder}
             onPayment={openPaymentModal}
