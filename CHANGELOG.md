@@ -10,6 +10,19 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 54 — Render modal form errors inside the modal (2026-08-21)
+
+### Fixed
+- Order, People, and Products edit/create modals surfaced form-level validation and submit errors in the **page-level** banner rendered above the table, which sat behind each modal's full-screen `z-[60]` backdrop with `bg-black/40 backdrop-blur-sm` — so the message appeared dimmed/blurred and partially hidden. These errors are now rendered **inside** the modal form (OrderForm above the "Itens do Pedido" heading; PersonForm and ProductForm at the top of the form), and the page-level banner is suppressed while a modal is open, remaining reachable only for true page-level errors (load failures).
+- Messages affected: `"Número do pedido é obrigatório"`, `"Preencha todos os campos dos itens corretamente"`, `"Erro ao criar/atualizar/excluir pedido"` (Orders); `"Nome é obrigatório"`, `"Erro ao criar/atualizar cliente"` (People); `"Código é obrigatório"`, `"Nome é obrigatório"`, `"Tamanho é obrigatório"`, `"URL do produto inválida"`, `"Erro ao criar/atualizar produto"` (Products). The Stock page was audited and is not affected: its dialogs already render their own inline errors and its page-level error only fires on inventory-load failure.
+
+### Changed
+- `OrderForm`, `PersonForm`, and `ProductForm` accept a new `error` prop and render a banner (`data-testid="order-form-error"`, `"person-form-error"`, `"product-form-error"`); the page-level banner in `Orders/index.jsx`, `People/index.jsx`, and `Products/index.jsx` is gated on `!(showCreateModal || showEditModal)`.
+
+### Tests
+- `frontend/tests/OrdersPage.test.jsx`, `frontend/tests/PeoplePage.test.jsx`, and `frontend/tests/ProductsPage.test.jsx` each gained "should render the form validation error inside the modal (not behind it)", asserting the validation error appears inside the `fixed inset-0 z-[60]` modal dialog.
+- Verified: frontend `373 passed`, `npm run build` clean, and Prettier `format:check` clean. The Order case was visually verified with Playwright (error banner inside the modal and `elementFromPoint` hits the error's own text element while the modal keeps its `backdrop-filter: blur(4px)`).
+
 ## Phase 53 — Toasts above modal overlays (2026-08-21)
 
 ### Fixed
