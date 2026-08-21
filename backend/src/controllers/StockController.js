@@ -1,6 +1,7 @@
 const prisma = require('../config/database');
 const { z } = require('zod');
 const { applyMovement } = require('../services/stockService');
+const { findIdsByTextSearch } = require('../utils/search');
 
 const movementSchema = z.object({
   productId: z.string().uuid(),
@@ -15,13 +16,17 @@ const listInventory = async (req, res) => {
 
     const where = { userId: req.user.userId };
     if (q && q.trim()) {
-      const search = q.trim();
-      where.product = {
-        OR: [
-          { code: { contains: search, mode: 'insensitive' } },
-          { name: { contains: search, mode: 'insensitive' } },
-        ],
-      };
+      const matchingProductIds = await findIdsByTextSearch({
+        table: 'Product',
+        columns: ['code', 'name'],
+        q,
+      });
+      if (matchingProductIds !== null) {
+        if (matchingProductIds.length === 0) {
+          return res.status(200).json([]);
+        }
+        where.productId = { in: matchingProductIds };
+      }
     }
 
     const direction = sortDir === 'desc' ? 'desc' : 'asc';
