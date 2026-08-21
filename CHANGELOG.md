@@ -10,6 +10,20 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 59 — Accent-insensitive search across list endpoints (2026-08-21)
+
+### Fixed
+- The `q` text search on `GET /api/people`, `GET /api/orders` (per `searchField` column) and `GET /api/stock` is now accent- and case-insensitive: searching for "Cássia" or "Cassia" both find records stored as "Cassia" or "Cássia". Previously `mode: 'insensitive'` only handled case folding, so accented terms did not match unaccented data (and vice versa).
+
+### Added
+- New migration `backend/prisma/migrations/20260821180000_enable_unaccent_extension/migration.sql` enables the PostgreSQL `unaccent` extension (idempotent `CREATE EXTENSION IF NOT EXISTS unaccent`).
+- New shared helper `backend/src/utils/search.js` exporting `findIdsByTextSearch` (raw `SELECT id WHERE unaccent(lower(col)) LIKE unaccent(lower(?))` with LIKE-wildcard escaping) and `escapeLikePattern`. The three list controllers now route the `q` parameter through it and combine the returned IDs with the existing Prisma `where` (userId + classification / status / paymentType) via `id IN (...)`. No schema/model changes; existing user data is untouched.
+
+### Tests
+- Backend: added 6 accent-insensitive cases (2 per endpoint covering accented→unaccented and unaccented→accented) in `tests/people.test.js`, `tests/orders.test.js`, and `tests/stock.test.js`. **293 backend passing** (was 287).
+- Verified: `npm run format:check` clean, `cd frontend && npm run build` clean, backend `npm run test` 293/293, frontend `npm run test` 419/419.
+
+
 ## Phase 58 — Search, filters and sorting on Clients, Orders, and Stock screens (2026-08-21)
 
 ### Added
