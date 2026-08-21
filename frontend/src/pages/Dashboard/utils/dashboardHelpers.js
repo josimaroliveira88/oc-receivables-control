@@ -18,7 +18,7 @@ export const hasDashboardData = (data) =>
 
 export const buildChartData = (personBalances) =>
   (personBalances || []).map((p) => ({
-    name: p.personName,
+    name: p.isSelf ? `${p.personName} (Você)` : p.personName,
     Itens: p.itemTotal,
     Pagamentos: p.paymentTotal,
   }));
