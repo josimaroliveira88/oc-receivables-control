@@ -417,6 +417,56 @@ describe('People CRUD', () => {
       const names = response.body.map((p) => p.name);
       expect(names).not.toContain('Outro Cliente');
     });
+
+    it('should search people by accented name using an unaccented term', async () => {
+      const accentedPersonId = (
+        await prisma.person.create({
+          data: {
+            name: 'Cássia Silva',
+            whatsapp: '5511955554444',
+            userId,
+          },
+        })
+      ).id;
+      try {
+        const response = await request(app)
+          .get('/api/people?q=cassia')
+          .set('Authorization', `Bearer ${authToken}`);
+
+        expect(response.status).toBe(200);
+        const ids = response.body.map((p) => p.id);
+        expect(ids).toContain(accentedPersonId);
+      } finally {
+        await prisma.person
+          .delete({ where: { id: accentedPersonId } })
+          .catch(() => {});
+      }
+    });
+
+    it('should search people by unaccented name using an accented term', async () => {
+      const plainPersonId = (
+        await prisma.person.create({
+          data: {
+            name: 'Cassia Souza',
+            whatsapp: '5511955553333',
+            userId,
+          },
+        })
+      ).id;
+      try {
+        const response = await request(app)
+          .get('/api/people?q=C%C3%A1ssia')
+          .set('Authorization', `Bearer ${authToken}`);
+
+        expect(response.status).toBe(200);
+        const ids = response.body.map((p) => p.id);
+        expect(ids).toContain(plainPersonId);
+      } finally {
+        await prisma.person
+          .delete({ where: { id: plainPersonId } })
+          .catch(() => {});
+      }
+    });
   });
 
   describe('PUT /api/people/:id', () => {

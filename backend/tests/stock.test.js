@@ -442,6 +442,57 @@ describe('Stock API', () => {
         response.body.find((i) => i.productId === productB.id),
       ).toBeUndefined();
     });
+
+    it('should match an accented product name when searching with an unaccented term', async () => {
+      // productA is "Alfa Óleo Essencial" (accented). Search with unaccented
+      // "oleo" should still match it.
+      const response = await request(app)
+        .get('/api/stock?q=oleo')
+        .set('Authorization', `Bearer ${userA.token}`);
+
+      expect(response.status).toBe(200);
+      const codes = response.body.map((i) => i.code);
+      expect(codes).toContain(productA.code);
+      expect(codes).not.toContain(productB.code);
+    });
+
+    it('should match an unaccented product name when searching with an accented term', async () => {
+      const plainProduct = await prisma.product.create({
+        data: {
+          code: `TESTSTOCKPLAIN${Math.floor(Math.random() * 100000)}`,
+          name: 'Oleo de Manha',
+          size: '10 ml',
+          status: 'ATIVO',
+          prices: {
+            create: { regularPrice: 80, memberPrice: 60, pv: 8 },
+          },
+        },
+      });
+      await request(app)
+        .post('/api/stock/movements')
+        .set('Authorization', `Bearer ${userA.token}`)
+        .send({ productId: plainProduct.id, type: 'ENTRADA', quantity: 2 });
+
+      try {
+        const response = await request(app)
+          .get(`/api/stock?q=${encodeURIComponent('Óleo')}`)
+          .set('Authorization', `Bearer ${userA.token}`);
+
+        expect(response.status).toBe(200);
+        const codes = response.body.map((i) => i.code);
+        expect(codes).toContain(plainProduct.code);
+      } finally {
+        await prisma.stockMovement
+          .deleteMany({ where: { productId: plainProduct.id } })
+          .catch(() => {});
+        await prisma.inventory
+          .deleteMany({ where: { productId: plainProduct.id } })
+          .catch(() => {});
+        await prisma.product
+          .delete({ where: { id: plainProduct.id } })
+          .catch(() => {});
+      }
+    });
   });
 
   describe('GET /api/stock/:productId/history', () => {

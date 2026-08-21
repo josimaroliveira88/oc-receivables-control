@@ -1484,5 +1484,59 @@ describe('Orders CRUD with Items', () => {
         response.body.find((o) => o.id === otherOrder.body.id),
       ).toBeUndefined();
     });
+
+    it('should match an accented accountOwner when searching with an unaccented term', async () => {
+      const accentedOwnerId = (
+        await request(app)
+          .post('/api/orders')
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            orderNumber: `ACC-${Date.now()}`,
+            accountOwner: 'Cássia',
+            items: [
+              {
+                description: 'Item',
+                chargedValue: 100.0,
+                personId: searchPersonId,
+              },
+            ],
+          })
+      ).body.id;
+
+      const response = await request(app)
+        .get(`/api/orders?q=cassia&searchField=accountOwner`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const ids = response.body.map((o) => o.id);
+      expect(ids).toContain(accentedOwnerId);
+    });
+
+    it('should match an unaccented accountOwner when searching with an accented term', async () => {
+      const plainOwnerId = (
+        await request(app)
+          .post('/api/orders')
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            orderNumber: `PLAIN-${Date.now()}`,
+            accountOwner: 'Cassia',
+            items: [
+              {
+                description: 'Item',
+                chargedValue: 100.0,
+                personId: searchPersonId,
+              },
+            ],
+          })
+      ).body.id;
+
+      const response = await request(app)
+        .get(`/api/orders?q=C%C3%A1ssia&searchField=accountOwner`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const ids = response.body.map((o) => o.id);
+      expect(ids).toContain(plainOwnerId);
+    });
   });
 });
