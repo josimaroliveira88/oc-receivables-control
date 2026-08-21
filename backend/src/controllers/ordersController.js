@@ -1,6 +1,10 @@
 const { PrismaClient } = require('@prisma/client');
 const { z } = require('zod');
 const prisma = new PrismaClient();
+const {
+  computeOrderStatus,
+  syncOrderStatuses,
+} = require('../utils/receivables');
 
 const parseLocalDate = (dateStr) => {
   const [year, month, day] = dateStr.split('-').map(Number);
@@ -180,6 +184,17 @@ const createOrder = async (req, res) => {
       0,
     );
 
+    // Initial status considers self-person items as already received
+    const personMap = new Map(persons.map((p) => [p.id, p]));
+    const status = computeOrderStatus({
+      items: validatedData.items.map((item) => ({
+        personId: item.personId,
+        chargedValue: item.chargedValue,
+        person: personMap.get(item.personId),
+      })),
+      payments: [],
+    });
+
     // Create order with items
     const order = await prisma.order.create({
       data: {
@@ -191,7 +206,7 @@ const createOrder = async (req, res) => {
         accountOwner: validatedData.accountOwner ?? null,
         paymentType: validatedData.paymentType ?? null,
         orderNotes: validatedData.orderNotes ?? null,
-        status: 'PENDENTE',
+        status,
         userId: req.user.userId,
         items: {
           create: validatedData.items.map(itemCreateData),
@@ -287,6 +302,22 @@ const updateOrder = async (req, res) => {
           },
         },
       });
+
+      // Recompute status considering the replaced items and existing payments
+      const payments = await prisma.payment.findMany({
+        where: { orderId: id },
+      });
+      const newStatus = computeOrderStatus({
+        items: order.items,
+        payments,
+      });
+      if (newStatus !== order.status) {
+        await prisma.order.update({
+          where: { id },
+          data: { status: newStatus },
+        });
+        order.status = newStatus;
+      }
 
       res.status(200).json(order);
     } else {
@@ -413,6 +444,21 @@ const addItemToOrder = async (req, res) => {
       },
     });
 
+    // Recompute order status after adding the item
+    const payments = await prisma.payment.findMany({
+      where: { orderId },
+    });
+    const newStatus = computeOrderStatus({
+      items: updatedOrder.items,
+      payments,
+    });
+    if (newStatus !== updatedOrder.status) {
+      await prisma.order.update({
+        where: { id: orderId },
+        data: { status: newStatus },
+      });
+    }
+
     res.status(201).json(item);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -488,6 +534,22 @@ const updateItem = async (req, res) => {
       });
     }
 
+    // Recompute order status after the item change
+    const orderItems = await prisma.item.findMany({
+      where: { orderId: existingItem.orderId },
+      include: { person: true },
+    });
+    const payments = await prisma.payment.findMany({
+      where: { orderId: existingItem.orderId },
+    });
+    const newStatus = computeOrderStatus({ items: orderItems, payments });
+    if (newStatus !== existingItem.order.status) {
+      await prisma.order.update({
+        where: { id: existingItem.orderId },
+        data: { status: newStatus },
+      });
+    }
+
     res.status(200).json(item);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -536,6 +598,22 @@ const deleteItem = async (req, res) => {
         },
       },
     });
+
+    // Recompute order status after removing the item
+    const orderItems = await prisma.item.findMany({
+      where: { orderId: existingItem.orderId },
+      include: { person: true },
+    });
+    const payments = await prisma.payment.findMany({
+      where: { orderId: existingItem.orderId },
+    });
+    const newStatus = computeOrderStatus({ items: orderItems, payments });
+    if (newStatus !== existingItem.order.status) {
+      await prisma.order.update({
+        where: { id: existingItem.orderId },
+        data: { status: newStatus },
+      });
+    }
 
     res.status(200).json({ message: 'Item deleted successfully' });
   } catch (error) {

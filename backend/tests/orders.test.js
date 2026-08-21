@@ -1102,4 +1102,180 @@ describe('Orders CRUD with Items', () => {
       expect(parseFloat(response.body.totalValue)).toBe(100.0);
     });
   });
+
+  describe('Orders with self person items', () => {
+    let selfOrderIds = [];
+    let selfPersonIds = [];
+
+    afterEach(async () => {
+      for (const oid of selfOrderIds) {
+        await prisma.order.delete({ where: { id: oid } }).catch(() => {});
+      }
+      selfOrderIds = [];
+      for (const pid of selfPersonIds) {
+        await prisma.person.delete({ where: { id: pid } }).catch(() => {});
+      }
+      selfPersonIds = [];
+    });
+
+    const createSelfPerson = async (name) => {
+      const person = await prisma.person.create({
+        data: { name, isSelf: true, userId },
+      });
+      selfPersonIds.push(person.id);
+      return person.id;
+    };
+
+    const createRegularPerson = async (name) => {
+      const person = await prisma.person.create({
+        data: { name, userId },
+      });
+      selfPersonIds.push(person.id);
+      return person.id;
+    };
+
+    it('should create an order containing only self items as QUITADO', async () => {
+      const selfId = await createSelfPerson('Eu Mesmo');
+
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-SELF'),
+          items: [
+            { description: 'Meu Item', chargedValue: 150.0, personId: selfId },
+          ],
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.status).toBe('QUITADO');
+      expect(parseFloat(response.body.totalValue)).toBe(150.0);
+      selfOrderIds.push(response.body.id);
+    });
+
+    it('should create an order with a self item and a regular person as PENDENTE', async () => {
+      const selfId = await createSelfPerson('Eu');
+      const otherId = await createRegularPerson('Cliente');
+
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-MIX'),
+          items: [
+            { description: 'Meu Item', chargedValue: 200.0, personId: selfId },
+            {
+              description: 'Item Cliente',
+              chargedValue: 300.0,
+              personId: otherId,
+            },
+          ],
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.status).toBe('PENDENTE');
+      expect(parseFloat(response.body.totalValue)).toBe(500.0);
+      selfOrderIds.push(response.body.id);
+    });
+
+    it('should recompute status to QUITADO when updating an order to only self items', async () => {
+      const selfId = await createSelfPerson('Eu');
+      const otherId = await createRegularPerson('Cliente');
+
+      const created = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-EDIT'),
+          items: [
+            {
+              description: 'Item Cliente',
+              chargedValue: 100.0,
+              personId: otherId,
+            },
+          ],
+        });
+      selfOrderIds.push(created.body.id);
+      expect(created.body.status).toBe('PENDENTE');
+
+      const updated = await request(app)
+        .put(`/api/orders/${created.body.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          items: [
+            { description: 'Meu Item', chargedValue: 100.0, personId: selfId },
+          ],
+        });
+
+      expect(updated.status).toBe(200);
+      expect(updated.body.status).toBe('QUITADO');
+    });
+
+    it('should recompute status to PENDENTE when updating an only-self order to include a regular person', async () => {
+      const selfId = await createSelfPerson('Eu');
+      const otherId = await createRegularPerson('Cliente');
+
+      const created = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-EDIT2'),
+          items: [
+            { description: 'Meu Item', chargedValue: 100.0, personId: selfId },
+          ],
+        });
+      selfOrderIds.push(created.body.id);
+      expect(created.body.status).toBe('QUITADO');
+
+      const updated = await request(app)
+        .put(`/api/orders/${created.body.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          items: [
+            { description: 'Meu Item', chargedValue: 100.0, personId: selfId },
+            {
+              description: 'Item Cliente',
+              chargedValue: 50.0,
+              personId: otherId,
+            },
+          ],
+        });
+
+      expect(updated.status).toBe(200);
+      expect(updated.body.status).toBe('PENDENTE');
+    });
+
+    it('should recompute status to PENDENTE after removing the last self item from a QUITADO order', async () => {
+      const selfId = await createSelfPerson('Eu');
+      const otherId = await createRegularPerson('Cliente');
+
+      const created = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-EDIT3'),
+          items: [
+            { description: 'Meu Item', chargedValue: 100.0, personId: selfId },
+          ],
+        });
+      selfOrderIds.push(created.body.id);
+      expect(created.body.status).toBe('QUITADO');
+
+      const updated = await request(app)
+        .put(`/api/orders/${created.body.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          items: [
+            {
+              description: 'Item Cliente',
+              chargedValue: 100.0,
+              personId: otherId,
+            },
+          ],
+        });
+
+      expect(updated.status).toBe(200);
+      expect(updated.body.status).toBe('PENDENTE');
+    });
+  });
 });
