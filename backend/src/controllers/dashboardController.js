@@ -36,11 +36,17 @@ const getDashboardData = async (req, res) => {
         0,
       );
       const orderTotalCents = toCents(order.totalValue);
+      const selfItemsCents = order.items.reduce(
+        (sum, i) =>
+          sum + (i.person && i.person.isSelf ? toCents(i.chargedValue) : 0),
+        0,
+      );
 
       if (order.status === 'QUITADO') {
         totalPaidCents += orderTotalCents;
       } else {
-        const orderPendingCents = orderTotalCents - orderPaymentSumCents;
+        const orderPendingCents =
+          orderTotalCents - selfItemsCents - orderPaymentSumCents;
         totalPendingCents += orderPendingCents > 0 ? orderPendingCents : 0;
       }
     }
@@ -70,6 +76,7 @@ const getDashboardData = async (req, res) => {
           personMap.set(pid, {
             personId: pid,
             personName: name,
+            isSelf: Boolean(item.person && item.person.isSelf),
             itemTotalCents: 0,
             paymentTotalCents: 0,
           });
@@ -85,6 +92,7 @@ const getDashboardData = async (req, res) => {
           personMap.set(pid, {
             personId: pid,
             personName: name,
+            isSelf: false,
             itemTotalCents: 0,
             paymentTotalCents: 0,
           });
@@ -95,10 +103,13 @@ const getDashboardData = async (req, res) => {
 
     const personBalances = Array.from(personMap.values())
       .map((entry) => {
-        const pendingCents = entry.itemTotalCents - entry.paymentTotalCents;
+        const pendingCents = entry.isSelf
+          ? 0
+          : entry.itemTotalCents - entry.paymentTotalCents;
         return {
           personId: entry.personId,
           personName: entry.personName,
+          isSelf: entry.isSelf,
           itemTotal: fromCents(entry.itemTotalCents),
           paymentTotal: fromCents(entry.paymentTotalCents),
           pending: fromCents(Math.max(0, pendingCents)),
@@ -111,6 +122,11 @@ const getDashboardData = async (req, res) => {
     for (const order of orders) {
       const year = order.orderDate.getFullYear();
       const orderTotalCents = toCents(order.totalValue);
+      const selfItemsCents = order.items.reduce(
+        (sum, i) =>
+          sum + (i.person && i.person.isSelf ? toCents(i.chargedValue) : 0),
+        0,
+      );
 
       if (!yearMap.has(year)) {
         yearMap.set(year, { year, totalPendingCents: 0, totalQuitadoCents: 0 });
@@ -120,7 +136,7 @@ const getDashboardData = async (req, res) => {
       if (order.status === 'QUITADO') {
         entry.totalQuitadoCents += orderTotalCents;
       } else {
-        entry.totalPendingCents += orderTotalCents;
+        entry.totalPendingCents += orderTotalCents - selfItemsCents;
       }
     }
 

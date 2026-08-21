@@ -2,6 +2,7 @@ const { PrismaClient } = require('@prisma/client');
 const { z } = require('zod');
 const prisma = new PrismaClient();
 const { toCents, fromCents } = require('../utils/money');
+const { computeOrderStatus } = require('../utils/receivables');
 
 const parseLocalDate = (dateStr) => {
   const [year, month, day] = dateStr.split('-').map(Number);
@@ -71,45 +72,16 @@ const createPayment = async (req, res) => {
         },
       });
 
-      const personIds = [...new Set(order.items.map((item) => item.personId))];
-
-      let allPaid = true;
-      let hasAnyPayment = false;
-
-      for (const pid of personIds) {
-        if (!pid) continue;
-
-        const personItemSumCents = order.items
-          .filter((item) => item.personId === pid)
-          .reduce((sum, item) => sum + toCents(item.chargedValue), 0);
-
-        let personPaymentSumCents = order.payments
-          .filter((payment) => payment.personId === pid)
-          .reduce((sum, payment) => sum + toCents(payment.amount), 0);
-
-        if (pid === validatedData.personId) {
-          personPaymentSumCents += amountCents;
-        }
-
-        const personPendingCents = personItemSumCents - personPaymentSumCents;
-
-        if (personPendingCents > 0) {
-          allPaid = false;
-        }
-
-        if (personPaymentSumCents > 0) {
-          hasAnyPayment = true;
-        }
-      }
-
-      let newStatus;
-      if (allPaid) {
-        newStatus = 'QUITADO';
-      } else if (hasAnyPayment) {
-        newStatus = 'PARCIAL';
-      } else {
-        newStatus = 'PENDENTE';
-      }
+      // Recompute the order status considering self persons as already
+      // received. The transaction's order.payments read is stale after the
+      // create, so the new payment is added explicitly.
+      const newStatus = computeOrderStatus({
+        items: order.items,
+        payments: [
+          ...order.payments,
+          { personId: validatedData.personId, amount: validatedData.amount },
+        ],
+      });
 
       if (newStatus !== order.status) {
         await tx.order.update({
@@ -177,6 +149,7 @@ const getOrderBalance = async (req, res) => {
         personMap.set(personId, {
           personId,
           personName: person ? person.name : 'Unknown',
+          isSelf: Boolean(person && person.isSelf),
           itemTotalCents: 0,
           paymentTotalCents: 0,
         });
@@ -198,6 +171,7 @@ const getOrderBalance = async (req, res) => {
         personMap.set(personId, {
           personId,
           personName: person ? person.name : 'Unknown',
+          isSelf: Boolean(person && person.isSelf),
           itemTotalCents: 0,
           paymentTotalCents: 0,
         });
@@ -211,11 +185,13 @@ const getOrderBalance = async (req, res) => {
     });
 
     const balances = Array.from(personMap.values()).map((personData) => {
-      const pendingCents =
-        personData.itemTotalCents - personData.paymentTotalCents;
+      const pendingCents = personData.isSelf
+        ? 0
+        : personData.itemTotalCents - personData.paymentTotalCents;
       return {
         personId: personData.personId,
         personName: personData.personName,
+        isSelf: personData.isSelf,
         itemTotal: fromCents(personData.itemTotalCents),
         paymentTotal: fromCents(personData.paymentTotalCents),
         pending: fromCents(Math.max(0, pendingCents)),

@@ -243,3 +243,143 @@ describe('Dashboard Yearly Breakdown', () => {
     expect(response.body.error).toBe('Access token required');
   });
 });
+
+describe('Dashboard self person exclusion', () => {
+  let authToken;
+  let userId;
+  let createdOrderIds = [];
+  let createdPersonIds = [];
+
+  beforeAll(async () => {
+    await prisma.$connect();
+    const username = `dashboard_self_${Date.now()}`;
+    const regRes = await request(app)
+      .post('/api/auth/register')
+      .send({ username, password: 'testpass123' });
+    userId = regRes.body.id;
+
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ username, password: 'testpass123' });
+    authToken = loginRes.body.token;
+  });
+
+  afterAll(async () => {
+    if (userId) {
+      await prisma.user.delete({ where: { id: userId } }).catch(() => {});
+    }
+    await prisma.$disconnect();
+  });
+
+  afterEach(async () => {
+    for (const id of createdOrderIds) {
+      await prisma.order.delete({ where: { id } }).catch(() => {});
+    }
+    createdOrderIds = [];
+    for (const id of createdPersonIds) {
+      await prisma.person.delete({ where: { id } }).catch(() => {});
+    }
+    createdPersonIds = [];
+  });
+
+  const makePerson = async (name, isSelf = false) => {
+    const person = await prisma.person.create({
+      data: { name, isSelf, userId },
+    });
+    createdPersonIds.push(person.id);
+    return person.id;
+  };
+
+  const makeOrder = async (
+    orderNumber,
+    totalValue,
+    items,
+    status = 'PENDENTE',
+  ) => {
+    const order = await prisma.order.create({
+      data: {
+        orderNumber,
+        totalValue,
+        status,
+        userId,
+        items: { create: items },
+      },
+    });
+    createdOrderIds.push(order.id);
+    return order;
+  };
+
+  it('should exclude self item values from totalPending', async () => {
+    const selfId = await makePerson('Eu', true);
+    const otherId = await makePerson('Cliente');
+    await makeOrder(uniqueOrderNumber('DS-SELF'), 500.0, [
+      { description: 'Meu Item', chargedValue: 200.0, personId: selfId },
+      { description: 'Item Cliente', chargedValue: 300.0, personId: otherId },
+    ]);
+
+    const response = await request(app)
+      .get('/api/dashboard')
+      .set('Authorization', `Bearer ${authToken}`);
+
+    expect(response.status).toBe(200);
+    expect(parseFloat(response.body.totalPending)).toBe(300.0);
+  });
+
+  it('should report pending 0 for a self person in personBalances and expose isSelf', async () => {
+    const selfId = await makePerson('Eu', true);
+    const otherId = await makePerson('Cliente');
+    await makeOrder(uniqueOrderNumber('DS-BAL'), 500.0, [
+      { description: 'Meu Item', chargedValue: 200.0, personId: selfId },
+      { description: 'Item Cliente', chargedValue: 300.0, personId: otherId },
+    ]);
+
+    const response = await request(app)
+      .get('/api/dashboard')
+      .set('Authorization', `Bearer ${authToken}`);
+
+    const selfBalance = response.body.personBalances.find(
+      (b) => b.personId === selfId,
+    );
+    expect(selfBalance).toBeDefined();
+    expect(selfBalance.isSelf).toBe(true);
+    expect(parseFloat(selfBalance.itemTotal)).toBe(200.0);
+    expect(parseFloat(selfBalance.pending)).toBe(0);
+
+    const otherBalance = response.body.personBalances.find(
+      (b) => b.personId === otherId,
+    );
+    expect(otherBalance.isSelf).toBe(false);
+    expect(parseFloat(otherBalance.pending)).toBe(300.0);
+  });
+
+  it('should exclude self item values from yearly totalPending', async () => {
+    const selfId = await makePerson('Eu', true);
+    const otherId = await makePerson('Cliente');
+    const year = new Date().getFullYear();
+    await makeOrder(uniqueOrderNumber('DS-YEAR'), 500.0, [
+      { description: 'Meu Item', chargedValue: 200.0, personId: selfId },
+      { description: 'Item Cliente', chargedValue: 300.0, personId: otherId },
+    ]);
+
+    const response = await request(app)
+      .get('/api/dashboard')
+      .set('Authorization', `Bearer ${authToken}`);
+
+    const entry = response.body.yearlyBreakdown.find((y) => y.year === year);
+    expect(entry).toBeDefined();
+    expect(parseFloat(entry.totalPending)).toBe(300.0);
+  });
+
+  it('should not count self item values in currentMonthReceipts (no payments registered)', async () => {
+    const selfId = await makePerson('Eu', true);
+    await makeOrder(uniqueOrderNumber('DS-RECEIPTS'), 200.0, [
+      { description: 'Meu Item', chargedValue: 200.0, personId: selfId },
+    ]);
+
+    const response = await request(app)
+      .get('/api/dashboard')
+      .set('Authorization', `Bearer ${authToken}`);
+
+    expect(parseFloat(response.body.currentMonthReceipts)).toBe(0);
+  });
+});

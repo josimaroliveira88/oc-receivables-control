@@ -940,3 +940,135 @@ describe('Transactional consistency', () => {
     expect(orderAfter.status).toBe('QUITADO');
   });
 });
+
+describe('Self person payments & balance', () => {
+  let authToken;
+  let userId;
+  let createdOrderIds = [];
+  let createdPersonIds = [];
+
+  beforeAll(async () => {
+    await prisma.$connect();
+    const username = `payments_self_${Date.now()}`;
+    const regRes = await request(app)
+      .post('/api/auth/register')
+      .send({ username, password: 'testpass123' });
+    userId = regRes.body.id;
+
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ username, password: 'testpass123' });
+    authToken = loginRes.body.token;
+  });
+
+  afterAll(async () => {
+    if (userId) {
+      await prisma.user.delete({ where: { id: userId } }).catch(() => {});
+    }
+    await prisma.$disconnect();
+  });
+
+  afterEach(async () => {
+    for (const id of createdOrderIds) {
+      await prisma.order.delete({ where: { id } }).catch(() => {});
+    }
+    createdOrderIds = [];
+    for (const id of createdPersonIds) {
+      await prisma.person.delete({ where: { id } }).catch(() => {});
+    }
+    createdPersonIds = [];
+  });
+
+  const makeSelfPerson = async (name) => {
+    const person = await prisma.person.create({
+      data: { name, isSelf: true, userId },
+    });
+    createdPersonIds.push(person.id);
+    return person.id;
+  };
+
+  const makePerson = async (name) => {
+    const person = await prisma.person.create({
+      data: { name, userId },
+    });
+    createdPersonIds.push(person.id);
+    return person.id;
+  };
+
+  const makeOrder = async (orderNumber, items) => {
+    const order = await prisma.order.create({
+      data: {
+        orderNumber,
+        totalValue: items.reduce((s, i) => s + i.chargedValue, 0),
+        status: 'PENDENTE',
+        userId,
+        items: { create: items },
+      },
+      include: { items: true },
+    });
+    createdOrderIds.push(order.id);
+    return order;
+  };
+
+  it('should reach QUITADO when the non-self person pays and the order also has self items', async () => {
+    const selfId = await makeSelfPerson('Eu');
+    const otherId = await makePerson('Cliente');
+    const order = await makeOrder(uniqueOrderNumber('SELF-PAY'), [
+      { description: 'Meu Item', chargedValue: 200.0, personId: selfId },
+      { description: 'Item Cliente', chargedValue: 300.0, personId: otherId },
+    ]);
+
+    const response = await request(app)
+      .post(`/api/orders/${order.id}/payments`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ amount: 300.0, personId: otherId });
+
+    expect(response.status).toBe(201);
+    expect(response.body.order.status).toBe('QUITADO');
+  });
+
+  it('should reach PARCIAL when the non-self person pays partially and self items remain', async () => {
+    const selfId = await makeSelfPerson('Eu');
+    const otherId = await makePerson('Cliente');
+    const order = await makeOrder(uniqueOrderNumber('SELF-PARC'), [
+      { description: 'Meu Item', chargedValue: 200.0, personId: selfId },
+      { description: 'Item Cliente', chargedValue: 300.0, personId: otherId },
+    ]);
+
+    const response = await request(app)
+      .post(`/api/orders/${order.id}/payments`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ amount: 100.0, personId: otherId });
+
+    expect(response.status).toBe(201);
+    expect(response.body.order.status).toBe('PARCIAL');
+  });
+
+  it('should expose isSelf and pending 0 for the self person in the balance', async () => {
+    const selfId = await makeSelfPerson('Eu Mesmo');
+    const otherId = await makePerson('Cliente');
+    const order = await makeOrder(uniqueOrderNumber('SELF-BAL'), [
+      { description: 'Meu Item', chargedValue: 200.0, personId: selfId },
+      { description: 'Item Cliente', chargedValue: 300.0, personId: otherId },
+    ]);
+
+    const response = await request(app)
+      .get(`/api/orders/${order.id}/balance`)
+      .set('Authorization', `Bearer ${authToken}`);
+
+    expect(response.status).toBe(200);
+    const selfBalance = response.body.balances.find(
+      (b) => b.personId === selfId,
+    );
+    expect(selfBalance).toBeDefined();
+    expect(selfBalance.isSelf).toBe(true);
+    expect(parseFloat(selfBalance.itemTotal)).toBe(200.0);
+    expect(parseFloat(selfBalance.pending)).toBe(0);
+
+    const otherBalance = response.body.balances.find(
+      (b) => b.personId === otherId,
+    );
+    expect(otherBalance.isSelf).toBe(false);
+    expect(parseFloat(otherBalance.pending)).toBe(300.0);
+  });
+});
