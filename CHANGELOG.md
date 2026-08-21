@@ -10,6 +10,18 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 53 — Toasts above modal overlays (2026-08-21)
+
+### Fixed
+- Error and success toasts fired from actions inside modals were rendered behind the modal's full-screen backdrop (`z-[60]` with `bg-black/40 backdrop-blur-sm`), appearing dimmed/blurred or hidden. The toast container (`frontend/src/components/Toast.jsx`) moved from `z-50` to `z-[90]`, the new topmost layer of the stacking hierarchy (above action menus at `z-[80]`, confirmation/tour overlays at `z-[70]`, and modals at `z-[60]`), so toasts always render crisp and clickable regardless of which overlay is open.
+
+### Changed
+- `AGENTS.md` z-index hierarchy rule updated to include toasts at `z-[90]`.
+
+### Tests
+- New `frontend/tests/Toast.test.jsx`: error and success toast rendering via the `useToast` context, container positioned at `z-[90]` above all overlay layers, and no own backdrop-blur on the toast.
+- Verified: frontend `370 passed`, `npm run build` clean, and Prettier `format:check` clean. Visually verified with Playwright against the running app: error toast fired from the payment modal renders as the topmost element (`elementFromPoint` hits the toast; toast `z-index: 90` without blur over the modal's `z-index: 60` with `blur(4px)`).
+
 ## Phase 52 — Self person as an order item owner (2026-08-21)
 
 ### Added
