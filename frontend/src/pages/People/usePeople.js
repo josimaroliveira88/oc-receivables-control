@@ -30,20 +30,29 @@ export function usePeople() {
 
   const closeCreateModal = () => {
     setShowCreateModal(false);
+    setError('');
+  };
+
+  const openCreateModal = () => {
+    setShowCreateModal(true);
+    setError('');
   };
 
   const closeEditModal = () => {
     setShowEditModal(false);
     setEditPersonId(null);
     setEditForm(emptyForm());
+    setError('');
   };
 
   const setCreateField = (field, value) => {
     setCreateForm((f) => ({ ...f, [field]: value }));
+    setError('');
   };
 
   const setEditField = (field, value) => {
     setEditForm((f) => ({ ...f, [field]: value }));
+    setError('');
   };
 
   const handleCreatePerson = async (e) => {
@@ -56,9 +65,13 @@ export function usePeople() {
       await api.post('/people', buildPayload(createForm));
       setCreateForm(emptyForm());
       setShowCreateModal(false);
+      setError('');
       fetchPeople();
     } catch (err) {
-      setError('Erro ao criar cliente. Tente novamente.');
+      addToast(
+        err.response?.data?.error || 'Erro ao criar cliente. Tente novamente.',
+        'error',
+      );
     }
   };
 
@@ -73,9 +86,14 @@ export function usePeople() {
       setEditPersonId(null);
       setEditForm(emptyForm());
       setShowEditModal(false);
+      setError('');
       fetchPeople();
     } catch (err) {
-      setError('Erro ao atualizar cliente. Tente novamente.');
+      addToast(
+        err.response?.data?.error ||
+          'Erro ao atualizar cliente. Tente novamente.',
+        'error',
+      );
     }
   };
 
@@ -91,6 +109,7 @@ export function usePeople() {
       isDoterraMember: person.isDoterraMember || false,
       isSelf: person.isSelf || false,
     });
+    setError('');
     setShowEditModal(true);
   };
 
@@ -109,7 +128,7 @@ export function usePeople() {
       addToast('Cliente excluído com sucesso!', 'success');
       fetchPeople();
     } catch (err) {
-      setError('Erro ao excluir cliente. Tente novamente.');
+      addToast('Erro ao excluir cliente. Tente novamente.', 'error');
     } finally {
       setDeleting(false);
       setConfirmDeleteId(null);
@@ -131,6 +150,7 @@ export function usePeople() {
     confirmDeleteId,
     deleting,
     setShowCreateModal,
+    openCreateModal,
     setCreateField,
     setEditField,
     handleCreatePerson,

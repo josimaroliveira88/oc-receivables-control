@@ -259,6 +259,51 @@ describe('PeoplePage', () => {
       expect(within(modal).getByText('Nome é obrigatório')).toBeInTheDocument();
     });
 
+    it('should clear the validation error once the name is typed', async () => {
+      mockGet.mockResolvedValue({ data: [] });
+      renderPage();
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByText('Novo'));
+      });
+
+      const nameInput = await screen.findByPlaceholderText('Digite o nome');
+      const form = nameInput.closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(screen.getByText('Nome é obrigatório')).toBeInTheDocument();
+      });
+
+      fireEvent.change(nameInput, { target: { value: 'Novo Cliente' } });
+
+      expect(screen.queryByText('Nome é obrigatório')).not.toBeInTheDocument();
+    });
+
+    it('should show backend submit failure as a toast', async () => {
+      mockGet.mockResolvedValue({ data: [] });
+      mockPost.mockRejectedValue({
+        response: {
+          data: { error: 'Erro ao criar cliente. Tente novamente.' },
+        },
+      });
+      renderPage();
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByText('Novo'));
+      });
+
+      const nameInput = await screen.findByPlaceholderText('Digite o nome');
+      fireEvent.change(nameInput, { target: { value: 'Novo Cliente' } });
+      fireEvent.click(screen.getByText('Salvar'));
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Erro ao criar cliente. Tente novamente.'),
+        ).toBeInTheDocument();
+      });
+    });
+
     it('should pre-fill WhatsApp with Brazilian country code +55', async () => {
       mockGet.mockResolvedValue({ data: [] });
       renderPage();
