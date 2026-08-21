@@ -1200,6 +1200,40 @@ describe('OrdersPage', () => {
       });
     });
 
+    it('should render the form validation error inside the modal (not behind it)', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByText('Novo Pedido'));
+      await waitFor(() => {
+        expect(screen.getByText('Itens do Pedido')).toBeInTheDocument();
+      });
+
+      fireEvent.change(
+        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        { target: { value: 'ORD-NOPERSON' } },
+      );
+      const form = screen
+        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
+        .closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Preencha todos os campos dos itens corretamente'),
+        ).toBeInTheDocument();
+      });
+
+      const modal = document.querySelector('.fixed.inset-0.z-\\[60\\]');
+      expect(modal).not.toBeNull();
+      expect(
+        within(modal).getByText(
+          'Preencha todos os campos dos itens corretamente',
+        ),
+      ).toBeInTheDocument();
+    });
+
     it('should allow zero charged value (free item / gift)', async () => {
       mockPost.mockResolvedValue({
         data: { id: '3', orderNumber: 'ORD-GIFT' },

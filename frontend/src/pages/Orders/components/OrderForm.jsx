@@ -16,6 +16,7 @@ const OrderForm = ({
   people,
   products,
   isEdit,
+  error,
   onChangeField,
   onItemUpdate,
   onItemPersonSelect,
@@ -169,6 +170,14 @@ const OrderForm = ({
       </div>
 
       <div className="mb-4">
+        {error && (
+          <div
+            data-testid="order-form-error"
+            className="mb-3 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md"
+          >
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          </div>
+        )}
         <div className="flex items-center justify-between mb-3">
           <span className="font-medium text-gray-700 dark:text-gray-300">
             Itens do Pedido

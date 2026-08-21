@@ -110,7 +110,7 @@ const OrdersPage = () => {
         </div>
 
         <div className="px-6 py-4">
-          {error && (
+          {error && !(showCreateModal || showEditModal) && (
             <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md">
               <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
             </div>
@@ -142,6 +142,7 @@ const OrdersPage = () => {
           people={people}
           products={products}
           isEdit={showEditModal}
+          error={error}
           onChangeField={setFormField}
           onItemUpdate={updateItemField}
           onItemPersonSelect={onPersonSelect}
