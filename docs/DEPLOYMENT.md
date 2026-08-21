@@ -2,15 +2,15 @@
 
 Guia para aplicar uma nova versão do **Receivables Control System** em uma instalação já existente do cliente, rodando **Windows com PostgreSQL local (sem Docker)**. O objetivo é atualizar com **zero perda de dados**.
 
-> Aplica-se a qualquer atualização que traga novas migrations Prisma (mudanças de schema, novas extensões, etc.). O exemplo usado é a versão que habilita a extensão `unaccent` para busca acento-insensível, mas os passos valem para qualquer release.
+Use este roteiro toda vez que uma nova versão trouxer migrations Prisma (mudanças de schema, novas extensões, novos índices, etc.) ou alterações de código/dependências que precisem chegar ao cliente.
 
 ---
 
 ## Visão geral
 
 ```
- backup  →  pull  →  deps  →  migrate deploy  →  build frontend  →  restart  →  verificação
-  (1)       (2)     (3)         (4)                 (5)              (6)          (7)
+ backup  →  parar backend  →  pull  →  deps  →  migrate deploy  →  prisma generate  →  build frontend  →  reiniciar  →  verificação
+  (1)            (2)          (3)     (4)         (5)                  (6)               (7)             (8)           (9)
 ```
 
 Cada etapa é descrita em detalhe abaixo. **Não pule o backup.** Se algo falhar no meio, o backup é a sua rede de segurança.
@@ -42,7 +42,7 @@ Verifique que o arquivo `.backup` foi criado e tem tamanho razoável (não deve 
 Get-Item "C:\backups\receivables-backup-AAAA-MM-DD.backup" | Select-Object Name, Length
 ```
 
-> **Dica:** Se o cliente tem rotina de backup, apenas confirme que o backup mais recente é da mesma data/hora e foi feito **antes** de iniciar a atualização.
+> **Dica:** Se o cliente já tem rotina de backup, apenas confirme que o backup mais recente é da mesma data/hora e foi feito **antes** de iniciar a atualização.
 
 ---
 
@@ -77,6 +77,8 @@ cd ..\frontend
 npm install
 ```
 
+O `npm install` do backend dispara automaticamente `prisma generate` via `postinstall`, mas isso será reforçado na etapa 6 abaixo para garantir.
+
 ---
 
 ## 5. Aplicar as migrations com segurança
@@ -93,36 +95,36 @@ cd C:\caminho\do\projeto\receivables-control\backend
 npx prisma migrate deploy
 ```
 
-Saída esperada:
+Saída esperada (exemplo com uma migration nova):
 
 ```
 3 migrations found in prisma/migrations
-Applying migration 20260821180000_enable_unaccent_extension
+Applying migration 2026XXXXXXXXXX_nome_da_migration
 All migrations have been successfully applied.
 ```
 
-**O que esta migration faz**, no caso atual (Phase 59):
-
-```sql
-CREATE EXTENSION IF NOT EXISTS unaccent;
-```
-
-- ✅ Não altera tabelas.
-- ✅ Não altera colunas.
-- ✅ Não toca em dados de pessoas, pedidos, pagamentos, estoque, usuários, etc.
-- ✅ É idempotente (`IF NOT EXISTS`): se a extensão já estiver habilitada, não faz nada.
-- ⚠️ Requer que o usuário do banco (no exemplo, `admin`) tenha permissão para `CREATE EXTENSION`. No PostgreSQL instalado pelo instalador oficial, o usuário criado durante a instalação é superuser e tem essa permissão. Se o cliente usa um usuário com permissões reduzidas, pode ser necessário rodar a linha acima manualmente como superuser **uma única vez** (depois disso a extensão fica disponível para todos).
-
-Caso precise habilitar manualmente:
-
-```powershell
-$env:PGPASSWORD = "senha_do_postgres"
-& "C:\Program Files\PostgreSQL\15\bin\psql.exe" -h localhost -U postgres -d receivables -c "CREATE EXTENSION IF NOT EXISTS unaccent;"
-```
+> **Sobre o usuário do banco:** as migrations aplicadas precisam de permissões para criar/alterar objetos no schema. Em geral, o usuário criado durante a instalação do PostgreSQL é superuser e tem todas as permissões. Se o cliente usa um usuário com permissões reduzidas, ele deve conseguir pelo menos executar as migrations da nova versão — caso contrário, conecte-se como superuser (ex.: `postgres`) **uma única vez** e aplique manualmente as instruções da migration (o arquivo está em `backend/prisma/migrations/<id>/migration.sql`).
 
 ---
 
-## 6. Build do frontend
+## 6. Regenerar o Prisma Client
+
+Após aplicar as migrations, regenere o Prisma Client para garantir que o código do backend esteja 100% em sincronia com o schema do banco:
+
+```powershell
+cd C:\caminho\do\projeto\receivables-control\backend
+npx prisma generate
+```
+
+Esse passo é idempotente e seguro. Ele é importante porque:
+
+- Novas migrations podem ter introduzido colunas, tabelas ou tipos que o client precisa conhecer.
+- Garante que o binário do client em `node_modules/.prisma/client` bate com o `schema.prisma`.
+- O `npm install` (etapa 4) já chama `prisma generate` via `postinstall`, mas rodar de novo aqui é uma rede de segurança contra qualquer dessincronia.
+
+---
+
+## 7. Build do frontend
 
 ```powershell
 cd C:\caminho\do\projeto\receivables-control\frontend
@@ -133,7 +135,7 @@ Isso gera a pasta `frontend\dist\` com os arquivos estáticos. Se o cliente serv
 
 ---
 
-## 7. Reiniciar o backend
+## 8. Reiniciar o backend
 
 Inicie o backend novamente (serviço do Windows, atalho ou `npm start` em produção):
 
@@ -146,20 +148,18 @@ Verifique nos logs que o servidor subiu sem erros (`Server running on port 4000`
 
 ---
 
-## 8. Verificação pós-deploy
+## 9. Verificação pós-deploy
 
 Faça uma checagem rápida:
 
 1. **Acesse o frontend** no navegador (ex.: `http://localhost:3000`).
 2. **Faça login** com um usuário existente.
-3. **Teste a busca acento-insensível** (Phase 59):
-   - Abra a tela de **Clientes**. Digite "cassia" e "Cássia" — ambos devem encontrar registros armazenados como "Cassia" e "Cássia".
-   - Abra a tela de **Pedidos**. Pesquise por um Responsável com e sem acento — ambos devem retornar.
-4. **Confirme que os dados continuam intactos**: contagem de clientes, pedidos, estoque não mudou.
+3. **Teste as funcionalidades alteradas nesta versão** (consulte o `CHANGELOG.md` da release).
+4. **Confirme que os dados continuam intactos**: contagem de clientes, pedidos, estoque não mudou em relação à versão anterior.
 
 ---
 
-## 9. Em caso de problema (rollback)
+## 10. Em caso de problema (rollback)
 
 Se algo deu errado e o cliente precisa voltar à versão anterior imediatamente:
 
@@ -177,7 +177,7 @@ Se algo deu errado e o cliente precisa voltar à versão anterior imediatamente:
    `--clean --if-exists` remove objetos que serão recriados, evitando conflitos.
 
 3. **Volte o código** para a versão anterior: `git checkout <tag-ou-commit-anterior>`.
-4. **Reinstale deps** e reinicie o backend.
+4. **Reinstale deps** (`npm install` no backend e frontend) e reinicie o backend.
 
 > O backup em formato custom (`-F c`) preserva **todos os dados exatamente** como estavam no momento do `pg_dump`.
 
@@ -191,24 +191,9 @@ Se algo deu errado e o cliente precisa voltar à versão anterior imediatamente:
 [ ] 3. git pull sem conflitos
 [ ] 4. npm install no backend e frontend
 [ ] 5. npx prisma migrate deploy (NÃO usar migrate dev)
-[ ] 6. npm run build no frontend (se aplicável)
-[ ] 7. Backend reiniciado, logs sem erro
-[ ] 8. Login + busca acento-insensível testadas
-[ ] 9. Contagem de dados confere com a versão anterior
+[ ] 6. npx prisma generate no backend
+[ ] 7. npm run build no frontend (se aplicável)
+[ ] 8. Backend reiniciado, logs sem erro
+[ ] 9. Login + funcionalidades da versão testadas
+[ ] 10. Contagem de dados confere com a versão anterior
 ```
-
----
-
-## Por que esta versão é segura
-
-A única mudança no banco é:
-
-```sql
-CREATE EXTENSION IF NOT EXISTS unaccent;
-```
-
-- A extensão `unaccent` é fornecida pelo próprio PostgreSQL (não é código nosso) e está disponível desde o PostgreSQL 10. A imagem `postgres:15-alpine` (e o instalador oficial para Windows) já a inclui — só precisa ser habilitada uma vez por banco.
-- Nenhuma tabela, coluna ou linha de dados é tocada.
-- Nenhuma migration destrutiva (`DROP`, `TRUNCATE`, `ALTER TABLE ... DROP COLUMN`) foi introduzida nesta versão.
-
-Os DELETEs que você viu nos logs durante o desenvolvimento foram apenas comandos manuais de teste no banco Docker local do desenvolvedor — **não fazem parte da migration** e não rodam na máquina do cliente.
