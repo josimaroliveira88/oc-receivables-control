@@ -89,3 +89,32 @@ export const validateMovement = (form) => {
   }
   return null;
 };
+
+const SORTABLE_FIELDS = ['code', 'name', 'size', 'quantity'];
+
+export const filterAndSortStock = (inventory, search, sortBy, sortDir) => {
+  const query = search.trim().toLowerCase();
+  const field = SORTABLE_FIELDS.includes(sortBy) ? sortBy : 'name';
+  const direction = sortDir === 'desc' ? -1 : 1;
+
+  const result = inventory.filter((item) => {
+    if (
+      query &&
+      !item.code.toLowerCase().includes(query) &&
+      !item.name.toLowerCase().includes(query)
+    ) {
+      return false;
+    }
+    return true;
+  });
+
+  return [...result].sort((a, b) => {
+    if (field === 'quantity') {
+      return (Number(a[field]) - Number(b[field])) * direction;
+    }
+    return (
+      String(a[field] ?? '').localeCompare(String(b[field] ?? ''), 'pt-BR') *
+      direction
+    );
+  });
+};

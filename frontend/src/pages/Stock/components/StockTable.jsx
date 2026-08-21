@@ -1,10 +1,19 @@
 import React from 'react';
 import { ArrowUpCircle, ArrowDownCircle, History } from 'lucide-react';
 import ActionMenu from '../../../components/ActionMenu';
+import SearchInput from '../../../components/SearchInput';
+import SortableHeader from '../../../components/SortableHeader';
 import { stockBadgeClass, formatQuantity } from '../utils/stockHelpers';
 
 const StockTable = ({
   inventory,
+  totalCount,
+  hasActiveFilters,
+  search,
+  sortBy,
+  sortDir,
+  onSearchChange,
+  onSort,
   onRegisterEntry,
   onRegisterExit,
   onViewHistory,
@@ -12,11 +21,15 @@ const StockTable = ({
   return (
     <>
       <div className="px-6 pt-4">
-        {inventory.length > 0 && (
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {inventory.length === 1
-              ? '1 produto'
-              : `${inventory.length} produtos`}
+        <SearchInput
+          value={search}
+          onChange={onSearchChange}
+          placeholder="Buscar por código ou nome..."
+          ariaLabel="Buscar produtos em estoque"
+        />
+        {totalCount > 0 && (
+          <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+            {totalCount === 1 ? '1 produto' : `${totalCount} produtos`}
           </p>
         )}
       </div>
@@ -25,37 +38,50 @@ const StockTable = ({
         {inventory.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500 dark:text-gray-400">
-              Nenhum produto em estoque
+              {hasActiveFilters
+                ? 'Nenhum produto encontrado para os filtros aplicados.'
+                : 'Nenhum produto em estoque'}
             </p>
           </div>
         ) : (
           <table className="w-full text-sm text-left block lg:table lg:table-fixed">
             <thead className="hidden lg:table-header-group bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th
-                  scope="col"
-                  className="w-[15%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Código
-                </th>
-                <th
-                  scope="col"
-                  className="w-[35%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Produto
-                </th>
-                <th
-                  scope="col"
-                  className="w-[15%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Tamanho
-                </th>
-                <th
-                  scope="col"
-                  className="w-[15%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Estoque Atual
-                </th>
+                <SortableHeader
+                  label="Código"
+                  field="code"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                  width="w-[15%]"
+                  testIdPrefix="stock"
+                />
+                <SortableHeader
+                  label="Produto"
+                  field="name"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                  width="w-[35%]"
+                />
+                <SortableHeader
+                  label="Tamanho"
+                  field="size"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                  width="w-[15%]"
+                />
+                <SortableHeader
+                  label="Estoque Atual"
+                  field="quantity"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                  width="w-[15%]"
+                  align="right"
+                  testIdPrefix="stock"
+                />
                 <th
                   scope="col"
                   className="w-[20%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"

@@ -5,12 +5,16 @@ import {
   emptyMovementForm,
   buildMovementPayload,
   validateMovement,
+  filterAndSortStock,
 } from './utils/stockHelpers';
 
 export function useStock() {
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState('name');
+  const [sortDir, setSortDir] = useState('asc');
   const [submittingMovement, setSubmittingMovement] = useState(false);
   const [movementError, setMovementError] = useState('');
   const [movementProduct, setMovementProduct] = useState(null);
@@ -44,6 +48,16 @@ export function useStock() {
   useEffect(() => {
     loadInventory();
   }, [loadInventory]);
+
+  const visibleInventory = useMemo(
+    () => filterAndSortStock(inventory, search, sortBy, sortDir),
+    [inventory, search, sortBy, sortDir],
+  );
+
+  const handleSort = (field, dir) => {
+    setSortBy(field);
+    setSortDir(dir);
+  };
 
   const loadProductsCatalog = useCallback(async () => {
     try {
@@ -158,7 +172,14 @@ export function useStock() {
   };
 
   return {
-    inventory,
+    inventory: visibleInventory,
+    totalCount: visibleInventory.length,
+    hasActiveFilters: search.trim() !== '',
+    search,
+    sortBy,
+    sortDir,
+    setSearch,
+    handleSort,
     loading,
     error,
     availableProducts,

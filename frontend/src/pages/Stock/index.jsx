@@ -9,6 +9,13 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 const StockPage = () => {
   const {
     inventory,
+    totalCount,
+    hasActiveFilters,
+    search,
+    sortBy,
+    sortDir,
+    setSearch,
+    handleSort,
     loading,
     error,
     availableProducts,
@@ -83,6 +90,13 @@ const StockPage = () => {
 
           <StockTable
             inventory={inventory}
+            totalCount={totalCount}
+            hasActiveFilters={hasActiveFilters}
+            search={search}
+            sortBy={sortBy}
+            sortDir={sortDir}
+            onSearchChange={setSearch}
+            onSort={handleSort}
             onRegisterEntry={handleRegisterEntry}
             onRegisterExit={handleRegisterExit}
             onViewHistory={openHistoryDialog}

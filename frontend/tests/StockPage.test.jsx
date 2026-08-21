@@ -1216,4 +1216,100 @@ describe('StockPage', () => {
       );
     });
   });
+
+  describe('Search and sorting', () => {
+    it('should filter the list by product name as the user types', async () => {
+      mockGet.mockResolvedValue({
+        data: [mockInventoryItem, mockSecondInventoryItem],
+      });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      fireEvent.change(
+        screen.getByPlaceholderText('Buscar por código ou nome...'),
+        {
+          target: { value: 'Basil' },
+        },
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Basil')).toBeInTheDocument();
+        expect(
+          screen.queryByText('Adaptiv® Pastilhas'),
+        ).not.toBeInTheDocument();
+      });
+      expect(mockGet).toHaveBeenCalledTimes(1);
+    });
+
+    it('should filter the list by product code', async () => {
+      mockGet.mockResolvedValue({
+        data: [mockInventoryItem, mockSecondInventoryItem],
+      });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      fireEvent.change(
+        screen.getByPlaceholderText('Buscar por código ou nome...'),
+        {
+          target: { value: '60226006' },
+        },
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+        expect(screen.queryByText('Basil')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should sort by quantity when the header is clicked', async () => {
+      mockGet.mockResolvedValue({
+        data: [mockInventoryItem, mockSecondInventoryItem],
+      });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      const header = screen.getByTestId('stock-sort-quantity');
+      fireEvent.click(header);
+      await waitFor(() => {
+        const names = document.querySelectorAll(
+          'tbody tr td[data-label="Produto"]',
+        );
+        const nameTexts = Array.from(names).map((td) => td.textContent.trim());
+        expect(nameTexts).toEqual(['Basil', 'Adaptiv® Pastilhas']);
+      });
+    });
+
+    it('should show the filtered empty state when nothing matches', async () => {
+      mockGet.mockResolvedValue({ data: [mockInventoryItem] });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      fireEvent.change(
+        screen.getByPlaceholderText('Buscar por código ou nome...'),
+        {
+          target: { value: 'NãoExiste' },
+        },
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(
+            'Nenhum produto encontrado para os filtros aplicados.',
+          ),
+        ).toBeInTheDocument();
+      });
+    });
+  });
 });
