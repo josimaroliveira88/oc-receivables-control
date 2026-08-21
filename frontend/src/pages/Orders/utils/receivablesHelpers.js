@@ -29,11 +29,20 @@ export const getOrderPaidCents = (order) => {
   );
 };
 
+export const getOrderSelfCents = (order) => {
+  if (!order) return 0;
+  return (order.items || [])
+    .filter((item) => item.person && item.person.isSelf)
+    .reduce((sum, item) => sum + toCents(parseFloat(item.chargedValue)), 0);
+};
+
 export const getOrderPendingCents = (order) => {
   if (!order) return 0;
   return Math.max(
     0,
-    toCents(parseFloat(order.totalValue)) - getOrderPaidCents(order),
+    toCents(parseFloat(order.totalValue)) -
+      getOrderSelfCents(order) -
+      getOrderPaidCents(order),
   );
 };
 
@@ -58,8 +67,9 @@ export const getOrderTotalPV = (order) =>
 export const getOrderFinancials = (order) => {
   const totalCents = toCents(parseFloat(order.totalValue));
   const paidCents = getOrderPaidCents(order);
-  const pendingCents = Math.max(0, totalCents - paidCents);
-  return { totalCents, paidCents, pendingCents };
+  const selfCents = getOrderSelfCents(order);
+  const pendingCents = Math.max(0, totalCents - selfCents - paidCents);
+  return { totalCents, paidCents, selfCents, pendingCents };
 };
 
 export const shouldShowPaymentAction = (order) => {

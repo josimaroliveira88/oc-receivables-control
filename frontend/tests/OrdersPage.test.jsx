@@ -1,4 +1,10 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import OrdersPage from '../src/pages/OrdersPage';
@@ -1487,6 +1493,123 @@ describe('OrdersPage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
 
       expect(mockDelete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Self person selection in order form', () => {
+    const SELF_PERSON_ID = '__SELF__';
+
+    const openCreateModal = async () => {
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByText('Novo Pedido'));
+      await waitFor(() => {
+        expect(
+          screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        ).toBeInTheDocument();
+      });
+    };
+
+    it('should show an "Eu (você)" option in the person select when no self person exists', async () => {
+      mockGetImplementation([], mockPeople);
+      renderPage();
+
+      await openCreateModal();
+
+      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
+      const options = within(personSelect).getAllByRole('option');
+      const labels = options.map((o) => o.textContent);
+      expect(labels).toContain('Eu (você)');
+    });
+
+    it('should auto-create the self person and bind it to the item when "Eu (você)" is selected', async () => {
+      mockGetImplementation([], mockPeople);
+      mockPost.mockImplementation((url) => {
+        if (url === '/people/self') {
+          return Promise.resolve({
+            data: { id: 'p-self', name: 'testuser', isSelf: true },
+          });
+        }
+        if (url === '/orders') {
+          return Promise.resolve({ data: { id: '3', orderNumber: 'ORD-003' } });
+        }
+        return Promise.resolve({ data: {} });
+      });
+      renderPage();
+
+      await openCreateModal();
+
+      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
+      fireEvent.change(personSelect, { target: { value: SELF_PERSON_ID } });
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith('/people/self');
+      });
+
+      fireEvent.change(
+        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        { target: { value: 'ORD-SELF' } },
+      );
+      fireEvent.change(screen.getByPlaceholderText('0.00'), {
+        target: { value: '150' },
+      });
+
+      const form = screen
+        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
+        .closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith(
+          '/orders',
+          expect.objectContaining({
+            items: expect.arrayContaining([
+              expect.objectContaining({ personId: 'p-self' }),
+            ]),
+          }),
+        );
+      });
+    });
+
+    it('should show the self person with "(Você)" and bind it directly without auto-creating', async () => {
+      const selfPerson = { id: 'p-self', name: 'João Silva', isSelf: true };
+      mockGetImplementation([], [selfPerson, ...mockPeople]);
+      renderPage();
+
+      await openCreateModal();
+
+      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
+      const options = within(personSelect).getAllByRole('option');
+      const labels = options.map((o) => o.textContent);
+      expect(labels).toContain('João Silva (Você)');
+
+      fireEvent.change(personSelect, { target: { value: 'p-self' } });
+      expect(mockPost).not.toHaveBeenCalled();
+
+      fireEvent.change(
+        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        { target: { value: 'ORD-SELF2' } },
+      );
+      fireEvent.change(screen.getByPlaceholderText('0.00'), {
+        target: { value: '100' },
+      });
+
+      const form = screen
+        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
+        .closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith(
+          '/orders',
+          expect.objectContaining({
+            items: expect.arrayContaining([
+              expect.objectContaining({ personId: 'p-self' }),
+            ]),
+          }),
+        );
+      });
     });
   });
 });

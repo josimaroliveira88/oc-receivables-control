@@ -137,6 +137,10 @@ export function useOrderPayments({ refreshOrders }) {
 
     const selectedBalance = getSelectedBalance(balances, selectedPersonId);
 
+    if (selectedBalance && selectedBalance.isSelf) {
+      return;
+    }
+
     if (
       selectedBalance &&
       toCents(selectedBalance.itemTotal) > 0 &&
@@ -206,6 +210,8 @@ export function useOrderPayments({ refreshOrders }) {
     selectedPersonId,
   );
   const selectedIsZeroItem = isSelectedZeroItem(balances, selectedPersonId);
+  const selectedBalance = getSelectedBalance(balances, selectedPersonId);
+  const selectedIsSelf = !!selectedBalance && !!selectedBalance.isSelf;
   const selectedPersonItems = getPersonItems(selectedOrder, selectedPersonId);
 
   return {
@@ -222,6 +228,7 @@ export function useOrderPayments({ refreshOrders }) {
     orderPendingCents,
     selectedPendingCents,
     selectedIsZeroItem,
+    selectedIsSelf,
     selectedPersonItems,
     showDetailsModal,
     detailOrder,

@@ -11,6 +11,18 @@ export const emptyItem = () => ({
   details: '',
 });
 
+// Sentinel value used by the person <select> to represent the logged-in user
+// when they have not yet been registered as a Person.
+export const SELF_PERSON_ID = '__SELF__';
+
+// Returns the self person (the logged-in user's own Person record), if any.
+export const findSelfPerson = (people) =>
+  (people || []).find((person) => person.isSelf) || null;
+
+// Builds the option label for a person in the order item select.
+export const personSelectLabel = (person) =>
+  person.isSelf ? `${person.name} (Você)` : person.name;
+
 export const getTodayString = () => {
   const d = new Date();
   const year = d.getFullYear();

@@ -14,6 +14,7 @@ const PaymentModal = ({
   orderPendingCents,
   selectedPendingCents,
   selectedIsZeroItem,
+  selectedIsSelf,
   selectedPersonItems,
   onClose,
   onChangePerson,
@@ -128,7 +129,11 @@ const PaymentModal = ({
 
           {selectedPersonId && (
             <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md">
-              {selectedIsZeroItem ? (
+              {selectedIsSelf ? (
+                <p className="text-sm text-blue-700 dark:text-blue-400">
+                  Item do próprio usuário — já recebido, sem valor a registrar.
+                </p>
+              ) : selectedIsZeroItem ? (
                 <p className="text-sm text-blue-700 dark:text-blue-400">
                   Nada a receber — baixa sem valor
                 </p>
@@ -201,7 +206,7 @@ const PaymentModal = ({
               min="0"
               value={paymentAmount}
               onChange={(e) => onChangeAmount(e.target.value)}
-              disabled={selectedIsZeroItem}
+              disabled={selectedIsZeroItem || selectedIsSelf}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder="0.00"
             />
@@ -238,7 +243,7 @@ const PaymentModal = ({
             </button>
             <button
               type="submit"
-              disabled={submitting || balances.length === 0}
+              disabled={submitting || balances.length === 0 || selectedIsSelf}
               className="px-4 py-2 bg-gradient-to-r from-primary-700 to-primary-500 hover:from-primary-800 hover:to-primary-600 disabled:from-primary-400 disabled:to-primary-300 text-white font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting
@@ -254,9 +259,16 @@ const PaymentModal = ({
   );
 };
 
-const toCentsLabel = (balance) =>
-  toCents(balance.itemTotal) === 0
-    ? `${balance.personName} — Nada a receber`
-    : `${balance.personName} — Pendente: ${formatBRL(balance.pending)}`;
+const toCentsLabel = (balance) => {
+  const name = balance.isSelf
+    ? `${balance.personName} (Você)`
+    : balance.personName;
+  if (balance.isSelf) {
+    return `${name} — Recebido`;
+  }
+  return toCents(balance.itemTotal) === 0
+    ? `${name} — Nada a receber`
+    : `${name} — Pendente: ${formatBRL(balance.pending)}`;
+};
 
 export default PaymentModal;

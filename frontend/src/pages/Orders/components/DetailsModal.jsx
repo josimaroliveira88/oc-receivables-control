@@ -127,20 +127,27 @@ const DetailsModal = ({
                     >
                       <span className="font-medium text-gray-900 dark:text-gray-100">
                         {balance.personName}
+                        {balance.isSelf ? ' (Você)' : ''}
                       </span>
                       <span className="flex items-center gap-3 text-sm whitespace-nowrap">
                         <span className="text-gray-600 dark:text-gray-300">
                           Total: {formatBRL(balance.itemTotal)}
                         </span>
-                        <span
-                          className={
-                            toCents(balance.pending) === 0
-                              ? 'text-gray-400 dark:text-gray-500'
-                              : 'text-primary-700 dark:text-primary-400'
-                          }
-                        >
-                          Pendente: {formatBRL(balance.pending)}
-                        </span>
+                        {balance.isSelf ? (
+                          <span className="text-emerald-700 dark:text-emerald-400">
+                            Recebido
+                          </span>
+                        ) : (
+                          <span
+                            className={
+                              toCents(balance.pending) === 0
+                                ? 'text-gray-400 dark:text-gray-500'
+                                : 'text-primary-700 dark:text-primary-400'
+                            }
+                          >
+                            Pendente: {formatBRL(balance.pending)}
+                          </span>
+                        )}
                         {expanded ? (
                           <ChevronUp size={18} aria-hidden="true" />
                         ) : (

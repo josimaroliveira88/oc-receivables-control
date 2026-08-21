@@ -1448,3 +1448,129 @@ describe('OrdersPayments', () => {
     });
   });
 });
+
+describe('Self person display in payment and details modals', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const selfOrder = {
+    id: 'order-self',
+    orderNumber: 'ORD-SELF',
+    orderDate: '2026-08-10',
+    accountOwner: null,
+    orderNotes: null,
+    totalValue: '300.00',
+    status: 'PENDENTE',
+    items: [
+      {
+        id: 'self-item-1',
+        personId: 'p-self',
+        person: { id: 'p-self', name: 'Eu Mesmo', isSelf: true },
+        description: 'Meu Item',
+        chargedValue: '200.00',
+        pv: '10.00',
+      },
+      {
+        id: 'self-item-2',
+        personId: 'p-other',
+        person: { id: 'p-other', name: 'Cliente', isSelf: false },
+        description: 'Item Cliente',
+        chargedValue: '100.00',
+        pv: '5.00',
+      },
+    ],
+    payments: [],
+  };
+
+  const selfBalances = {
+    'order-self': {
+      balances: [
+        {
+          personId: 'p-self',
+          personName: 'Eu Mesmo',
+          isSelf: true,
+          itemTotal: '200.00',
+          paymentTotal: '0.00',
+          pending: '0.00',
+        },
+        {
+          personId: 'p-other',
+          personName: 'Cliente',
+          isSelf: false,
+          itemTotal: '100.00',
+          paymentTotal: '0.00',
+          pending: '100.00',
+        },
+      ],
+    },
+  };
+
+  const mockSelfGet = () => {
+    mockGet.mockImplementation((url) => {
+      if (url === '/orders') return Promise.resolve({ data: [selfOrder] });
+      if (url === '/people') return Promise.resolve({ data: [] });
+      if (url.startsWith('/products'))
+        return Promise.resolve({ data: { data: [] } });
+      const balanceMatch = url.match(/^\/orders\/(.+)\/balance$/);
+      if (balanceMatch) {
+        const balanceData = selfBalances[balanceMatch[1]] || { balances: [] };
+        return Promise.resolve({ data: balanceData });
+      }
+      return Promise.resolve({ data: [] });
+    });
+  };
+
+  const openOrderMenu = async (orderId) => {
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`order-actions-${orderId}-trigger`),
+      ).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByTestId(`order-actions-${orderId}-trigger`));
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`order-actions-${orderId}-menu`),
+      ).toBeInTheDocument();
+    });
+  };
+
+  it('should show "(Você)" and "Recebido" for the self person in the details modal', async () => {
+    mockSelfGet();
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('ORD-SELF')).toBeInTheDocument();
+    });
+
+    await openOrderMenu('order-self');
+    fireEvent.click(
+      screen.getByTestId('order-actions-order-self-item-Detalhar-Pagamentos'),
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('details-modal')).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Eu Mesmo (Você)')).toBeInTheDocument();
+      expect(screen.getByText('Recebido')).toBeInTheDocument();
+    });
+  });
+
+  it('should show the self person as "Recebido" in the payment modal person select', async () => {
+    mockSelfGet();
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('ORD-SELF')).toBeInTheDocument();
+    });
+
+    await openPaymentAction('order-self');
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Eu Mesmo (Você) — Recebido'),
+      ).toBeInTheDocument();
+    });
+  });
+});

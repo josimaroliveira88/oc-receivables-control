@@ -18,6 +18,7 @@ const OrderForm = ({
   isEdit,
   onChangeField,
   onItemUpdate,
+  onItemPersonSelect,
   onItemProductSelect,
   onAddItem,
   onRemoveItem,
@@ -183,6 +184,7 @@ const OrderForm = ({
             products={products}
             canRemove={items.length > 1}
             onUpdateField={(field, value) => onItemUpdate(index, field, value)}
+            onPersonSelect={onItemPersonSelect}
             onProductSelect={(productId) =>
               onItemProductSelect(index, productId)
             }

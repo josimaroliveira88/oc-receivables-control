@@ -35,6 +35,7 @@ const OrdersPage = () => {
     removeItem,
     updateItemField,
     onProductSelect,
+    onPersonSelect,
     resetForm,
     handleCreateOrder,
     handleEditOrder,
@@ -59,6 +60,7 @@ const OrdersPage = () => {
     orderPendingCents,
     selectedPendingCents,
     selectedIsZeroItem,
+    selectedIsSelf,
     selectedPersonItems,
     showDetailsModal,
     detailOrder,
@@ -142,6 +144,7 @@ const OrdersPage = () => {
           isEdit={showEditModal}
           onChangeField={setFormField}
           onItemUpdate={updateItemField}
+          onItemPersonSelect={onPersonSelect}
           onItemProductSelect={onProductSelect}
           onAddItem={addItem}
           onRemoveItem={removeItem}
@@ -164,6 +167,7 @@ const OrdersPage = () => {
           orderPendingCents={orderPendingCents}
           selectedPendingCents={selectedPendingCents}
           selectedIsZeroItem={selectedIsZeroItem}
+          selectedIsSelf={selectedIsSelf}
           selectedPersonItems={selectedPersonItems}
           onClose={closePaymentModal}
           onChangePerson={handleChangePerson}

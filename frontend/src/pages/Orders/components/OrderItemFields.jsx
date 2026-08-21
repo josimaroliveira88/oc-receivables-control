@@ -2,6 +2,11 @@ import React from 'react';
 import { Plus } from 'lucide-react';
 import { formatBRL } from '../../../utils/money';
 import ProductCombobox from '../../../components/ProductCombobox';
+import {
+  SELF_PERSON_ID,
+  findSelfPerson,
+  personSelectLabel,
+} from '../utils/orderHelpers';
 
 const OrderItemFields = ({
   item,
@@ -10,9 +15,12 @@ const OrderItemFields = ({
   products,
   canRemove,
   onUpdateField,
+  onPersonSelect,
   onProductSelect,
   onRemove,
 }) => {
+  const selfPerson = findSelfPerson(people);
+
   return (
     <div className="border border-gray-200 dark:border-gray-700 rounded-md p-4 mb-3">
       <div className="flex items-center justify-between mb-2">
@@ -36,15 +44,20 @@ const OrderItemFields = ({
           </label>
           <select
             value={item.personId}
-            onChange={(e) => onUpdateField('personId', e.target.value)}
+            onChange={(e) => onPersonSelect(index, e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-sm"
           >
             <option value="">Selecione uma pessoa</option>
-            {people.map((person) => (
-              <option key={person.id} value={person.id}>
-                {person.name}
-              </option>
-            ))}
+            <option value={selfPerson ? selfPerson.id : SELF_PERSON_ID}>
+              {selfPerson ? personSelectLabel(selfPerson) : 'Eu (você)'}
+            </option>
+            {people
+              .filter((person) => !person.isSelf)
+              .map((person) => (
+                <option key={person.id} value={person.id}>
+                  {personSelectLabel(person)}
+                </option>
+              ))}
           </select>
         </div>
 

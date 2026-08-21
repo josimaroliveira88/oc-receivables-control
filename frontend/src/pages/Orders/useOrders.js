@@ -6,6 +6,8 @@ import {
   getTodayString,
   itemPayload,
   editItemFromApi,
+  SELF_PERSON_ID,
+  findSelfPerson,
 } from './utils/orderHelpers';
 
 export function useOrders() {
@@ -107,6 +109,43 @@ export function useOrders() {
           : item,
       ),
     );
+  };
+
+  const selfPersonRequestRef = useRef(null);
+
+  const onPersonSelect = async (index, value) => {
+    if (value !== SELF_PERSON_ID) {
+      updateItemField(index, 'personId', value);
+      return;
+    }
+
+    try {
+      const existingSelf = findSelfPerson(people);
+      if (existingSelf) {
+        updateItemField(index, 'personId', existingSelf.id);
+        return;
+      }
+
+      if (!selfPersonRequestRef.current) {
+        selfPersonRequestRef.current = api
+          .post('/people/self')
+          .then((res) => {
+            const person = res.data;
+            setPeople((prev) =>
+              prev.some((p) => p.id === person.id) ? prev : [...prev, person],
+            );
+            return person;
+          })
+          .finally(() => {
+            selfPersonRequestRef.current = null;
+          });
+      }
+
+      const person = await selfPersonRequestRef.current;
+      updateItemField(index, 'personId', person.id);
+    } catch (err) {
+      addToast('Não foi possível vincular você a este item.', 'error');
+    }
   };
 
   const resetForm = () => {
@@ -264,6 +303,7 @@ export function useOrders() {
     removeItem,
     updateItemField,
     onProductSelect,
+    onPersonSelect,
     resetForm,
     handleCreateOrder,
     handleEditOrder,
