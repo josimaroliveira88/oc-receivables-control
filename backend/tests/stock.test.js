@@ -337,6 +337,113 @@ describe('Stock API', () => {
     });
   });
 
+  describe('GET /api/stock — search and sorting', () => {
+    let productA;
+    let productB;
+
+    beforeEach(async () => {
+      productA = await prisma.product.create({
+        data: {
+          code: `TESTSTOCKA${Math.floor(Math.random() * 100000)}`,
+          name: 'Alfa Óleo Essencial',
+          size: '15 ml',
+          status: 'ATIVO',
+          prices: {
+            create: { regularPrice: 100, memberPrice: 75, pv: 10 },
+          },
+        },
+      });
+      productB = await prisma.product.create({
+        data: {
+          code: `TESTSTOCKB${Math.floor(Math.random() * 100000)}`,
+          name: 'Beta Lavanda',
+          size: '5 ml',
+          status: 'ATIVO',
+          prices: {
+            create: { regularPrice: 50, memberPrice: 40, pv: 5 },
+          },
+        },
+      });
+      await request(app)
+        .post('/api/stock/movements')
+        .set('Authorization', `Bearer ${userA.token}`)
+        .send({ productId: productA.id, type: 'ENTRADA', quantity: 3 });
+      await request(app)
+        .post('/api/stock/movements')
+        .set('Authorization', `Bearer ${userA.token}`)
+        .send({ productId: productB.id, type: 'ENTRADA', quantity: 10 });
+    });
+
+    afterEach(async () => {
+      await prisma.stockMovement
+        .deleteMany({
+          where: { productId: { in: [productA.id, productB.id] } },
+        })
+        .catch(() => {});
+      await prisma.inventory
+        .deleteMany({
+          where: { productId: { in: [productA.id, productB.id] } },
+        })
+        .catch(() => {});
+      await prisma.product
+        .deleteMany({ where: { id: { in: [productA.id, productB.id] } } })
+        .catch(() => {});
+    });
+
+    it('should search inventory by product name (case-insensitive)', async () => {
+      const response = await request(app)
+        .get('/api/stock?q=lavanda')
+        .set('Authorization', `Bearer ${userA.token}`);
+
+      expect(response.status).toBe(200);
+      const codes = response.body.map((i) => i.code);
+      expect(codes).toContain(productB.code);
+      expect(codes).not.toContain(productA.code);
+    });
+
+    it('should search inventory by product code', async () => {
+      const response = await request(app)
+        .get(`/api/stock?q=${productA.code}`)
+        .set('Authorization', `Bearer ${userA.token}`);
+
+      expect(response.status).toBe(200);
+      const codes = response.body.map((i) => i.code);
+      expect(codes).toContain(productA.code);
+      expect(codes).not.toContain(productB.code);
+    });
+
+    it('should sort by quantity descending', async () => {
+      const response = await request(app)
+        .get('/api/stock?sortBy=quantity&sortDir=desc')
+        .set('Authorization', `Bearer ${userA.token}`);
+
+      expect(response.status).toBe(200);
+      const quantities = response.body.map((i) => i.quantity);
+      expect(quantities).toEqual([10, 3]);
+    });
+
+    it('should sort by product name ascending', async () => {
+      const response = await request(app)
+        .get('/api/stock?sortBy=name&sortDir=asc')
+        .set('Authorization', `Bearer ${userA.token}`);
+
+      expect(response.status).toBe(200);
+      const names = response.body.map((i) => i.name);
+      expect(names).toEqual(['Alfa Óleo Essencial', 'Beta Lavanda']);
+    });
+
+    it('should not expose other users inventory when searching', async () => {
+      const response = await request(app)
+        .get('/api/stock?q=lavanda')
+        .set('Authorization', `Bearer ${userB.token}`);
+
+      expect(response.status).toBe(200);
+      expect(
+        response.body.find((i) => i.productId === productB.id),
+      ).toBeUndefined();
+    });
+  });
+
   describe('GET /api/stock/:productId/history', () => {
     let product;
 

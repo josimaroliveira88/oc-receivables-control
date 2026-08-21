@@ -11,9 +11,40 @@ const movementSchema = z.object({
 
 const listInventory = async (req, res) => {
   try {
+    const { q, sortBy, sortDir } = req.query;
+
+    const where = { userId: req.user.userId };
+    if (q && q.trim()) {
+      const search = q.trim();
+      where.product = {
+        OR: [
+          { code: { contains: search, mode: 'insensitive' } },
+          { name: { contains: search, mode: 'insensitive' } },
+        ],
+      };
+    }
+
+    const direction = sortDir === 'desc' ? 'desc' : 'asc';
+    let orderBy;
+    switch (sortBy) {
+      case 'quantity':
+        orderBy = { quantity: direction };
+        break;
+      case 'name':
+      case 'size':
+        orderBy = { product: { [sortBy]: direction } };
+        break;
+      case 'code':
+        orderBy = { product: { code: direction } };
+        break;
+      default:
+        orderBy = { product: { name: direction } };
+    }
+
     const inventory = await prisma.inventory.findMany({
-      where: { userId: req.user.userId },
+      where,
       include: { product: true },
+      orderBy,
     });
 
     const data = inventory.map((item) => ({
