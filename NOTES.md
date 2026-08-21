@@ -25,5 +25,3 @@ Each entry follows the structure below. Keep the wording consistent with the res
 - Files touched (e.g. `frontend/src/pages/ProductsPage.jsx`, `backend/...`).
 - Tests added/updated and the verification result (e.g. 168 backend + 321 frontend passing, `npm run build` clean, `npm run format:check` clean).
 ```
-
-

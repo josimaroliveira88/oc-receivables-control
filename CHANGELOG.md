@@ -10,6 +10,17 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 57 — Unified status editor on the Products screen (2026-08-21)
+
+### Changed
+- The **STATUS** column on the Products screen is now a clickable status badge that opens a dropdown with the possible statuses (Ativo, Indisponível, Inativo). Selecting an option keeps the confirmation dialog and persists via `PUT /products/:id`; selecting the current status just closes the menu. The standalone status `<select>` was removed from the **Ações** column, so the status display and its editor live in a single column.
+- Table column widths rebalanced for the new layout (Produto 26%→30%, Tamanho 7%→12%, Status 12%→11%, Ações 16%→8%; total still 100%), giving the product name and size more room now that the **Ações** column no longer holds the combobox.
+- New `frontend/src/pages/Products/components/StatusBadgeDropdown.jsx` replaces the display-only `StatusBadge.jsx` (removed); `frontend/src/pages/Products/components/ProductsTable.jsx` updated accordingly.
+
+### Tests
+- `frontend/tests/ProductsPage.test.jsx`: the inline status-change tests now drive the badge dropdown, with added cases for opening the menu, selecting the current status (no dialog), and closing via backdrop. Verification: 395 frontend tests passing, `npm run build` clean, `npm run format:check` clean.
+
+
 ## Phase 56 — Order-to-stock for the user's own items; item quantity and price mode (2026-08-21)
 
 ### Added
