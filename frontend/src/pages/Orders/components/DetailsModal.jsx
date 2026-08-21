@@ -1,8 +1,9 @@
 import React from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { formatBRL, toCents } from '../../../utils/money';
+import { formatBRL, toCents, fromCents } from '../../../utils/money';
 import { formatDateBR } from '../../../utils/dates';
 import { getOrderPendingCents } from '../utils/receivablesHelpers';
+import { lineValueCents } from '../utils/orderHelpers';
 
 const DetailsModal = ({
   order,
@@ -182,10 +183,13 @@ const DetailsModal = ({
                                       '—'}
                                   </span>
                                   <span className="text-sm font-semibold text-primary-700 dark:text-primary-400 whitespace-nowrap">
-                                    {formatBRL(parseFloat(item.chargedValue))}
+                                    {formatBRL(fromCents(lineValueCents(item)))}
                                   </span>
                                 </div>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                  {item.quantity > 1
+                                    ? `Qtd: ${item.quantity} · `
+                                    : ''}
                                   Detalhes: {item.details || '—'}
                                 </p>
                               </div>
