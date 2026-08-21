@@ -10,6 +10,24 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 52 — Self person as an order item owner (2026-08-21)
+
+### Added
+- `Person.isSelf` flag (migration `20260821120000_add_person_is_self`): marks the logged-in user's own Person record, at most one per user (create/update automatically unset any previous self person). New endpoint `POST /api/people/self` returns the existing self person or creates it named after the user's `username`.
+- Shared helper `backend/src/utils/receivables.js` (`computeOrderStatus`, `personPendingCents`, `syncOrderStatusesForPersons`) centralizing the rule that items assigned to the self person are treated as already received.
+- Order form: the item's person `<select>` always offers the user as the first option — "Eu (você)" when no self person exists (auto-creates it via `POST /api/people/self` on first selection) or "Nome (Você)" when it does. The People form gained an "Esta pessoa sou eu" checkbox to consolidate/transfer the flag.
+- Payment and details modals show "(Você)" and "Recebido" for the self person, and the payment form blocks registering a payment for the self person.
+
+### Changed
+- Order status is now computed at creation (an order containing only self items starts `QUITADO`) and recomputed on order/item create/update/delete instead of only on payment registration; toggling a person's `isSelf` recomputes the status of all affected orders.
+- Pending calculations treat self items as received everywhere: per-person order balance (`GET /api/orders/:id/balance`, now exposing `isSelf` with `pending: 0`), the `createPayment` status recompute, and dashboard `totalPending`/`personBalances`/`yearlyBreakdown`. No `Payment` record is created, so `currentMonthReceipts` is unaffected.
+- Client-side order pending helpers (`getOrderPendingCents`/`getOrderFinancials`) exclude self-item values, and the dashboard chart marks the self person as "(Você)".
+
+### Tests
+- Backend: 11 new unit tests for `backend/src/utils/receivables.js`; `isSelf` create/update/uniqueness plus `POST /api/people/self` in `people.test.js`; self-item order statuses (create and edit) in `orders.test.js`; self-person payment status and balance in `payments.test.js`; dashboard self-person exclusion (totals, per-person, yearly, receipts) in `dashboard.test.js`.
+- Frontend: "Eu (você)" option, auto-creation, and "(Você)" binding in `OrdersPage.test.jsx`; "Esta pessoa sou eu" payload in `PeoplePage.test.jsx`; "(Você)"/"Recebido" display in payment and details modals in `OrdersPayments.test.jsx`.
+- Verified: backend `232 passed`, frontend `366 passed`, `npm run build` clean, and Prettier `format:check` clean.
+
 ## Phase 51 — Stock control: database, /api/stock, page, and undo (2026-08-20)
 
 ### Added
