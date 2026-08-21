@@ -1129,4 +1129,91 @@ describe('StockPage', () => {
       });
     });
   });
+
+  describe('Order-locked last movement', () => {
+    const orderMovement = mockMovement({
+      type: 'ENTRADA',
+      reason: 'Pedido ORD-42',
+      orderId: 'order-1',
+      order: { id: 'order-1', orderNumber: 'ORD-42' },
+    });
+
+    it('should NOT show the undo button when the latest movement is linked to an order', async () => {
+      mockGet
+        .mockResolvedValueOnce({ data: [mockInventoryItem] })
+        .mockResolvedValueOnce({ data: [orderMovement] });
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      await clickStockAction(
+        '11111111-1111-1111-1111-111111111111',
+        'Ver-Historico',
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('history-order-locked-notice'),
+        ).toBeInTheDocument();
+      });
+      expect(
+        screen.queryByTestId('undo-last-movement'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should show the order number and a "Ver pedido" button in the locked notice', async () => {
+      mockGet
+        .mockResolvedValueOnce({ data: [mockInventoryItem] })
+        .mockResolvedValueOnce({ data: [orderMovement] });
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      await clickStockAction(
+        '11111111-1111-1111-1111-111111111111',
+        'Ver-Historico',
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/vinculada ao Pedido #ORD-42/),
+        ).toBeInTheDocument();
+      });
+      const goButton = screen.getByTestId('go-to-order-from-history');
+      expect(goButton).toBeInTheDocument();
+      expect(goButton.textContent).toMatch(/Ver pedido/);
+    });
+
+    it('should display a "Pedido #X" badge on movement rows linked to an order', async () => {
+      mockGet
+        .mockResolvedValueOnce({ data: [mockInventoryItem] })
+        .mockResolvedValueOnce({ data: [orderMovement] });
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      await clickStockAction(
+        '11111111-1111-1111-1111-111111111111',
+        'Ver-Historico',
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('movement-order-ENTRADA'),
+        ).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('movement-order-ENTRADA')).toHaveTextContent(
+        'Pedido #ORD-42',
+      );
+    });
+  });
 });

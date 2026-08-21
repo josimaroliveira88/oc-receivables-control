@@ -1015,7 +1015,9 @@ describe('OrdersPage', () => {
       fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
 
       await waitFor(() => {
-        expect(screen.getByDisplayValue(/R\$\s*180,00/)).toBeInTheDocument();
+        expect(
+          screen.getAllByDisplayValue(/R\$\s*180,00/).length,
+        ).toBeGreaterThanOrEqual(1);
       });
       expect(screen.getByDisplayValue('30')).toBeInTheDocument();
       expect(screen.getByText('Limpar produto')).toBeInTheDocument();
@@ -1707,6 +1709,292 @@ describe('OrdersPage', () => {
           }),
         );
       });
+    });
+  });
+
+  describe('Order item quantity, stock toggle and price mode', () => {
+    const openCreateModal = async () => {
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByText('Novo Pedido'));
+      await waitFor(() => {
+        expect(
+          screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        ).toBeInTheDocument();
+      });
+    };
+
+    it('should render the quantity field with default 1', async () => {
+      mockGetImplementation([], mockPeople);
+      renderPage();
+      await openCreateModal();
+      expect(screen.getByTestId('order-item-quantity-0').value).toBe('1');
+    });
+
+    it('should validate quantity less than 1', async () => {
+      mockGetImplementation([], mockPeople);
+      renderPage();
+      await openCreateModal();
+      fireEvent.change(screen.getByTestId('order-item-quantity-0'), {
+        target: { value: '0' },
+      });
+      fireEvent.change(
+        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        { target: { value: 'ORD-Q' } },
+      );
+      const form = screen
+        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
+        .closest('form');
+      fireEvent.submit(form);
+      await waitFor(() => {
+        expect(screen.getByText(/Quantidade deve ser/)).toBeInTheDocument();
+      });
+    });
+
+    it('should only show the stock toggle when the item person is self', async () => {
+      const selfPerson = { id: 'p-self', name: 'Eu', isSelf: true };
+      mockGetImplementation([], [selfPerson, ...mockPeople]);
+      mockPost.mockResolvedValue({ data: { id: '1', orderNumber: 'ORD-S' } });
+      renderPage();
+      await openCreateModal();
+
+      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
+
+      // No person selected yet -> no toggle
+      expect(
+        screen.queryByTestId('order-item-stock-toggle-0'),
+      ).not.toBeInTheDocument();
+
+      // Switch to a non-self person -> still no toggle
+      fireEvent.change(personSelect, { target: { value: 'p1' } });
+      expect(
+        screen.queryByTestId('order-item-stock-toggle-0'),
+      ).not.toBeInTheDocument();
+
+      // Switch back to self -> toggle appears
+      fireEvent.change(personSelect, { target: { value: 'p-self' } });
+      expect(
+        screen.getByTestId('order-item-stock-toggle-0'),
+      ).toBeInTheDocument();
+    });
+
+    it('should reset forStock when switching from self to a non-self person', async () => {
+      const selfPerson = { id: 'p-self', name: 'Eu', isSelf: true };
+      mockGetImplementation([], [selfPerson, ...mockPeople]);
+      mockPost.mockResolvedValue({ data: { id: '1', orderNumber: 'ORD-R' } });
+      renderPage();
+      await openCreateModal();
+
+      fireEvent.change(screen.getByDisplayValue('Selecione uma pessoa'), {
+        target: { value: 'p-self' },
+      });
+      const toggle = screen.getByTestId('order-item-stock-toggle-0');
+      fireEvent.click(toggle);
+      expect(toggle.checked).toBe(true);
+
+      fireEvent.change(screen.getByDisplayValue(/Eu \(Você\)/), {
+        target: { value: 'p1' },
+      });
+      expect(
+        screen.queryByTestId('order-item-stock-toggle-0'),
+      ).not.toBeInTheDocument();
+
+      const form = screen
+        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
+        .closest('form');
+      fireEvent.change(
+        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        { target: { value: 'ORD-RS' } },
+      );
+      fireEvent.submit(form);
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith(
+          '/orders',
+          expect.objectContaining({
+            items: expect.arrayContaining([
+              expect.objectContaining({ personId: 'p1', forStock: false }),
+            ]),
+          }),
+        );
+      });
+    });
+
+    it('should send quantity, forStock and chargedValueMode in the create payload', async () => {
+      const selfPerson = { id: 'p-self', name: 'Eu', isSelf: true };
+      mockGetImplementation([], [selfPerson, ...mockPeople]);
+      mockPost.mockResolvedValue({ data: { id: '1', orderNumber: 'ORD-P' } });
+      renderPage();
+      await openCreateModal();
+
+      fireEvent.change(screen.getByDisplayValue('Selecione uma pessoa'), {
+        target: { value: 'p-self' },
+      });
+      fireEvent.change(screen.getByTestId('order-item-quantity-0'), {
+        target: { value: '3' },
+      });
+      fireEvent.click(screen.getByTestId('order-item-stock-toggle-0'));
+      fireEvent.change(
+        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        { target: { value: 'ORD-PAY' } },
+      );
+      fireEvent.change(screen.getByPlaceholderText('0.00'), {
+        target: { value: '50' },
+      });
+
+      const form = screen
+        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
+        .closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith(
+          '/orders',
+          expect.objectContaining({
+            items: expect.arrayContaining([
+              expect.objectContaining({
+                personId: 'p-self',
+                quantity: 3,
+                forStock: true,
+                chargedValueMode: 'UNIT',
+              }),
+            ]),
+          }),
+        );
+      });
+    });
+
+    it('NOT should call /stock/movements from the frontend when creating an order', async () => {
+      const selfPerson = { id: 'p-self', name: 'Eu', isSelf: true };
+      mockGetImplementation([], [selfPerson, ...mockPeople]);
+      mockPost.mockResolvedValue({ data: { id: '1', orderNumber: 'O' } });
+      renderPage();
+      await openCreateModal();
+
+      fireEvent.change(screen.getByDisplayValue('Selecione uma pessoa'), {
+        target: { value: 'p-self' },
+      });
+      fireEvent.click(screen.getByTestId('order-item-stock-toggle-0'));
+      fireEvent.change(
+        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        { target: { value: 'ORD-NO' } },
+      );
+
+      const form = screen
+        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
+        .closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith('/orders', expect.anything());
+      });
+      expect(mockPost).not.toHaveBeenCalledWith(
+        '/stock/movements',
+        expect.anything(),
+      );
+    });
+
+    it('should compute Soma dos Produtos reflecting UNIT mode (chargedValue * quantity)', async () => {
+      mockGetImplementation([], mockPeople);
+      renderPage();
+      await openCreateModal();
+      fireEvent.change(screen.getByTestId('order-item-quantity-0'), {
+        target: { value: '3' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('0.00'), {
+        target: { value: '10.5' },
+      });
+      expect(screen.getByTestId('order-totals-charged').textContent).toMatch(
+        /31,50/,
+      );
+    });
+
+    it('should compute Soma dos Produtos reflecting TOTAL mode (just chargedValue)', async () => {
+      mockGetImplementation([], mockPeople);
+      renderPage();
+      await openCreateModal();
+      fireEvent.change(screen.getByTestId('order-item-quantity-0'), {
+        target: { value: '3' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('0.00'), {
+        target: { value: '40' },
+      });
+      fireEvent.change(screen.getByTestId('order-item-price-mode-0'), {
+        target: { value: 'TOTAL' },
+      });
+      expect(screen.getByTestId('order-totals-charged').textContent).toMatch(
+        /40,00/,
+      );
+    });
+
+    it('should display Valor Membro (total) as memberPrice * quantity', async () => {
+      mockGetImplementation([], mockPeople);
+      renderPage();
+      await openCreateModal();
+      fireEvent.change(screen.getByPlaceholderText('Busque um produto...'), {
+        target: { value: 'Lavanda' },
+      });
+      await waitFor(() => {
+        expect(screen.getByText(/Óleo de Lavanda/)).toBeInTheDocument();
+      });
+      fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
+      await waitFor(() => {
+        expect(
+          screen.getAllByDisplayValue(/R\$\s*180,00/).length,
+        ).toBeGreaterThanOrEqual(1);
+      });
+      fireEvent.change(screen.getByTestId('order-item-quantity-0'), {
+        target: { value: '3' },
+      });
+      // memberPrice 180 * quantity 3 = 540
+      expect(
+        screen.getAllByDisplayValue(/R\$\s*540,00/).length,
+      ).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should prefill quantity, forStock and chargedValueMode when editing an order', async () => {
+      const selfPerson = { id: 'p-self', name: 'Eu', isSelf: true };
+      const orderWithStock = [
+        {
+          id: '10',
+          orderNumber: 'ORD-EDIT',
+          orderDate: '2026-05-15T00:00:00.000Z',
+          totalValue: '200.00',
+          status: 'QUITADO',
+          accountOwner: null,
+          paymentType: null,
+          orderNotes: null,
+          items: [
+            {
+              id: 'it-1',
+              description: 'Estoque',
+              chargedValue: '40',
+              personId: 'p-self',
+              person: selfPerson,
+              productId: 'prod-2',
+              product: mockProducts[1],
+              memberPrice: '180',
+              pv: '30',
+              details: null,
+              quantity: 5,
+              forStock: true,
+              chargedValueMode: 'TOTAL',
+            },
+          ],
+        },
+      ];
+      mockGetImplementation(orderWithStock, [selfPerson, ...mockPeople]);
+      renderPage();
+
+      await clickOrderAction('10', 'Editar');
+      await waitFor(() => {
+        expect(screen.getByTestId('order-item-quantity-0')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('order-item-quantity-0').value).toBe('5');
+      expect(screen.getByTestId('order-item-stock-toggle-0').checked).toBe(
+        true,
+      );
+      expect(screen.getByTestId('order-item-price-mode-0').value).toBe('TOTAL');
     });
   });
 });
