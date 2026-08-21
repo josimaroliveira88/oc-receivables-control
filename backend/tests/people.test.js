@@ -377,4 +377,173 @@ describe('People CRUD', () => {
       expect(response.status).toBe(404);
     });
   });
+
+  describe('Self person (isSelf)', () => {
+    let createdSelfIds = [];
+
+    afterEach(async () => {
+      for (const id of createdSelfIds) {
+        await prisma.person.delete({ where: { id } }).catch(() => {});
+      }
+      createdSelfIds = [];
+    });
+
+    it('should create a person with isSelf defaulting to false', async () => {
+      const response = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Self Default' });
+
+      expect(response.status).toBe(201);
+      expect(response.body.isSelf).toBe(false);
+      createdSelfIds.push(response.body.id);
+    });
+
+    it('should create a person with isSelf true', async () => {
+      const response = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Self Person', isSelf: true });
+
+      expect(response.status).toBe(201);
+      expect(response.body.isSelf).toBe(true);
+      createdSelfIds.push(response.body.id);
+    });
+
+    it('should reject non-boolean isSelf', async () => {
+      const response = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Bad Self', isSelf: 'yes' });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should allow updating a person to isSelf true', async () => {
+      const createRes = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Become Self' });
+      const personId = createRes.body.id;
+      createdSelfIds.push(personId);
+
+      const response = await request(app)
+        .put(`/api/people/${personId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Become Self', isSelf: true });
+
+      expect(response.status).toBe(200);
+      expect(response.body.isSelf).toBe(true);
+    });
+
+    it('should keep only one self person per user (creating a new self unsets the previous)', async () => {
+      const first = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Self One', isSelf: true });
+      createdSelfIds.push(first.body.id);
+
+      const second = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Self Two', isSelf: true });
+      createdSelfIds.push(second.body.id);
+
+      expect(second.body.isSelf).toBe(true);
+
+      const list = await request(app)
+        .get('/api/people')
+        .set('Authorization', `Bearer ${authToken}`);
+      const selfPeople = list.body.filter((p) => p.isSelf);
+      expect(selfPeople).toHaveLength(1);
+      expect(selfPeople[0].id).toBe(second.body.id);
+    });
+
+    it('should keep only one self person per user (updating an existing person unsets the previous)', async () => {
+      const first = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Self Keep One', isSelf: true });
+      createdSelfIds.push(first.body.id);
+
+      const second = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Other Keep Two' });
+      createdSelfIds.push(second.body.id);
+
+      const updateRes = await request(app)
+        .put(`/api/people/${second.body.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Other Keep Two', isSelf: true });
+
+      expect(updateRes.status).toBe(200);
+      expect(updateRes.body.isSelf).toBe(true);
+
+      const list = await request(app)
+        .get('/api/people')
+        .set('Authorization', `Bearer ${authToken}`);
+      const selfPeople = list.body.filter((p) => p.isSelf);
+      expect(selfPeople).toHaveLength(1);
+      expect(selfPeople[0].id).toBe(second.body.id);
+    });
+
+    it('should unset isSelf when explicitly set to false', async () => {
+      const createRes = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Unset Self', isSelf: true });
+      createdSelfIds.push(createRes.body.id);
+
+      const response = await request(app)
+        .put(`/api/people/${createRes.body.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Unset Self', isSelf: false });
+
+      expect(response.status).toBe(200);
+      expect(response.body.isSelf).toBe(false);
+    });
+  });
+
+  describe('POST /api/people/self', () => {
+    let createdSelfIds = [];
+
+    afterEach(async () => {
+      for (const id of createdSelfIds) {
+        await prisma.person.delete({ where: { id } }).catch(() => {});
+      }
+      createdSelfIds = [];
+    });
+
+    it('should create the self person on first call', async () => {
+      const response = await request(app)
+        .post('/api/people/self')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(201);
+      expect(response.body.isSelf).toBe(true);
+      expect(response.body.name).toBeDefined();
+      createdSelfIds.push(response.body.id);
+    });
+
+    it('should return the existing self person on subsequent calls', async () => {
+      const first = await request(app)
+        .post('/api/people/self')
+        .set('Authorization', `Bearer ${authToken}`);
+      createdSelfIds.push(first.body.id);
+
+      const second = await request(app)
+        .post('/api/people/self')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(second.status).toBe(200);
+      expect(second.body.id).toBe(first.body.id);
+      expect(second.body.isSelf).toBe(true);
+    });
+
+    it('should return 401 when no authentication token is provided', async () => {
+      const response = await request(app).post('/api/people/self');
+      expect(response.status).toBe(401);
+    });
+  });
 });

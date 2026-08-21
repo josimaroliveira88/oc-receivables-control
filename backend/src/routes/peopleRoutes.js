@@ -15,6 +15,9 @@ router.get('/:id', peopleController.getPersonById);
 // POST /api/people
 router.post('/', peopleController.createPerson);
 
+// POST /api/people/self
+router.post('/self', peopleController.getOrCreateSelfPerson);
+
 // PUT /api/people/:id
 router.put('/:id', peopleController.updatePerson);
 

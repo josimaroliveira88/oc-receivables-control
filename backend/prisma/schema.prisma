@@ -28,6 +28,7 @@ model Person {
   address         String?   @db.VarChar(500)
   isVip           Boolean   @default(false)
   isDoterraMember Boolean   @default(false)
+  isSelf          Boolean   @default(false)
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId          String
   items           Item[]

@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const { z } = require('zod');
 const prisma = new PrismaClient();
+const { syncOrderStatusesForPersons } = require('../utils/receivables');
 
 // Zod schema for person validation
 const personSchema = z.object({
@@ -11,6 +12,7 @@ const personSchema = z.object({
   address: z.string().max(500).optional().nullable(),
   isVip: z.boolean().optional(),
   isDoterraMember: z.boolean().optional(),
+  isSelf: z.boolean().optional(),
 });
 
 // Get all people
@@ -50,11 +52,20 @@ const getPersonById = async (req, res) => {
 const createPerson = async (req, res) => {
   try {
     const validatedData = personSchema.parse(req.body);
-    const person = await prisma.person.create({
-      data: {
-        ...validatedData,
-        userId: req.user.userId,
-      },
+    const person = await prisma.$transaction(async (tx) => {
+      if (validatedData.isSelf) {
+        // At most one self person per user
+        await tx.person.updateMany({
+          where: { userId: req.user.userId, isSelf: true },
+          data: { isSelf: false },
+        });
+      }
+      return tx.person.create({
+        data: {
+          ...validatedData,
+          userId: req.user.userId,
+        },
+      });
     });
     res.status(201).json(person);
   } catch (error) {
@@ -81,10 +92,37 @@ const updatePerson = async (req, res) => {
       return res.status(404).json({ error: 'Person not found' });
     }
 
-    const person = await prisma.person.update({
-      where: { id },
-      data: validatedData,
+    let displacedSelfId = null;
+    const person = await prisma.$transaction(async (tx) => {
+      if (validatedData.isSelf) {
+        // Unset any other self person for this user
+        const displaced = await tx.person.findFirst({
+          where: { userId: req.user.userId, isSelf: true, id: { not: id } },
+        });
+        if (displaced) {
+          displacedSelfId = displaced.id;
+          await tx.person.update({
+            where: { id: displaced.id },
+            data: { isSelf: false },
+          });
+        }
+      }
+      return tx.person.update({
+        where: { id },
+        data: validatedData,
+      });
     });
+
+    // When the self flag changes for this person or a displaced one, affected
+    // orders' statuses must be recomputed (self items count as received).
+    const selfChanged =
+      Boolean(existingPerson.isSelf) !== Boolean(person.isSelf);
+    const affectedIds = [];
+    if (selfChanged) affectedIds.push(id);
+    if (displacedSelfId) affectedIds.push(displacedSelfId);
+    if (affectedIds.length > 0) {
+      await syncOrderStatusesForPersons(prisma, req.user.userId, affectedIds);
+    }
 
     res.status(200).json(person);
   } catch (error) {
@@ -92,6 +130,36 @@ const updatePerson = async (req, res) => {
       return res.status(400).json({ error: error.errors });
     }
     console.error('Error updating person:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// Get or create the self person (the logged-in user) for the current user.
+const getOrCreateSelfPerson = async (req, res) => {
+  try {
+    const existing = await prisma.person.findFirst({
+      where: { userId: req.user.userId, isSelf: true },
+    });
+
+    if (existing) {
+      return res.status(200).json(existing);
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+    });
+
+    const person = await prisma.person.create({
+      data: {
+        name: user.username,
+        isSelf: true,
+        userId: req.user.userId,
+      },
+    });
+
+    res.status(201).json(person);
+  } catch (error) {
+    console.error('Error getting or creating self person:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -127,4 +195,5 @@ module.exports = {
   createPerson,
   updatePerson,
   deletePerson,
+  getOrCreateSelfPerson,
 };
