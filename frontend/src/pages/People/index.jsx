@@ -56,7 +56,7 @@ const PeoplePage = () => {
         </div>
 
         <div className="px-6 py-4">
-          {error && (
+          {error && !(showCreateModal || showEditModal) && (
             <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md">
               <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
             </div>
@@ -80,6 +80,7 @@ const PeoplePage = () => {
           onChange={setCreateField}
           onSubmit={handleCreatePerson}
           onClose={closeCreateModal}
+          error={error}
         />
       </PersonModal>
 
@@ -93,6 +94,7 @@ const PeoplePage = () => {
           onChange={setEditField}
           onSubmit={handleUpdatePerson}
           onClose={closeEditModal}
+          error={error}
         />
       </PersonModal>
 

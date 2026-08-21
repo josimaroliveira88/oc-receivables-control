@@ -1,4 +1,10 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import PeoplePage from '../src/pages/PeoplePage';
@@ -230,6 +236,27 @@ describe('PeoplePage', () => {
       await waitFor(() => {
         expect(screen.getByText('Nome é obrigatório')).toBeInTheDocument();
       });
+    });
+
+    it('should render the form validation error inside the modal (not behind it)', async () => {
+      mockGet.mockResolvedValue({ data: [] });
+      renderPage();
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByText('Novo'));
+      });
+
+      const nameInput = await screen.findByPlaceholderText('Digite o nome');
+      const form = nameInput.closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(screen.getByText('Nome é obrigatório')).toBeInTheDocument();
+      });
+
+      const modal = document.querySelector('.fixed.inset-0.z-\\[60\\]');
+      expect(modal).not.toBeNull();
+      expect(within(modal).getByText('Nome é obrigatório')).toBeInTheDocument();
     });
 
     it('should pre-fill WhatsApp with Brazilian country code +55', async () => {

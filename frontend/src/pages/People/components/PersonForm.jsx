@@ -1,8 +1,16 @@
 import React from 'react';
 import PersonFormFields from './PersonFormFields';
 
-const PersonForm = ({ values, onChange, onSubmit, onClose }) => (
+const PersonForm = ({ values, onChange, onSubmit, onClose, error }) => (
   <form onSubmit={onSubmit} className="px-6 py-4">
+    {error && (
+      <div
+        data-testid="person-form-error"
+        className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md"
+      >
+        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+      </div>
+    )}
     <PersonFormFields values={values} onChange={onChange} />
     <div className="flex items-center justify-end space-x-3">
       <button
