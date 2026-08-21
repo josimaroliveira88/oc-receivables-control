@@ -1,4 +1,4 @@
-const { toCents } = require('./money');
+const { toCents, lineValueCents } = require('./money');
 
 // A person flagged with `isSelf` represents the logged-in user themselves.
 // Items owned by the self person are considered already received, so they
@@ -30,7 +30,7 @@ const computeOrderStatus = ({ items, payments = [] }) => {
   for (const item of items) {
     const pid = item.personId;
     if (!pid) continue;
-    itemSums.set(pid, (itemSums.get(pid) || 0) + toCents(item.chargedValue));
+    itemSums.set(pid, (itemSums.get(pid) || 0) + lineValueCents(item));
   }
 
   const paymentSums = new Map();

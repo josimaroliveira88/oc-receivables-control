@@ -1,7 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const { z } = require('zod');
 const prisma = new PrismaClient();
-const { toCents, fromCents } = require('../utils/money');
+const { toCents, fromCents, lineValueCents } = require('../utils/money');
 const { computeOrderStatus } = require('../utils/receivables');
 
 const parseLocalDate = (dateStr) => {
@@ -52,7 +52,7 @@ const createPayment = async (req, res) => {
 
       const itemSumCents = order.items
         .filter((item) => item.personId === validatedData.personId)
-        .reduce((sum, item) => sum + toCents(item.chargedValue), 0);
+        .reduce((sum, item) => sum + lineValueCents(item), 0);
 
       if (itemSumCents > 0 && amountCents === 0) {
         throw new Error(
@@ -158,7 +158,7 @@ const getOrderBalance = async (req, res) => {
       const current = personMap.get(personId);
       personMap.set(personId, {
         ...current,
-        itemTotalCents: current.itemTotalCents + toCents(item.chargedValue),
+        itemTotalCents: current.itemTotalCents + lineValueCents(item),
       });
     });
 
