@@ -275,6 +275,7 @@ export function useOrders() {
     if (!validateForm()) return;
     try {
       await api.post('/orders', buildPayload());
+      addToast('Pedido criado com sucesso!', 'success');
       resetForm();
       fetchData();
     } catch (err) {
@@ -307,6 +308,7 @@ export function useOrders() {
     if (!validateForm()) return;
     try {
       await api.put(`/orders/${editOrderId}`, buildPayload());
+      addToast('Pedido atualizado com sucesso!', 'success');
       resetForm();
       fetchData();
     } catch (err) {
