@@ -1,12 +1,20 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../../services/api';
 import { useToast } from '../../components/Toast';
-import { emptyForm, buildPayload } from './utils/peopleHelpers';
+import {
+  emptyForm,
+  buildPayload,
+  filterAndSortPeople,
+} from './utils/peopleHelpers';
 
 export function usePeople() {
   const [people, setPeople] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [classification, setClassification] = useState('');
+  const [sortBy, setSortBy] = useState('name');
+  const [sortDir, setSortDir] = useState('asc');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editPersonId, setEditPersonId] = useState(null);
@@ -27,6 +35,16 @@ export function usePeople() {
       setLoading(false);
     }
   }, []);
+
+  const visiblePeople = useMemo(
+    () => filterAndSortPeople(people, search, classification, sortBy, sortDir),
+    [people, search, classification, sortBy, sortDir],
+  );
+
+  const handleSort = (field, dir) => {
+    setSortBy(field);
+    setSortDir(dir);
+  };
 
   const closeCreateModal = () => {
     setShowCreateModal(false);
@@ -140,7 +158,16 @@ export function usePeople() {
   }, [fetchPeople]);
 
   return {
-    people,
+    people: visiblePeople,
+    totalCount: visiblePeople.length,
+    hasActiveFilters: search.trim() !== '' || classification !== '',
+    search,
+    classification,
+    sortBy,
+    sortDir,
+    setSearch,
+    setClassification,
+    handleSort,
     loading,
     error,
     showCreateModal,

@@ -8,6 +8,15 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 const PeoplePage = () => {
   const {
     people,
+    totalCount,
+    hasActiveFilters,
+    search,
+    classification,
+    sortBy,
+    sortDir,
+    setSearch,
+    setClassification,
+    handleSort,
     loading,
     error,
     showCreateModal,
@@ -65,6 +74,15 @@ const PeoplePage = () => {
 
           <PeopleTable
             people={people}
+            totalCount={totalCount}
+            hasActiveFilters={hasActiveFilters}
+            search={search}
+            classification={classification}
+            sortBy={sortBy}
+            sortDir={sortDir}
+            onSearchChange={setSearch}
+            onClassificationChange={setClassification}
+            onSort={handleSort}
             onEdit={handleEditPerson}
             onDelete={handleDeletePerson}
           />

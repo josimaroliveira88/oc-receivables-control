@@ -681,4 +681,170 @@ describe('PeoplePage', () => {
       });
     });
   });
+
+  describe('Search, classification and sorting', () => {
+    const morePeople = [
+      ...mockPeople,
+      {
+        id: '3',
+        name: 'Ana Souza',
+        commonGroups: null,
+        whatsapp: '5511888887777',
+        instagram: null,
+        address: null,
+        isVip: false,
+        isDoterraMember: true,
+      },
+    ];
+
+    it('should filter people by name as the user types', async () => {
+      mockGet.mockResolvedValue({ data: morePeople });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+
+      fireEvent.change(
+        screen.getByPlaceholderText('Buscar por nome ou WhatsApp...'),
+        {
+          target: { value: 'Ana' },
+        },
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Ana Souza')).toBeInTheDocument();
+        expect(screen.queryByText('João Silva')).not.toBeInTheDocument();
+      });
+      expect(mockGet).toHaveBeenCalledTimes(1);
+    });
+
+    it('should filter people by WhatsApp digits', async () => {
+      mockGet.mockResolvedValue({ data: morePeople });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+
+      fireEvent.change(
+        screen.getByPlaceholderText('Buscar por nome ou WhatsApp...'),
+        {
+          target: { value: '88887777' },
+        },
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Ana Souza')).toBeInTheDocument();
+        expect(screen.queryByText('João Silva')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should filter by VIP classification', async () => {
+      const vipOnlyPeople = [
+        {
+          id: '10',
+          name: 'Vip Cliente',
+          commonGroups: null,
+          whatsapp: '5511900001111',
+          instagram: null,
+          address: null,
+          isVip: true,
+          isDoterraMember: false,
+        },
+        {
+          id: '11',
+          name: 'Membro Cliente',
+          commonGroups: null,
+          whatsapp: '5511900002222',
+          instagram: null,
+          address: null,
+          isVip: false,
+          isDoterraMember: true,
+        },
+      ];
+      mockGet.mockResolvedValue({ data: vipOnlyPeople });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Vip Cliente')).toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByLabelText('Classificação'), {
+        target: { value: 'vip' },
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Vip Cliente')).toBeInTheDocument();
+        expect(screen.queryByText('Membro Cliente')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should filter by Membro doTERRA classification', async () => {
+      mockGet.mockResolvedValue({ data: morePeople });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByLabelText('Classificação'), {
+        target: { value: 'member' },
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Ana Souza')).toBeInTheDocument();
+        expect(screen.queryByText('João Silva')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should show the filtered empty state when no person matches', async () => {
+      mockGet.mockResolvedValue({ data: mockPeople });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+
+      fireEvent.change(
+        screen.getByPlaceholderText('Buscar por nome ou WhatsApp...'),
+        {
+          target: { value: 'NãoExiste' },
+        },
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(
+            'Nenhum cliente encontrado para os filtros aplicados.',
+          ),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('should sort by name descending when the header is clicked twice', async () => {
+      mockGet.mockResolvedValue({ data: morePeople });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+
+      const header = screen.getByTestId('people-sort-name');
+      const nameHeader = header.closest('th');
+      expect(nameHeader).toHaveAttribute('aria-sort', 'ascending');
+      fireEvent.click(header);
+      await waitFor(() => {
+        expect(nameHeader).toHaveAttribute('aria-sort', 'descending');
+      });
+      fireEvent.click(header);
+      await waitFor(() => {
+        expect(nameHeader).toHaveAttribute('aria-sort', 'ascending');
+      });
+
+      const names = document.querySelectorAll('tbody tr td[data-label="Nome"]');
+      const nameTexts = Array.from(names).map((td) => td.textContent.trim());
+      expect(nameTexts).toEqual(['Ana Souza', 'João Silva', 'Maria Santos']);
+    });
+  });
 });

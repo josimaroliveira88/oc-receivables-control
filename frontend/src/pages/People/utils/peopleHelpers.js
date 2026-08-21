@@ -30,3 +30,72 @@ export const buildPayload = (form) => ({
   isDoterraMember: form.isDoterraMember,
   isSelf: form.isSelf,
 });
+
+export const CLASSIFICATION_OPTIONS = [
+  { value: '', label: 'Todas as classificações' },
+  { value: 'vip', label: 'Somente VIP' },
+  { value: 'member', label: 'Somente Membro doTERRA' },
+  { value: 'vip_member', label: 'VIP + Membro doTERRA' },
+  { value: 'none', label: 'Sem classificação' },
+];
+
+const SORTABLE_FIELDS = [
+  'name',
+  'commonGroups',
+  'whatsapp',
+  'instagram',
+  'address',
+  'isVip',
+  'isDoterraMember',
+];
+
+const classificationMatch = (person, classification) => {
+  switch (classification) {
+    case 'vip':
+      return person.isVip && !person.isDoterraMember;
+    case 'member':
+      return !person.isVip && person.isDoterraMember;
+    case 'vip_member':
+      return person.isVip && person.isDoterraMember;
+    case 'none':
+      return !person.isVip && !person.isDoterraMember;
+    default:
+      return true;
+  }
+};
+
+export const filterAndSortPeople = (
+  people,
+  search,
+  classification,
+  sortBy,
+  sortDir,
+) => {
+  const query = search.trim().toLowerCase();
+  const field = SORTABLE_FIELDS.includes(sortBy) ? sortBy : 'name';
+  const direction = sortDir === 'desc' ? -1 : 1;
+
+  const result = people.filter((person) => {
+    if (
+      query &&
+      !person.name.toLowerCase().includes(query) &&
+      !String(person.whatsapp || '')
+        .toLowerCase()
+        .includes(query)
+    ) {
+      return false;
+    }
+    if (!classificationMatch(person, classification)) return false;
+    return true;
+  });
+
+  return [...result].sort((a, b) => {
+    if (field === 'isVip' || field === 'isDoterraMember') {
+      return (Number(a[field]) - Number(b[field])) * direction;
+    }
+    return (
+      String(a[field] ?? '').localeCompare(String(b[field] ?? ''), 'pt-BR') *
+      direction
+    );
+  });
+};
