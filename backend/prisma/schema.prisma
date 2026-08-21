@@ -50,6 +50,7 @@ model Order {
   userId       String
   items        Item[]
   payments     Payment[]
+  stockMovements StockMovement[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -77,14 +78,23 @@ model Item {
   details      String?  @db.VarChar(500)
   product      Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
   productId    String?
-  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order        Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
   orderId      String
-  person       Person?  @relation(fields: [personId], references: [id], onDelete: SetNull)
+  person       Person?          @relation(fields: [personId], references: [id], onDelete: SetNull)
   personId     String?
+  quantity          Int               @default(1)
+  forStock          Boolean           @default(false)
+  chargedValueMode  ChargedValueMode  @default(UNIT)
+  stockMovements    StockMovement[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   @@index([productId])
+}
+
+enum ChargedValueMode {
+  UNIT
+  TOTAL
 }
 
 model Payment {
@@ -167,12 +177,18 @@ model StockMovement {
   quantity  Int
   type      StockMovementType
   reason    String?
+  orderId   String?
+  itemId    String?
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  item    Item?   @relation(fields: [itemId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([productId])
+  @@index([orderId])
+  @@index([itemId])
 }
