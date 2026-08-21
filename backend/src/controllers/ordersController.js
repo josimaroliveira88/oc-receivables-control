@@ -5,6 +5,9 @@ const {
   computeOrderStatus,
   syncOrderStatuses,
 } = require('../utils/receivables');
+const { lineValueCents, fromCents, toCents } = require('../utils/money');
+const { applyMovement } = require('../services/stockService');
+const { computeStockDiff } = require('../utils/stockDiff');
 
 const parseLocalDate = (dateStr) => {
   const [year, month, day] = dateStr.split('-').map(Number);
@@ -34,6 +37,13 @@ const itemSchema = z.object({
     .max(500, 'Details must be at most 500 characters')
     .optional()
     .nullable(),
+  quantity: z
+    .number()
+    .int('Quantity must be an integer')
+    .positive('Quantity must be greater than zero')
+    .default(1),
+  forStock: z.boolean().default(false),
+  chargedValueMode: z.enum(['UNIT', 'TOTAL']).default('UNIT'),
 });
 
 const paymentTypeSchema = z.enum(['PIX', 'BOLETO', 'CARTAO_CREDITO']);
@@ -67,13 +77,13 @@ const updateOrderSchema = z.object({
 });
 
 // Verify all products exist and are available (ATIVO or INDISPONIVEL; INATIVO is rejected)
-const validateProducts = async (items) => {
+const validateProducts = async (client, items) => {
   const productIds = [
     ...new Set(items.map((item) => item.productId).filter(Boolean)),
   ];
   if (productIds.length === 0) return;
 
-  const products = await prisma.product.findMany({
+  const products = await client.product.findMany({
     where: {
       id: { in: productIds },
       status: { in: ['ATIVO', 'INDISPONIVEL'] },
@@ -89,6 +99,29 @@ const validateProducts = async (items) => {
   }
 };
 
+// Items flagged `forStock` are only meaningful for the self person and must
+// reference a catalog product (stock is tracked per product).
+const validateStockItemRules = (items, selfPersonIds) => {
+  for (const item of items) {
+    if (!item.forStock) continue;
+    if (!selfPersonIds.has(item.personId)) {
+      const error = new Error(
+        'Stock items are only allowed for the user themselves',
+      );
+      error.status = 400;
+      throw error;
+    }
+    if (!item.productId) {
+      const error = new Error('Stock items require a catalog product');
+      error.status = 400;
+      throw error;
+    }
+  }
+};
+
+const selfPersonIdSet = (persons) =>
+  new Set(persons.filter((p) => p.isSelf).map((p) => p.id));
+
 const itemCreateData = (item) => ({
   description: item.description || null,
   chargedValue: item.chargedValue,
@@ -97,7 +130,40 @@ const itemCreateData = (item) => ({
   memberPrice: item.memberPrice ?? null,
   pv: item.pv ?? null,
   details: item.details || null,
+  quantity: item.quantity ?? 1,
+  forStock: item.forStock ?? false,
+  chargedValueMode: item.chargedValueMode ?? 'UNIT',
 });
+
+const orderLineTotalCents = (items) =>
+  items.reduce((sum, item) => sum + lineValueCents(item), 0);
+
+// Shape used by computeOrderStatus (which needs quantity/chargedValueMode for
+// line-value math in addition to personId/chargedValue/person).
+const statusItemFromItem = (item) => ({
+  personId: item.personId,
+  chargedValue: item.chargedValue,
+  quantity: item.quantity,
+  chargedValueMode: item.chargedValueMode,
+  person: item.person,
+});
+
+const itemStockMovements = async (client, order, orderNumber, items) => {
+  // Apply ENTRADA movements for every self + forStock + product item.
+  for (const item of items) {
+    if (!item.forStock || !item.productId) continue;
+    if (!item.person || !item.person.isSelf) continue;
+    await applyMovement(client, {
+      userId: order.userId,
+      productId: item.productId,
+      type: 'ENTRADA',
+      quantity: item.quantity ?? 1,
+      reason: `Pedido ${orderNumber}`,
+      orderId: order.id,
+      itemId: item.id,
+    });
+  }
+};
 
 // Get all orders with items
 const getOrders = async (req, res) => {
@@ -163,66 +229,76 @@ const createOrder = async (req, res) => {
   try {
     const validatedData = createOrderSchema.parse(req.body);
 
-    // Verify all persons exist and belong to user
-    const personIds = [
-      ...new Set(validatedData.items.map((item) => item.personId)),
-    ];
-    const persons = await prisma.person.findMany({
-      where: { id: { in: personIds }, userId: req.user.userId },
-    });
+    const result = await prisma.$transaction(async (tx) => {
+      // Verify all persons exist and belong to user
+      const personIds = [
+        ...new Set(validatedData.items.map((item) => item.personId)),
+      ];
+      const persons = await tx.person.findMany({
+        where: { id: { in: personIds }, userId: req.user.userId },
+      });
 
-    if (persons.length !== personIds.length) {
-      return res.status(400).json({ error: 'One or more persons not found' });
-    }
+      if (persons.length !== personIds.length) {
+        const error = new Error('One or more persons not found');
+        error.status = 400;
+        throw error;
+      }
 
-    // Verify all products exist and are available (ATIVO or INDISPONIVEL)
-    await validateProducts(validatedData.items);
+      // Verify all products exist and are available (ATIVO or INDISPONIVEL)
+      await validateProducts(tx, validatedData.items);
 
-    // Calculate total value
-    const totalValue = validatedData.items.reduce(
-      (sum, item) => sum + item.chargedValue,
-      0,
-    );
+      const selfIds = selfPersonIdSet(persons);
+      validateStockItemRules(validatedData.items, selfIds);
 
-    // Initial status considers self-person items as already received
-    const personMap = new Map(persons.map((p) => [p.id, p]));
-    const status = computeOrderStatus({
-      items: validatedData.items.map((item) => ({
-        personId: item.personId,
-        chargedValue: item.chargedValue,
-        person: personMap.get(item.personId),
-      })),
-      payments: [],
-    });
+      const personMap = new Map(persons.map((p) => [p.id, p]));
 
-    // Create order with items
-    const order = await prisma.order.create({
-      data: {
-        orderNumber: validatedData.orderNumber,
-        totalValue: totalValue,
-        orderDate: validatedData.orderDate
-          ? parseLocalDate(validatedData.orderDate)
-          : undefined,
-        accountOwner: validatedData.accountOwner ?? null,
-        paymentType: validatedData.paymentType ?? null,
-        orderNotes: validatedData.orderNotes ?? null,
-        status,
-        userId: req.user.userId,
-        items: {
-          create: validatedData.items.map(itemCreateData),
-        },
-      },
-      include: {
-        items: {
-          include: {
-            person: true,
-            product: true,
+      // Calculate total value in integer cents, honoring price mode × quantity
+      const totalCents = orderLineTotalCents(validatedData.items);
+      const status = computeOrderStatus({
+        items: validatedData.items.map((item) => ({
+          personId: item.personId,
+          chargedValue: item.chargedValue,
+          quantity: item.quantity,
+          chargedValueMode: item.chargedValueMode,
+          person: personMap.get(item.personId),
+        })),
+        payments: [],
+      });
+
+      // Create order with items
+      const order = await tx.order.create({
+        data: {
+          orderNumber: validatedData.orderNumber,
+          totalValue: fromCents(totalCents).toFixed(2),
+          orderDate: validatedData.orderDate
+            ? parseLocalDate(validatedData.orderDate)
+            : undefined,
+          accountOwner: validatedData.accountOwner ?? null,
+          paymentType: validatedData.paymentType ?? null,
+          orderNotes: validatedData.orderNotes ?? null,
+          status,
+          userId: req.user.userId,
+          items: {
+            create: validatedData.items.map(itemCreateData),
           },
         },
-      },
+        include: {
+          items: {
+            include: {
+              person: true,
+              product: true,
+            },
+          },
+        },
+      });
+
+      // Apply stock for self + forStock items
+      await itemStockMovements(tx, order, order.orderNumber, order.items);
+
+      return order;
     });
 
-    res.status(201).json(order);
+    res.status(201).json(result);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors });
@@ -241,41 +317,110 @@ const updateOrder = async (req, res) => {
     const { id } = req.params;
     const validatedData = updateOrderSchema.parse(req.body);
 
-    // Check if order exists and belongs to user
-    const existingOrder = await prisma.order.findFirst({
-      where: { id, userId: req.user.userId },
-      include: { items: true },
-    });
+    const result = await prisma.$transaction(async (tx) => {
+      // Check if order exists and belongs to user
+      const existingOrder = await tx.order.findFirst({
+        where: { id, userId: req.user.userId },
+        include: { items: { include: { person: true } } },
+      });
 
-    if (!existingOrder) {
-      return res.status(404).json({ error: 'Order not found' });
-    }
+      if (!existingOrder) {
+        const error = new Error('Order not found');
+        error.status = 404;
+        throw error;
+      }
 
-    if (validatedData.items) {
+      if (!validatedData.items) {
+        const order = await tx.order.update({
+          where: { id },
+          data: {
+            orderNumber: validatedData.orderNumber || existingOrder.orderNumber,
+            ...(validatedData.orderDate && {
+              orderDate: parseLocalDate(validatedData.orderDate),
+            }),
+            ...(validatedData.accountOwner !== undefined && {
+              accountOwner: validatedData.accountOwner,
+            }),
+            ...(validatedData.paymentType !== undefined && {
+              paymentType: validatedData.paymentType,
+            }),
+            ...(validatedData.orderNotes !== undefined && {
+              orderNotes: validatedData.orderNotes,
+            }),
+          },
+          include: {
+            items: {
+              include: {
+                person: true,
+                product: true,
+              },
+            },
+          },
+        });
+        return order;
+      }
+
       const personIds = [
         ...new Set(validatedData.items.map((item) => item.personId)),
       ];
-      const persons = await prisma.person.findMany({
+      const persons = await tx.person.findMany({
         where: { id: { in: personIds }, userId: req.user.userId },
       });
 
       if (persons.length !== personIds.length) {
-        return res.status(400).json({ error: 'One or more persons not found' });
+        const error = new Error('One or more persons not found');
+        error.status = 400;
+        throw error;
       }
 
       // Verify all products exist and are available (ATIVO or INDISPONIVEL)
-      await validateProducts(validatedData.items);
+      await validateProducts(tx, validatedData.items);
 
-      const totalValue = validatedData.items.reduce(
-        (sum, item) => sum + item.chargedValue,
-        0,
+      // Self ids from old items (their persons) and new items' persons
+      const newSelfIds = selfPersonIdSet(persons);
+      const oldSelfIds = selfPersonIdSet(
+        existingOrder.items.map((it) => it.person).filter(Boolean),
       );
+      const selfIds = new Set([...newSelfIds, ...oldSelfIds]);
 
-      const order = await prisma.order.update({
+      validateStockItemRules(validatedData.items, selfIds);
+
+      const totalCents = orderLineTotalCents(validatedData.items);
+
+      // Compute stock diff (self + forStock) between old and new items, then
+      // apply before replacing items (old items are destroyed afterwards).
+      const diff = computeStockDiff(
+        existingOrder.items,
+        validatedData.items,
+        selfIds,
+      );
+      for (const { productId, delta } of diff) {
+        if (delta > 0) {
+          await applyMovement(tx, {
+            userId: req.user.userId,
+            productId,
+            type: 'ENTRADA',
+            quantity: delta,
+            reason: `Pedido ${validatedData.orderNumber || existingOrder.orderNumber}`,
+            orderId: existingOrder.id,
+          });
+        } else {
+          await applyMovement(tx, {
+            userId: req.user.userId,
+            productId,
+            type: 'SAIDA',
+            quantity: -delta,
+            reason: `Pedido ${validatedData.orderNumber || existingOrder.orderNumber}`,
+            orderId: existingOrder.id,
+          });
+        }
+      }
+
+      const order = await tx.order.update({
         where: { id },
         data: {
           orderNumber: validatedData.orderNumber || existingOrder.orderNumber,
-          totalValue: totalValue,
+          totalValue: fromCents(totalCents).toFixed(2),
           orderDate: validatedData.orderDate
             ? parseLocalDate(validatedData.orderDate)
             : undefined,
@@ -304,52 +449,22 @@ const updateOrder = async (req, res) => {
       });
 
       // Recompute status considering the replaced items and existing payments
-      const payments = await prisma.payment.findMany({
+      const payments = await tx.payment.findMany({
         where: { orderId: id },
       });
-      const newStatus = computeOrderStatus({
-        items: order.items,
-        payments,
-      });
+      const newStatus = computeOrderStatus({ items: order.items, payments });
       if (newStatus !== order.status) {
-        await prisma.order.update({
+        const updated = await tx.order.update({
           where: { id },
           data: { status: newStatus },
         });
-        order.status = newStatus;
+        order.status = updated.status;
       }
 
-      res.status(200).json(order);
-    } else {
-      const order = await prisma.order.update({
-        where: { id },
-        data: {
-          orderNumber: validatedData.orderNumber || existingOrder.orderNumber,
-          ...(validatedData.orderDate && {
-            orderDate: parseLocalDate(validatedData.orderDate),
-          }),
-          ...(validatedData.accountOwner !== undefined && {
-            accountOwner: validatedData.accountOwner,
-          }),
-          ...(validatedData.paymentType !== undefined && {
-            paymentType: validatedData.paymentType,
-          }),
-          ...(validatedData.orderNotes !== undefined && {
-            orderNotes: validatedData.orderNotes,
-          }),
-        },
-        include: {
-          items: {
-            include: {
-              person: true,
-              product: true,
-            },
-          },
-        },
-      });
+      return order;
+    });
 
-      res.status(200).json(order);
-    }
+    res.status(200).json(result);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors });
@@ -367,21 +482,42 @@ const deleteOrder = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Check if order exists and belongs to user
-    const existingOrder = await prisma.order.findFirst({
-      where: { id, userId: req.user.userId },
+    const result = await prisma.$transaction(async (tx) => {
+      // Check if order exists and belongs to user
+      const existingOrder = await tx.order.findFirst({
+        where: { id, userId: req.user.userId },
+        include: { items: { include: { person: true } } },
+      });
+
+      if (!existingOrder) {
+        const error = new Error('Order not found');
+        error.status = 404;
+        throw error;
+      }
+
+      // Reverse stock for every self + forStock + product item before deleting
+      for (const item of existingOrder.items) {
+        if (!item.forStock || !item.productId) continue;
+        if (!item.person || !item.person.isSelf) continue;
+        await applyMovement(tx, {
+          userId: req.user.userId,
+          productId: item.productId,
+          type: 'SAIDA',
+          quantity: item.quantity ?? 1,
+          reason: `Pedido ${existingOrder.orderNumber}`,
+          orderId: existingOrder.id,
+        });
+      }
+
+      await tx.order.delete({ where: { id } });
+      return { message: 'Order deleted successfully' };
     });
 
-    if (!existingOrder) {
-      return res.status(404).json({ error: 'Order not found' });
-    }
-
-    await prisma.order.delete({
-      where: { id },
-    });
-
-    res.status(200).json({ message: 'Order deleted successfully' });
+    res.status(200).json(result);
   } catch (error) {
+    if (error.status) {
+      return res.status(error.status).json({ error: error.message });
+    }
     console.error('Error deleting order:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -393,73 +529,103 @@ const addItemToOrder = async (req, res) => {
     const { id: orderId } = req.params;
     const validatedData = itemSchema.parse(req.body);
 
-    // Check if order exists and belongs to user
-    const order = await prisma.order.findFirst({
-      where: { id: orderId, userId: req.user.userId },
-    });
+    const result = await prisma.$transaction(async (tx) => {
+      // Check if order exists and belongs to user
+      const order = await tx.order.findFirst({
+        where: { id: orderId, userId: req.user.userId },
+      });
 
-    if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
-    }
+      if (!order) {
+        const error = new Error('Order not found');
+        error.status = 404;
+        throw error;
+      }
 
-    // Check if person exists and belongs to user
-    const person = await prisma.person.findFirst({
-      where: { id: validatedData.personId, userId: req.user.userId },
-    });
+      // Check if person exists and belongs to user
+      const person = await tx.person.findFirst({
+        where: { id: validatedData.personId, userId: req.user.userId },
+      });
 
-    if (!person) {
-      return res.status(400).json({ error: 'Person not found' });
-    }
+      if (!person) {
+        const error = new Error('Person not found');
+        error.status = 400;
+        throw error;
+      }
 
-    // Verify product exists and is available (when provided)
-    await validateProducts([validatedData]);
+      // Verify product exists and is available (when provided)
+      await validateProducts(tx, [validatedData]);
 
-    // Add item to order
-    const item = await prisma.item.create({
-      data: {
-        ...itemCreateData(validatedData),
-        orderId: orderId,
-      },
-      include: {
-        person: true,
-        product: true,
-      },
-    });
+      validateStockItemRules(
+        [validatedData],
+        new Set(person.isSelf ? [person.id] : []),
+      );
 
-    // Update order total value
-    const updatedOrder = await prisma.order.update({
-      where: { id: orderId },
-      data: {
-        totalValue: {
-          increment: validatedData.chargedValue,
+      const lineCents = lineValueCents(validatedData);
+      const newTotalCents = orderLineTotalCents([
+        ...(await tx.item.findMany({ where: { orderId } })),
+        validatedData,
+      ]);
+
+      // Add item to order
+      const item = await tx.item.create({
+        data: {
+          ...itemCreateData(validatedData),
+          orderId,
         },
-      },
-      include: {
-        items: {
-          include: {
-            person: true,
-            product: true,
+        include: {
+          person: true,
+          product: true,
+        },
+      });
+
+      // Update order total value (exact cents)
+      const updatedOrder = await tx.order.update({
+        where: { id: orderId },
+        data: {
+          totalValue: fromCents(newTotalCents).toFixed(2),
+        },
+        include: {
+          items: {
+            include: {
+              person: true,
+              product: true,
+            },
           },
         },
-      },
-    });
-
-    // Recompute order status after adding the item
-    const payments = await prisma.payment.findMany({
-      where: { orderId },
-    });
-    const newStatus = computeOrderStatus({
-      items: updatedOrder.items,
-      payments,
-    });
-    if (newStatus !== updatedOrder.status) {
-      await prisma.order.update({
-        where: { id: orderId },
-        data: { status: newStatus },
       });
-    }
 
-    res.status(201).json(item);
+      // Apply stock if self + forStock
+      if (item.forStock && item.productId && person.isSelf) {
+        await applyMovement(tx, {
+          userId: req.user.userId,
+          productId: item.productId,
+          type: 'ENTRADA',
+          quantity: item.quantity ?? 1,
+          reason: `Pedido ${order.orderNumber}`,
+          orderId,
+          itemId: item.id,
+        });
+      }
+
+      // Recompute order status after adding the item
+      const payments = await tx.payment.findMany({
+        where: { orderId },
+      });
+      const newStatus = computeOrderStatus({
+        items: updatedOrder.items,
+        payments,
+      });
+      if (newStatus !== updatedOrder.status) {
+        await tx.order.update({
+          where: { id: orderId },
+          data: { status: newStatus },
+        });
+      }
+
+      return item;
+    });
+
+    res.status(201).json(result);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors });
@@ -478,79 +644,159 @@ const updateItem = async (req, res) => {
     const { id: itemId } = req.params;
     const validatedData = itemSchema.partial().parse(req.body);
 
-    // Check if item exists and belongs to user's order
-    const existingItem = await prisma.item.findUnique({
-      where: { id: itemId },
-      include: {
-        order: true,
-      },
-    });
-
-    if (!existingItem) {
-      return res.status(404).json({ error: 'Item not found' });
-    }
-
-    if (existingItem.order.userId !== req.user.userId) {
-      return res.status(404).json({ error: 'Item not found' });
-    }
-
-    // If updating personId, verify person exists and belongs to user
-    if (validatedData.personId) {
-      const person = await prisma.person.findFirst({
-        where: { id: validatedData.personId, userId: req.user.userId },
-      });
-
-      if (!person) {
-        return res.status(400).json({ error: 'Person not found' });
-      }
-    }
-
-    // If updating productId (non-null), verify product exists and is available
-    if (validatedData.productId) {
-      await validateProducts([validatedData]);
-    }
-
-    // Update item
-    const item = await prisma.item.update({
-      where: { id: itemId },
-      data: validatedData,
-      include: {
-        person: true,
-        product: true,
-      },
-    });
-
-    // Update order total value if charged value changed
-    if (validatedData.chargedValue !== undefined) {
-      const valueChange =
-        validatedData.chargedValue - existingItem.chargedValue;
-      await prisma.order.update({
-        where: { id: existingItem.orderId },
-        data: {
-          totalValue: {
-            increment: valueChange,
-          },
+    const result = await prisma.$transaction(async (tx) => {
+      // Check if item exists and belongs to user's order
+      const existingItem = await tx.item.findUnique({
+        where: { id: itemId },
+        include: {
+          order: true,
+          person: true,
         },
       });
-    }
 
-    // Recompute order status after the item change
-    const orderItems = await prisma.item.findMany({
-      where: { orderId: existingItem.orderId },
-      include: { person: true },
-    });
-    const payments = await prisma.payment.findMany({
-      where: { orderId: existingItem.orderId },
-    });
-    const newStatus = computeOrderStatus({ items: orderItems, payments });
-    if (newStatus !== existingItem.order.status) {
-      await prisma.order.update({
-        where: { id: existingItem.orderId },
-        data: { status: newStatus },
+      if (!existingItem) {
+        const error = new Error('Item not found');
+        error.status = 404;
+        throw error;
+      }
+
+      if (existingItem.order.userId !== req.user.userId) {
+        const error = new Error('Item not found');
+        error.status = 404;
+        throw error;
+      }
+
+      const newData = { ...existingItem, ...validatedData };
+
+      // If updating personId, verify person exists and belongs to user
+      let newPerson = existingItem.person;
+      if (validatedData.personId) {
+        const person = await tx.person.findFirst({
+          where: { id: validatedData.personId, userId: req.user.userId },
+        });
+        if (!person) {
+          const error = new Error('Person not found');
+          error.status = 400;
+          throw error;
+        }
+        newPerson = person;
+      }
+
+      // If updating productId (non-null), verify product exists and is available
+      if (validatedData.productId) {
+        await validateProducts(tx, [validatedData]);
+      }
+
+      const selfIds = new Set(
+        [existingItem.person, newPerson]
+          .filter(Boolean)
+          .filter((p) => p.isSelf)
+          .map((p) => p.id),
+      );
+      validateStockItemRules([newData], selfIds);
+
+      // Compute stock diff between the old and new item state
+      const diff = computeStockDiff(
+        [
+          {
+            productId: existingItem.productId,
+            quantity: existingItem.quantity,
+            forStock: existingItem.forStock,
+            personId: existingItem.personId,
+          },
+        ],
+        [
+          {
+            productId: newData.productId,
+            quantity: newData.quantity,
+            forStock: newData.forStock,
+            personId: newData.personId,
+          },
+        ],
+        selfIds,
+      );
+
+      for (const { productId, delta } of diff) {
+        if (delta > 0) {
+          await applyMovement(tx, {
+            userId: req.user.userId,
+            productId,
+            type: 'ENTRADA',
+            quantity: delta,
+            reason: `Pedido ${existingItem.order.orderNumber}`,
+            orderId: existingItem.orderId,
+            itemId,
+          });
+        } else {
+          await applyMovement(tx, {
+            userId: req.user.userId,
+            productId,
+            type: 'SAIDA',
+            quantity: -delta,
+            reason: `Pedido ${existingItem.order.orderNumber}`,
+            orderId: existingItem.orderId,
+            itemId,
+          });
+        }
+      }
+
+      // Update item (drop helper fields)
+      const { person, order, ...itemData } = newData;
+      const item = await tx.item.update({
+        where: { id: itemId },
+        data: {
+          description: itemData.description ?? null,
+          chargedValue: itemData.chargedValue,
+          personId: itemData.personId,
+          productId: itemData.productId ?? null,
+          memberPrice: itemData.memberPrice ?? null,
+          pv: itemData.pv ?? null,
+          details: itemData.details ?? null,
+          quantity: itemData.quantity ?? 1,
+          forStock: itemData.forStock ?? false,
+          chargedValueMode: itemData.chargedValueMode ?? 'UNIT',
+        },
+        include: {
+          person: true,
+          product: true,
+        },
       });
-    }
 
-    res.status(200).json(item);
+      // Update order total value (exact cents) when line value changed
+      const oldLineCents = lineValueCents(existingItem);
+      const newLineCents = lineValueCents(newData);
+      if (oldLineCents !== newLineCents) {
+        const currentOrder = await tx.order.findUnique({
+          where: { id: existingItem.orderId },
+        });
+        const newTotalCents =
+          toCents(currentOrder.totalValue) - oldLineCents + newLineCents;
+        await tx.order.update({
+          where: { id: existingItem.orderId },
+          data: { totalValue: fromCents(newTotalCents).toFixed(2) },
+        });
+      }
+
+      // Recompute order status after the item change
+      const orderItems = await tx.item.findMany({
+        where: { orderId: existingItem.orderId },
+        include: { person: true },
+      });
+      const payments = await tx.payment.findMany({
+        where: { orderId: existingItem.orderId },
+      });
+      const newStatus = computeOrderStatus({ items: orderItems, payments });
+      if (newStatus !== existingItem.order.status) {
+        await tx.order.update({
+          where: { id: existingItem.orderId },
+          data: { status: newStatus },
+        });
+      }
+
+      return item;
+    });
+
+    res.status(200).json(result);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors });
@@ -568,55 +814,83 @@ const deleteItem = async (req, res) => {
   try {
     const { id: itemId } = req.params;
 
-    // Check if item exists and belongs to user's order
-    const existingItem = await prisma.item.findUnique({
-      where: { id: itemId },
-      include: {
-        order: true,
-      },
-    });
-
-    if (!existingItem) {
-      return res.status(404).json({ error: 'Item not found' });
-    }
-
-    if (existingItem.order.userId !== req.user.userId) {
-      return res.status(404).json({ error: 'Item not found' });
-    }
-
-    // Delete item
-    await prisma.item.delete({
-      where: { id: itemId },
-    });
-
-    // Update order total value
-    await prisma.order.update({
-      where: { id: existingItem.orderId },
-      data: {
-        totalValue: {
-          decrement: existingItem.chargedValue,
+    const result = await prisma.$transaction(async (tx) => {
+      // Check if item exists and belongs to user's order
+      const existingItem = await tx.item.findUnique({
+        where: { id: itemId },
+        include: {
+          order: true,
+          person: true,
         },
-      },
-    });
-
-    // Recompute order status after removing the item
-    const orderItems = await prisma.item.findMany({
-      where: { orderId: existingItem.orderId },
-      include: { person: true },
-    });
-    const payments = await prisma.payment.findMany({
-      where: { orderId: existingItem.orderId },
-    });
-    const newStatus = computeOrderStatus({ items: orderItems, payments });
-    if (newStatus !== existingItem.order.status) {
-      await prisma.order.update({
-        where: { id: existingItem.orderId },
-        data: { status: newStatus },
       });
-    }
 
-    res.status(200).json({ message: 'Item deleted successfully' });
+      if (!existingItem) {
+        const error = new Error('Item not found');
+        error.status = 404;
+        throw error;
+      }
+
+      if (existingItem.order.userId !== req.user.userId) {
+        const error = new Error('Item not found');
+        error.status = 404;
+        throw error;
+      }
+
+      // Reverse stock if the item was self + forStock
+      if (
+        existingItem.forStock &&
+        existingItem.productId &&
+        existingItem.person &&
+        existingItem.person.isSelf
+      ) {
+        await applyMovement(tx, {
+          userId: req.user.userId,
+          productId: existingItem.productId,
+          type: 'SAIDA',
+          quantity: existingItem.quantity ?? 1,
+          reason: `Pedido ${existingItem.order.orderNumber}`,
+          orderId: existingItem.orderId,
+          itemId,
+        });
+      }
+
+      // Delete item
+      await tx.item.delete({ where: { id: itemId } });
+
+      // Update order total value (exact cents)
+      const remainingItems = await tx.item.findMany({
+        where: { orderId: existingItem.orderId },
+      });
+      const newTotalCents = orderLineTotalCents(remainingItems);
+      await tx.order.update({
+        where: { id: existingItem.orderId },
+        data: { totalValue: fromCents(newTotalCents).toFixed(2) },
+      });
+
+      // Recompute order status after removing the item
+      const orderItems = await tx.item.findMany({
+        where: { orderId: existingItem.orderId },
+        include: { person: true },
+      });
+      const payments = await tx.payment.findMany({
+        where: { orderId: existingItem.orderId },
+      });
+      const newStatus = computeOrderStatus({ items: orderItems, payments });
+      if (newStatus !== existingItem.order.status) {
+        await tx.order.update({
+          where: { id: existingItem.orderId },
+          data: { status: newStatus },
+        });
+      }
+
+      return { message: 'Item deleted successfully' };
+    });
+
+    res.status(200).json(result);
   } catch (error) {
+    if (error.status) {
+      return res.status(error.status).json({ error: error.message });
+    }
     console.error('Error deleting item:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
