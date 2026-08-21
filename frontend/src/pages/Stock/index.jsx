@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useStock } from './useStock';
 import StockTable from './components/StockTable';
 import MovementDialog from './components/MovementDialog';
@@ -21,6 +22,7 @@ const StockPage = () => {
     history,
     historyLoading,
     canUndo,
+    lastMovementOrder,
     undoing,
     openAddStockDialog,
     closeMovementDialog,
@@ -34,6 +36,7 @@ const StockPage = () => {
   } = useStock();
 
   const [confirmUndo, setConfirmUndo] = useState(false);
+  const navigate = useNavigate();
 
   if (loading) {
     return (
@@ -49,6 +52,10 @@ const StockPage = () => {
   const handleConfirmUndo = async () => {
     await undoLastMovement();
     setConfirmUndo(false);
+  };
+
+  const handleGoToOrder = (orderId) => {
+    navigate(`/orders?editOrder=${orderId}`);
   };
 
   return (
@@ -102,8 +109,10 @@ const StockPage = () => {
         movements={history}
         loading={historyLoading}
         canUndo={canUndo}
+        lastMovementOrder={lastMovementOrder}
         undoing={undoing}
         onRequestUndo={() => setConfirmUndo(true)}
+        onGoToOrder={handleGoToOrder}
         onClose={closeHistoryDialog}
       />
 

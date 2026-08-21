@@ -11,8 +11,10 @@ const HistoryDialog = ({
   movements,
   loading = false,
   canUndo = false,
+  lastMovementOrder = null,
   undoing = false,
   onRequestUndo,
+  onGoToOrder,
   onClose,
 }) => {
   useEffect(() => {
@@ -64,6 +66,31 @@ const HistoryDialog = ({
               </button>
             </div>
           )}
+          {!loading &&
+            movements.length > 0 &&
+            !canUndo &&
+            lastMovementOrder && (
+              <div
+                data-testid="history-order-locked-notice"
+                className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md"
+              >
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  A última movimentação está vinculada ao Pedido #
+                  {lastMovementOrder.orderNumber} e só pode ser desfeita
+                  editando ou removendo o item correspondente nesse pedido.
+                </p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onGoToOrder && onGoToOrder(lastMovementOrder.id)
+                  }
+                  className="mt-2 px-3 py-1.5 text-sm font-medium text-white bg-primary-700 hover:bg-primary-800 rounded-md transition-colors"
+                  data-testid="go-to-order-from-history"
+                >
+                  Ver pedido
+                </button>
+              </div>
+            )}
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
@@ -150,6 +177,14 @@ const HistoryDialog = ({
                         data-label="Motivo"
                         className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 text-sm text-gray-700 dark:text-gray-300 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
                       >
+                        {m.order && (
+                          <span
+                            data-testid={`movement-order-${m.type}`}
+                            className="mr-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300"
+                          >
+                            Pedido #{m.order.orderNumber}
+                          </span>
+                        )}
                         {m.reason || '—'}
                       </td>
                     </tr>
