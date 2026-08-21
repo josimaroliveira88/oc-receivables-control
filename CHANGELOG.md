@@ -10,6 +10,21 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 55 — Per-item order validation errors and error-persistence cleanup (2026-08-21)
+
+### Fixed
+- Form-validation errors no longer persist: in Orders, People, and Products the `error` state was set but never cleared, so a failed validation stayed visible after the user fixed the field and even on the next modal open (the edit modal could open already showing an old error). Errors are now cleared on any field/item change, on modal open, and on reset.
+- The order modal now shows **per-item** validation errors instead of a single banner above the whole items list: each invalid item card renders its own inline message — `"Pessoa é obrigatória"` or `"Valor não pode ser negativo"` — with a red border, and the form auto-scrolls to the first invalid item. The `"Número do pedido é obrigatório"` message is shown inline right below the order-number field.
+
+### Changed
+- Backend submit failures (`"Erro ao criar/atualizar/excluir pedido/cliente/produto"` and product status change) can't be reliably tied to a specific item/field, so they now surface as an error toast (`z-[90]`) instead of the inline banner. The page-level banner remains only for page-level load failures.
+- `OrderForm`/`OrderItemFields` accept per-item errors (`itemErrors` keyed by item id) and an `orderNumberError`; `OrderItemFields` gained `data-testid="order-item-{index}"`. People and Products clear their error on field change/modal open and route backend failures to toasts.
+
+### Tests
+- `OrdersPage.test.jsx`: per-item error on the card, order-number error inline, error clears when the item is fixed, and backend failure renders as a toast.
+- `PeoplePage.test.jsx` and `ProductsPage.test.jsx`: error clears when typing and backend failure renders as a toast.
+- Verified: frontend `379 passed`, `npm run build` clean, and Prettier `format:check` clean.
+
 ## Phase 54 — Render modal form errors inside the modal (2026-08-21)
 
 ### Fixed
