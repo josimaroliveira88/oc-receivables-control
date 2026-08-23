@@ -48,6 +48,7 @@ const buildClientesSheet = (people) => {
     'WhatsApp',
     'Instagram',
     'Endereço',
+    'Observação',
     'VIP',
     'Membro doTERRA',
   ];
@@ -59,6 +60,7 @@ const buildClientesSheet = (people) => {
       : person.whatsapp || '',
     Instagram: person.instagram || '',
     Endereço: person.address || '',
+    Observação: person.observacao || '',
     VIP: person.isVip ? 'Sim' : 'Não',
     'Membro doTERRA': person.isDoterraMember ? 'Sim' : 'Não',
   }));
@@ -70,6 +72,7 @@ const buildClientesSheet = (people) => {
     { wch: 22 },
     { wch: 30 },
     { wch: 35 },
+    { wch: 40 },
     { wch: 6 },
     { wch: 12 },
   ];
