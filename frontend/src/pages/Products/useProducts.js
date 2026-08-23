@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import api from '../../services/api';
 import { useToast } from '../../components/Toast';
+import { copyToClipboard } from '../../utils/clipboard';
 import {
   PAGE_SIZE,
   emptyForm,
@@ -8,6 +9,7 @@ import {
   createProductPayload,
   updateProductPayload,
   filterAndSortProducts,
+  formatProductRowForCopy,
 } from './utils/productHelpers';
 
 export function useProducts() {
@@ -213,6 +215,31 @@ export function useProducts() {
     setError('');
   };
 
+  const copyField = useCallback(
+    async (product, field) => {
+      const value = product[field];
+      if (!value) return;
+      const ok = await copyToClipboard(value);
+      const labels = { code: 'Código copiado!', name: 'Nome copiado!' };
+      addToast(
+        ok ? labels[field] : 'Falha ao copiar. Tente novamente.',
+        ok ? 'success' : 'error',
+      );
+    },
+    [addToast],
+  );
+
+  const copyRow = useCallback(
+    async (product) => {
+      const ok = await copyToClipboard(formatProductRowForCopy(product));
+      addToast(
+        ok ? 'Linha copiada!' : 'Falha ao copiar. Tente novamente.',
+        ok ? 'success' : 'error',
+      );
+    },
+    [addToast],
+  );
+
   const hasActiveFilters = search.trim() !== '' || statusFilter !== '';
 
   return {
@@ -254,5 +281,7 @@ export function useProducts() {
     openEditModal,
     closeCreateModal,
     closeEditModal,
+    copyField,
+    copyRow,
   };
 }

@@ -171,6 +171,12 @@ describe('ProductsPage', () => {
     vi.clearAllMocks();
     global.IntersectionObserver = MockIntersectionObserver;
     MockIntersectionObserver.callback = null;
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: vi.fn().mockResolvedValue(undefined),
+      },
+    });
   });
 
   describe('Rendering', () => {
@@ -1407,6 +1413,135 @@ describe('ProductsPage', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Editar Produto')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Clipboard copy', () => {
+    const writeText = () => navigator.clipboard.writeText;
+
+    it('should copy the code to the clipboard when clicking the code cell', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('product-code-1'));
+
+      await waitFor(() => {
+        expect(writeText()).toHaveBeenCalledWith('60226006');
+        expect(screen.getByText('Código copiado!')).toBeInTheDocument();
+      });
+    });
+
+    it('should copy the name to the clipboard when clicking the name cell', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('product-name-1'));
+
+      await waitFor(() => {
+        expect(writeText()).toHaveBeenCalledWith('Adaptiv® Pastilhas');
+        expect(screen.getByText('Nome copiado!')).toBeInTheDocument();
+      });
+    });
+
+    it('should copy the full formatted row when clicking the Copiar linha action', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      await clickProductAction('1', 'Copiar-linha');
+
+      await waitFor(() => {
+        expect(writeText()).toHaveBeenCalledWith(
+          [
+            '60226006 - Adaptiv® Pastilhas (60 pastilhas)',
+            'Preço Regular: R$\u00A0308,00',
+            'Preço de Membros: R$\u00A0231,25',
+            'PV: 31',
+          ].join('\n'),
+        );
+        expect(screen.getByText('Linha copiada!')).toBeInTheDocument();
+      });
+    });
+
+    it('should omit the size parentheses when the product has no size', async () => {
+      const noSizeProduct = {
+        ...mockProduct,
+        id: '9',
+        size: '',
+      };
+      mockGet.mockResolvedValue({ data: fullResponse([noSizeProduct]) });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      await clickProductAction('9', 'Copiar-linha');
+
+      await waitFor(() => {
+        expect(writeText()).toHaveBeenCalledWith(
+          [
+            '60226006 - Adaptiv® Pastilhas',
+            'Preço Regular: R$\u00A0308,00',
+            'Preço de Membros: R$\u00A0231,25',
+            'PV: 31',
+          ].join('\n'),
+        );
+      });
+    });
+
+    it('should render a non-clickable placeholder when the name is empty', async () => {
+      const noNameProduct = {
+        ...mockProduct,
+        id: '10',
+        name: '',
+      };
+      mockGet.mockResolvedValue({ data: fullResponse([noNameProduct]) });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('product-code-10')).toBeInTheDocument();
+      });
+
+      const row = screen.getByTestId('product-code-10').closest('tr');
+      expect(row.querySelector('[data-label="Produto"]')).toHaveTextContent(
+        '—',
+      );
+      expect(screen.queryByTestId('product-name-10')).not.toBeInTheDocument();
+    });
+
+    it('should show an error toast when the clipboard write fails', async () => {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText: vi.fn().mockRejectedValue(new Error('denied')),
+        },
+      });
+      mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('product-code-1'));
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Falha ao copiar. Tente novamente.'),
+        ).toBeInTheDocument();
       });
     });
   });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, ExternalLink, Pencil, Eye, EyeOff } from 'lucide-react';
+import { Search, ExternalLink, Pencil, Copy, Eye, EyeOff } from 'lucide-react';
 import { formatBRL } from '../../../utils/money';
 import {
   SORT_OPTIONS,
@@ -30,6 +30,8 @@ const ProductsTable = ({
   onSortChange,
   onStatusChange,
   onEdit,
+  onCopyField,
+  onCopyRow,
 }) => {
   return (
     <>
@@ -230,7 +232,24 @@ const ProductsTable = ({
                         data-label="Código"
                         className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
                       >
-                        {product.code}
+                        {product.code ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onCopyField(product, 'code');
+                            }}
+                            title="Copiar código"
+                            data-testid={`product-code-${product.id}`}
+                            className="text-left cursor-pointer hover:underline hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none focus:underline focus:text-primary-600 transition-colors"
+                          >
+                            {product.code}
+                          </button>
+                        ) : (
+                          <span className="text-gray-400 dark:text-gray-500">
+                            —
+                          </span>
+                        )}
                       </td>
                       <td
                         data-label="Site"
@@ -257,7 +276,24 @@ const ProductsTable = ({
                         data-label="Produto"
                         className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 break-words text-sm text-gray-900 dark:text-gray-100 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
                       >
-                        {product.name}
+                        {product.name ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onCopyField(product, 'name');
+                            }}
+                            title="Copiar nome"
+                            data-testid={`product-name-${product.id}`}
+                            className="text-left cursor-pointer hover:underline hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none focus:underline focus:text-primary-600 transition-colors"
+                          >
+                            {product.name}
+                          </button>
+                        ) : (
+                          <span className="text-gray-400 dark:text-gray-500">
+                            —
+                          </span>
+                        )}
                       </td>
                       <td
                         data-label="Tamanho"
@@ -317,6 +353,11 @@ const ProductsTable = ({
                         <div className="flex items-center justify-end gap-2">
                           <ActionMenu
                             actions={[
+                              {
+                                label: 'Copiar linha',
+                                icon: Copy,
+                                onClick: () => onCopyRow(product),
+                              },
                               {
                                 label: 'Editar',
                                 icon: Pencil,

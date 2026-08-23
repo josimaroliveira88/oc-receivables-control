@@ -45,6 +45,8 @@ const ProductsPage = () => {
     openEditModal,
     closeCreateModal,
     closeEditModal,
+    copyField,
+    copyRow,
   } = useProducts();
 
   if (loading) {
@@ -98,6 +100,8 @@ const ProductsPage = () => {
             onSortChange={setSort}
             onStatusChange={handleStatusChange}
             onEdit={openEditModal}
+            onCopyField={copyField}
+            onCopyRow={copyRow}
           />
         </div>
       </div>
