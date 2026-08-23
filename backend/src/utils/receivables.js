@@ -22,24 +22,33 @@ const personPendingCents = ({ itemCents, paymentCents, isSelf }) => {
 // Computes the order status from its items and payments.
 // - items: [{ personId, chargedValue, person?: { isSelf } }]
 // - payments: [{ personId, amount }]
+// - shippingCents: order-level shipping cost (defaults to 0)
 // Items without a person are ignored (existing behavior).
-const computeOrderStatus = ({ items, payments = [] }) => {
+// Shipping is an order-level cost: when the order has chargeable non-self
+// items, the total of payments must also cover the shipping for QUITADO.
+// Overpayments on non-self persons can absorb the shipping.
+const computeOrderStatus = ({ items, payments = [], shippingCents = 0 }) => {
   const selfPersonIds = collectSelfPersonIds(items);
 
   const itemSums = new Map();
+  let nonSelfItemsCents = 0;
   for (const item of items) {
     const pid = item.personId;
     if (!pid) continue;
-    itemSums.set(pid, (itemSums.get(pid) || 0) + lineValueCents(item));
+    const cents = lineValueCents(item);
+    itemSums.set(pid, (itemSums.get(pid) || 0) + cents);
+    if (!selfPersonIds.has(pid)) nonSelfItemsCents += cents;
   }
 
   const paymentSums = new Map();
+  let paymentsTotalCents = 0;
   let hasAnyPayment = false;
   for (const payment of payments) {
     const pid = payment.personId;
     if (!pid) continue;
     const cents = toCents(payment.amount);
     paymentSums.set(pid, (paymentSums.get(pid) || 0) + cents);
+    paymentsTotalCents += cents;
     if (cents > 0) hasAnyPayment = true;
   }
 
@@ -60,6 +69,15 @@ const computeOrderStatus = ({ items, payments = [] }) => {
     }
   }
 
+  if (allPaid && nonSelfItemsCents > 0) {
+    // Global check: the sum of payments must cover the chargeable items plus
+    // the order shipping. Orders without chargeable non-self items (gift-only
+    // or self-only) are not blocked by shipping.
+    if (paymentsTotalCents < nonSelfItemsCents + shippingCents) {
+      allPaid = false;
+    }
+  }
+
   if (allPaid) return 'QUITADO';
   return hasAnyPayment ? 'PARCIAL' : 'PENDENTE';
 };
@@ -75,6 +93,7 @@ const syncOrderStatuses = async (db, orderIds) => {
     const nextStatus = computeOrderStatus({
       items: order.items,
       payments: order.payments,
+      shippingCents: toCents(order.shippingValue ?? 0),
     });
     if (nextStatus !== order.status) {
       await db.order.update({
