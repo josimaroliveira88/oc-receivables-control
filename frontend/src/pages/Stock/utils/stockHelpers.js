@@ -49,11 +49,27 @@ export const formatDateTime = (iso) => {
   return d.toLocaleString('pt-BR');
 };
 
+export const formatDate = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('pt-BR');
+};
+
+export const todayLocalDate = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export const emptyMovementForm = (productId = '', type = 'ENTRADA') => ({
   productId,
   type,
   quantity: '',
   reason: '',
+  effectiveDate: todayLocalDate(),
 });
 
 export const buildMovementPayload = (form) => {
@@ -64,6 +80,8 @@ export const buildMovementPayload = (form) => {
   };
   const reason = (form.reason || '').trim();
   if (reason !== '') payload.reason = reason;
+  const effectiveDate = (form.effectiveDate || '').trim();
+  if (effectiveDate !== '') payload.effectiveDate = effectiveDate;
   return payload;
 };
 
@@ -86,6 +104,10 @@ export const validateMovement = (form) => {
   const reason = (form.reason || '').trim();
   if (reason.length > 255) {
     return 'Motivo deve ter no máximo 255 caracteres';
+  }
+  const effectiveDate = (form.effectiveDate || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(effectiveDate)) {
+    return 'Data Efetiva é obrigatória';
   }
   return null;
 };

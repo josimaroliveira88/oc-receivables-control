@@ -117,6 +117,22 @@ const MovementDialog = ({
 
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Data Efetiva
+            </label>
+            <input
+              type="date"
+              value={form.effectiveDate}
+              onChange={(e) => onChange('effectiveDate', e.target.value)}
+              required
+              className={inputClass}
+              aria-label="Data Efetiva"
+              data-testid="movement-effective-date-input"
+              disabled={submitting}
+            />
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Motivo
             </label>
             <textarea
