@@ -91,6 +91,7 @@ const createPayment = async (req, res) => {
           ...order.payments,
           { personId: validatedData.personId, amount: validatedData.amount },
         ],
+        shippingCents: toCents(order.shippingValue ?? 0),
       });
 
       if (newStatus !== order.status) {
@@ -191,6 +192,7 @@ const updatePayment = async (req, res) => {
         payments: order.payments.map((p) =>
           p.id === id ? { personId: p.personId, amount: payment.amount } : p,
         ),
+        shippingCents: toCents(order.shippingValue ?? 0),
       });
 
       if (newStatus !== order.status) {
