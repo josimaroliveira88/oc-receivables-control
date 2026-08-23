@@ -43,6 +43,8 @@ export function useOrders() {
   const [accountOwner, setAccountOwner] = useState('');
   const [paymentType, setPaymentType] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
+  const [shippingValue, setShippingValue] = useState('');
+  const [shippingValueError, setShippingValueError] = useState('');
   const [items, setItems] = useState([emptyItem()]);
   const [orderNumberError, setOrderNumberError] = useState('');
   const [itemErrors, setItemErrors] = useState({});
@@ -245,6 +247,8 @@ export function useOrders() {
     setAccountOwner('');
     setPaymentType('');
     setOrderNotes('');
+    setShippingValue('');
+    setShippingValueError('');
     setItems([emptyItem()]);
     setOrderNumberError('');
     setItemErrors({});
@@ -275,6 +279,10 @@ export function useOrders() {
       case 'orderNotes':
         setOrderNotes(value);
         break;
+      case 'shippingValue':
+        setShippingValue(value);
+        setShippingValueError('');
+        break;
       default:
         break;
     }
@@ -285,6 +293,14 @@ export function useOrders() {
       ? ''
       : 'Número do pedido é obrigatório';
     setOrderNumberError(newOrderNumberError);
+
+    const newShippingValueError =
+      shippingValue !== '' &&
+      shippingValue != null &&
+      parseFloat(shippingValue) < 0
+        ? 'Frete não pode ser negativo'
+        : '';
+    setShippingValueError(newShippingValueError);
 
     const newItemErrors = {};
     items.forEach((item) => {
@@ -307,6 +323,7 @@ export function useOrders() {
     setItemErrors(newItemErrors);
 
     if (newOrderNumberError) return false;
+    if (newShippingValueError) return false;
     return Object.keys(newItemErrors).length === 0;
   };
 
@@ -316,6 +333,10 @@ export function useOrders() {
     accountOwner: accountOwner.trim() || null,
     paymentType: paymentType || null,
     orderNotes: orderNotes.trim() || null,
+    shippingValue:
+      shippingValue === '' || shippingValue == null
+        ? 0
+        : parseFloat(shippingValue),
     items: items.map(itemPayload),
   });
 
@@ -348,6 +369,12 @@ export function useOrders() {
     setAccountOwner(order.accountOwner || '');
     setPaymentType(order.paymentType || '');
     setOrderNotes(order.orderNotes || '');
+    setShippingValue(
+      order.shippingValue != null
+        ? String(parseFloat(order.shippingValue))
+        : '',
+    );
+    setShippingValueError('');
     setItems(order.items.map(editItemFromApi));
     setShowEditModal(true);
   };
@@ -459,6 +486,8 @@ export function useOrders() {
     accountOwner,
     paymentType,
     orderNotes,
+    shippingValue,
+    shippingValueError,
     items,
     orderNumberError,
     itemErrors,

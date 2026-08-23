@@ -2,8 +2,13 @@ import React, { useEffect } from 'react';
 import { ExternalLink, Plus } from 'lucide-react';
 import { formatBRL } from '../../../utils/money';
 import { fromCents } from '../../../utils/money';
-import { trackingUrl, lineValueCents } from '../utils/orderHelpers';
+import {
+  trackingUrl,
+  lineValueCents,
+  effectivePvCents,
+} from '../utils/orderHelpers';
 import OrderItemFields from './OrderItemFields';
+import OrderTotals from './OrderTotals';
 
 const OrderForm = ({
   orderNumber,
@@ -12,6 +17,8 @@ const OrderForm = ({
   accountOwner,
   paymentType,
   orderNotes,
+  shippingValue,
+  shippingValueError,
   items,
   people,
   products,
@@ -37,20 +44,15 @@ const OrderForm = ({
     }
   }, [itemErrors]);
 
-  const calculateTotal = () => {
-    const totalCents = items.reduce(
-      (total, item) => total + lineValueCents(item),
-      0,
-    );
-    return fromCents(totalCents);
-  };
+  const totalChargedCents = items.reduce(
+    (total, item) => total + lineValueCents(item),
+    0,
+  );
 
-  const calculateTotalPV = () => {
-    return items.reduce((total, item) => {
-      const qty = Math.max(1, Number(item.quantity) || 1);
-      return total + (parseFloat(item.pv) || 0) * qty;
-    }, 0);
-  };
+  const totalPvCents = items.reduce(
+    (total, item) => total + effectivePvCents(item),
+    0,
+  );
 
   return (
     <form onSubmit={onSubmit} className="px-6 py-4">
@@ -181,7 +183,7 @@ const OrderForm = ({
               data-testid="order-totals-charged"
               className="text-lg font-medium text-gray-900 dark:text-gray-100"
             >
-              {formatBRL(calculateTotal())}
+              {formatBRL(fromCents(totalChargedCents))}
             </div>
           </div>
           <div className="bg-gray-50 dark:bg-gray-700/50 rounded-md p-3">
@@ -192,7 +194,7 @@ const OrderForm = ({
               data-testid="order-totals-pv"
               className="text-lg font-medium text-gray-900 dark:text-gray-100"
             >
-              {calculateTotalPV().toFixed(2)}
+              {fromCents(totalPvCents).toFixed(2)}
             </div>
           </div>
         </div>
@@ -233,6 +235,14 @@ const OrderForm = ({
           Adicionar Item
         </button>
       </div>
+
+      <OrderTotals
+        totalChargedCents={totalChargedCents}
+        totalPvCents={totalPvCents}
+        shippingValue={shippingValue}
+        shippingValueError={shippingValueError}
+        onChangeField={onChangeField}
+      />
 
       <div className="flex items-center justify-end space-x-3 mt-6">
         <button

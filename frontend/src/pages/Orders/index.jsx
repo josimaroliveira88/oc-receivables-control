@@ -40,6 +40,8 @@ const OrdersPage = () => {
     accountOwner,
     paymentType,
     orderNotes,
+    shippingValue,
+    shippingValueError,
     items,
     orderNumberError,
     itemErrors,
@@ -187,6 +189,8 @@ const OrdersPage = () => {
           accountOwner={accountOwner}
           paymentType={paymentType}
           orderNotes={orderNotes}
+          shippingValue={shippingValue}
+          shippingValueError={shippingValueError}
           items={items}
           people={people}
           products={products}

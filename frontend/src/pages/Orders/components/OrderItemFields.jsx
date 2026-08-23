@@ -131,7 +131,13 @@ const OrderItemFields = ({
           </label>
           <input
             type="text"
-            value={item.pv !== '' ? parseFloat(item.pv) : ''}
+            value={
+              item.pv !== ''
+                ? lineValueCents(item) === 0
+                  ? 0
+                  : parseFloat(item.pv)
+                : ''
+            }
             readOnly
             tabIndex={-1}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md shadow-sm cursor-not-allowed text-sm"
