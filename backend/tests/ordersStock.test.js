@@ -114,11 +114,11 @@ describe('Orders <-> Stock integration', () => {
       .catch(() => {});
   });
 
-  const createOrder = async (items) => {
+  const createOrder = async (items, extra = {}) => {
     const res = await request(app)
       .post('/api/orders')
       .set('Authorization', `Bearer ${user.token}`)
-      .send({ orderNumber: uniqueOrder(), items });
+      .send({ orderNumber: uniqueOrder(), ...extra, items });
     if (res.status === 201) orderId = res.body.id;
     return res;
   };
@@ -147,6 +147,91 @@ describe('Orders <-> Stock integration', () => {
       expect(movements[0].orderId).toBe(res.body.id);
       expect(movements[0].itemId).toBe(res.body.items[0].id);
       expect(movements[0].reason).toContain('Pedido');
+    });
+
+    it('sets effectiveDate from the order date', async () => {
+      const res = await createOrder(
+        [
+          {
+            description: 'Meu estoque',
+            chargedValue: 50,
+            quantity: 3,
+            forStock: true,
+            personId: selfPersonId,
+            productId: product.id,
+          },
+        ],
+        { orderDate: '2026-08-10' },
+      );
+
+      expect(res.status).toBe(201);
+      const movements = await getMovements(product.id);
+      expect(movements).toHaveLength(1);
+      const effective = new Date(movements[0].effectiveDate);
+      expect(effective.getFullYear()).toBe(2026);
+      expect(effective.getMonth()).toBe(7);
+      expect(effective.getDate()).toBe(10);
+      expect(effective.getHours()).toBe(0);
+    });
+
+    it('defaults effectiveDate to the order creation time when orderDate is absent', async () => {
+      const before = Date.now();
+      const res = await createOrder([
+        {
+          description: 'Meu estoque',
+          chargedValue: 50,
+          quantity: 2,
+          forStock: true,
+          personId: selfPersonId,
+          productId: product.id,
+        },
+      ]);
+
+      expect(res.status).toBe(201);
+      const movements = await getMovements(product.id);
+      expect(movements).toHaveLength(1);
+      const effectiveTime = new Date(movements[0].effectiveDate).getTime();
+      expect(effectiveTime).toBeGreaterThanOrEqual(before - 5000);
+      expect(effectiveTime).toBeLessThanOrEqual(Date.now() + 5000);
+    });
+
+    it('propagates a changed order date to the diff movements on update', async () => {
+      await createOrder([
+        {
+          description: 'Meu estoque',
+          chargedValue: 50,
+          quantity: 3,
+          forStock: true,
+          personId: selfPersonId,
+          productId: product.id,
+        },
+      ]);
+      expect((await getMovements(product.id))[0]).toBeDefined();
+
+      const res = await request(app)
+        .put(`/api/orders/${orderId}`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({
+          orderDate: '2026-09-01',
+          items: [
+            {
+              description: 'Meu estoque',
+              chargedValue: 50,
+              quantity: 5,
+              forStock: true,
+              personId: selfPersonId,
+              productId: product.id,
+            },
+          ],
+        });
+
+      expect(res.status).toBe(200);
+      const movements = await getMovements(product.id);
+      const diffMovement = movements[movements.length - 1];
+      const effective = new Date(diffMovement.effectiveDate);
+      expect(effective.getFullYear()).toBe(2026);
+      expect(effective.getMonth()).toBe(8);
+      expect(effective.getDate()).toBe(1);
     });
 
     it('does not touch stock for a self item not flagged forStock', async () => {
