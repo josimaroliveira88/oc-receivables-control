@@ -696,14 +696,23 @@ describe('OrdersPayments', () => {
     });
 
     it('should render PV Total as the sum of item pv', async () => {
-      mockGetImplementation([mockOrders[0]]);
+      const orderWithCharges = {
+        ...mockOrders[0],
+        id: 'order-pv',
+        orderNumber: 'ORD-PV',
+        items: [
+          { pv: '10.50', chargedValue: '10.00' },
+          { pv: '5.00', chargedValue: '5.00' },
+        ],
+      };
+      mockGetImplementation([orderWithCharges]);
       renderPage();
 
       await waitFor(() => {
-        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+        expect(screen.getByText('ORD-PV')).toBeInTheDocument();
       });
 
-      expect(within(rowFor('ORD-001')).getByText('15.50')).toBeInTheDocument();
+      expect(within(rowFor('ORD-PV')).getByText('15.50')).toBeInTheDocument();
     });
 
     it('should render description truncated with full text in title', async () => {
@@ -907,6 +916,27 @@ describe('OrdersPayments', () => {
       );
     });
 
+    it('should show the freight value in the summary header', async () => {
+      const order = {
+        ...mockOrders[0],
+        totalValue: '325.50',
+        shippingValue: '25.5',
+      };
+      const modal = await openModalFor(order);
+
+      expect(modal.getByTestId('order-summary-shipping')).toHaveTextContent(
+        /R\$\s*25,50/,
+      );
+    });
+
+    it('should show R$ 0,00 for the freight when the order has no shippingValue', async () => {
+      const modal = await openModalFor(mockOrders[0]);
+
+      expect(modal.getByTestId('order-summary-shipping')).toHaveTextContent(
+        /R\$\s*0,00/,
+      );
+    });
+
     it('should show pending R$ 0,00 for a zero-value order', async () => {
       const modal = await openModalFor(mockOrders[3]);
 
@@ -1028,6 +1058,9 @@ describe('OrdersPayments', () => {
       expect(
         modal.getByTestId('details-summary-description'),
       ).toHaveTextContent('Detalhes do pedido');
+      expect(modal.getByTestId('details-summary-shipping')).toHaveTextContent(
+        /R\$\s*0,00/,
+      );
     });
 
     it('should render one person row with total and pending values', async () => {

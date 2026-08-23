@@ -809,11 +809,22 @@ describe('OrdersPage', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByText('Soma dos Produtos (Valor Cobrado)'),
-        ).toBeInTheDocument();
-        expect(screen.getByText('Soma dos PV')).toBeInTheDocument();
-        expect(screen.getByText('0.00')).toBeInTheDocument();
+          screen.getAllByText('Soma dos Produtos (Valor Cobrado)').length,
+        ).toBeGreaterThan(0);
+        expect(screen.getAllByText('Soma dos PV').length).toBeGreaterThan(0);
       });
+
+      expect(screen.getByTestId('order-totals-pv')).toHaveTextContent('0.00');
+      expect(screen.getByTestId('order-totals-charged')).toHaveTextContent(
+        'R$ 0,00',
+      );
+      expect(
+        screen.getByTestId('order-totals-charged-footer'),
+      ).toHaveTextContent('R$ 0,00');
+      expect(screen.getByTestId('order-totals-pv-footer')).toHaveTextContent(
+        '0.00',
+      );
+      expect(screen.getByTestId('order-freight')).toBeInTheDocument();
     });
 
     it('should update summary totals when filling item values', async () => {
@@ -835,17 +846,19 @@ describe('OrdersPage', () => {
       fireEvent.change(combobox, { target: { value: 'Lavanda' } });
       fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
 
+      // PV is masked to 0 until a charged value is entered (free item rule).
       await waitFor(() => {
-        expect(screen.getByDisplayValue('30')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('0')).toBeInTheDocument();
       });
 
       const valueInput = screen.getByPlaceholderText('0.00');
       fireEvent.change(valueInput, { target: { value: '175' } });
 
       await waitFor(() => {
-        expect(screen.getByText(/R\$\s*175,00/)).toBeInTheDocument();
+        expect(screen.getAllByText(/R\$\s*175,00/).length).toBeGreaterThan(0);
       });
-      expect(screen.getByText('30.00')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('30')).toBeInTheDocument();
+      expect(screen.getAllByText('30.00').length).toBeGreaterThan(0);
     });
 
     it('should send accountOwner, paymentType and orderNotes in create payload', async () => {
@@ -1019,7 +1032,13 @@ describe('OrdersPage', () => {
           screen.getAllByDisplayValue(/R\$\s*180,00/).length,
         ).toBeGreaterThanOrEqual(1);
       });
-      expect(screen.getByDisplayValue('30')).toBeInTheDocument();
+      // PV is masked to 0 while the item has no charged value.
+      expect(screen.getByDisplayValue('0')).toBeInTheDocument();
+      const valueInput = screen.getByPlaceholderText('0.00');
+      fireEvent.change(valueInput, { target: { value: '175' } });
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('30')).toBeInTheDocument();
+      });
       expect(screen.getByText('Limpar produto')).toBeInTheDocument();
     });
 
@@ -1056,12 +1075,13 @@ describe('OrdersPage', () => {
       fireEvent.change(combobox, { target: { value: 'Lavanda' } });
       fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
 
+      const valueInput = screen.getByPlaceholderText('0.00');
+      fireEvent.change(valueInput, { target: { value: '175' } });
+
       await waitFor(() => {
         expect(screen.getByDisplayValue('30')).toBeInTheDocument();
       });
 
-      const valueInput = screen.getByPlaceholderText('0.00');
-      fireEvent.change(valueInput, { target: { value: '175' } });
       const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
       fireEvent.change(personSelect, { target: { value: 'p1' } });
       const detailsArea = screen.getByPlaceholderText(
@@ -1204,6 +1224,84 @@ describe('OrdersPage', () => {
           ),
         ).toBeInTheDocument();
       });
+    });
+
+    it('should include shippingValue in the create payload when a freight is entered', async () => {
+      mockPost.mockResolvedValue({ data: { id: '3', orderNumber: 'ORD-FRT' } });
+      await openModal();
+
+      fireEvent.change(
+        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        { target: { value: 'ORD-FRT' } },
+      );
+      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
+      fireEvent.change(personSelect, { target: { value: 'p1' } });
+      fireEvent.change(screen.getByTestId('order-freight'), {
+        target: { value: '25.5' },
+      });
+
+      const form = screen
+        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
+        .closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith(
+          '/orders',
+          expect.objectContaining({ shippingValue: 25.5 }),
+        );
+      });
+    });
+
+    it('should send shippingValue 0 when the freight field is empty', async () => {
+      mockPost.mockResolvedValue({
+        data: { id: '3', orderNumber: 'ORD-FRT0' },
+      });
+      await openModal();
+
+      fireEvent.change(
+        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        { target: { value: 'ORD-FRT0' } },
+      );
+      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
+      fireEvent.change(personSelect, { target: { value: 'p1' } });
+
+      const form = screen
+        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
+        .closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith(
+          '/orders',
+          expect.objectContaining({ shippingValue: 0 }),
+        );
+      });
+    });
+
+    it('should reject negative shipping value and block submit', async () => {
+      await openModal();
+      fireEvent.change(
+        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        { target: { value: 'ORD-FRTNEG' } },
+      );
+      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
+      fireEvent.change(personSelect, { target: { value: 'p1' } });
+      fireEvent.change(screen.getByTestId('order-freight'), {
+        target: { value: '-10' },
+      });
+
+      const form = screen
+        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
+        .closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('order-freight-error')).toHaveTextContent(
+          'Frete não pode ser negativo',
+        );
+      });
+      expect(mockPost).not.toHaveBeenCalled();
     });
 
     it('should render the per-item validation error inside the item card (not behind the modal)', async () => {
@@ -1548,6 +1646,111 @@ describe('OrdersPage', () => {
               }),
             ],
           }),
+        );
+      });
+    });
+
+    it('should pre-fill the freight field with the order shippingValue when editing', async () => {
+      const orderWithShipping = [
+        {
+          id: '99',
+          orderNumber: 'ORD-FRT-EDIT',
+          orderDate: '2026-05-15T00:00:00.000Z',
+          totalValue: '130.00',
+          shippingValue: '30',
+          status: 'PENDENTE',
+          accountOwner: null,
+          paymentType: null,
+          orderNotes: null,
+          items: [
+            {
+              id: 'i-frt',
+              description: 'Item',
+              chargedValue: '100.00',
+              personId: 'p1',
+              person: { name: 'João' },
+              productId: null,
+              memberPrice: null,
+              pv: null,
+              details: null,
+              quantity: 1,
+              forStock: false,
+              chargedValueMode: 'UNIT',
+            },
+          ],
+        },
+      ];
+      mockGetImplementation(orderWithShipping);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-FRT-EDIT')).toBeInTheDocument();
+      });
+
+      await clickOrderAction('99', 'Editar');
+
+      await waitFor(() => {
+        expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('order-freight').value).toBe('30');
+    });
+
+    it('should include shippingValue in the update payload', async () => {
+      const orderWithShipping = [
+        {
+          id: '98',
+          orderNumber: 'ORD-FRT-UPD',
+          orderDate: '2026-05-15T00:00:00.000Z',
+          totalValue: '100.00',
+          shippingValue: '0',
+          status: 'PENDENTE',
+          accountOwner: null,
+          paymentType: null,
+          orderNotes: null,
+          items: [
+            {
+              id: 'i-frt2',
+              description: 'Item',
+              chargedValue: '100.00',
+              personId: 'p1',
+              person: { name: 'João' },
+              productId: null,
+              memberPrice: null,
+              pv: null,
+              details: null,
+              quantity: 1,
+              forStock: false,
+              chargedValueMode: 'UNIT',
+            },
+          ],
+        },
+      ];
+      mockGetImplementation(orderWithShipping);
+      mockPut.mockResolvedValue({
+        data: { id: '98', orderNumber: 'ORD-FRT-UPD' },
+      });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-FRT-UPD')).toBeInTheDocument();
+      });
+
+      await clickOrderAction('98', 'Editar');
+
+      await waitFor(() => {
+        expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
+      });
+      fireEvent.change(screen.getByTestId('order-freight'), {
+        target: { value: '40' },
+      });
+
+      const form = screen.getByDisplayValue('ORD-FRT-UPD').closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPut).toHaveBeenCalledWith(
+          '/orders/98',
+          expect.objectContaining({ shippingValue: 40 }),
         );
       });
     });
@@ -1995,6 +2198,38 @@ describe('OrdersPage', () => {
         true,
       );
       expect(screen.getByTestId('order-item-price-mode-0').value).toBe('TOTAL');
+    });
+
+    it('should exclude PV from zero-charged items in the summary blocks and the item field', async () => {
+      mockGetImplementation([], mockPeople);
+      renderPage();
+      await openCreateModal();
+      const combobox = screen.getByPlaceholderText('Busque um produto...');
+      fireEvent.change(combobox, { target: { value: 'Lavanda' } });
+      fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
+
+      await waitFor(() => {
+        expect(
+          screen.getAllByDisplayValue(/R\$\s*180,00/).length,
+        ).toBeGreaterThanOrEqual(1);
+      });
+
+      // chargedValue stays empty (0) → PV masked to 0 on the item.
+      expect(screen.getByDisplayValue('0')).toBeInTheDocument();
+      expect(screen.getByTestId('order-totals-pv')).toHaveTextContent('0.00');
+      expect(screen.getByTestId('order-totals-pv-footer')).toHaveTextContent(
+        '0.00',
+      );
+
+      // Charging the item brings the PV back in both blocks.
+      fireEvent.change(screen.getByPlaceholderText('0.00'), {
+        target: { value: '175' },
+      });
+      expect(screen.getByDisplayValue('30')).toBeInTheDocument();
+      expect(screen.getByTestId('order-totals-pv')).toHaveTextContent('30.00');
+      expect(screen.getByTestId('order-totals-pv-footer')).toHaveTextContent(
+        '30.00',
+      );
     });
   });
 
