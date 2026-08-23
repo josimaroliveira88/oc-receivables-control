@@ -27,7 +27,7 @@ const PeopleTable = ({
         <SearchInput
           value={search}
           onChange={onSearchChange}
-          placeholder="Buscar por nome ou WhatsApp..."
+          placeholder="Buscar por nome, WhatsApp ou Observação..."
           ariaLabel="Buscar clientes"
         />
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -71,7 +71,7 @@ const PeopleTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[16%]"
+                  width="w-[14%]"
                   testIdPrefix="people"
                 />
                 <SortableHeader
@@ -80,7 +80,7 @@ const PeopleTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[12%]"
+                  width="w-[11%]"
                 />
                 <SortableHeader
                   label="WhatsApp"
@@ -88,7 +88,7 @@ const PeopleTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[15%]"
+                  width="w-[13%]"
                 />
                 <SortableHeader
                   label="Instagram"
@@ -96,7 +96,7 @@ const PeopleTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[10%]"
+                  width="w-[9%]"
                 />
                 <SortableHeader
                   label="Endereço"
@@ -104,8 +104,14 @@ const PeopleTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[15%]"
+                  width="w-[13%]"
                 />
+                <th
+                  scope="col"
+                  className="w-[12%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Observação
+                </th>
                 <SortableHeader
                   label="VIP"
                   field="isVip"
@@ -124,7 +130,7 @@ const PeopleTable = ({
                 />
                 <th
                   scope="col"
-                  className="w-[18%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  className="w-[14%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                 >
                   Ações
                 </th>
@@ -191,6 +197,21 @@ const PeopleTable = ({
                       className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 break-words text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
                     >
                       {person.address || '-'}
+                    </td>
+                    <td
+                      data-label="Observação"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                    >
+                      {person.observacao ? (
+                        <span
+                          title={person.observacao}
+                          className="block truncate"
+                        >
+                          {person.observacao}
+                        </span>
+                      ) : (
+                        '-'
+                      )}
                     </td>
                     <td
                       data-label="VIP"
