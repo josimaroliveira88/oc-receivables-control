@@ -81,6 +81,17 @@ const PaymentModal = ({
               </div>
               <div>
                 <dt className="text-xs text-gray-500 dark:text-gray-400">
+                  Frete
+                </dt>
+                <dd
+                  data-testid="order-summary-shipping"
+                  className="text-sm font-medium text-gray-900 dark:text-gray-100"
+                >
+                  {formatBRL(parseFloat(order.shippingValue || 0))}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-gray-500 dark:text-gray-400">
                   Valor Pendente
                 </dt>
                 <dd

@@ -1,6 +1,6 @@
 import React from 'react';
 import { DollarSign, ExternalLink, Eye, Pencil, Trash } from 'lucide-react';
-import { formatBRL } from '../../../utils/money';
+import { formatBRL, fromCents } from '../../../utils/money';
 import { formatDateBR } from '../../../utils/dates';
 import { trackingUrl } from '../utils/orderHelpers';
 import {
@@ -206,7 +206,7 @@ const OrdersTable = ({
                       data-label="PV Total"
                       className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
                     >
-                      {totalPV.toFixed(2)}
+                      {fromCents(totalPV).toFixed(2)}
                     </td>
                     <td
                       data-label="Descrição"
