@@ -10,6 +10,32 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 63 — Edição de pagamentos, Frete no pedido, PV zero e Data Efetiva no estoque (2026-08-23)
+
+### Added
+- **Edição de pagamentos recebidos**: novo endpoint autenticado `PUT /api/orders/payments/:id` para editar valor (`amount`), data (`paidAt`) e observação (`notes`) de um pagamento recebido, mantendo a pessoa (`personId`) fixa. O status do pedido é recalculado na mesma transação (ex.: `QUITADO` → `PARCIAL` ao reduzir o valor, `PARCIAL` → `QUITADO` ao completar o saldo), valor zero é rejeitado para pessoa com itens cobráveis e o pagamento é escopado por `req.user.userId` (404 para inexistente ou de outro usuário).
+- No modal de Detalhamento, cada pagamento recebido agora exibe um ícone de lápis que abre o modal **"Editar Pagamento"** com os campos pré-preenchidos; validações espelham a criação (valor negativo, zero para itens cobráveis) e o overpayment reutiliza o `ConfirmDialog`. Após salvar, o detalhamento é atualizado localmente e o status do pedido re-renderizado, com toast de sucesso.
+- **Campo Frete (R$)** no pedido: `Order.shippingValue` (`Decimal(10,2)`, default 0, migração `20260823100000_add_order_shipping_value`) informado ao criar/editar um pedido. O frete entra no `totalValue`, no saldo pendente e no fluxo de pagamento; pedidos com itens cobráveis não-self só ficam `QUITADO` quando os pagamentos cobrem itens + frete (pedidos só-self/gift não são bloqueados). O campo aparece em novo bloco inferior (`OrderTotals.jsx`, testid `order-freight`) ao lado dos somadores read-only `Soma dos Produtos` e `Soma dos PV`; os modais de Pagamento e Detalhamento exibem a linha **Frete** (`order-summary-shipping` / `details-summary-shipping`).
+- **Regra de PV zero**: se o Valor Cobrado do item for zero, o PV é zero. O helper `effectivePvCents` (backend `utils/money.js` + frontend `orderHelpers.js`) aplica a regra no campo PV por item, nos dois blocos de soma, na coluna `PV Total` e na ordenação `totalPv` do backend.
+- **Data Efetiva nas movimentações de estoque**: nova coluna `StockMovement.effectiveDate` (`DateTime`, default `now()`, migração `20260823193525_add_stock_movement_effective_date` + índice `[userId, effectiveDate]`). No formulário manual de movimentação, o campo **"Data Efetiva"** é obrigatório e vem pré-preenchido com a data atual (sem restrição de datas futuras); o `createdAt` continua registrando o momento da inserção. Movimentações geradas por pedido usam **sempre a `orderDate` do pedido**, com guarda que retorna `400 Data do pedido é obrigatória para movimentações de estoque` se essa data estiver ausente.
+
+### Changed
+- `backend/src/services/stockService.js`: `applyMovement` aceita `effectiveDate` opcional (default `new Date()`).
+- `backend/src/controllers/StockController.js`: `movementSchema` aceita `effectiveDate` (`YYYY-MM-DD`, regex) e `registerMovement` o persiste via `parseLocalDate`.
+- `backend/src/controllers/ordersController.js`: todos os pontos de integração order↔stock propagam `effectiveDate = order.orderDate`; `parseLocalDate` extraído para `backend/src/utils/date.js` (compartilhado com `StockController` e `paymentsController`).
+- `frontend/src/pages/Stock/components/MovementDialog.jsx`: novo campo "Data Efetiva"; `HistoryDialog.jsx`: duas colunas de data — **"Data Efetiva"** e **"Data de Registro"** (mantém `createdAt`) — com a data de registro em quebra de linha automática.
+- `frontend/src/pages/Stock/utils/stockHelpers.js`: novos `formatDate` e `todayLocalDate`; `emptyMovementForm`, `buildMovementPayload` e `validateMovement` estendidos.
+- `ARCHITECTURE.md` atualizado com o campo `effectiveDate` e as convenções de data do estoque.
+
+### Fixed
+- Barra de rolagem horizontal na modal de detalhamento do histórico de estoque, causada pela coluna de data de registro com `whitespace-nowrap`; removida a regra de no-break (quebra automática) e adicionado `overflow-x-hidden` ao container do modal.
+
+### Tests
+- Backend (`tests/stock.test.js`): persistência de `effectiveDate` informada, default para a data atual e rejeição de formato inválido (400). Backend (`tests/ordersStock.test.js`): `effectiveDate` igual à `orderDate` na criação e a data alterada propagada nas movimentações do `updateOrder`. **343 backend passing** (was 337).
+- Frontend (`tests/StockPage.test.jsx`): campo Data Efetiva pré-preenchido com a data atual, envio da data escolhida no payload do `POST /stock/movements` e renderização das duas colunas de data no histórico. **464 frontend passing** (was 461).
+- Verified: `npm run format:check` clean, `cd frontend && npm run build` clean.
+
+
 ## Phase 62 — Observação no cadastro de clientes (2026-08-23)
 
 ### Added
