@@ -53,6 +53,37 @@ describe('receivables util', () => {
       const items = [item('p1', 0.0, false)];
       expect(computeOrderStatus({ items, payments: [] })).toBe('PENDENTE');
     });
+
+    it('returns PENDENTE when chargeable items are paid but shipping is not', () => {
+      const items = [item('p1', 100.0, false)];
+      const payments = [{ personId: 'p1', amount: 100.0 }];
+      expect(
+        computeOrderStatus({ items, payments, shippingCents: toCents(50) }),
+      ).toBe('PARCIAL');
+    });
+
+    it('returns QUITADO when shipping is covered by total payments', () => {
+      const items = [item('p1', 100.0, false)];
+      const payments = [{ personId: 'p1', amount: 150.0 }];
+      expect(
+        computeOrderStatus({ items, payments, shippingCents: toCents(50) }),
+      ).toBe('QUITADO');
+    });
+
+    it('does not block QUITADO by shipping when there are no chargeable items', () => {
+      const items = [item('p1', 0.0, false)];
+      const payments = [{ personId: 'p1', amount: 0.0 }];
+      expect(
+        computeOrderStatus({ items, payments, shippingCents: toCents(50) }),
+      ).toBe('QUITADO');
+    });
+
+    it('does not block QUITADO by shipping for a self-only order', () => {
+      const items = [item('p1', 200.0, true)];
+      expect(
+        computeOrderStatus({ items, payments: [], shippingCents: toCents(30) }),
+      ).toBe('QUITADO');
+    });
   });
 
   describe('personPendingCents', () => {
