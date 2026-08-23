@@ -10,6 +10,24 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 62 — Observação no cadastro de clientes (2026-08-23)
+
+### Added
+- Campo opcional **Observação** no Cadastro de Clientes (textarea de até 2000 caracteres) para o usuário armazenar informações gerais do cliente; valores vazios são normalizados para `null` ao salvar.
+- Coluna **Observação** na tabela de clientes exibindo o texto truncado, com o conteúdo completo disponível via tooltip ao passar o mouse; quando vazio, mostra `—`.
+- A observação entra na exportação Excel (aba Clientes, coluna entre Endereço e VIP) e na busca por `q` tanto no backend (`GET /api/people`) quanto no filtro do frontend.
+- Migração `backend/prisma/migrations/20260822100000_add_person_observacao/migration.sql` adicionando a coluna anulável `observacao VARCHAR(2000)` ao modelo `Person`.
+
+### Changed
+- `backend/src/controllers/peopleController.js`: validação Zod de `observacao` (máx. 2000 caracteres) e `findIdsByTextSearch` passou a casar também esse campo.
+- `frontend/src/pages/People/components/PeopleTable.jsx`: larguras de coluna rebalanceadas para acomodar a nova coluna Observação.
+
+### Tests
+- Backend (`tests/people.test.js`): criação com `observacao`, default `null`, rejeição com 2001 caracteres, `GET` por id, busca por `observacao`, atualização incluindo o campo e limpeza explícita com `null`. **299 backend passing** (was 293).
+- Frontend (`tests/PeoplePage.test.jsx`, `tests/exportExcel.test.js`): round-trip no formulário (criar/editar), renderização da célula na tabela, busca por Observação e headers/linhas/larguras da aba Clientes. **443 frontend passing** (was 419).
+- Verified: `npm run format:check` clean, `cd frontend && npm run build` clean.
+
+
 ## Phase 61 — Loyalty points column on the Products screen (2026-08-23)
 
 ### Added
