@@ -2,12 +2,17 @@ const prisma = require('../config/database');
 const { z } = require('zod');
 const { applyMovement } = require('../services/stockService');
 const { findIdsByTextSearch } = require('../utils/search');
+const { parseLocalDate } = require('../utils/date');
 
 const movementSchema = z.object({
   productId: z.string().uuid(),
   type: z.enum(['ENTRADA', 'SAIDA', 'AJUSTE']),
   quantity: z.number().int(),
   reason: z.string().max(255).optional(),
+  effectiveDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Effective date must be YYYY-MM-DD')
+    .optional(),
 });
 
 const listInventory = async (req, res) => {
@@ -108,6 +113,9 @@ const registerMovement = async (req, res) => {
     const validatedData = movementSchema.parse(req.body);
     const { productId, type, reason } = validatedData;
     const quantity = validatedData.quantity;
+    const effectiveDate = validatedData.effectiveDate
+      ? parseLocalDate(validatedData.effectiveDate)
+      : undefined;
 
     if ((type === 'ENTRADA' || type === 'SAIDA') && quantity <= 0) {
       return res.status(400).json({
@@ -128,6 +136,7 @@ const registerMovement = async (req, res) => {
         type,
         quantity,
         reason,
+        effectiveDate,
       });
     });
 
