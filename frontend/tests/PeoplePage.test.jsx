@@ -63,6 +63,7 @@ const mockPeople = [
     whatsapp: '5511999998888',
     instagram: 'https://instagram.com/joao',
     address: 'Rua das Flores, 123',
+    observacao: 'Cliente prefere retirar pessoalmente.',
     isVip: true,
     isDoterraMember: true,
   },
@@ -73,6 +74,7 @@ const mockPeople = [
     whatsapp: 'joao@email.com',
     instagram: null,
     address: null,
+    observacao: null,
     isVip: false,
     isDoterraMember: false,
   },
@@ -127,6 +129,9 @@ describe('PeoplePage', () => {
         expect(screen.getByText('Maria Santos')).toBeInTheDocument();
         expect(screen.getByText('Grupo do WhatsApp')).toBeInTheDocument();
         expect(screen.getByText('Rua das Flores, 123')).toBeInTheDocument();
+        expect(
+          screen.getByText('Cliente prefere retirar pessoalmente.'),
+        ).toBeInTheDocument();
       });
     });
 
@@ -395,6 +400,9 @@ describe('PeoplePage', () => {
       const addressInput = screen.getByPlaceholderText(
         'Digite o endereço completo',
       );
+      const observacaoInput = screen.getByPlaceholderText(
+        'Informações gerais sobre o cliente (até 2000 caracteres)',
+      );
 
       fireEvent.change(nameInput, { target: { value: 'Novo' } });
       fireEvent.change(groupsInput, { target: { value: 'Família' } });
@@ -403,6 +411,9 @@ describe('PeoplePage', () => {
         target: { value: 'https://instagram.com/novo' },
       });
       fireEvent.change(addressInput, { target: { value: 'Rua Nova, 1' } });
+      fireEvent.change(observacaoInput, {
+        target: { value: 'Cliente novo no grupo.' },
+      });
       fireEvent.change(screen.getByLabelText('Grupo VIP'), {
         target: { value: 'true' },
       });
@@ -415,6 +426,7 @@ describe('PeoplePage', () => {
           commonGroups: 'Família',
           instagram: 'https://instagram.com/novo',
           address: 'Rua Nova, 1',
+          observacao: 'Cliente novo no grupo.',
           isVip: true,
           isDoterraMember: false,
           isSelf: false,
@@ -445,6 +457,7 @@ describe('PeoplePage', () => {
           commonGroups: null,
           instagram: null,
           address: null,
+          observacao: null,
           isVip: false,
           isDoterraMember: false,
           isSelf: true,
@@ -478,6 +491,9 @@ describe('PeoplePage', () => {
         ).toBeInTheDocument();
         expect(
           screen.getByDisplayValue('Rua das Flores, 123'),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByDisplayValue('Cliente prefere retirar pessoalmente.'),
         ).toBeInTheDocument();
       });
     });
@@ -530,6 +546,7 @@ describe('PeoplePage', () => {
           commonGroups: 'Grupo do WhatsApp',
           instagram: 'https://instagram.com/joao',
           address: 'Rua das Flores, 123',
+          observacao: 'Cliente prefere retirar pessoalmente.',
           isVip: true,
           isDoterraMember: false,
           isSelf: false,
@@ -706,7 +723,9 @@ describe('PeoplePage', () => {
       });
 
       fireEvent.change(
-        screen.getByPlaceholderText('Buscar por nome ou WhatsApp...'),
+        screen.getByPlaceholderText(
+          'Buscar por nome, WhatsApp ou Observação...',
+        ),
         {
           target: { value: 'Ana' },
         },
@@ -728,7 +747,9 @@ describe('PeoplePage', () => {
       });
 
       fireEvent.change(
-        screen.getByPlaceholderText('Buscar por nome ou WhatsApp...'),
+        screen.getByPlaceholderText(
+          'Buscar por nome, WhatsApp ou Observação...',
+        ),
         {
           target: { value: '88887777' },
         },
@@ -737,6 +758,30 @@ describe('PeoplePage', () => {
       await waitFor(() => {
         expect(screen.getByText('Ana Souza')).toBeInTheDocument();
         expect(screen.queryByText('João Silva')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should filter people by Observação', async () => {
+      mockGet.mockResolvedValue({ data: morePeople });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+
+      fireEvent.change(
+        screen.getByPlaceholderText(
+          'Buscar por nome, WhatsApp ou Observação...',
+        ),
+        {
+          target: { value: 'retirar' },
+        },
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+        expect(screen.queryByText('Maria Santos')).not.toBeInTheDocument();
+        expect(screen.queryByText('Ana Souza')).not.toBeInTheDocument();
       });
     });
 
@@ -807,7 +852,9 @@ describe('PeoplePage', () => {
       });
 
       fireEvent.change(
-        screen.getByPlaceholderText('Buscar por nome ou WhatsApp...'),
+        screen.getByPlaceholderText(
+          'Buscar por nome, WhatsApp ou Observação...',
+        ),
         {
           target: { value: 'NãoExiste' },
         },

@@ -45,12 +45,14 @@ const mockPeople = [
     commonGroups: 'Grupo do WhatsApp',
     instagram: 'https://instagram.com/joao',
     address: 'Rua das Flores, 123',
+    observacao: 'Cliente prefere retirar pessoalmente.',
     isVip: true,
     isDoterraMember: true,
   },
   {
     name: 'Maria Santos',
     whatsapp: null,
+    observacao: null,
     isVip: false,
     isDoterraMember: false,
   },
@@ -211,6 +213,7 @@ describe('exportExcel', () => {
         'WhatsApp',
         'Instagram',
         'Endereço',
+        'Observação',
         'VIP',
         'Membro doTERRA',
       ]);
@@ -233,11 +236,13 @@ describe('exportExcel', () => {
       expect(rows[1][2]).toBe('+55 (11) 99999-8888');
       expect(rows[1][3]).toBe('https://instagram.com/joao');
       expect(rows[1][4]).toBe('Rua das Flores, 123');
-      expect(rows[1][5]).toBe('Sim');
+      expect(rows[1][5]).toBe('Cliente prefere retirar pessoalmente.');
       expect(rows[1][6]).toBe('Sim');
+      expect(rows[1][7]).toBe('Sim');
       expect(rows[2][0]).toBe('Maria Santos');
-      expect(rows[2][5]).toBe('Não');
+      expect(rows[2][5]).toBe('');
       expect(rows[2][6]).toBe('Não');
+      expect(rows[2][7]).toBe('Não');
     });
 
     it('should show empty string for null whatsapp', () => {
@@ -516,6 +521,7 @@ describe('exportExcel', () => {
         'WhatsApp',
         'Instagram',
         'Endereço',
+        'Observação',
         'VIP',
         'Membro doTERRA',
       ]);
@@ -583,7 +589,7 @@ describe('exportExcel', () => {
       const ws = wb.Sheets['Clientes'];
 
       expect(ws['!cols']).toBeDefined();
-      expect(ws['!cols'].length).toBe(7);
+      expect(ws['!cols'].length).toBe(8);
     });
 
     it('should set column widths on Histórico de Pagamentos sheet', () => {
