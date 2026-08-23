@@ -1,7 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const { z } = require('zod');
 const prisma = new PrismaClient();
-const { toCents } = require('../utils/money');
+const { toCents, pricePerPv } = require('../utils/money');
 
 const productStatusSchema = z.enum(['ATIVO', 'INDISPONIVEL', 'INATIVO']);
 
@@ -67,11 +67,21 @@ const projectCurrentPrice = (product) => {
     regularPrice: currentPrice ? currentPrice.regularPrice : null,
     memberPrice: currentPrice ? currentPrice.memberPrice : null,
     pv: currentPrice ? currentPrice.pv : null,
+    pricePerPv: currentPrice
+      ? pricePerPv(currentPrice.memberPrice, currentPrice.pv)
+      : null,
   };
 };
 
-const SORTABLE_FIELDS = ['name', 'code', 'regularPrice', 'memberPrice', 'pv'];
-const NUMERIC_SORT_FIELDS = ['regularPrice', 'memberPrice', 'pv'];
+const SORTABLE_FIELDS = [
+  'name',
+  'code',
+  'regularPrice',
+  'memberPrice',
+  'pricePerPv',
+  'pv',
+];
+const NUMERIC_SORT_FIELDS = ['regularPrice', 'memberPrice', 'pricePerPv', 'pv'];
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
 
