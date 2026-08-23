@@ -49,10 +49,20 @@ function formatBRL(cents) {
   });
 }
 
+// Effective PV in cents for an order item. When the charged line value is
+// zero (free item), the item does not accumulate PV: receivables only track
+// PV for items that actually generate a charge.
+function effectivePvCents(item) {
+  if (lineValueCents(item) === 0) return 0;
+  const qty = Math.max(1, Number(item.quantity) || 1);
+  return Math.round((parseFloat(item.pv) || 0) * 100) * qty;
+}
+
 module.exports = {
   toCents,
   fromCents,
   formatBRL,
   lineValueCents,
+  effectivePvCents,
   pricePerPv,
 };
