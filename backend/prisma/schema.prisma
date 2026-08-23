@@ -173,14 +173,15 @@ model Inventory {
 }
 
 model StockMovement {
-  id        String            @id @default(uuid())
-  userId    String
-  productId String
-  quantity  Int
-  type      StockMovementType
-  reason    String?
-  orderId   String?
-  itemId    String?
+  id            String            @id @default(uuid())
+  userId        String
+  productId     String
+  quantity      Int
+  type          StockMovementType
+  reason        String?
+  orderId       String?
+  itemId        String?
+  effectiveDate DateTime          @default(now())
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
@@ -193,4 +194,5 @@ model StockMovement {
   @@index([productId])
   @@index([orderId])
   @@index([itemId])
+  @@index([userId, effectiveDate])
 }
