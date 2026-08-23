@@ -5,7 +5,12 @@ const {
   computeOrderStatus,
   syncOrderStatuses,
 } = require('../utils/receivables');
-const { lineValueCents, fromCents, toCents } = require('../utils/money');
+const {
+  lineValueCents,
+  fromCents,
+  toCents,
+  effectivePvCents,
+} = require('../utils/money');
 const { applyMovement } = require('../services/stockService');
 const { computeStockDiff } = require('../utils/stockDiff');
 const { findIdsByTextSearch } = require('../utils/search');
@@ -66,6 +71,12 @@ const orderDescriptiveSchema = {
 const createOrderSchema = z.object({
   orderNumber: z.string().min(1, 'Order number is required'),
   orderDate: z.string().optional(),
+  shippingValue: z
+    .number()
+    .min(0, 'Shipping value must not be negative')
+    .optional()
+    .nullable()
+    .default(0),
   ...orderDescriptiveSchema,
   items: z.array(itemSchema).min(1, 'At least one item is required'),
 });
@@ -73,6 +84,11 @@ const createOrderSchema = z.object({
 const updateOrderSchema = z.object({
   orderNumber: z.string().min(1, 'Order number is required').optional(),
   orderDate: z.string().optional(),
+  shippingValue: z
+    .number()
+    .min(0, 'Shipping value must not be negative')
+    .optional()
+    .nullable(),
   ...orderDescriptiveSchema,
   items: z.array(itemSchema).min(1, 'At least one item is required').optional(),
 });
@@ -195,10 +211,10 @@ const orderSortValue = (order, field) => {
     );
   }
   if (field === 'totalPv') {
-    return (order.items || []).reduce((sum, item) => {
-      const qty = Math.max(1, Number(item.quantity) || 1);
-      return sum + (parseFloat(item.pv) || 0) * qty;
-    }, 0);
+    return (order.items || []).reduce(
+      (sum, item) => sum + effectivePvCents(item),
+      0,
+    );
   }
   return undefined;
 };
@@ -375,7 +391,10 @@ const createOrder = async (req, res) => {
       const personMap = new Map(persons.map((p) => [p.id, p]));
 
       // Calculate total value in integer cents, honoring price mode × quantity
-      const totalCents = orderLineTotalCents(validatedData.items);
+      // plus the order-level shipping value.
+      const shippingCents = toCents(validatedData.shippingValue ?? 0);
+      const totalCents =
+        orderLineTotalCents(validatedData.items) + shippingCents;
       const status = computeOrderStatus({
         items: validatedData.items.map((item) => ({
           personId: item.personId,
@@ -385,6 +404,7 @@ const createOrder = async (req, res) => {
           person: personMap.get(item.personId),
         })),
         payments: [],
+        shippingCents,
       });
 
       // Create order with items
@@ -392,6 +412,7 @@ const createOrder = async (req, res) => {
         data: {
           orderNumber: validatedData.orderNumber,
           totalValue: fromCents(totalCents).toFixed(2),
+          shippingValue: fromCents(shippingCents).toFixed(2),
           orderDate: validatedData.orderDate
             ? parseLocalDate(validatedData.orderDate)
             : undefined,
@@ -469,6 +490,16 @@ const updateOrder = async (req, res) => {
             ...(validatedData.orderNotes !== undefined && {
               orderNotes: validatedData.orderNotes,
             }),
+            ...(validatedData.shippingValue !== undefined && {
+              shippingValue: fromCents(
+                toCents(validatedData.shippingValue ?? 0),
+              ).toFixed(2),
+              totalValue: fromCents(
+                toCents(existingOrder.totalValue) -
+                  toCents(existingOrder.shippingValue ?? 0) +
+                  toCents(validatedData.shippingValue ?? 0),
+              ).toFixed(2),
+            }),
           },
           include: {
             items: {
@@ -479,6 +510,25 @@ const updateOrder = async (req, res) => {
             },
           },
         });
+
+        if (validatedData.shippingValue !== undefined) {
+          const payments = await tx.payment.findMany({
+            where: { orderId: id },
+          });
+          const newStatus = computeOrderStatus({
+            items: order.items,
+            payments,
+            shippingCents: toCents(validatedData.shippingValue ?? 0),
+          });
+          if (newStatus !== order.status) {
+            await tx.order.update({
+              where: { id },
+              data: { status: newStatus },
+            });
+            order.status = newStatus;
+          }
+        }
+
         return order;
       }
 
@@ -507,7 +557,11 @@ const updateOrder = async (req, res) => {
 
       validateStockItemRules(validatedData.items, selfIds);
 
-      const totalCents = orderLineTotalCents(validatedData.items);
+      const shippingCents = toCents(
+        validatedData.shippingValue ?? existingOrder.shippingValue ?? 0,
+      );
+      const totalCents =
+        orderLineTotalCents(validatedData.items) + shippingCents;
 
       // Compute stock diff (self + forStock) between old and new items, then
       // apply before replacing items (old items are destroyed afterwards).
@@ -543,6 +597,7 @@ const updateOrder = async (req, res) => {
         data: {
           orderNumber: validatedData.orderNumber || existingOrder.orderNumber,
           totalValue: fromCents(totalCents).toFixed(2),
+          shippingValue: fromCents(shippingCents).toFixed(2),
           orderDate: validatedData.orderDate
             ? parseLocalDate(validatedData.orderDate)
             : undefined,
@@ -574,7 +629,11 @@ const updateOrder = async (req, res) => {
       const payments = await tx.payment.findMany({
         where: { orderId: id },
       });
-      const newStatus = computeOrderStatus({ items: order.items, payments });
+      const newStatus = computeOrderStatus({
+        items: order.items,
+        payments,
+        shippingCents,
+      });
       if (newStatus !== order.status) {
         const updated = await tx.order.update({
           where: { id },
@@ -683,10 +742,11 @@ const addItemToOrder = async (req, res) => {
       );
 
       const lineCents = lineValueCents(validatedData);
-      const newTotalCents = orderLineTotalCents([
-        ...(await tx.item.findMany({ where: { orderId } })),
-        validatedData,
-      ]);
+      const newTotalCents =
+        orderLineTotalCents([
+          ...(await tx.item.findMany({ where: { orderId } })),
+          validatedData,
+        ]) + toCents(order.shippingValue ?? 0);
 
       // Add item to order
       const item = await tx.item.create({
@@ -736,6 +796,7 @@ const addItemToOrder = async (req, res) => {
       const newStatus = computeOrderStatus({
         items: updatedOrder.items,
         payments,
+        shippingCents: toCents(order.shippingValue ?? 0),
       });
       if (newStatus !== updatedOrder.status) {
         await tx.order.update({
@@ -907,7 +968,11 @@ const updateItem = async (req, res) => {
       const payments = await tx.payment.findMany({
         where: { orderId: existingItem.orderId },
       });
-      const newStatus = computeOrderStatus({ items: orderItems, payments });
+      const newStatus = computeOrderStatus({
+        items: orderItems,
+        payments,
+        shippingCents: toCents(existingItem.order.shippingValue ?? 0),
+      });
       if (newStatus !== existingItem.order.status) {
         await tx.order.update({
           where: { id: existingItem.orderId },
@@ -983,7 +1048,9 @@ const deleteItem = async (req, res) => {
       const remainingItems = await tx.item.findMany({
         where: { orderId: existingItem.orderId },
       });
-      const newTotalCents = orderLineTotalCents(remainingItems);
+      const newTotalCents =
+        orderLineTotalCents(remainingItems) +
+        toCents(existingItem.order.shippingValue ?? 0);
       await tx.order.update({
         where: { id: existingItem.orderId },
         data: { totalValue: fromCents(newTotalCents).toFixed(2) },
@@ -997,7 +1064,11 @@ const deleteItem = async (req, res) => {
       const payments = await tx.payment.findMany({
         where: { orderId: existingItem.orderId },
       });
-      const newStatus = computeOrderStatus({ items: orderItems, payments });
+      const newStatus = computeOrderStatus({
+        items: orderItems,
+        payments,
+        shippingCents: toCents(existingItem.order.shippingValue ?? 0),
+      });
       if (newStatus !== existingItem.order.status) {
         await tx.order.update({
           where: { id: existingItem.orderId },
