@@ -60,6 +60,21 @@ const PersonFormFields = ({ values, onChange }) => {
       </div>
 
       <div className="mb-4">
+        <label className={inputLabelClass}>Observação</label>
+        <textarea
+          value={values.observacao ?? ''}
+          onChange={(e) => onChange('observacao', e.target.value)}
+          rows={4}
+          maxLength={2000}
+          className={fieldClass}
+          placeholder="Informações gerais sobre o cliente (até 2000 caracteres)"
+        />
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          {(values.observacao ?? '').length}/2000
+        </p>
+      </div>
+
+      <div className="mb-4">
         <label
           htmlFor="person-self"
           className="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"

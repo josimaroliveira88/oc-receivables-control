@@ -123,6 +123,7 @@ export function usePeople() {
       whatsapp: person.whatsapp || '',
       instagram: person.instagram || '',
       address: person.address || '',
+      observacao: person.observacao || '',
       isVip: person.isVip || false,
       isDoterraMember: person.isDoterraMember || false,
       isSelf: person.isSelf || false,

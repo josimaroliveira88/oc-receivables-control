@@ -15,6 +15,7 @@ export const emptyForm = () => ({
   whatsapp: '55',
   instagram: '',
   address: '',
+  observacao: '',
   isVip: false,
   isDoterraMember: false,
   isSelf: false,
@@ -26,6 +27,7 @@ export const buildPayload = (form) => ({
   commonGroups: form.commonGroups.trim() || null,
   instagram: form.instagram.trim() || null,
   address: form.address.trim() || null,
+  observacao: form.observacao.trim() || null,
   isVip: form.isVip,
   isDoterraMember: form.isDoterraMember,
   isSelf: form.isSelf,
@@ -80,6 +82,9 @@ export const filterAndSortPeople = (
       query &&
       !person.name.toLowerCase().includes(query) &&
       !String(person.whatsapp || '')
+        .toLowerCase()
+        .includes(query) &&
+      !String(person.observacao || '')
         .toLowerCase()
         .includes(query)
     ) {
