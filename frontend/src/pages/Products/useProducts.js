@@ -16,6 +16,8 @@ export function useProducts() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [loyaltyTier, setLoyaltyTier] = useState('');
+  const [showPointsColumn, setShowPointsColumn] = useState(false);
   const [sort, setSort] = useState('name:asc');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -80,6 +82,10 @@ export function useProducts() {
   const setCreateField = (field, value) => {
     setCreateForm((prev) => ({ ...prev, [field]: value }));
     setError('');
+  };
+
+  const togglePointsColumn = () => {
+    setShowPointsColumn((prev) => !prev);
   };
 
   const setEditField = (field, value) => {
@@ -218,6 +224,8 @@ export function useProducts() {
     error,
     search,
     statusFilter,
+    loyaltyTier,
+    showPointsColumn,
     sort,
     sentinelRef,
     showCreateModal,
@@ -231,6 +239,9 @@ export function useProducts() {
     openCreateModal,
     setSearch,
     setStatusFilter,
+    setLoyaltyTier,
+    setShowPointsColumn,
+    togglePointsColumn,
     setSort,
     setCreateField,
     setEditField,

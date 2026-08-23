@@ -1,5 +1,69 @@
 export const PAGE_SIZE = 20;
 
+export const LOYALTY_TIERS = [
+  {
+    value: '1-3',
+    label: '1 a 3 meses',
+    percentage: 0.1,
+    rangeLabel: 'nos meses 1–3',
+  },
+  {
+    value: '4-6',
+    label: '4 a 6 meses',
+    percentage: 0.15,
+    rangeLabel: 'nos meses 4–6',
+  },
+  {
+    value: '7-9',
+    label: '7 a 9 meses',
+    percentage: 0.2,
+    rangeLabel: 'nos meses 7–9',
+  },
+  {
+    value: '10-12',
+    label: '10 a 12 meses',
+    percentage: 0.25,
+    rangeLabel: 'nos meses 10–12',
+  },
+  {
+    value: '13+',
+    label: '13+ meses',
+    percentage: 0.3,
+    rangeLabel: 'a partir do 13º mês',
+  },
+];
+
+export const LOYALTY_MINIMUM_PV = 50;
+
+export const getLoyaltyTier = (tierValue) =>
+  LOYALTY_TIERS.find((tier) => tier.value === tierValue);
+
+export const calculatePoints = (pv, tierValue) => {
+  if (tierValue === '') return null;
+  const tier = getLoyaltyTier(tierValue);
+  if (!tier) return null;
+  const pvNumber = parseFloat(pv) || 0;
+  return Math.round(pvNumber * tier.percentage * 100) / 100;
+};
+
+export const formatPoints = (value) => {
+  if (value === null || value === undefined) return '—';
+  return new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+};
+
+export const isBelowMinimumPv = (pv) =>
+  (parseFloat(pv) || 0) < LOYALTY_MINIMUM_PV;
+
+export const getLoyaltyTierDescription = (tierValue) => {
+  if (tierValue === '') return 'Selecione sua regularidade de pedidos';
+  const tier = getLoyaltyTier(tierValue);
+  if (!tier) return '';
+  return `${tier.percentage * 100}% do PV ${tier.rangeLabel} • mínimo ${LOYALTY_MINIMUM_PV} PV por pedido`;
+};
+
 export const SORT_OPTIONS = [
   { value: 'name:asc', label: 'Nome (A-Z)' },
   { value: 'name:desc', label: 'Nome (Z-A)' },
