@@ -10,6 +10,23 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 60 — R$/PV column on the Products screen (2026-08-23)
+
+### Added
+- **R$/PV** column on the Cadastro de Produtos screen: `memberPrice / pv`, computed on the backend at API projection time using integer/`BigInt` arithmetic (no floating-point), rounded half-up to two decimal places, and returned as a string in the product payloads (`GET /api/products`, `GET /api/products/:id`, create/update responses). A product with null/zero PV (or no current price) returns `null`, shown as `—` in the UI.
+- Sorting by R$/PV (asc/desc) on both the server (`sortBy=pricePerPv`) and the client-side sort dropdown (`R$/PV (menor)` / `R$/PV (maior)`).
+- `backend/src/utils/money.js` gained `pricePerPv(memberPrice, pv)`; `backend/src/controllers/productController.js` projects the derived `pricePerPv` field and includes it in the numeric sortable fields.
+
+### Changed
+- Products table column order is now Código, Site, Produto, Tamanho, Preço Regular, Preço Membro, PV, R$/PV, Status, Ações, with widths rebalanced (`frontend/src/pages/Products/components/ProductsTable.jsx`).
+- `ARCHITECTURE.md` updated to document the derived `pricePerPv` field.
+
+### Tests
+- Backend (`tests/products.test.js`): R$/PV on create with exact division and half-up rounding, `null` for zero PV, and server-side sorting by `pricePerPv`. **295 backend passing**.
+- Frontend (`tests/ProductsPage.test.jsx`): R$/PV rendered with BRL formatting, `—` placeholder when unavailable, and the product-column selector updated for the new column order. **420 frontend passing**.
+- Verified: `npm run format:check` clean, `cd frontend && npm run build` clean.
+
+
 ## Phase 59 — Accent-insensitive search across list endpoints (2026-08-21)
 
 ### Fixed
