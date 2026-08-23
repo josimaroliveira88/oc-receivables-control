@@ -14,11 +14,7 @@ const {
 const { applyMovement } = require('../services/stockService');
 const { computeStockDiff } = require('../utils/stockDiff');
 const { findIdsByTextSearch } = require('../utils/search');
-
-const parseLocalDate = (dateStr) => {
-  const [year, month, day] = dateStr.split('-').map(Number);
-  return new Date(year, month - 1, day);
-};
+const { parseLocalDate } = require('../utils/date');
 
 const itemSchema = z.object({
   description: z.string().max(500).optional().nullable(),
@@ -166,6 +162,13 @@ const statusItemFromItem = (item) => ({
 });
 
 const itemStockMovements = async (client, order, orderNumber, items) => {
+  if (!order.orderDate) {
+    const error = new Error(
+      'Data do pedido é obrigatória para movimentações de estoque',
+    );
+    error.status = 400;
+    throw error;
+  }
   // Apply ENTRADA movements for every self + forStock + product item.
   for (const item of items) {
     if (!item.forStock || !item.productId) continue;
@@ -178,6 +181,7 @@ const itemStockMovements = async (client, order, orderNumber, items) => {
       reason: `Pedido ${orderNumber}`,
       orderId: order.id,
       itemId: item.id,
+      effectiveDate: order.orderDate,
     });
   }
 };
@@ -570,6 +574,16 @@ const updateOrder = async (req, res) => {
         validatedData.items,
         selfIds,
       );
+      const effectiveOrderDate = validatedData.orderDate
+        ? parseLocalDate(validatedData.orderDate)
+        : existingOrder.orderDate;
+      if (!effectiveOrderDate) {
+        const error = new Error(
+          'Data do pedido é obrigatória para movimentações de estoque',
+        );
+        error.status = 400;
+        throw error;
+      }
       for (const { productId, delta } of diff) {
         if (delta > 0) {
           await applyMovement(tx, {
@@ -579,6 +593,7 @@ const updateOrder = async (req, res) => {
             quantity: delta,
             reason: `Pedido ${validatedData.orderNumber || existingOrder.orderNumber}`,
             orderId: existingOrder.id,
+            effectiveDate: effectiveOrderDate,
           });
         } else {
           await applyMovement(tx, {
@@ -588,6 +603,7 @@ const updateOrder = async (req, res) => {
             quantity: -delta,
             reason: `Pedido ${validatedData.orderNumber || existingOrder.orderNumber}`,
             orderId: existingOrder.id,
+            effectiveDate: effectiveOrderDate,
           });
         }
       }
@@ -676,6 +692,14 @@ const deleteOrder = async (req, res) => {
         throw error;
       }
 
+      if (!existingOrder.orderDate) {
+        const error = new Error(
+          'Data do pedido é obrigatória para movimentações de estoque',
+        );
+        error.status = 400;
+        throw error;
+      }
+
       // Reverse stock for every self + forStock + product item before deleting
       for (const item of existingOrder.items) {
         if (!item.forStock || !item.productId) continue;
@@ -687,6 +711,7 @@ const deleteOrder = async (req, res) => {
           quantity: item.quantity ?? 1,
           reason: `Pedido ${existingOrder.orderNumber}`,
           orderId: existingOrder.id,
+          effectiveDate: existingOrder.orderDate,
         });
       }
 
@@ -719,6 +744,14 @@ const addItemToOrder = async (req, res) => {
       if (!order) {
         const error = new Error('Order not found');
         error.status = 404;
+        throw error;
+      }
+
+      if (!order.orderDate) {
+        const error = new Error(
+          'Data do pedido é obrigatória para movimentações de estoque',
+        );
+        error.status = 400;
         throw error;
       }
 
@@ -786,6 +819,7 @@ const addItemToOrder = async (req, res) => {
           reason: `Pedido ${order.orderNumber}`,
           orderId,
           itemId: item.id,
+          effectiveDate: order.orderDate,
         });
       }
 
@@ -909,6 +943,7 @@ const updateItem = async (req, res) => {
             reason: `Pedido ${existingItem.order.orderNumber}`,
             orderId: existingItem.orderId,
             itemId,
+            effectiveDate: existingItem.order.orderDate,
           });
         } else {
           await applyMovement(tx, {
@@ -919,6 +954,7 @@ const updateItem = async (req, res) => {
             reason: `Pedido ${existingItem.order.orderNumber}`,
             orderId: existingItem.orderId,
             itemId,
+            effectiveDate: existingItem.order.orderDate,
           });
         }
       }
@@ -1038,6 +1074,7 @@ const deleteItem = async (req, res) => {
           reason: `Pedido ${existingItem.order.orderNumber}`,
           orderId: existingItem.orderId,
           itemId,
+          effectiveDate: existingItem.order.orderDate,
         });
       }
 
