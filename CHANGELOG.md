@@ -10,6 +10,22 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 61 — Loyalty points column on the Products screen (2026-08-23)
+
+### Added
+- **Pontos** column on the Cadastro de Produtos screen showing the predicted loyalty points a product would accumulate, computed as `PV × tier percentage`, where the percentage follows the dōTERRA order-regularity program: 10% (meses 1–3), 15% (meses 4–6), 20% (meses 7–9), 25% (meses 10–12) and 30% (a partir do 13º mês). Values are displayed in pt-BR with two decimal places (e.g. `3,10`).
+- **Regularidade** select in the table toolbar letting the user pick the current regularity tier; a short explanatory line under the select updates with the chosen tier (e.g. `15% do PV nos meses 4–6 • mínimo 50 PV por pedido`).
+- The whole points feature is **hidden by default**: a subtle **Pontos** button (eye icon) in the toolbar toggles the column, the Regularidade select and its explanatory text on/off (`aria-pressed`).
+- Products with `PV < 50` are highlighted in amber with a tooltip explaining that, on their own in a single order, they would not reach the 50 PV monthly minimum required to accumulate points (the minimum applies to the whole order, so the per-product calculation is unchanged).
+
+### Changed
+- Pure helpers added to `frontend/src/pages/Products/utils/productHelpers.js`: `LOYALTY_TIERS`, `getLoyaltyTier`, `calculatePoints`, `formatPoints`, `isBelowMinimumPv` and `getLoyaltyTierDescription`. State (`loyaltyTier`, `showPointsColumn` + `togglePointsColumn`) lives in `useProducts.js`; `ProductsTable.jsx` rebalanced column widths to make room for the new column (Código 6 / Site 4 / Produto 22 / Tamanho 8 / Preço Regular 9 / Preço Membro 9 / PV 5 / R$/PV 7 / Pontos 8 / Status 12 / Ações 10).
+
+### Tests
+- `frontend/tests/ProductsPage.test.jsx`: new "Loyalty points column" block covering the hidden-by-default behavior and the toggle, the tier select and its explanatory text, PV×percentage rendering for the 1–3 and 13+ tiers (no extra API call), and the amber highlight/tooltip for PV below 50. **428 frontend passing** (was 420).
+- Verified: `npm run format:check` clean, `cd frontend && npm run build` clean.
+
+
 ## Phase 60 — R$/PV column on the Products screen (2026-08-23)
 
 ### Added
