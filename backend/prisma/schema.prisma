@@ -42,6 +42,7 @@ model Order {
   id           String       @id @default(uuid())
   orderNumber  String
   totalValue   Decimal      @db.Decimal(10, 2)
+  shippingValue Decimal     @db.Decimal(10, 2) @default(0)
   orderDate    DateTime     @default(now())
   status       OrderStatus  @default(PENDENTE)
   accountOwner String?      @db.VarChar(120)
