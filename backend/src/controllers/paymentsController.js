@@ -3,11 +3,7 @@ const { z } = require('zod');
 const prisma = new PrismaClient();
 const { toCents, fromCents, lineValueCents } = require('../utils/money');
 const { computeOrderStatus } = require('../utils/receivables');
-
-const parseLocalDate = (dateStr) => {
-  const [year, month, day] = dateStr.split('-').map(Number);
-  return new Date(year, month - 1, day);
-};
+const { parseLocalDate } = require('../utils/date');
 
 class NotFoundError extends Error {}
 
