@@ -9,6 +9,16 @@ export const getTodayString = () => {
   return `${year}-${month}-${day}`;
 };
 
+export const toLocalDateInput = (iso) => {
+  if (!iso) return getTodayString();
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return getTodayString();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export const getSelectedBalance = (balances, selectedPersonId) =>
   balances.find((b) => b.personId === selectedPersonId) || null;
 
@@ -93,4 +103,14 @@ export const paymentPayload = ({
   personId: selectedPersonId,
   paidAt: paymentDate || undefined,
   notes: paymentNotes.trim() || undefined,
+});
+
+export const editPaymentPayload = ({
+  paymentAmount,
+  paymentDate,
+  paymentNotes,
+}) => ({
+  amount: parseFloat(paymentAmount || '0'),
+  paidAt: paymentDate || undefined,
+  notes: paymentNotes.trim() || null,
 });

@@ -4,6 +4,7 @@ import { useToast } from '../../components/Toast';
 import { toCents } from '../../utils/money';
 import {
   getTodayString,
+  toLocalDateInput,
   getSelectedBalance,
   getSelectedPendingCents,
   isSelectedZeroItem,
@@ -11,6 +12,7 @@ import {
   getPersonItems,
   getPersonPayments,
   paymentPayload,
+  editPaymentPayload,
 } from './utils/receivablesHelpers';
 
 export function useOrderPayments({ refreshOrders }) {
@@ -29,6 +31,14 @@ export function useOrderPayments({ refreshOrders }) {
   const [detailBalances, setDetailBalances] = useState([]);
   const [detailLoading, setDetailLoading] = useState(false);
   const [expandedPersonId, setExpandedPersonId] = useState('');
+  const [showEditPaymentModal, setShowEditPaymentModal] = useState(false);
+  const [editingPayment, setEditingPayment] = useState(null);
+  const [editPaymentAmount, setEditPaymentAmount] = useState('');
+  const [editPaymentNotes, setEditPaymentNotes] = useState('');
+  const [editPaymentDate, setEditPaymentDate] = useState(getTodayString());
+  const [editPaymentError, setEditPaymentError] = useState('');
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [showEditOverpayConfirm, setShowEditOverpayConfirm] = useState(false);
   const { addToast } = useToast();
 
   const openPaymentModal = async (order) => {
@@ -169,6 +179,138 @@ export function useOrderPayments({ refreshOrders }) {
     setShowOverpayConfirm(false);
   };
 
+  const openEditPaymentModal = (payment) => {
+    setEditingPayment(payment);
+    setEditPaymentAmount(payment.amount);
+    setEditPaymentNotes(payment.notes || '');
+    setEditPaymentDate(toLocalDateInput(payment.paidAt));
+    setEditPaymentError('');
+    setShowEditOverpayConfirm(false);
+    setShowEditPaymentModal(true);
+  };
+
+  const closeEditPaymentModal = () => {
+    setShowEditPaymentModal(false);
+    setEditingPayment(null);
+    setEditPaymentAmount('');
+    setEditPaymentNotes('');
+    setEditPaymentDate(getTodayString());
+    setEditPaymentError('');
+    setShowEditOverpayConfirm(false);
+  };
+
+  const handleChangeEditAmount = (value) => {
+    setEditPaymentAmount(value);
+    setEditPaymentError('');
+  };
+
+  const handleChangeEditNotes = (value) => {
+    setEditPaymentNotes(value);
+  };
+
+  const handleChangeEditDate = (value) => {
+    setEditPaymentDate(value);
+  };
+
+  const refreshDetailBalance = async () => {
+    if (!detailOrder) return;
+    try {
+      const response = await api.get(`/orders/${detailOrder.id}/balance`);
+      setDetailBalances(response.data.balances || []);
+    } catch (err) {
+      addToast('Erro ao carregar detalhamento do pedido.', 'error');
+    }
+  };
+
+  const submitEditPayment = async () => {
+    try {
+      setEditSubmitting(true);
+      const editedPayment = editingPayment;
+      await api.put(
+        `/orders/payments/${editedPayment.id}`,
+        editPaymentPayload({
+          paymentAmount: editPaymentAmount,
+          paymentDate: editPaymentDate,
+          paymentNotes: editPaymentNotes,
+        }),
+      );
+      addToast('Pagamento atualizado com sucesso!', 'success');
+      closeEditPaymentModal();
+      if (detailOrder) {
+        setDetailOrder({
+          ...detailOrder,
+          payments: (detailOrder.payments || []).map((p) =>
+            p.id === editedPayment.id
+              ? {
+                  ...p,
+                  amount: editPaymentAmount,
+                  paidAt: editPaymentDate
+                    ? new Date(`${editPaymentDate}T12:00:00`).toISOString()
+                    : p.paidAt,
+                  notes: editPaymentNotes.trim() || null,
+                }
+              : p,
+          ),
+        });
+        await refreshDetailBalance();
+      }
+      refreshOrders();
+    } catch (err) {
+      const msg =
+        err.response?.data?.error ||
+        'Erro ao atualizar pagamento. Tente novamente.';
+      if (typeof msg === 'string' && msg.includes('greater than zero')) {
+        setEditPaymentError('Valor deve ser maior que zero');
+      } else if (typeof msg === 'string' && msg.includes('Payment not found')) {
+        setEditPaymentError('Pagamento não encontrado');
+      } else {
+        addToast(msg, 'error');
+      }
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    setEditPaymentError('');
+
+    const amountCents = toCents(parseFloat(editPaymentAmount || '0'));
+
+    if (amountCents < 0) {
+      setEditPaymentError('Valor não pode ser negativo');
+      return;
+    }
+
+    const isSelf = !!(editBalance && editBalance.isSelf);
+
+    if (
+      !isSelf &&
+      editBalance &&
+      toCents(editBalance.itemTotal) > 0 &&
+      amountCents === 0
+    ) {
+      setEditPaymentError('Valor deve ser maior que zero');
+      return;
+    }
+
+    if (!isSelf && amountCents > editPendingCents) {
+      setShowEditOverpayConfirm(true);
+      return;
+    }
+
+    await submitEditPayment();
+  };
+
+  const confirmEditOverpay = () => {
+    setShowEditOverpayConfirm(false);
+    submitEditPayment();
+  };
+
+  const cancelEditOverpay = () => {
+    setShowEditOverpayConfirm(false);
+  };
+
   const openDetailsModal = async (order) => {
     setDetailOrder(order);
     setDetailBalances([]);
@@ -214,6 +356,19 @@ export function useOrderPayments({ refreshOrders }) {
   const selectedIsSelf = !!selectedBalance && !!selectedBalance.isSelf;
   const selectedPersonItems = getPersonItems(selectedOrder, selectedPersonId);
 
+  const editBalance = editingPayment
+    ? detailBalances.find((b) => b.personId === editingPayment.personId) || null
+    : null;
+  const editPendingCents = editBalance ? toCents(editBalance.pending) : 0;
+  const editIsZeroItem = editBalance
+    ? toCents(editBalance.itemTotal) === 0
+    : false;
+  const editIsSelf = !!editBalance && !!editBalance.isSelf;
+  const editPersonName = editBalance
+    ? editBalance.personName
+    : (editingPayment && editingPayment.person && editingPayment.person.name) ||
+      '';
+
   return {
     showPaymentModal,
     selectedOrder,
@@ -249,5 +404,25 @@ export function useOrderPayments({ refreshOrders }) {
     toggleDetailPerson,
     getDetailPersonItems,
     getDetailPersonPayments,
+    showEditPaymentModal,
+    editingPayment,
+    editPaymentAmount,
+    editPaymentNotes,
+    editPaymentDate,
+    editPaymentError,
+    editSubmitting,
+    showEditOverpayConfirm,
+    editPendingCents,
+    editIsZeroItem,
+    editIsSelf,
+    editPersonName,
+    openEditPaymentModal,
+    closeEditPaymentModal,
+    handleChangeEditAmount,
+    handleChangeEditNotes,
+    handleChangeEditDate,
+    handleEditSubmit,
+    confirmEditOverpay,
+    cancelEditOverpay,
   };
 }

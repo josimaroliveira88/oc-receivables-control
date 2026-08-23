@@ -7,6 +7,7 @@ import OrderModal from './components/OrderModal';
 import OrderForm from './components/OrderForm';
 import PaymentModal from './components/PaymentModal';
 import DetailsModal from './components/DetailsModal';
+import EditPaymentModal from './components/EditPaymentModal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 
 const OrdersPage = () => {
@@ -96,6 +97,26 @@ const OrdersPage = () => {
     toggleDetailPerson,
     getDetailPersonItems,
     getDetailPersonPayments,
+    showEditPaymentModal,
+    editingPayment,
+    editPaymentAmount,
+    editPaymentNotes,
+    editPaymentDate,
+    editPaymentError,
+    editSubmitting,
+    showEditOverpayConfirm,
+    editPendingCents,
+    editIsZeroItem,
+    editIsSelf,
+    editPersonName,
+    openEditPaymentModal,
+    closeEditPaymentModal,
+    handleChangeEditAmount,
+    handleChangeEditNotes,
+    handleChangeEditDate,
+    handleEditSubmit,
+    confirmEditOverpay,
+    cancelEditOverpay,
   } = useOrderPayments({ refreshOrders });
 
   if (loading) {
@@ -218,8 +239,51 @@ const OrdersPage = () => {
           onTogglePerson={toggleDetailPerson}
           personItems={getDetailPersonItems}
           personPayments={getDetailPersonPayments}
+          onEditPayment={openEditPaymentModal}
         />
       )}
+
+      {showEditPaymentModal && detailOrder && editingPayment && (
+        <EditPaymentModal
+          order={detailOrder}
+          payment={editingPayment}
+          personName={editPersonName}
+          isSelf={editIsSelf}
+          isZeroItem={editIsZeroItem}
+          pendingCents={editPendingCents}
+          paymentAmount={editPaymentAmount}
+          paymentNotes={editPaymentNotes}
+          paymentDate={editPaymentDate}
+          paymentError={editPaymentError}
+          submitting={editSubmitting}
+          onClose={closeEditPaymentModal}
+          onChangeAmount={handleChangeEditAmount}
+          onChangeNotes={handleChangeEditNotes}
+          onChangeDate={handleChangeEditDate}
+          onSubmit={handleEditSubmit}
+        />
+      )}
+
+      <ConfirmDialog
+        open={showEditOverpayConfirm}
+        title="Confirmar atualização"
+        message={
+          <>
+            Valor de{' '}
+            <strong>
+              {formatBRL(toCents(parseFloat(editPaymentAmount || '0')) / 100)}
+            </strong>{' '}
+            é maior que o saldo pendente (
+            <strong>{formatBRL(editPendingCents / 100)}</strong>). Deseja mesmo
+            confirmar esta atualização?
+          </>
+        }
+        confirmLabel="Confirmar atualização"
+        cancelLabel="Cancelar"
+        loading={editSubmitting}
+        onConfirm={confirmEditOverpay}
+        onCancel={cancelEditOverpay}
+      />
 
       <ConfirmDialog
         open={showOverpayConfirm}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Pencil } from 'lucide-react';
 import { formatBRL, toCents, fromCents } from '../../../utils/money';
 import { formatDateBR } from '../../../utils/dates';
 import { getOrderPendingCents } from '../utils/receivablesHelpers';
@@ -14,6 +14,7 @@ const DetailsModal = ({
   onTogglePerson,
   personItems,
   personPayments,
+  onEditPayment,
 }) => {
   return (
     <div
@@ -215,8 +216,19 @@ const DetailsModal = ({
                                   <span className="text-sm text-gray-900 dark:text-gray-100">
                                     {formatDateBR(payment.paidAt)}
                                   </span>
-                                  <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 whitespace-nowrap">
-                                    {formatBRL(parseFloat(payment.amount))}
+                                  <span className="flex items-center gap-2">
+                                    <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 whitespace-nowrap">
+                                      {formatBRL(parseFloat(payment.amount))}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      data-testid={`edit-payment-${payment.id}`}
+                                      aria-label="Editar pagamento"
+                                      onClick={() => onEditPayment(payment)}
+                                      className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                                    >
+                                      <Pencil size={16} aria-hidden="true" />
+                                    </button>
                                   </span>
                                 </div>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
