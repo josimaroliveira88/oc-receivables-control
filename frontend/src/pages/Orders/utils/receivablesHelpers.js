@@ -1,5 +1,5 @@
 import { toCents } from '../../../utils/money';
-import { lineValueCents } from './orderHelpers';
+import { lineValueCents, effectivePvCents } from './orderHelpers';
 
 export const getTodayString = () => {
   const d = new Date();
@@ -70,10 +70,7 @@ export const getPersonPayments = (order, personId) => {
 };
 
 export const getOrderTotalPV = (order) =>
-  (order.items || []).reduce((sum, item) => {
-    const qty = Math.max(1, Number(item.quantity) || 1);
-    return sum + (parseFloat(item.pv) || 0) * qty;
-  }, 0);
+  (order.items || []).reduce((sum, item) => sum + effectivePvCents(item), 0);
 
 export const getOrderFinancials = (order) => {
   const totalCents = toCents(parseFloat(order.totalValue));

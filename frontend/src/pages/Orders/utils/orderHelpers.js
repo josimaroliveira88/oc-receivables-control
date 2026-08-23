@@ -125,6 +125,14 @@ export const lineValueCents = (item) => {
   return base * qty;
 };
 
+// Effective PV in cents for an order item. When the charged line value is
+// zero (free item), the item does not accumulate PV.
+export const effectivePvCents = (item) => {
+  if (lineValueCents(item) === 0) return 0;
+  const qty = Math.max(1, Number(item.quantity) || 1);
+  return Math.round((parseFloat(item.pv) || 0) * 100) * qty;
+};
+
 // Member price total for display: unit member price * quantity.
 export const memberLineTotal = (item) => {
   const member = parseFloat(item.memberPrice) || 0;
