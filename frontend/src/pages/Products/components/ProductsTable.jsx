@@ -90,19 +90,25 @@ const ProductsTable = ({
                 <tr>
                   <th
                     scope="col"
-                    className="w-[8%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                    className="w-[7%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                   >
                     Código
                   </th>
                   <th
                     scope="col"
-                    className="w-[30%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                    className="w-[5%] px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  >
+                    Site
+                  </th>
+                  <th
+                    scope="col"
+                    className="w-[26%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                   >
                     Produto
                   </th>
                   <th
                     scope="col"
-                    className="w-[12%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                    className="w-[10%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                   >
                     Tamanho
                   </th>
@@ -126,9 +132,9 @@ const ProductsTable = ({
                   </th>
                   <th
                     scope="col"
-                    className="w-[5%] px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                    className="w-[8%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                   >
-                    Site
+                    R$/PV
                   </th>
                   <th
                     scope="col"
@@ -155,6 +161,27 @@ const ProductsTable = ({
                       className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
                     >
                       {product.code}
+                    </td>
+                    <td
+                      data-label="Site"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-left lg:text-center before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                    >
+                      {product.doterraUrl ? (
+                        <a
+                          href={product.doterraUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
+                          title="Ver produto no site da dōTERRA"
+                          aria-label="Ver produto no site"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      ) : (
+                        <span className="text-gray-400 dark:text-gray-500">
+                          —
+                        </span>
+                      )}
                     </td>
                     <td
                       data-label="Produto"
@@ -187,25 +214,13 @@ const ProductsTable = ({
                       {product.pv}
                     </td>
                     <td
-                      data-label="Site"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-left lg:text-center before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                      data-label="R$/PV"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-left lg:text-right text-sm text-gray-700 dark:text-gray-200 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
                     >
-                      {product.doterraUrl ? (
-                        <a
-                          href={product.doterraUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
-                          title="Ver produto no site da dōTERRA"
-                          aria-label="Ver produto no site"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      ) : (
-                        <span className="text-gray-400 dark:text-gray-500">
-                          —
-                        </span>
-                      )}
+                      {product.pricePerPv === null ||
+                      product.pricePerPv === undefined
+                        ? '—'
+                        : formatBRL(product.pricePerPv)}
                     </td>
                     <td
                       data-label="Status"

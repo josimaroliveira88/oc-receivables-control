@@ -8,6 +8,8 @@ export const SORT_OPTIONS = [
   { value: 'regularPrice:desc', label: 'Preço Regular (maior)' },
   { value: 'memberPrice:asc', label: 'Preço Membro (menor)' },
   { value: 'memberPrice:desc', label: 'Preço Membro (maior)' },
+  { value: 'pricePerPv:asc', label: 'R$/PV (menor)' },
+  { value: 'pricePerPv:desc', label: 'R$/PV (maior)' },
   { value: 'pv:asc', label: 'PV (menor)' },
   { value: 'pv:desc', label: 'PV (maior)' },
 ];
@@ -94,7 +96,7 @@ export const filterAndSortProducts = (products, search, statusFilter, sort) => {
   });
 
   return [...result].sort((a, b) => {
-    const numericFields = ['regularPrice', 'memberPrice', 'pv'];
+    const numericFields = ['regularPrice', 'memberPrice', 'pricePerPv', 'pv'];
     if (numericFields.includes(sortBy)) {
       const aValue = parseFloat(a[sortBy]) || 0;
       const bValue = parseFloat(b[sortBy]) || 0;
