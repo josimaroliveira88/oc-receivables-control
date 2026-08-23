@@ -52,8 +52,17 @@ const mockMovement = (overrides = {}) => ({
   type: 'ENTRADA',
   reason: 'Compra inicial',
   createdAt: '2026-08-20T14:30:00.000Z',
+  effectiveDate: '2026-08-15T00:00:00.000Z',
   ...overrides,
 });
+
+const todayDate = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 const renderPage = () =>
   render(
@@ -306,6 +315,58 @@ describe('StockPage', () => {
       expect(select.value).toBe('SAIDA');
     });
 
+    it('should pre-fill the effective date with the current date when opening', async () => {
+      mockGet.mockResolvedValue({ data: [mockInventoryItem] });
+      renderPage();
+
+      await clickStockAction(
+        '11111111-1111-1111-1111-111111111111',
+        'Nova-Entrada',
+      );
+
+      const dateInput = await screen.findByLabelText('Data Efetiva');
+      expect(dateInput.value).toBe(todayDate());
+    });
+
+    it('should send the user-chosen effective date in the movement payload', async () => {
+      mockPost.mockResolvedValue({
+        data: {
+          movement: mockMovement(),
+          inventory: { productId: mockInventoryItem.productId, quantity: 5 },
+        },
+      });
+      mockGet
+        .mockResolvedValueOnce({ data: [mockInventoryItem] })
+        .mockResolvedValueOnce({
+          data: [{ ...mockInventoryItem, quantity: 5 }],
+        });
+
+      renderPage();
+
+      await clickStockAction(
+        '11111111-1111-1111-1111-111111111111',
+        'Nova-Entrada',
+      );
+
+      const quantityInput = await screen.findByLabelText('Quantidade');
+      fireEvent.change(quantityInput, { target: { value: '5' } });
+
+      const dateInput = screen.getByLabelText('Data Efetiva');
+      fireEvent.change(dateInput, { target: { value: '2026-07-03' } });
+
+      const form = quantityInput.closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith('/stock/movements', {
+          productId: mockInventoryItem.productId,
+          type: 'ENTRADA',
+          quantity: 5,
+          effectiveDate: '2026-07-03',
+        });
+      });
+    });
+
     it('should show validation error when submitting an empty quantity (ENTRADA)', async () => {
       mockGet.mockResolvedValue({ data: [mockInventoryItem] });
       renderPage();
@@ -386,6 +447,7 @@ describe('StockPage', () => {
           type: 'AJUSTE',
           quantity: 0,
           reason: 'Contagem',
+          effectiveDate: todayDate(),
         });
       });
     });
@@ -429,6 +491,7 @@ describe('StockPage', () => {
           type: 'ENTRADA',
           quantity: 5,
           reason: 'Compra inicial',
+          effectiveDate: todayDate(),
         });
       });
 
@@ -567,6 +630,46 @@ describe('StockPage', () => {
       expect(screen.getByText('-2')).toBeInTheDocument();
       expect(screen.getByText('Compra inicial')).toBeInTheDocument();
       expect(screen.getByText('Uso pessoal')).toBeInTheDocument();
+    });
+
+    it('should render both "Data Efetiva" and "Data de Registro" columns with dates', async () => {
+      mockGet
+        .mockResolvedValueOnce({ data: [mockInventoryItem] })
+        .mockResolvedValueOnce({
+          data: [
+            mockMovement(),
+            mockMovement({
+              id: 'movement-2',
+              quantity: -2,
+              type: 'SAIDA',
+              createdAt: '2026-08-21T09:00:00.000Z',
+              effectiveDate: '2026-08-15T00:00:00.000Z',
+            }),
+          ],
+        });
+
+      renderPage();
+
+      await clickStockAction(
+        '11111111-1111-1111-1111-111111111111',
+        'Ver-Historico',
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Data Efetiva')).toBeInTheDocument();
+        expect(screen.getByText('Data de Registro')).toBeInTheDocument();
+      });
+
+      const effectiveCells = document.querySelectorAll(
+        '[data-label="Data Efetiva"]',
+      );
+      const registrationCells = document.querySelectorAll(
+        '[data-label="Data de Registro"]',
+      );
+      expect(effectiveCells.length).toBeGreaterThan(0);
+      expect(registrationCells.length).toBeGreaterThan(0);
+      expect(effectiveCells[0].textContent).toMatch(/2026/);
+      expect(registrationCells[0].textContent).toMatch(/2026/);
     });
 
     it('should show an empty state when the product has no movements yet', async () => {
@@ -730,6 +833,7 @@ describe('StockPage', () => {
           type: 'ENTRADA',
           quantity: 5,
           reason: 'Estoque inicial',
+          effectiveDate: todayDate(),
         });
       });
 
@@ -843,6 +947,7 @@ describe('StockPage', () => {
           productId: mockNotInStockProduct.id,
           type: 'AJUSTE',
           quantity: 10,
+          effectiveDate: todayDate(),
         });
       });
     });
