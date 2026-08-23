@@ -58,6 +58,7 @@ const mockProduct = {
   regularPrice: 308.0,
   memberPrice: 231.25,
   pv: 31,
+  pricePerPv: '7.46',
   doterraUrl: null,
 };
 
@@ -70,6 +71,7 @@ const mockInactiveProduct = {
   regularPrice: 103.0,
   memberPrice: 77.5,
   pv: 9,
+  pricePerPv: '8.61',
   doterraUrl: null,
 };
 
@@ -82,6 +84,7 @@ const mockUnavailableProduct = {
   regularPrice: 150.0,
   memberPrice: 112.5,
   pv: 15,
+  pricePerPv: '7.50',
   doterraUrl: 'https://www.doterra.com/BR/pt_BR/p/deep-blue',
 };
 
@@ -105,6 +108,7 @@ const manyProducts = Array.from({ length: 25 }, (_, i) => ({
   regularPrice: 100 + i,
   memberPrice: 75 + i,
   pv: 5 + i,
+  pricePerPv: ((75 + i) / (5 + i)).toFixed(2),
   doterraUrl: null,
 }));
 
@@ -143,7 +147,7 @@ const rowNames = () =>
   screen
     .getAllByRole('row')
     .slice(1)
-    .map((row) => row.querySelector('td:nth-child(2)').textContent);
+    .map((row) => row.querySelector('td[data-label="Produto"]').textContent);
 
 describe('ProductsPage', () => {
   beforeEach(() => {
@@ -202,6 +206,21 @@ describe('ProductsPage', () => {
         expect(screen.getByText('60 pastilhas')).toBeInTheDocument();
         expect(screen.getByText(/R\$\s*308,00/)).toBeInTheDocument();
         expect(screen.getByText(/R\$\s*231,25/)).toBeInTheDocument();
+        expect(screen.getByText(/R\$\s*7,46/)).toBeInTheDocument();
+      });
+    });
+
+    it('should display a placeholder when R$/PV is unavailable', async () => {
+      mockGet.mockResolvedValue({
+        data: fullResponse([{ ...mockProduct, pricePerPv: null }]),
+      });
+      renderPage();
+
+      await waitFor(() => {
+        const row = screen.getByText(mockProduct.name).closest('tr');
+        expect(row.querySelector('[data-label="R$/PV"]')).toHaveTextContent(
+          '—',
+        );
       });
     });
 

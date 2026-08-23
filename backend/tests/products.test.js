@@ -60,6 +60,7 @@ describe('Products CRUD', () => {
       expect(parseFloat(response.body.regularPrice)).toBe(103.0);
       expect(parseFloat(response.body.memberPrice)).toBe(77.5);
       expect(parseFloat(response.body.pv)).toBe(9.0);
+      expect(response.body.pricePerPv).toBe('8.61');
 
       const product = await prisma.product.findUnique({
         where: { code: 'TESTCRUD001' },
@@ -68,6 +69,38 @@ describe('Products CRUD', () => {
       expect(product).not.toBeNull();
       expect(product.prices).toHaveLength(1);
       expect(product.prices[0].validTo).toBeNull();
+    });
+
+    it('should calculate R$/PV with half-up rounding and handle zero PV', async () => {
+      const roundedResponse = await request(app)
+        .post('/api/products')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          code: 'TESTCRUD001C',
+          name: 'Produto com cálculo arredondado',
+          size: '15 ml',
+          regularPrice: 50,
+          memberPrice: 37.29,
+          pv: 2,
+        });
+
+      expect(roundedResponse.status).toBe(201);
+      expect(roundedResponse.body.pricePerPv).toBe('18.65');
+
+      const zeroPvResponse = await request(app)
+        .post('/api/products')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          code: 'TESTCRUD001D',
+          name: 'Produto sem PV',
+          size: '15 ml',
+          regularPrice: 50,
+          memberPrice: 37.29,
+          pv: 0,
+        });
+
+      expect(zeroPvResponse.status).toBe(201);
+      expect(zeroPvResponse.body.pricePerPv).toBeNull();
     });
 
     it('should create a new product with a doterraUrl', async () => {
@@ -464,6 +497,20 @@ describe('Products CRUD', () => {
     it('should sort by memberPrice descending', async () => {
       const response = await request(app)
         .get('/api/products?q=TESTCRUD11&sortBy=memberPrice&sortDir=desc')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.map((p) => p.code)).toEqual([
+        'TESTCRUD112',
+        'TESTCRUD111',
+        'TESTCRUD113',
+        'TESTCRUD110',
+      ]);
+    });
+
+    it('should sort by pricePerPv ascending', async () => {
+      const response = await request(app)
+        .get('/api/products?q=TESTCRUD11&sortBy=pricePerPv&sortDir=asc')
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
