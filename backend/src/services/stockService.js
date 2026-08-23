@@ -12,6 +12,7 @@ const applyMovement = async (
     reason = null,
     orderId = null,
     itemId = null,
+    effectiveDate = null,
   },
 ) => {
   const product = await client.product.findUnique({
@@ -62,6 +63,7 @@ const applyMovement = async (
       reason: reason ?? null,
       orderId: orderId ?? null,
       itemId: itemId ?? null,
+      effectiveDate: effectiveDate ?? new Date(),
     },
   });
 
