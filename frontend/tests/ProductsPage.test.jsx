@@ -88,6 +88,19 @@ const mockUnavailableProduct = {
   doterraUrl: 'https://www.doterra.com/BR/pt_BR/p/deep-blue',
 };
 
+const mockHighPvProduct = {
+  id: '4',
+  code: '60239004',
+  name: 'Óleo Intenso',
+  size: '15 ml',
+  status: 'ATIVO',
+  regularPrice: 250.0,
+  memberPrice: 187.5,
+  pv: 60,
+  pricePerPv: '3.13',
+  doterraUrl: null,
+};
+
 const fullResponse = (data) => ({
   data,
   pagination: {
@@ -149,6 +162,10 @@ const rowNames = () =>
     .slice(1)
     .map((row) => row.querySelector('td[data-label="Produto"]').textContent);
 
+const togglePointsColumn = () => {
+  fireEvent.click(screen.getByRole('button', { name: 'Pontos' }));
+};
+
 describe('ProductsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -175,6 +192,10 @@ describe('ProductsPage', () => {
         ).toBeInTheDocument();
         expect(screen.getByLabelText('Ordenar por')).toBeInTheDocument();
         expect(screen.getByLabelText('Status')).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: 'Pontos' }),
+        ).toBeInTheDocument();
+        expect(screen.queryByLabelText('Regularidade')).not.toBeInTheDocument();
       });
     });
 
@@ -282,7 +303,201 @@ describe('ProductsPage', () => {
         expect(
           screen.queryByLabelText('Ver produto no site'),
         ).not.toBeInTheDocument();
-        expect(screen.getByText('—')).toBeInTheDocument();
+        const row = screen.getByText(mockProduct.name).closest('tr');
+        expect(row.querySelector('[data-label="Site"]')).toHaveTextContent('—');
+      });
+    });
+  });
+
+  describe('Loyalty points column', () => {
+    const pontosCellFor = (name) =>
+      screen
+        .getByText(name)
+        .closest('tr')
+        .querySelector('[data-label="Pontos"]');
+
+    it('should hide the Pontos column, the Regularidade select and the explanatory text by default', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      expect(
+        screen.queryByRole('columnheader', { name: 'Pontos' }),
+      ).not.toBeInTheDocument();
+      expect(pontosCellFor('Adaptiv® Pastilhas')).toBeNull();
+      expect(screen.queryByLabelText('Regularidade')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('Selecione sua regularidade de pedidos'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should reveal the Pontos column and the Regularidade select when the button is clicked and hide them again', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      togglePointsColumn();
+      await waitFor(() => {
+        expect(
+          screen.getByRole('columnheader', { name: 'Pontos' }),
+        ).toBeInTheDocument();
+        expect(screen.getByLabelText('Regularidade')).toBeInTheDocument();
+        expect(
+          screen.getByText('Selecione sua regularidade de pedidos'),
+        ).toBeInTheDocument();
+      });
+
+      togglePointsColumn();
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('columnheader', { name: 'Pontos' }),
+        ).not.toBeInTheDocument();
+        expect(pontosCellFor('Adaptiv® Pastilhas')).toBeNull();
+        expect(screen.queryByLabelText('Regularidade')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should show a placeholder in the Pontos column when no tier is selected', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      togglePointsColumn();
+
+      await waitFor(() => {
+        expect(pontosCellFor('Adaptiv® Pastilhas')).toHaveTextContent('—');
+      });
+    });
+
+    it('should render the Regularidade select and the explanatory text when the column is shown', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([]) });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Novo')).toBeInTheDocument();
+      });
+
+      togglePointsColumn();
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Regularidade')).toBeInTheDocument();
+        expect(
+          screen.getByText('Selecione sua regularidade de pedidos'),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('should show 10% of PV when 1 to 3 months is selected', async () => {
+      mockGet.mockResolvedValue({
+        data: fullResponse([mockProduct, mockInactiveProduct]),
+      });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      togglePointsColumn();
+      await waitFor(() => {
+        expect(screen.getByLabelText('Regularidade')).toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByLabelText('Regularidade'), {
+        target: { value: '1-3' },
+      });
+
+      await waitFor(() => {
+        expect(pontosCellFor('Adaptiv® Pastilhas')).toHaveTextContent('3,10');
+        expect(pontosCellFor('Basil')).toHaveTextContent('0,90');
+      });
+      expect(mockGet).toHaveBeenCalledTimes(1);
+    });
+
+    it('should update the points when the tier changes to 13+ months', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      togglePointsColumn();
+      await waitFor(() => {
+        expect(screen.getByLabelText('Regularidade')).toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByLabelText('Regularidade'), {
+        target: { value: '13+' },
+      });
+
+      await waitFor(() => {
+        expect(pontosCellFor('Adaptiv® Pastilhas')).toHaveTextContent('9,30');
+      });
+      expect(mockGet).toHaveBeenCalledTimes(1);
+    });
+
+    it('should update the explanatory text when the tier changes', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([]) });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Novo')).toBeInTheDocument();
+      });
+
+      togglePointsColumn();
+      await waitFor(() => {
+        expect(screen.getByLabelText('Regularidade')).toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByLabelText('Regularidade'), {
+        target: { value: '4-6' },
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('15% do PV nos meses 4–6 • mínimo 50 PV por pedido'),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('should highlight products below the 50 PV minimum', async () => {
+      mockGet.mockResolvedValue({
+        data: fullResponse([mockProduct, mockHighPvProduct]),
+      });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      togglePointsColumn();
+      await waitFor(() => {
+        expect(screen.getByLabelText('Regularidade')).toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByLabelText('Regularidade'), {
+        target: { value: '1-3' },
+      });
+
+      await waitFor(() => {
+        const lowCell = pontosCellFor('Adaptiv® Pastilhas');
+        const highCell = pontosCellFor('Óleo Intenso');
+        expect(lowCell).toHaveClass('text-amber-600');
+        expect(lowCell).toHaveAttribute(
+          'title',
+          'PV abaixo de 50: isoladamente este produto não acumula pontos',
+        );
+        expect(highCell).not.toHaveClass('text-amber-600');
+        expect(highCell).not.toHaveAttribute('title');
       });
     });
   });
