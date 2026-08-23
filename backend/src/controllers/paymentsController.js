@@ -9,6 +9,8 @@ const parseLocalDate = (dateStr) => {
   return new Date(year, month - 1, day);
 };
 
+class NotFoundError extends Error {}
+
 const paymentSchema = z.object({
   amount: z
     .number()
@@ -16,6 +18,14 @@ const paymentSchema = z.object({
   personId: z.string().uuid('Person ID must be a valid UUID'),
   paidAt: z.string().optional(),
   notes: z.string().optional(),
+});
+
+const updatePaymentSchema = z.object({
+  amount: z
+    .number()
+    .nonnegative('Amount must be greater than or equal to zero'),
+  paidAt: z.string().optional(),
+  notes: z.string().nullable().optional(),
 });
 
 const createPayment = async (req, res) => {
@@ -110,6 +120,109 @@ const createPayment = async (req, res) => {
       return res.status(400).json({ error: error.errors });
     }
     console.error('Error creating payment:', error);
+    res.status(400).json({ error: error.message });
+  }
+};
+
+const updatePayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const validatedData = updatePaymentSchema.parse(req.body);
+
+    const amountCents = Math.round(validatedData.amount * 100);
+
+    const result = await prisma.$transaction(async (tx) => {
+      const existingPayment = await tx.payment.findFirst({
+        where: { id },
+        include: {
+          order: true,
+        },
+      });
+
+      if (
+        !existingPayment ||
+        existingPayment.order.userId !== req.user.userId
+      ) {
+        throw new NotFoundError('Payment not found');
+      }
+
+      const order = await tx.order.findFirst({
+        where: { id: existingPayment.orderId, userId: req.user.userId },
+        include: {
+          items: {
+            include: {
+              person: true,
+            },
+          },
+          payments: true,
+        },
+      });
+
+      if (!order) {
+        throw new NotFoundError('Payment not found');
+      }
+
+      const itemSumCents = order.items
+        .filter((item) => item.personId === existingPayment.personId)
+        .reduce((sum, item) => sum + lineValueCents(item), 0);
+
+      if (itemSumCents > 0 && amountCents === 0) {
+        throw new Error(
+          'Amount must be greater than zero for a person with chargeable items',
+        );
+      }
+
+      const payment = await tx.payment.update({
+        where: { id },
+        data: {
+          amount: validatedData.amount,
+          paidAt: validatedData.paidAt
+            ? parseLocalDate(validatedData.paidAt)
+            : undefined,
+          notes:
+            validatedData.notes !== undefined ? validatedData.notes : undefined,
+        },
+      });
+
+      // Recompute the order status with the edited payment substituted into
+      // the transaction snapshot, which is stale after the update.
+      const newStatus = computeOrderStatus({
+        items: order.items,
+        payments: order.payments.map((p) =>
+          p.id === id ? { personId: p.personId, amount: payment.amount } : p,
+        ),
+      });
+
+      if (newStatus !== order.status) {
+        await tx.order.update({
+          where: { id: order.id },
+          data: { status: newStatus },
+        });
+      }
+
+      return {
+        payment,
+        order: {
+          id: order.id,
+          orderNumber: order.orderNumber,
+          status: newStatus,
+        },
+      };
+    });
+
+    res.status(200).json({
+      message: 'Payment updated successfully',
+      payment: result.payment,
+      order: result.order,
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    if (error instanceof NotFoundError) {
+      return res.status(404).json({ error: error.message });
+    }
+    console.error('Error updating payment:', error);
     res.status(400).json({ error: error.message });
   }
 };
@@ -214,5 +327,6 @@ const getOrderBalance = async (req, res) => {
 
 module.exports = {
   createPayment,
+  updatePayment,
   getOrderBalance,
 };

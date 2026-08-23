@@ -34,6 +34,9 @@ router.delete('/items/:id', ordersController.deleteItem);
 // POST /api/orders/:orderId/payments
 router.post('/:orderId/payments', paymentsController.createPayment);
 
+// PUT /api/payments/:id
+router.put('/payments/:id', paymentsController.updatePayment);
+
 // GET /api/orders/:orderId/balance
 router.get('/:orderId/balance', paymentsController.getOrderBalance);
 
