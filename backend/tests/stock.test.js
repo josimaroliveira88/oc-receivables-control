@@ -134,6 +134,60 @@ describe('Stock API', () => {
       expect(inventory.quantity).toBe(5);
     });
 
+    it('should persist a provided effectiveDate', async () => {
+      const response = await request(app)
+        .post('/api/stock/movements')
+        .set('Authorization', `Bearer ${userA.token}`)
+        .send({
+          productId: product.id,
+          type: 'ENTRADA',
+          quantity: 5,
+          effectiveDate: '2026-08-15',
+        });
+
+      expect(response.status).toBe(201);
+      const stored = await prisma.stockMovement.findUnique({
+        where: { id: response.body.movement.id },
+      });
+      expect(stored).not.toBeNull();
+      const effectiveDate = new Date(stored.effectiveDate);
+      expect(effectiveDate.getFullYear()).toBe(2026);
+      expect(effectiveDate.getMonth()).toBe(7);
+      expect(effectiveDate.getDate()).toBe(15);
+      expect(effectiveDate.getHours()).toBe(0);
+    });
+
+    it('should default effectiveDate to the current date when not provided', async () => {
+      const before = Date.now();
+      const response = await request(app)
+        .post('/api/stock/movements')
+        .set('Authorization', `Bearer ${userA.token}`)
+        .send({ productId: product.id, type: 'ENTRADA', quantity: 3 });
+
+      expect(response.status).toBe(201);
+      const stored = await prisma.stockMovement.findUnique({
+        where: { id: response.body.movement.id },
+      });
+      expect(stored).not.toBeNull();
+      const effectiveTime = new Date(stored.effectiveDate).getTime();
+      expect(effectiveTime).toBeGreaterThanOrEqual(before - 5000);
+      expect(effectiveTime).toBeLessThanOrEqual(Date.now() + 5000);
+    });
+
+    it('should reject an invalid effectiveDate format', async () => {
+      const response = await request(app)
+        .post('/api/stock/movements')
+        .set('Authorization', `Bearer ${userA.token}`)
+        .send({
+          productId: product.id,
+          type: 'ENTRADA',
+          quantity: 5,
+          effectiveDate: '15/08/2026',
+        });
+
+      expect(response.status).toBe(400);
+    });
+
     it('should register a SAIDA movement and decrement inventory', async () => {
       await request(app)
         .post('/api/stock/movements')
