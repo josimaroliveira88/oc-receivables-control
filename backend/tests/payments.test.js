@@ -1428,3 +1428,144 @@ describe('Self person payments & balance', () => {
     expect(parseFloat(otherBalance.pending)).toBe(300.0);
   });
 });
+
+describe('Shipping value status transitions', () => {
+  let authToken;
+  let userId;
+  let createdOrderIds = [];
+  let createdPersonIds = [];
+
+  beforeAll(async () => {
+    await prisma.$connect();
+    const username = `payments_shipping_${Date.now()}`;
+    const regRes = await request(app)
+      .post('/api/auth/register')
+      .send({ username, password: 'testpass123' });
+    userId = regRes.body.id;
+
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ username, password: 'testpass123' });
+    authToken = loginRes.body.token;
+  });
+
+  afterAll(async () => {
+    if (userId) {
+      await prisma.user.delete({ where: { id: userId } }).catch(() => {});
+    }
+    await prisma.$disconnect();
+  });
+
+  afterEach(async () => {
+    for (const id of createdOrderIds) {
+      await prisma.order.delete({ where: { id } }).catch(() => {});
+    }
+    createdOrderIds = [];
+    for (const id of createdPersonIds) {
+      await prisma.person.delete({ where: { id } }).catch(() => {});
+    }
+    createdPersonIds = [];
+  });
+
+  const makePerson = async (name, isSelf = false) => {
+    const person = await prisma.person.create({
+      data: { name, isSelf, userId },
+    });
+    createdPersonIds.push(person.id);
+    return person.id;
+  };
+
+  const makeOrderWithShipping = async (orderNumber, shippingValue, items) => {
+    const res = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ orderNumber, shippingValue, items });
+    createdOrderIds.push(res.body.id);
+    return res.body;
+  };
+
+  it('should stay PARCIAL when items are paid but shipping is not', async () => {
+    const personId = await makePerson('Cliente Frete');
+    const order = await makeOrderWithShipping(
+      uniqueOrderNumber('FRT-PAY'),
+      50,
+      [{ description: 'Item', chargedValue: 100, personId }],
+    );
+    expect(order.status).toBe('PENDENTE');
+
+    const response = await request(app)
+      .post(`/api/orders/${order.id}/payments`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ amount: 100, personId });
+
+    expect(response.status).toBe(201);
+    expect(response.body.order.status).toBe('PARCIAL');
+  });
+
+  it('should reach QUITADO only after shipping is covered', async () => {
+    const personId = await makePerson('Cliente Frete 2');
+    const order = await makeOrderWithShipping(
+      uniqueOrderNumber('FRT-PAY'),
+      50,
+      [{ description: 'Item', chargedValue: 100, personId }],
+    );
+
+    await request(app)
+      .post(`/api/orders/${order.id}/payments`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ amount: 100, personId });
+
+    const response = await request(app)
+      .post(`/api/orders/${order.id}/payments`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ amount: 50, personId });
+
+    expect(response.status).toBe(201);
+    expect(response.body.order.status).toBe('QUITADO');
+  });
+
+  it('should reach QUITADO with a single overpayment that absorbs shipping', async () => {
+    const personId = await makePerson('Cliente Frete 3');
+    const order = await makeOrderWithShipping(
+      uniqueOrderNumber('FRT-PAY'),
+      50,
+      [{ description: 'Item', chargedValue: 100, personId }],
+    );
+
+    const response = await request(app)
+      .post(`/api/orders/${order.id}/payments`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ amount: 150, personId });
+
+    expect(response.status).toBe(201);
+    expect(response.body.order.status).toBe('QUITADO');
+  });
+
+  it('should not block QUITADO with shipping on a gift-only order', async () => {
+    const personId = await makePerson('Cliente Brinde');
+    const order = await makeOrderWithShipping(
+      uniqueOrderNumber('FRT-GIFT'),
+      50,
+      [{ description: 'Brinde', chargedValue: 0, personId }],
+    );
+
+    const response = await request(app)
+      .post(`/api/orders/${order.id}/payments`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ amount: 0, personId });
+
+    expect(response.status).toBe(201);
+    expect(response.body.order.status).toBe('QUITADO');
+  });
+
+  it('should keep a self-only order QUITADO regardless of shipping', async () => {
+    const selfId = await makePerson('Eu Frete', true);
+    const order = await makeOrderWithShipping(
+      uniqueOrderNumber('FRT-SELF'),
+      30,
+      [{ description: 'Meu Item', chargedValue: 200, personId: selfId }],
+    );
+
+    expect(order.status).toBe('QUITADO');
+  });
+});
