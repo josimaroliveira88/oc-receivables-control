@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import {
   MOVEMENT_TYPES,
+  formatDate,
   formatDateTime,
   formatSignedQuantity,
 } from '../utils/stockHelpers';
@@ -30,7 +31,7 @@ const HistoryDialog = ({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <div>
             <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
@@ -110,13 +111,19 @@ const HistoryDialog = ({
                 <tr>
                   <th
                     scope="col"
-                    className="w-[25%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                    className="w-[20%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                   >
-                    Data
+                    Data Efetiva
                   </th>
                   <th
                     scope="col"
-                    className="w-[20%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                    className="w-[25%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  >
+                    Data de Registro
+                  </th>
+                  <th
+                    scope="col"
+                    className="w-[15%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                   >
                     Tipo
                   </th>
@@ -128,7 +135,7 @@ const HistoryDialog = ({
                   </th>
                   <th
                     scope="col"
-                    className="w-[40%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                    className="w-[25%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                   >
                     Motivo
                   </th>
@@ -151,8 +158,14 @@ const HistoryDialog = ({
                       className="block lg:table-row border border-gray-200 dark:border-gray-700 lg:border-0 rounded-lg lg:rounded-none shadow-sm lg:shadow-none mb-3 lg:mb-0"
                     >
                       <td
-                        data-label="Data"
+                        data-label="Data Efetiva"
                         className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                      >
+                        {formatDate(m.effectiveDate || m.createdAt)}
+                      </td>
+                      <td
+                        data-label="Data de Registro"
+                        className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
                       >
                         {formatDateTime(m.createdAt)}
                       </td>
