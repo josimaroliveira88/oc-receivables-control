@@ -1448,6 +1448,60 @@ describe('Orders CRUD with Items', () => {
       expect(ids[0]).toBe(betaOrderId);
     });
 
+    it('should sort by totalPv (computed) ignoring PV from zero-charged items', async () => {
+      const chargedId = (
+        await request(app)
+          .post('/api/orders')
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            orderNumber: `PVPAID-${Date.now()}`,
+            items: [
+              {
+                description: 'Pago',
+                chargedValue: 100.0,
+                pv: 30,
+                personId: searchPersonId,
+              },
+            ],
+          })
+      ).body.id;
+
+      const giftId = (
+        await request(app)
+          .post('/api/orders')
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            orderNumber: `PVGIFT-${Date.now()}`,
+            items: [
+              {
+                description: 'Brinde',
+                chargedValue: 0,
+                pv: 999,
+                personId: searchPersonId,
+              },
+            ],
+          })
+      ).body.id;
+
+      try {
+        const response = await request(app)
+          .get(`/api/orders?sortBy=totalPv&sortDir=desc`)
+          .set('Authorization', `Bearer ${authToken}`);
+
+        expect(response.status).toBe(200);
+        const ids = response.body.map((o) => o.id);
+        const chargedIndex = ids.indexOf(chargedId);
+        const giftIndex = ids.indexOf(giftId);
+        expect(chargedIndex).toBeGreaterThan(-1);
+        expect(giftIndex).toBeGreaterThan(-1);
+        expect(chargedIndex).toBeLessThan(giftIndex);
+      } finally {
+        await prisma.order
+          .deleteMany({ where: { id: { in: [chargedId, giftId] } } })
+          .catch(() => {});
+      }
+    });
+
     it('should keep user isolation when filtering', async () => {
       const otherReg = await request(app)
         .post('/api/auth/register')
@@ -1537,6 +1591,268 @@ describe('Orders CRUD with Items', () => {
       expect(response.status).toBe(200);
       const ids = response.body.map((o) => o.id);
       expect(ids).toContain(plainOwnerId);
+    });
+  });
+
+  describe('Order shipping value (frete)', () => {
+    beforeEach(async () => {
+      const person = await prisma.person.create({
+        data: {
+          name: 'Shipping Test Person',
+          whatsapp: 'shipping@test.com',
+          userId,
+        },
+      });
+      testPersonId = person.id;
+    });
+
+    it('should include shippingValue in totalValue on create', async () => {
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('FRT'),
+          shippingValue: 25.5,
+          items: [
+            {
+              description: 'Item',
+              chargedValue: 100.0,
+              personId: testPersonId,
+            },
+          ],
+        });
+
+      expect(response.status).toBe(201);
+      expect(parseFloat(response.body.shippingValue)).toBe(25.5);
+      expect(parseFloat(response.body.totalValue)).toBe(125.5);
+      createdOrderId = response.body.id;
+    });
+
+    it('should default shippingValue to zero when omitted', async () => {
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('FRT'),
+          items: [
+            { description: 'Item', chargedValue: 50.0, personId: testPersonId },
+          ],
+        });
+
+      expect(response.status).toBe(201);
+      expect(parseFloat(response.body.shippingValue)).toBe(0);
+      expect(parseFloat(response.body.totalValue)).toBe(50.0);
+      createdOrderId = response.body.id;
+    });
+
+    it('should allow shippingValue equal to zero', async () => {
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('FRT'),
+          shippingValue: 0,
+          items: [
+            { description: 'Item', chargedValue: 80.0, personId: testPersonId },
+          ],
+        });
+
+      expect(response.status).toBe(201);
+      expect(parseFloat(response.body.shippingValue)).toBe(0);
+      expect(parseFloat(response.body.totalValue)).toBe(80.0);
+      createdOrderId = response.body.id;
+    });
+
+    it('should reject negative shippingValue', async () => {
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('FRT'),
+          shippingValue: -10,
+          items: [
+            {
+              description: 'Item',
+              chargedValue: 100.0,
+              personId: testPersonId,
+            },
+          ],
+        });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should update shippingValue and totalValue when replacing items', async () => {
+      const orderId = (
+        await request(app)
+          .post('/api/orders')
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            orderNumber: uniqueOrderNumber('FRT'),
+            shippingValue: 10,
+            items: [
+              {
+                description: 'Item',
+                chargedValue: 100.0,
+                personId: testPersonId,
+              },
+            ],
+          })
+      ).body.id;
+      createdOrderId = orderId;
+
+      const response = await request(app)
+        .put(`/api/orders/${orderId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          shippingValue: 20,
+          items: [
+            {
+              description: 'Item',
+              chargedValue: 100.0,
+              personId: testPersonId,
+            },
+            {
+              description: 'Item 2',
+              chargedValue: 50.0,
+              personId: testPersonId,
+            },
+          ],
+        });
+
+      expect(response.status).toBe(200);
+      expect(parseFloat(response.body.shippingValue)).toBe(20);
+      expect(parseFloat(response.body.totalValue)).toBe(170.0);
+    });
+
+    it('should update shippingValue without items, adjusting totalValue', async () => {
+      const orderId = (
+        await request(app)
+          .post('/api/orders')
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            orderNumber: uniqueOrderNumber('FRT'),
+            shippingValue: 10,
+            items: [
+              {
+                description: 'Item',
+                chargedValue: 100.0,
+                personId: testPersonId,
+              },
+            ],
+          })
+      ).body.id;
+      createdOrderId = orderId;
+
+      const response = await request(app)
+        .put(`/api/orders/${orderId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ shippingValue: 30 });
+
+      expect(response.status).toBe(200);
+      expect(parseFloat(response.body.shippingValue)).toBe(30);
+      expect(parseFloat(response.body.totalValue)).toBe(130.0);
+      expect(response.body.items).toHaveLength(1);
+    });
+
+    it('should preserve shippingValue when adding an item', async () => {
+      const orderId = (
+        await request(app)
+          .post('/api/orders')
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            orderNumber: uniqueOrderNumber('FRT'),
+            shippingValue: 15,
+            items: [
+              {
+                description: 'Item',
+                chargedValue: 100.0,
+                personId: testPersonId,
+              },
+            ],
+          })
+      ).body.id;
+      createdOrderId = orderId;
+
+      const response = await request(app)
+        .post(`/api/orders/${orderId}/items`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          description: 'Item 2',
+          chargedValue: 50.0,
+          personId: testPersonId,
+        });
+
+      expect(response.status).toBe(201);
+      const order = await prisma.order.findUnique({ where: { id: orderId } });
+      expect(parseFloat(order.shippingValue)).toBe(15);
+      expect(parseFloat(order.totalValue)).toBe(165.0);
+    });
+
+    it('should preserve shippingValue when updating an item', async () => {
+      const orderId = (
+        await request(app)
+          .post('/api/orders')
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            orderNumber: uniqueOrderNumber('FRT'),
+            shippingValue: 15,
+            items: [
+              {
+                description: 'Item',
+                chargedValue: 100.0,
+                personId: testPersonId,
+              },
+            ],
+          })
+      ).body.id;
+      createdOrderId = orderId;
+      const itemId = (await prisma.item.findFirst({ where: { orderId } })).id;
+
+      const response = await request(app)
+        .put(`/api/orders/items/${itemId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ chargedValue: 120.0 });
+
+      expect(response.status).toBe(200);
+      const order = await prisma.order.findUnique({ where: { id: orderId } });
+      expect(parseFloat(order.shippingValue)).toBe(15);
+      expect(parseFloat(order.totalValue)).toBe(135.0);
+    });
+
+    it('should preserve shippingValue when deleting an item', async () => {
+      const orderId = (
+        await request(app)
+          .post('/api/orders')
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            orderNumber: uniqueOrderNumber('FRT'),
+            shippingValue: 15,
+            items: [
+              {
+                description: 'Item 1',
+                chargedValue: 100.0,
+                personId: testPersonId,
+              },
+              {
+                description: 'Item 2',
+                chargedValue: 50.0,
+                personId: testPersonId,
+              },
+            ],
+          })
+      ).body.id;
+      createdOrderId = orderId;
+      const items = await prisma.item.findMany({ where: { orderId } });
+
+      const response = await request(app)
+        .delete(`/api/orders/items/${items[0].id}`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const order = await prisma.order.findUnique({ where: { id: orderId } });
+      expect(parseFloat(order.shippingValue)).toBe(15);
+      expect(parseFloat(order.totalValue)).toBe(65.0);
     });
   });
 });
