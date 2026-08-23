@@ -87,8 +87,26 @@ describe('People CRUD', () => {
       expect(response.body.commonGroups).toBeNull();
       expect(response.body.instagram).toBeNull();
       expect(response.body.address).toBeNull();
+      expect(response.body.observacao).toBeNull();
       expect(response.body.isVip).toBe(false);
       expect(response.body.isDoterraMember).toBe(false);
+      createdPersonId = response.body.id;
+    });
+
+    it('should create a person with observacao', async () => {
+      const response = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          name: 'Cliente com Observação',
+          observacao:
+            'Cliente prefere atendimento por WhatsApp no período da tarde.',
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.observacao).toBe(
+        'Cliente prefere atendimento por WhatsApp no período da tarde.',
+      );
       createdPersonId = response.body.id;
     });
 
@@ -161,6 +179,15 @@ describe('People CRUD', () => {
       expect(response.status).toBe(400);
     });
 
+    it('should reject observacao longer than 2000 chars', async () => {
+      const response = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Too Long Observacao', observacao: 'a'.repeat(2001) });
+
+      expect(response.status).toBe(400);
+    });
+
     it('should reject non-boolean isVip', async () => {
       const response = await request(app)
         .post('/api/people')
@@ -199,6 +226,7 @@ describe('People CRUD', () => {
           commonGroups: 'Vizinho',
           instagram: 'https://instagram.com/test',
           address: 'Av. Teste, 10',
+          observacao: 'Cliente prefere retirar as compras pessoalmente.',
           isVip: true,
           isDoterraMember: false,
           userId,
@@ -227,6 +255,9 @@ describe('People CRUD', () => {
       expect(response.body.name).toBe('Test Person');
       expect(response.body.whatsapp).toBe('5511999998888');
       expect(response.body.commonGroups).toBe('Vizinho');
+      expect(response.body.observacao).toBe(
+        'Cliente prefere retirar as compras pessoalmente.',
+      );
       expect(response.body.isVip).toBe(true);
       expect(response.body.isDoterraMember).toBe(false);
     });
@@ -320,6 +351,22 @@ describe('People CRUD', () => {
       const ids = response.body.map((p) => p.id);
       expect(ids).toContain(memberPersonId);
       expect(ids).not.toContain(vipPersonId);
+    });
+
+    it('should search people by observacao', async () => {
+      await prisma.person.update({
+        where: { id: memberPersonId },
+        data: { observacao: 'Cliente solicita nota fiscal eletrônica.' },
+      });
+      const response = await request(app)
+        .get('/api/people?q=nota%20fiscal')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const ids = response.body.map((p) => p.id);
+      expect(ids).toContain(memberPersonId);
+      expect(ids).not.toContain(vipPersonId);
+      expect(ids).not.toContain(nonePersonId);
     });
 
     it('should filter by classification=member', async () => {
@@ -507,6 +554,7 @@ describe('People CRUD', () => {
           commonGroups: 'Família',
           instagram: 'https://instagram.com/updated',
           address: 'Rua Atualizada, 99',
+          observacao: 'Cliente migrou de plano em 2026.',
           isVip: true,
           isDoterraMember: true,
         });
@@ -515,6 +563,7 @@ describe('People CRUD', () => {
       expect(response.body.commonGroups).toBe('Família');
       expect(response.body.instagram).toBe('https://instagram.com/updated');
       expect(response.body.address).toBe('Rua Atualizada, 99');
+      expect(response.body.observacao).toBe('Cliente migrou de plano em 2026.');
       expect(response.body.isVip).toBe(true);
       expect(response.body.isDoterraMember).toBe(true);
     });
@@ -538,6 +587,20 @@ describe('People CRUD', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.whatsapp).toBeNull();
+    });
+
+    it('should clear observacao with explicit null', async () => {
+      await prisma.person.update({
+        where: { id: createdPersonId },
+        data: { observacao: 'Texto temporário' },
+      });
+      const response = await request(app)
+        .put(`/api/people/${createdPersonId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Cleared Observacao', observacao: null });
+
+      expect(response.status).toBe(200);
+      expect(response.body.observacao).toBeNull();
     });
 
     it('should return 404 for non-existent person', async () => {
