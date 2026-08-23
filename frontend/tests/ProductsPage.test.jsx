@@ -1465,13 +1465,38 @@ describe('ProductsPage', () => {
       await waitFor(() => {
         expect(writeText()).toHaveBeenCalledWith(
           [
-            '60226006 - Adaptiv® Pastilhas (60 pastilhas)',
+            'Adaptiv® Pastilhas (60 pastilhas)',
             'Preço Regular: R$\u00A0308,00',
             'Preço de Membros: R$\u00A0231,25',
             'PV: 31',
           ].join('\n'),
         );
         expect(screen.getByText('Linha copiada!')).toBeInTheDocument();
+      });
+    });
+
+    it('should append the product URL when the product has one', async () => {
+      mockGet.mockResolvedValue({
+        data: fullResponse([mockUnavailableProduct]),
+      });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Deep Blue')).toBeInTheDocument();
+      });
+
+      await clickProductAction('3', 'Copiar-linha');
+
+      await waitFor(() => {
+        expect(writeText()).toHaveBeenCalledWith(
+          [
+            'Deep Blue (10 ml)',
+            'Preço Regular: R$\u00A0150,00',
+            'Preço de Membros: R$\u00A0112,50',
+            'PV: 15',
+            'https://www.doterra.com/BR/pt_BR/p/deep-blue',
+          ].join('\n'),
+        );
       });
     });
 
@@ -1493,7 +1518,7 @@ describe('ProductsPage', () => {
       await waitFor(() => {
         expect(writeText()).toHaveBeenCalledWith(
           [
-            '60226006 - Adaptiv® Pastilhas',
+            'Adaptiv® Pastilhas',
             'Preço Regular: R$\u00A0308,00',
             'Preço de Membros: R$\u00A0231,25',
             'PV: 31',

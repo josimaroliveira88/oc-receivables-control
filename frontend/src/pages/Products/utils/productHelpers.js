@@ -102,14 +102,18 @@ export const inputClass =
 
 export const formatProductRowForCopy = (product) => {
   const firstLine = product.size
-    ? `${product.code} - ${product.name} (${product.size})`
-    : `${product.code} - ${product.name}`;
-  return [
+    ? `${product.name} (${product.size})`
+    : product.name;
+  const lines = [
     firstLine,
     `Preço Regular: ${formatBRL(product.regularPrice)}`,
     `Preço de Membros: ${formatBRL(product.memberPrice)}`,
     `PV: ${product.pv}`,
-  ].join('\n');
+  ];
+  if (product.doterraUrl) {
+    lines.push(product.doterraUrl);
+  }
+  return lines.join('\n');
 };
 
 export const emptyForm = () => ({
