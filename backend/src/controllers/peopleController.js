@@ -11,6 +11,11 @@ const personSchema = z.object({
   commonGroups: z.string().max(255).optional().nullable(),
   instagram: z.string().max(255).optional().nullable(),
   address: z.string().max(500).optional().nullable(),
+  observacao: z
+    .string()
+    .max(2000, 'Observação deve ter no máximo 2000 caracteres')
+    .optional()
+    .nullable(),
   isVip: z.boolean().optional(),
   isDoterraMember: z.boolean().optional(),
   isSelf: z.boolean().optional(),
@@ -54,7 +59,7 @@ const getPeople = async (req, res) => {
     if (q && q.trim()) {
       const matchingIds = await findIdsByTextSearch({
         table: 'Person',
-        columns: ['name', 'whatsapp'],
+        columns: ['name', 'whatsapp', 'observacao'],
         q,
       });
       if (matchingIds !== null) {
