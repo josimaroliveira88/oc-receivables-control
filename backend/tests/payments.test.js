@@ -502,6 +502,362 @@ describe('Payments & Balance', () => {
     });
   });
 
+  describe('PUT /api/payments/:id', () => {
+    let editOrderId;
+    let editPersonId;
+    let editPerson2Id;
+
+    const createPayment = async (orderId, amount, personId, extra = {}) => {
+      const res = await request(app)
+        .post(`/api/orders/${orderId}/payments`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ amount, personId, ...extra });
+      expect(res.status).toBe(201);
+      return res.body.payment;
+    };
+
+    beforeEach(async () => {
+      const person1 = await prisma.person.create({
+        data: { name: 'Edit Person 1', whatsapp: 'edit1@test.com', userId },
+      });
+      editPersonId = person1.id;
+      createdPersonIds.push(person1.id);
+
+      const person2 = await prisma.person.create({
+        data: { name: 'Edit Person 2', whatsapp: 'edit2@test.com', userId },
+      });
+      editPerson2Id = person2.id;
+      createdPersonIds.push(person2.id);
+
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: uniqueOrderNumber('ORD-EDIT'),
+          totalValue: 400.0,
+          userId,
+          items: {
+            create: [
+              {
+                description: 'Edit Item 1',
+                chargedValue: 150.0,
+                personId: editPersonId,
+              },
+              {
+                description: 'Edit Item 2',
+                chargedValue: 250.0,
+                personId: editPerson2Id,
+              },
+            ],
+          },
+        },
+        include: { items: true },
+      });
+      editOrderId = order.id;
+      createdOrderIds.push(order.id);
+    });
+
+    it('should update amount, paidAt and notes of an existing payment', async () => {
+      const payment = await createPayment(editOrderId, 100.0, editPersonId, {
+        paidAt: '2025-01-10',
+        notes: 'Primeira parcela',
+      });
+
+      const response = await request(app)
+        .put(`/api/orders/payments/${payment.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          amount: 120.5,
+          paidAt: '2025-03-15',
+          notes: 'Parcela corrigida',
+        });
+
+      expect(response.status).toBe(200);
+      expect(parseFloat(response.body.payment.amount)).toBe(120.5);
+      expect(response.body.payment.notes).toBe('Parcela corrigida');
+      expect(response.body.payment.personId).toBe(editPersonId);
+      expect(response.body.payment.orderId).toBe(editOrderId);
+      expect(response.body.payment.createdAt).toBe(payment.createdAt);
+
+      const paidAt = new Date(response.body.payment.paidAt);
+      expect(paidAt.getFullYear()).toBe(2025);
+      expect(paidAt.getMonth()).toBe(2);
+      expect(paidAt.getDate()).toBe(15);
+
+      const updated = await prisma.payment.findUnique({
+        where: { id: payment.id },
+      });
+      expect(parseFloat(updated.amount)).toBe(120.5);
+      expect(updated.notes).toBe('Parcela corrigida');
+    });
+
+    it('should ignore an attempt to change the personId', async () => {
+      const payment = await createPayment(editOrderId, 100.0, editPersonId);
+
+      const response = await request(app)
+        .put(`/api/orders/payments/${payment.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ amount: 100.0, personId: editPerson2Id });
+
+      expect(response.status).toBe(200);
+      expect(response.body.payment.personId).toBe(editPersonId);
+    });
+
+    it('should clear notes when null is sent', async () => {
+      const payment = await createPayment(editOrderId, 100.0, editPersonId, {
+        notes: 'Alguma observação',
+      });
+
+      const response = await request(app)
+        .put(`/api/orders/payments/${payment.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ amount: 100.0, notes: null });
+
+      expect(response.status).toBe(200);
+      expect(response.body.payment.notes).toBeNull();
+    });
+
+    it('should transition status from QUITADO back to PARCIAL when a payment is reduced', async () => {
+      const pay1 = await createPayment(editOrderId, 150.0, editPersonId);
+      await createPayment(editOrderId, 250.0, editPerson2Id);
+
+      let order = await prisma.order.findUnique({ where: { id: editOrderId } });
+      expect(order.status).toBe('QUITADO');
+
+      const response = await request(app)
+        .put(`/api/orders/payments/${pay1.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ amount: 50.0 });
+
+      expect(response.status).toBe(200);
+      expect(response.body.order.status).toBe('PARCIAL');
+
+      order = await prisma.order.findUnique({ where: { id: editOrderId } });
+      expect(order.status).toBe('PARCIAL');
+
+      const balanceRes = await request(app)
+        .get(`/api/orders/${editOrderId}/balance`)
+        .set('Authorization', `Bearer ${authToken}`);
+      const balance = balanceRes.body.balances.find(
+        (b) => b.personId === editPersonId,
+      );
+      expect(parseFloat(balance.pending)).toBe(100.0);
+    });
+
+    it('should transition status from PARCIAL to QUITADO when a payment completes the balance', async () => {
+      const solo = await prisma.person.create({
+        data: { name: 'Solo Edit', whatsapp: 'soloedit@test.com', userId },
+      });
+      createdPersonIds.push(solo.id);
+
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: uniqueOrderNumber('ORD-EDIT-SOLO'),
+          totalValue: 150.0,
+          userId,
+          items: {
+            create: [
+              {
+                description: 'Item Solo',
+                chargedValue: 150.0,
+                personId: solo.id,
+              },
+            ],
+          },
+        },
+        include: { items: true },
+      });
+      createdOrderIds.push(order.id);
+
+      const payment = await createPayment(order.id, 100.0, solo.id);
+
+      let orderRecord = await prisma.order.findUnique({
+        where: { id: order.id },
+      });
+      expect(orderRecord.status).toBe('PARCIAL');
+
+      const response = await request(app)
+        .put(`/api/orders/payments/${payment.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ amount: 150.0 });
+
+      expect(response.status).toBe(200);
+      expect(response.body.order.status).toBe('QUITADO');
+
+      orderRecord = await prisma.order.findUnique({ where: { id: order.id } });
+      expect(orderRecord.status).toBe('QUITADO');
+    });
+
+    it('should accept an overpayment edit and mark the order as QUITADO', async () => {
+      const solo = await prisma.person.create({
+        data: { name: 'Solo Overpay', whatsapp: 'soloover@test.com', userId },
+      });
+      createdPersonIds.push(solo.id);
+
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: uniqueOrderNumber('ORD-EDIT-OVER'),
+          totalValue: 150.0,
+          userId,
+          items: {
+            create: [
+              {
+                description: 'Item Solo Overpay',
+                chargedValue: 150.0,
+                personId: solo.id,
+              },
+            ],
+          },
+        },
+        include: { items: true },
+      });
+      createdOrderIds.push(order.id);
+
+      const payment = await createPayment(order.id, 100.0, solo.id);
+
+      const response = await request(app)
+        .put(`/api/orders/payments/${payment.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ amount: 200.0 });
+
+      expect(response.status).toBe(200);
+      expect(response.body.order.status).toBe('QUITADO');
+    });
+
+    it('should reject a zero amount edit when the person has chargeable items', async () => {
+      const payment = await createPayment(editOrderId, 100.0, editPersonId);
+
+      const response = await request(app)
+        .put(`/api/orders/payments/${payment.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ amount: 0 });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('greater than zero');
+
+      const stored = await prisma.payment.findUnique({
+        where: { id: payment.id },
+      });
+      expect(parseFloat(stored.amount)).toBe(100.0);
+    });
+
+    it('should accept a zero amount edit for a person with only zero-value items', async () => {
+      const freebie = await prisma.person.create({
+        data: { name: 'Freebie Edit', whatsapp: 'freeedit@test.com', userId },
+      });
+      createdPersonIds.push(freebie.id);
+
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: uniqueOrderNumber('ORD-FREE-EDIT'),
+          totalValue: 0.0,
+          userId,
+          items: {
+            create: [
+              {
+                description: 'Brinde',
+                chargedValue: 0.0,
+                personId: freebie.id,
+              },
+            ],
+          },
+        },
+        include: { items: true },
+      });
+      createdOrderIds.push(order.id);
+
+      const payment = await createPayment(order.id, 5.0, freebie.id);
+
+      const response = await request(app)
+        .put(`/api/orders/payments/${payment.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ amount: 0 });
+
+      expect(response.status).toBe(200);
+      expect(parseFloat(response.body.payment.amount)).toBe(0);
+      expect(response.body.order.status).toBe('QUITADO');
+    });
+
+    it('should reject a negative amount edit (Zod validation)', async () => {
+      const payment = await createPayment(editOrderId, 100.0, editPersonId);
+
+      const response = await request(app)
+        .put(`/api/orders/payments/${payment.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ amount: -10 });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBeDefined();
+    });
+
+    it('should reject an invalid paidAt format', async () => {
+      const payment = await createPayment(editOrderId, 100.0, editPersonId);
+
+      const response = await request(app)
+        .put(`/api/orders/payments/${payment.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ amount: 100.0, paidAt: 'not-a-date' });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should return 404 for a non-existent payment', async () => {
+      const response = await request(app)
+        .put('/api/orders/payments/00000000-0000-0000-0000-000000000000')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ amount: 100.0 });
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Payment not found');
+    });
+
+    it("should return 404 when editing another user's payment", async () => {
+      const payment = await createPayment(editOrderId, 100.0, editPersonId);
+
+      const otherUser = `other_edit_${Date.now()}`;
+      const regRes = await request(app)
+        .post('/api/auth/register')
+        .send({ username: otherUser, password: 'testpass123' });
+      const otherUserId = regRes.body.id;
+
+      const loginRes = await request(app)
+        .post('/api/auth/login')
+        .send({ username: otherUser, password: 'testpass123' });
+      const otherToken = loginRes.body.token;
+
+      const response = await request(app)
+        .put(`/api/orders/payments/${payment.id}`)
+        .set('Authorization', `Bearer ${otherToken}`)
+        .send({ amount: 200.0 });
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Payment not found');
+
+      await prisma.user.delete({ where: { id: otherUserId } }).catch(() => {});
+    });
+
+    it('should return 401 when no authentication token is provided', async () => {
+      const payment = await createPayment(editOrderId, 100.0, editPersonId);
+
+      const response = await request(app)
+        .put(`/api/orders/payments/${payment.id}`)
+        .send({ amount: 100.0 });
+
+      expect(response.status).toBe(401);
+      expect(response.body.error).toBe('Access token required');
+    });
+
+    it('should return 403 when an invalid authentication token is provided', async () => {
+      const payment = await createPayment(editOrderId, 100.0, editPersonId);
+
+      const response = await request(app)
+        .put(`/api/orders/payments/${payment.id}`)
+        .set('Authorization', 'Bearer invalid-token')
+        .send({ amount: 100.0 });
+
+      expect(response.status).toBe(403);
+      expect(response.body.error).toBe('Invalid or expired token');
+    });
+  });
+
   describe('GET /api/orders/:orderId/balance', () => {
     let balanceOrderId;
     let balancePersonId;
