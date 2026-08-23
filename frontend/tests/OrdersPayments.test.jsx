@@ -12,11 +12,13 @@ import { ToastProvider } from '../src/components/Toast';
 
 const mockGet = vi.fn();
 const mockPost = vi.fn();
+const mockPut = vi.fn();
 
 vi.mock('../src/services/api', () => ({
   default: {
     get: (...args) => mockGet(...args),
     post: (...args) => mockPost(...args),
+    put: (...args) => mockPut(...args),
   },
 }));
 
@@ -1089,6 +1091,214 @@ describe('OrdersPayments', () => {
       await waitFor(() =>
         expect(screen.queryByTestId('details-modal')).not.toBeInTheDocument(),
       );
+    });
+  });
+
+  describe('Edit Payment', () => {
+    const openEditModal = async (paymentId = 'detail-payment-1') => {
+      mockGetImplementation([detailRichOrder]);
+      renderPage();
+      await waitFor(() =>
+        expect(screen.getByText('ORD-DETAIL')).toBeInTheDocument(),
+      );
+      fireEvent.click(
+        screen.getByTestId('order-actions-order-detail-rich-trigger'),
+      );
+      fireEvent.click(
+        screen.getByTestId(
+          'order-actions-order-detail-rich-item-Detalhar-Pagamentos',
+        ),
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId('details-modal')).toBeInTheDocument(),
+      );
+      const modal = within(screen.getByTestId('details-modal'));
+      fireEvent.click(modal.getByTestId('detail-person-p1'));
+      fireEvent.click(modal.getByTestId(`edit-payment-${paymentId}`));
+      await waitFor(() =>
+        expect(screen.getByTestId('edit-payment-modal')).toBeInTheDocument(),
+      );
+      return within(screen.getByTestId('edit-payment-modal'));
+    };
+
+    it('should open the edit modal pre-filled with the payment data', async () => {
+      const editModal = await openEditModal();
+
+      expect(
+        editModal.getByText('Editar Pagamento — ORD-DETAIL'),
+      ).toBeInTheDocument();
+      expect(editModal.getByText('João Silva')).toBeInTheDocument();
+      expect(editModal.getByDisplayValue('100.00')).toBeInTheDocument();
+      expect(editModal.getByDisplayValue('2026-08-06')).toBeInTheDocument();
+      expect(editModal.getByDisplayValue('Pix recebido')).toBeInTheDocument();
+    });
+
+    it('should update amount, date and notes of a payment', async () => {
+      const editModal = await openEditModal();
+
+      fireEvent.change(editModal.getByDisplayValue('100.00'), {
+        target: { value: '120.00' },
+      });
+      fireEvent.change(editModal.getByDisplayValue('2026-08-06'), {
+        target: { value: '2026-08-08' },
+      });
+      fireEvent.change(editModal.getByDisplayValue('Pix recebido'), {
+        target: { value: 'Pix atualizado' },
+      });
+
+      mockPut.mockResolvedValue({
+        data: {
+          payment: { id: 'detail-payment-1', amount: '120.00' },
+          order: { id: 'order-detail-rich', status: 'PARCIAL' },
+        },
+      });
+      mockGet.mockResolvedValue({ data: [] });
+
+      fireEvent.submit(
+        screen.getByTestId('edit-payment-modal').querySelector('form'),
+      );
+
+      await waitFor(() => {
+        expect(mockPut).toHaveBeenCalledWith(
+          '/orders/payments/detail-payment-1',
+          {
+            amount: 120,
+            paidAt: '2026-08-08',
+            notes: 'Pix atualizado',
+          },
+        );
+      });
+      await waitFor(() => {
+        expect(
+          screen.getByText('Pagamento atualizado com sucesso!'),
+        ).toBeInTheDocument();
+      });
+      await waitFor(() => {
+        expect(
+          screen.queryByTestId('edit-payment-modal'),
+        ).not.toBeInTheDocument();
+      });
+    });
+
+    it('should require overpayment confirmation when the edited amount exceeds the pending balance', async () => {
+      const editModal = await openEditModal();
+
+      fireEvent.change(editModal.getByDisplayValue('100.00'), {
+        target: { value: '300' },
+      });
+
+      mockPut.mockResolvedValue({ data: {} });
+
+      fireEvent.submit(
+        screen.getByTestId('edit-payment-modal').querySelector('form'),
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+      });
+      expect(mockPut).not.toHaveBeenCalled();
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Confirmar atualização' }),
+      );
+
+      await waitFor(() => {
+        expect(mockPut).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it('should reject a zero amount edit for a person with chargeable items', async () => {
+      const editModal = await openEditModal();
+
+      fireEvent.change(editModal.getByDisplayValue('100.00'), {
+        target: { value: '0' },
+      });
+
+      mockPut.mockResolvedValue({ data: {} });
+
+      fireEvent.submit(
+        screen.getByTestId('edit-payment-modal').querySelector('form'),
+      );
+
+      expect(
+        editModal.getByText('Valor deve ser maior que zero'),
+      ).toBeInTheDocument();
+      expect(mockPut).not.toHaveBeenCalled();
+    });
+
+    it('should reject a negative amount edit', async () => {
+      const editModal = await openEditModal();
+
+      fireEvent.change(editModal.getByDisplayValue('100.00'), {
+        target: { value: '-5' },
+      });
+
+      mockPut.mockResolvedValue({ data: {} });
+
+      fireEvent.submit(
+        screen.getByTestId('edit-payment-modal').querySelector('form'),
+      );
+
+      expect(
+        editModal.getByText('Valor não pode ser negativo'),
+      ).toBeInTheDocument();
+      expect(mockPut).not.toHaveBeenCalled();
+    });
+
+    it('should map a backend "greater than zero" error to an inline message', async () => {
+      const editModal = await openEditModal();
+
+      fireEvent.change(editModal.getByDisplayValue('100.00'), {
+        target: { value: '120' },
+      });
+
+      mockPut.mockRejectedValue({
+        response: {
+          data: {
+            error:
+              'Amount must be greater than zero for a person with chargeable items',
+          },
+        },
+      });
+
+      fireEvent.submit(
+        screen.getByTestId('edit-payment-modal').querySelector('form'),
+      );
+
+      await waitFor(() => {
+        expect(
+          editModal.getByText('Valor deve ser maior que zero'),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('should show the updated payment value in the details panel after editing', async () => {
+      const editModal = await openEditModal();
+
+      fireEvent.change(editModal.getByDisplayValue('100.00'), {
+        target: { value: '120.00' },
+      });
+
+      mockPut.mockResolvedValue({
+        data: {
+          payment: { id: 'detail-payment-1', amount: '120.00' },
+          order: { id: 'order-detail-rich', status: 'PARCIAL' },
+        },
+      });
+
+      fireEvent.submit(
+        screen.getByTestId('edit-payment-modal').querySelector('form'),
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.queryByTestId('edit-payment-modal'),
+        ).not.toBeInTheDocument();
+      });
+
+      const detailsModal = within(screen.getByTestId('details-modal'));
+      const panel = detailsModal.getByTestId('detail-panel-p1');
+      expect(within(panel).getByText(/R\$\s*120,00/)).toBeInTheDocument();
     });
   });
 
