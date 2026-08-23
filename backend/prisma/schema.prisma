@@ -26,6 +26,7 @@ model Person {
   commonGroups    String?   @db.VarChar(255)
   instagram       String?   @db.VarChar(255)
   address         String?   @db.VarChar(500)
+  observacao      String?   @db.VarChar(2000)
   isVip           Boolean   @default(false)
   isDoterraMember Boolean   @default(false)
   isSelf          Boolean   @default(false)
