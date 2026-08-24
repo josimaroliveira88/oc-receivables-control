@@ -916,6 +916,77 @@ describe('OrdersPage', () => {
       });
     });
 
+    it('should send isTeamOrder true in create payload and show team notice', async () => {
+      mockPost.mockResolvedValue({
+        data: { id: '3', orderNumber: 'ORD-TEAM' },
+      });
+      mockGetImplementation([]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Novo Pedido'));
+
+      await waitFor(() => {
+        expect(
+          screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        ).toBeInTheDocument();
+      });
+
+      fireEvent.change(
+        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        { target: { value: 'ORD-TEAM' } },
+      );
+
+      const teamToggle = screen.getByTestId('order-is-team-order');
+      fireEvent.click(teamToggle);
+
+      expect(screen.getByTestId('order-team-notice')).toBeInTheDocument();
+
+      const valueInput = screen.getByPlaceholderText('0.00');
+      fireEvent.change(valueInput, { target: { value: '150' } });
+      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
+      fireEvent.change(personSelect, { target: { value: 'p1' } });
+
+      const form = screen
+        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
+        .closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith(
+          '/orders',
+          expect.objectContaining({ isTeamOrder: true }),
+        );
+      });
+    });
+
+    it('should hide the stock toggle for team orders', async () => {
+      mockGetImplementation([]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Novo Pedido'));
+
+      await waitFor(() => {
+        expect(
+          screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        ).toBeInTheDocument();
+      });
+
+      const teamToggle = screen.getByTestId('order-is-team-order');
+      fireEvent.click(teamToggle);
+
+      expect(
+        screen.queryByText('Este item é para meu estoque'),
+      ).not.toBeInTheDocument();
+    });
+
     it('should send null for empty optional descriptive fields', async () => {
       mockPost.mockResolvedValue({
         data: { id: '3', orderNumber: 'ORD-EMPTY' },
