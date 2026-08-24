@@ -57,6 +57,7 @@ const itemSchema = z.object({
 const paymentTypeSchema = z.enum(['PIX', 'BOLETO', 'CARTAO_CREDITO']);
 
 const orderDescriptiveSchema = {
+  isTeamOrder: z.boolean().optional(),
   accountOwner: z
     .string()
     .max(120, 'Account owner must be at most 120 characters')
@@ -328,6 +329,7 @@ const ORDER_SORTABLE_FIELDS = [
 // - totalPv: sum of (item.pv * item.quantity)
 const orderSortValue = (order, field) => {
   if (field === 'pendingCents') {
+    if (order.isTeamOrder) return 0;
     const selfCents = (order.items || [])
       .filter((item) => item.person && item.person.isSelf)
       .reduce((sum, item) => sum + lineValueCents(item), 0);
@@ -516,7 +518,10 @@ const createOrder = async (req, res) => {
       await validateProducts(tx, validatedData.items);
 
       const selfIds = selfPersonIdSet(persons);
-      validateStockItemRules(validatedData.items, selfIds);
+      const isTeamOrder = validatedData.isTeamOrder ?? false;
+      if (!isTeamOrder) {
+        validateStockItemRules(validatedData.items, selfIds);
+      }
 
       // Attach frozen kit snapshots and validate the stock mode for kit items.
       await resolveKitFields(tx, validatedData.items);
@@ -538,6 +543,7 @@ const createOrder = async (req, res) => {
         })),
         payments: [],
         shippingCents,
+        isTeamOrder,
       });
 
       // Create order with items
@@ -549,6 +555,7 @@ const createOrder = async (req, res) => {
           orderDate: validatedData.orderDate
             ? parseLocalDate(validatedData.orderDate)
             : undefined,
+          isTeamOrder,
           accountOwner: validatedData.accountOwner ?? null,
           paymentType: validatedData.paymentType ?? null,
           orderNotes: validatedData.orderNotes ?? null,
@@ -568,8 +575,10 @@ const createOrder = async (req, res) => {
         },
       });
 
-      // Apply stock for self + forStock items
-      await itemStockMovements(tx, order, order.orderNumber, order.items);
+      // Apply stock for self + forStock items (not for team orders)
+      if (!isTeamOrder) {
+        await itemStockMovements(tx, order, order.orderNumber, order.items);
+      }
 
       return order;
     });
@@ -614,6 +623,9 @@ const updateOrder = async (req, res) => {
             ...(validatedData.orderDate && {
               orderDate: parseLocalDate(validatedData.orderDate),
             }),
+            ...(validatedData.isTeamOrder !== undefined && {
+              isTeamOrder: validatedData.isTeamOrder,
+            }),
             ...(validatedData.accountOwner !== undefined && {
               accountOwner: validatedData.accountOwner,
             }),
@@ -644,7 +656,10 @@ const updateOrder = async (req, res) => {
           },
         });
 
-        if (validatedData.shippingValue !== undefined) {
+        if (
+          validatedData.shippingValue !== undefined ||
+          validatedData.isTeamOrder !== undefined
+        ) {
           const payments = await tx.payment.findMany({
             where: { orderId: id },
           });
@@ -652,6 +667,7 @@ const updateOrder = async (req, res) => {
             items: order.items,
             payments,
             shippingCents: toCents(validatedData.shippingValue ?? 0),
+            isTeamOrder: order.isTeamOrder,
           });
           if (newStatus !== order.status) {
             await tx.order.update({
@@ -697,48 +713,53 @@ const updateOrder = async (req, res) => {
         orderLineTotalCents(validatedData.items) + shippingCents;
 
       // Resolve kit fields (preserving frozen snapshots for unchanged items),
-      // then compute the stock diff between old and new items.
+      // then compute the stock diff between old and new items (skipped for
+      // team orders, which never affect the user's stock).
       const resolvedItems = await resolveOrderUpdateItems(
         tx,
         existingOrder.items,
         validatedData.items,
       );
-      const diff = computeStockDiff(
-        existingOrder.items,
-        resolvedItems,
-        selfIds,
-      );
-      const effectiveOrderDate = validatedData.orderDate
-        ? parseLocalDate(validatedData.orderDate)
-        : existingOrder.orderDate;
-      if (!effectiveOrderDate) {
-        const error = new Error(
-          'Data do pedido é obrigatória para movimentações de estoque',
+      const isTeamOrder =
+        validatedData.isTeamOrder ?? existingOrder.isTeamOrder ?? false;
+      if (!isTeamOrder) {
+        const diff = computeStockDiff(
+          existingOrder.items,
+          resolvedItems,
+          selfIds,
         );
-        error.status = 400;
-        throw error;
-      }
-      for (const { productId, delta } of diff) {
-        if (delta > 0) {
-          await applyMovement(tx, {
-            userId: req.user.userId,
-            productId,
-            type: 'ENTRADA',
-            quantity: delta,
-            reason: `Pedido ${validatedData.orderNumber || existingOrder.orderNumber}`,
-            orderId: existingOrder.id,
-            effectiveDate: effectiveOrderDate,
-          });
-        } else {
-          await applyMovement(tx, {
-            userId: req.user.userId,
-            productId,
-            type: 'SAIDA',
-            quantity: -delta,
-            reason: `Pedido ${validatedData.orderNumber || existingOrder.orderNumber}`,
-            orderId: existingOrder.id,
-            effectiveDate: effectiveOrderDate,
-          });
+        const effectiveOrderDate = validatedData.orderDate
+          ? parseLocalDate(validatedData.orderDate)
+          : existingOrder.orderDate;
+        if (!effectiveOrderDate) {
+          const error = new Error(
+            'Data do pedido é obrigatória para movimentações de estoque',
+          );
+          error.status = 400;
+          throw error;
+        }
+        for (const { productId, delta } of diff) {
+          if (delta > 0) {
+            await applyMovement(tx, {
+              userId: req.user.userId,
+              productId,
+              type: 'ENTRADA',
+              quantity: delta,
+              reason: `Pedido ${validatedData.orderNumber || existingOrder.orderNumber}`,
+              orderId: existingOrder.id,
+              effectiveDate: effectiveOrderDate,
+            });
+          } else {
+            await applyMovement(tx, {
+              userId: req.user.userId,
+              productId,
+              type: 'SAIDA',
+              quantity: -delta,
+              reason: `Pedido ${validatedData.orderNumber || existingOrder.orderNumber}`,
+              orderId: existingOrder.id,
+              effectiveDate: effectiveOrderDate,
+            });
+          }
         }
       }
 
@@ -751,6 +772,7 @@ const updateOrder = async (req, res) => {
           orderDate: validatedData.orderDate
             ? parseLocalDate(validatedData.orderDate)
             : undefined,
+          isTeamOrder,
           ...(validatedData.accountOwner !== undefined && {
             accountOwner: validatedData.accountOwner,
           }),
@@ -819,6 +841,7 @@ const updateOrder = async (req, res) => {
         items: order.items,
         payments,
         shippingCents,
+        isTeamOrder,
       });
       if (newStatus !== order.status) {
         const updated = await tx.order.update({
@@ -862,28 +885,32 @@ const deleteOrder = async (req, res) => {
         throw error;
       }
 
-      if (!existingOrder.orderDate) {
-        const error = new Error(
-          'Data do pedido é obrigatória para movimentações de estoque',
-        );
-        error.status = 400;
-        throw error;
-      }
-
       // Reverse stock for every self + forStock item before deleting, expanding
-      // kit items into their effective stock products.
-      for (const item of existingOrder.items) {
-        if (!item.person || !item.person.isSelf) continue;
-        for (const { productId, quantity } of expandItemToStockProducts(item)) {
-          await applyMovement(tx, {
-            userId: req.user.userId,
-            productId,
-            type: 'SAIDA',
-            quantity,
-            reason: `Pedido ${existingOrder.orderNumber}`,
-            orderId: existingOrder.id,
-            effectiveDate: existingOrder.orderDate,
-          });
+      // kit items into their effective stock products. Team orders never
+      // affected the user's stock, so nothing is reversed.
+      if (!existingOrder.isTeamOrder) {
+        if (!existingOrder.orderDate) {
+          const error = new Error(
+            'Data do pedido é obrigatória para movimentações de estoque',
+          );
+          error.status = 400;
+          throw error;
+        }
+        for (const item of existingOrder.items) {
+          if (!item.person || !item.person.isSelf) continue;
+          for (const { productId, quantity } of expandItemToStockProducts(
+            item,
+          )) {
+            await applyMovement(tx, {
+              userId: req.user.userId,
+              productId,
+              type: 'SAIDA',
+              quantity,
+              reason: `Pedido ${existingOrder.orderNumber}`,
+              orderId: existingOrder.id,
+              effectiveDate: existingOrder.orderDate,
+            });
+          }
         }
       }
 
@@ -985,8 +1012,9 @@ const addItemToOrder = async (req, res) => {
       });
 
       // Apply stock if the item belongs to the self person, expanding kit
-      // items into their effective stock products.
-      if (person.isSelf) {
+      // items into their effective stock products. Team orders never affect
+      // the user's stock.
+      if (person.isSelf && !order.isTeamOrder) {
         for (const { productId, quantity } of expandItemToStockProducts(item)) {
           await applyMovement(tx, {
             userId: req.user.userId,
@@ -1009,6 +1037,7 @@ const addItemToOrder = async (req, res) => {
         items: updatedOrder.items,
         payments,
         shippingCents: toCents(order.shippingValue ?? 0),
+        isTeamOrder: order.isTeamOrder,
       });
       if (newStatus !== updatedOrder.status) {
         await tx.order.update({
@@ -1095,32 +1124,35 @@ const updateItem = async (req, res) => {
       await resolveEditedKitFields(tx, existingItem, newData);
 
       // Compute stock diff between the old and new item state, expanding kit
-      // items into their effective stock products.
-      const diff = computeStockDiff([existingItem], [newData], selfIds);
+      // items into their effective stock products. Team orders never affect
+      // the user's stock.
+      if (!existingItem.order.isTeamOrder) {
+        const diff = computeStockDiff([existingItem], [newData], selfIds);
 
-      for (const { productId, delta } of diff) {
-        if (delta > 0) {
-          await applyMovement(tx, {
-            userId: req.user.userId,
-            productId,
-            type: 'ENTRADA',
-            quantity: delta,
-            reason: `Pedido ${existingItem.order.orderNumber}`,
-            orderId: existingItem.orderId,
-            itemId,
-            effectiveDate: existingItem.order.orderDate,
-          });
-        } else {
-          await applyMovement(tx, {
-            userId: req.user.userId,
-            productId,
-            type: 'SAIDA',
-            quantity: -delta,
-            reason: `Pedido ${existingItem.order.orderNumber}`,
-            orderId: existingItem.orderId,
-            itemId,
-            effectiveDate: existingItem.order.orderDate,
-          });
+        for (const { productId, delta } of diff) {
+          if (delta > 0) {
+            await applyMovement(tx, {
+              userId: req.user.userId,
+              productId,
+              type: 'ENTRADA',
+              quantity: delta,
+              reason: `Pedido ${existingItem.order.orderNumber}`,
+              orderId: existingItem.orderId,
+              itemId,
+              effectiveDate: existingItem.order.orderDate,
+            });
+          } else {
+            await applyMovement(tx, {
+              userId: req.user.userId,
+              productId,
+              type: 'SAIDA',
+              quantity: -delta,
+              reason: `Pedido ${existingItem.order.orderNumber}`,
+              orderId: existingItem.orderId,
+              itemId,
+              effectiveDate: existingItem.order.orderDate,
+            });
+          }
         }
       }
 
@@ -1177,6 +1209,7 @@ const updateItem = async (req, res) => {
         items: orderItems,
         payments,
         shippingCents: toCents(existingItem.order.shippingValue ?? 0),
+        isTeamOrder: existingItem.order.isTeamOrder,
       });
       if (newStatus !== existingItem.order.status) {
         await tx.order.update({
@@ -1229,8 +1262,13 @@ const deleteItem = async (req, res) => {
       }
 
       // Reverse stock if the item belonged to the self person, expanding kit
-      // items into their effective stock products.
-      if (existingItem.person && existingItem.person.isSelf) {
+      // items into their effective stock products. Team orders never affected
+      // the user's stock, so nothing is reversed.
+      if (
+        existingItem.person &&
+        existingItem.person.isSelf &&
+        !existingItem.order.isTeamOrder
+      ) {
         for (const { productId, quantity } of expandItemToStockProducts(
           existingItem,
         )) {
@@ -1274,6 +1312,7 @@ const deleteItem = async (req, res) => {
         items: orderItems,
         payments,
         shippingCents: toCents(existingItem.order.shippingValue ?? 0),
+        isTeamOrder: existingItem.order.isTeamOrder,
       });
       if (newStatus !== existingItem.order.status) {
         await tx.order.update({
