@@ -23,6 +23,7 @@ const OrderItemFields = ({
   onPersonSelect,
   onProductSelect,
   onRemove,
+  isTeamOrder = false,
 }) => {
   const selfPerson = findSelfPerson(people);
   const isSelfItem = isItemForSelf(item, people);
@@ -206,7 +207,7 @@ const OrderItemFields = ({
           </select>
         </div>
 
-        {isSelfItem && (
+        {isSelfItem && !isTeamOrder && (
           <div className="md:col-span-3">
             <label className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
               <input
@@ -229,7 +230,7 @@ const OrderItemFields = ({
           </div>
         )}
 
-        {isSelfItem && item.forStock && isKit && (
+        {isSelfItem && !isTeamOrder && item.forStock && isKit && (
           <div className="md:col-span-3">
             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
               Como enviar para o estoque?

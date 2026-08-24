@@ -42,6 +42,7 @@ export function useOrders() {
   const [orderNumber, setOrderNumber] = useState('');
   const [orderNumberBlurred, setOrderNumberBlurred] = useState(false);
   const [orderDate, setOrderDate] = useState(getTodayString());
+  const [isTeamOrder, setIsTeamOrder] = useState(false);
   const [accountOwner, setAccountOwner] = useState('');
   const [paymentType, setPaymentType] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
@@ -249,6 +250,7 @@ export function useOrders() {
     setOrderNumber('');
     setOrderNumberBlurred(false);
     setOrderDate(getTodayString());
+    setIsTeamOrder(false);
     setAccountOwner('');
     setPaymentType('');
     setOrderNotes('');
@@ -275,6 +277,9 @@ export function useOrders() {
         break;
       case 'orderDate':
         setOrderDate(value);
+        break;
+      case 'isTeamOrder':
+        setIsTeamOrder(value);
         break;
       case 'accountOwner':
         setAccountOwner(value);
@@ -342,6 +347,7 @@ export function useOrders() {
   const buildPayload = () => ({
     orderNumber: orderNumber.trim(),
     orderDate: orderDate || undefined,
+    isTeamOrder,
     accountOwner: accountOwner.trim() || null,
     paymentType: paymentType || null,
     orderNotes: orderNotes.trim() || null,
@@ -379,6 +385,7 @@ export function useOrders() {
       ? order.orderDate.split('T')[0]
       : getTodayString();
     setOrderDate(orderDate);
+    setIsTeamOrder(Boolean(order.isTeamOrder));
     setAccountOwner(order.accountOwner || '');
     setPaymentType(order.paymentType || '');
     setOrderNotes(order.orderNotes || '');
@@ -393,6 +400,7 @@ export function useOrders() {
     setOrderFormInitial({
       orderNumber: order.orderNumber,
       orderDate,
+      isTeamOrder: Boolean(order.isTeamOrder),
       accountOwner: order.accountOwner || '',
       paymentType: order.paymentType || '',
       orderNotes: order.orderNotes || '',
@@ -464,6 +472,7 @@ export function useOrders() {
   const orderFormValues = {
     orderNumber,
     orderDate,
+    isTeamOrder,
     accountOwner,
     paymentType,
     orderNotes,
@@ -520,6 +529,7 @@ export function useOrders() {
     orderNumber,
     orderNumberBlurred,
     orderDate,
+    isTeamOrder,
     accountOwner,
     paymentType,
     orderNotes,

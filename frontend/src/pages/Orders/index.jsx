@@ -37,6 +37,7 @@ const OrdersPage = () => {
     orderNumber,
     orderNumberBlurred,
     orderDate,
+    isTeamOrder,
     accountOwner,
     paymentType,
     orderNotes,
@@ -193,6 +194,7 @@ const OrdersPage = () => {
             orderNumber={orderNumber}
             orderNumberBlurred={orderNumberBlurred}
             orderDate={orderDate}
+            isTeamOrder={isTeamOrder}
             accountOwner={accountOwner}
             paymentType={paymentType}
             orderNotes={orderNotes}

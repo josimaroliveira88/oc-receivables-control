@@ -14,6 +14,7 @@ const OrderForm = ({
   orderNumber,
   orderNumberBlurred,
   orderDate,
+  isTeamOrder,
   accountOwner,
   paymentType,
   orderNotes,
@@ -117,6 +118,31 @@ const OrderForm = ({
       </div>
 
       <div className="mb-4">
+        <label className="flex items-start gap-2 cursor-pointer select-none">
+          <input
+            id="isTeamOrder"
+            type="checkbox"
+            checked={isTeamOrder}
+            onChange={(e) => onChangeField('isTeamOrder', e.target.checked)}
+            data-testid="order-is-team-order"
+            className="mt-1 h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
+          />
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Pedido da equipe (outra pessoa fez o pedido e pagou)
+          </span>
+        </label>
+        {isTeamOrder && (
+          <p
+            data-testid="order-team-notice"
+            className="mt-1 text-xs text-gray-500 dark:text-gray-400"
+          >
+            Este pedido é apenas um registro: não entra no controle de
+            recebimento, nos seus gastos nem no estoque.
+          </p>
+        )}
+      </div>
+
+      <div className="mb-4">
         <label
           htmlFor="orderDate"
           className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
@@ -216,6 +242,7 @@ const OrderForm = ({
             people={people}
             products={products}
             canRemove={items.length > 1}
+            isTeamOrder={isTeamOrder}
             onUpdateField={(field, value) => onItemUpdate(index, field, value)}
             onPersonSelect={onItemPersonSelect}
             onProductSelect={(productId) =>
