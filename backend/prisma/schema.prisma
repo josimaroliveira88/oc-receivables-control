@@ -87,6 +87,8 @@ model Item {
   quantity          Int               @default(1)
   forStock          Boolean           @default(false)
   chargedValueMode  ChargedValueMode  @default(UNIT)
+  kitStockMode      KitStockMode?
+  kitSnapshot       Json?
   stockMovements    StockMovement[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -97,6 +99,14 @@ model Item {
 enum ChargedValueMode {
   UNIT
   TOTAL
+}
+
+// How a stock-bound kit item affects inventory:
+// - KIT: the kit product itself is stocked as a single unit.
+// - COMPONENTS: each component of the kit is stocked (componentQty × itemQty).
+enum KitStockMode {
+  KIT
+  COMPONENTS
 }
 
 model Payment {
@@ -113,19 +123,22 @@ model Payment {
 }
 
 model Product {
-  id         String        @id @default(uuid())
-  code       String        @unique
-  name       String
-  size       String
-  status     ProductStatus @default(ATIVO)
-  doterraUrl String?       @db.VarChar(2048)
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  id          String        @id @default(uuid())
+  code        String        @unique
+  name        String
+  size        String
+  status      ProductStatus @default(ATIVO)
+  productType ProductType   @default(SIMPLES)
+  doterraUrl  String?       @db.VarChar(2048)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
-  prices         ProductPrice[]
-  items          Item[]
-  inventory      Inventory[]
-  stockMovements StockMovement[]
+  prices           ProductPrice[]
+  items            Item[]
+  inventory        Inventory[]
+  stockMovements   StockMovement[]
+  kitComponents    KitComposition[] @relation("KitComponents") // composition when this product is a KIT
+  componentOfKits  KitComposition[] @relation("ComponentOfKits") // kits that use this product as a component
 
   @@index([status])
 }
@@ -134,6 +147,30 @@ enum ProductStatus {
   ATIVO
   INDISPONIVEL
   INATIVO
+}
+
+enum ProductType {
+  SIMPLES
+  KIT
+}
+
+// Live composition of a KIT product. A kit is composed of one or more SIMPLES
+// products, each with its own quantity inside the kit. Order items snapshot the
+// composition at creation time (Item.kitSnapshot) so later edits to this table
+// never affect stock control of already-registered orders.
+model KitComposition {
+  id                 String  @id @default(uuid())
+  kitProductId       String
+  componentProductId String
+  quantity           Int     @default(1)
+
+  kitProduct       Product @relation("KitComponents", fields: [kitProductId], references: [id], onDelete: Cascade)
+  componentProduct Product @relation("ComponentOfKits", fields: [componentProductId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@unique([kitProductId, componentProductId])
+  @@index([componentProductId])
 }
 
 model ProductPrice {
