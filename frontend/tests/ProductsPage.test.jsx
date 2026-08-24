@@ -743,7 +743,7 @@ describe('ProductsPage', () => {
       expect(mockGet).toHaveBeenCalledTimes(1);
     });
 
-    it('should re-attach the infinite scroll observer after creating a product', async () => {
+    it('should keep infinite scroll working after creating a product without refetching', async () => {
       const sixtyProducts = Array.from({ length: 60 }, (_, i) => ({
         id: String(i + 1),
         code: `PROD${String(i + 1).padStart(4, '0')}`,
@@ -756,7 +756,7 @@ describe('ProductsPage', () => {
         doterraUrl: null,
       }));
       mockGet.mockResolvedValue({ data: fullResponse(sixtyProducts) });
-      mockPost.mockResolvedValue({ data: { ...mockProduct } });
+      mockPost.mockResolvedValue({ data: { ...mockProduct, id: '999' } });
 
       renderPage();
 
@@ -790,7 +790,7 @@ describe('ProductsPage', () => {
       fireEvent.click(screen.getByText('Salvar'));
 
       await waitFor(() => {
-        expect(mockGet).toHaveBeenCalledTimes(2);
+        expect(mockGet).toHaveBeenCalledTimes(1);
       });
 
       await waitFor(() => {
@@ -1071,6 +1071,51 @@ describe('ProductsPage', () => {
         );
       });
     });
+
+    it('should add the created product to the list without refetching', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([]) });
+      mockPost.mockResolvedValue({ data: { ...mockProduct } });
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Novo')).toBeInTheDocument();
+      });
+      expect(mockGet).toHaveBeenCalledTimes(1);
+
+      fireEvent.click(screen.getByText('Novo'));
+
+      const codeInput = await screen.findByPlaceholderText('Digite o código');
+      fireEvent.change(codeInput, { target: { value: '60226006' } });
+      fireEvent.change(
+        screen.getByPlaceholderText('Digite o nome do produto'),
+        { target: { value: 'Adaptiv® Pastilhas' } },
+      );
+      fireEvent.change(screen.getByPlaceholderText('Digite o tamanho'), {
+        target: { value: '60 pastilhas' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('Digite o preço regular'), {
+        target: { value: '308.00' },
+      });
+      fireEvent.change(
+        screen.getByPlaceholderText('Digite o preço de membro'),
+        { target: { value: '231.25' } },
+      );
+      fireEvent.change(screen.getByPlaceholderText('Digite o PV'), {
+        target: { value: '31' },
+      });
+
+      fireEvent.click(screen.getByText('Salvar'));
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalled();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+      expect(mockGet).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('Edit Product', () => {
@@ -1206,6 +1251,91 @@ describe('ProductsPage', () => {
         );
       });
     });
+
+    it('should update the row in place without refetching the list', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
+      mockPut.mockResolvedValue({
+        data: { ...mockProduct, name: 'Adaptiv® Atualizado' },
+      });
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+      expect(mockGet).toHaveBeenCalledTimes(1);
+
+      await clickProductAction('1', 'Editar');
+
+      const nameInput = await screen.findByDisplayValue('Adaptiv® Pastilhas');
+      fireEvent.change(nameInput, {
+        target: { value: 'Adaptiv® Atualizado' },
+      });
+
+      const form = nameInput.closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPut).toHaveBeenCalled();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Atualizado')).toBeInTheDocument();
+      });
+      expect(mockGet).toHaveBeenCalledTimes(1);
+    });
+
+    it('should render "Salvar e editar próximo" and open the next product on click', async () => {
+      mockGet.mockResolvedValue({
+        data: fullResponse([mockProduct, mockInactiveProduct]),
+      });
+      mockPut.mockResolvedValue({
+        data: { ...mockProduct, name: 'Adaptiv® Atualizado' },
+      });
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+      expect(mockGet).toHaveBeenCalledTimes(1);
+
+      await clickProductAction('1', 'Editar');
+
+      const saveAndNextButton = await screen.findByRole('button', {
+        name: 'Salvar e editar próximo',
+      });
+      expect(saveAndNextButton).toBeEnabled();
+
+      fireEvent.click(saveAndNextButton);
+
+      await waitFor(() => {
+        expect(mockPut).toHaveBeenCalledWith('/products/1', expect.anything());
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Editar Produto')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('Basil')).toBeInTheDocument();
+      });
+      expect(mockGet).toHaveBeenCalledTimes(1);
+    });
+
+    it('should disable "Salvar e editar próximo" when editing the last product', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      await clickProductAction('1', 'Editar');
+
+      const saveAndNextButton = await screen.findByRole('button', {
+        name: 'Salvar e editar próximo',
+      });
+      expect(saveAndNextButton).toBeDisabled();
+    });
   });
 
   describe('Inline status change', () => {
@@ -1258,6 +1388,42 @@ describe('ProductsPage', () => {
           status: 'INATIVO',
         });
       });
+    });
+
+    it('should update the status in place without refetching the list', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
+      mockPut.mockResolvedValue({
+        data: { ...mockProduct, status: 'INATIVO' },
+      });
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+      expect(mockGet).toHaveBeenCalledTimes(1);
+
+      fireEvent.click(screen.getByTestId('product-status-ATIVO'));
+      fireEvent.click(screen.getByTestId('product-status-1-option-INATIVO'));
+
+      expect(await screen.findByRole('dialog')).toBeInTheDocument();
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Confirmar alteração' }),
+      );
+
+      await waitFor(() => {
+        expect(mockPut).toHaveBeenCalled();
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('product-status-INATIVO'),
+        ).toBeInTheDocument();
+      });
+      expect(
+        screen.queryByTestId('product-status-ATIVO'),
+      ).not.toBeInTheDocument();
+      expect(mockGet).toHaveBeenCalledTimes(1);
     });
 
     it('should not change status when cancelling', async () => {
