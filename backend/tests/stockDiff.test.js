@@ -134,3 +134,74 @@ describe('computeStockDiff', () => {
     ]);
   });
 });
+
+describe('computeStockDiff with kit items', () => {
+  const selfIds = new Set([selfId]);
+
+  const kitItem = (overrides = {}) =>
+    item({
+      personId: selfId,
+      forStock: true,
+      productId: 'kit-1',
+      kitStockMode: 'COMPONENTS',
+      kitSnapshot: [
+        { componentProductId: 'comp-a', quantity: 3 },
+        { componentProductId: 'comp-b', quantity: 1 },
+      ],
+      ...overrides,
+    });
+
+  it('adds each component times quantity when a COMPONENTS kit item is added', () => {
+    const diff = computeStockDiff([], [kitItem({ quantity: 2 })], selfIds);
+    expect(diff).toEqual([
+      { productId: 'comp-a', delta: 6 },
+      { productId: 'comp-b', delta: 2 },
+    ]);
+  });
+
+  it('reverses each component when a COMPONENTS kit item is removed', () => {
+    const diff = computeStockDiff([kitItem({ quantity: 2 })], [], selfIds);
+    expect(diff).toEqual([
+      { productId: 'comp-a', delta: -6 },
+      { productId: 'comp-b', delta: -2 },
+    ]);
+  });
+
+  it('adjusts components when the quantity of a COMPONENTS kit item changes', () => {
+    const diff = computeStockDiff(
+      [kitItem({ quantity: 2 })],
+      [kitItem({ quantity: 3 })],
+      selfIds,
+    );
+    expect(diff).toEqual([
+      { productId: 'comp-a', delta: 3 },
+      { productId: 'comp-b', delta: 1 },
+    ]);
+  });
+
+  it('moves stock from the kit to its components when switching KIT -> COMPONENTS', () => {
+    const diff = computeStockDiff(
+      [kitItem({ quantity: 2, kitStockMode: 'KIT' })],
+      [kitItem({ quantity: 2 })],
+      selfIds,
+    );
+    expect(diff).toEqual([
+      { productId: 'kit-1', delta: -2 },
+      { productId: 'comp-a', delta: 6 },
+      { productId: 'comp-b', delta: 2 },
+    ]);
+  });
+
+  it('moves stock from components to the kit when switching COMPONENTS -> KIT', () => {
+    const diff = computeStockDiff(
+      [kitItem({ quantity: 2 })],
+      [kitItem({ quantity: 2, kitStockMode: 'KIT' })],
+      selfIds,
+    );
+    expect(diff).toEqual([
+      { productId: 'comp-a', delta: -6 },
+      { productId: 'comp-b', delta: -2 },
+      { productId: 'kit-1', delta: 2 },
+    ]);
+  });
+});
