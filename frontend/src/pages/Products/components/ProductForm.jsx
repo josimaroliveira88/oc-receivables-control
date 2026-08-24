@@ -59,118 +59,154 @@ const ProductForm = ({
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         </div>
       )}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Código
-        </label>
-        {isEdit ? (
-          <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Código
+          </label>
+          {isEdit ? (
+            <>
+              <input
+                type="text"
+                value={values.code}
+                disabled
+                title="O código não pode ser alterado"
+                className={inputClass}
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                O código não pode ser alterado.
+              </p>
+            </>
+          ) : (
             <input
               type="text"
               value={values.code}
-              disabled
-              title="O código não pode ser alterado"
+              onChange={(e) => onChangeField('code', e.target.value)}
+              required
               className={inputClass}
+              placeholder="Digite o código"
             />
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              O código não pode ser alterado.
-            </p>
-          </>
-        ) : (
+          )}
+        </div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Produto
+          </label>
           <input
             type="text"
-            value={values.code}
-            onChange={(e) => onChangeField('code', e.target.value)}
+            value={values.name}
+            onChange={(e) => onChangeField('name', e.target.value)}
             required
             className={inputClass}
-            placeholder="Digite o código"
+            placeholder={isEdit ? undefined : 'Digite o nome do produto'}
           />
+        </div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Tamanho
+          </label>
+          <input
+            type="text"
+            value={values.size}
+            onChange={(e) => onChangeField('size', e.target.value)}
+            required
+            className={inputClass}
+            placeholder={isEdit ? undefined : 'Digite o tamanho'}
+          />
+        </div>
+        <div className="mb-4">
+          <span className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Tipo de produto
+          </span>
+          <div className="flex items-center gap-4 pt-1">
+            <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input
+                type="radio"
+                name="product-type"
+                value="SIMPLES"
+                checked={(values.productType || 'SIMPLES') === 'SIMPLES'}
+                onChange={() => handleTypeChange('SIMPLES')}
+                data-testid="product-type-radio-SIMPLES"
+                className="text-primary-600 focus:ring-primary-500"
+              />
+              Simples
+            </label>
+            <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input
+                type="radio"
+                name="product-type"
+                value="KIT"
+                checked={(values.productType || 'SIMPLES') === 'KIT'}
+                onChange={() => handleTypeChange('KIT')}
+                data-testid="product-type-radio-KIT"
+                className="text-primary-600 focus:ring-primary-500"
+              />
+              Kit
+            </label>
+          </div>
+        </div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Preço Regular (R$)
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            value={values.regularPrice}
+            onChange={(e) => onChangeField('regularPrice', e.target.value)}
+            required
+            className={inputClass}
+            placeholder="Digite o preço regular"
+          />
+        </div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Preço de Membro (R$)
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            value={values.memberPrice}
+            onChange={(e) => onChangeField('memberPrice', e.target.value)}
+            required
+            className={inputClass}
+            placeholder="Digite o preço de membro"
+          />
+        </div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            PV
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            value={values.pv}
+            onChange={(e) => onChangeField('pv', e.target.value)}
+            required
+            className={inputClass}
+            placeholder="Digite o PV"
+          />
+        </div>
+        {isEdit && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Status
+            </label>
+            <select
+              value={status}
+              onChange={(e) => onChangeStatus(e.target.value)}
+              data-testid="edit-status-select"
+              className={inputClass}
+            >
+              <option value="ATIVO">Ativo</option>
+              <option value="INDISPONIVEL">Indisponível</option>
+              <option value="INATIVO">Inativo</option>
+            </select>
+          </div>
         )}
-      </div>
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Produto
-        </label>
-        <input
-          type="text"
-          value={values.name}
-          onChange={(e) => onChangeField('name', e.target.value)}
-          required
-          className={inputClass}
-          placeholder={isEdit ? undefined : 'Digite o nome do produto'}
-        />
-      </div>
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Tamanho
-        </label>
-        <input
-          type="text"
-          value={values.size}
-          onChange={(e) => onChangeField('size', e.target.value)}
-          required
-          className={inputClass}
-          placeholder={isEdit ? undefined : 'Digite o tamanho'}
-        />
-      </div>
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Tipo de produto
-        </label>
-        <select
-          data-testid="product-type-select"
-          value={values.productType || 'SIMPLES'}
-          onChange={(e) => handleTypeChange(e.target.value)}
-          className={inputClass}
-        >
-          <option value="SIMPLES">Simples</option>
-          <option value="KIT">Kit</option>
-        </select>
-      </div>
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Preço Regular (R$)
-        </label>
-        <input
-          type="number"
-          step="0.01"
-          min="0"
-          value={values.regularPrice}
-          onChange={(e) => onChangeField('regularPrice', e.target.value)}
-          required
-          className={inputClass}
-          placeholder="Digite o preço regular"
-        />
-      </div>
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Preço de Membro (R$)
-        </label>
-        <input
-          type="number"
-          step="0.01"
-          min="0"
-          value={values.memberPrice}
-          onChange={(e) => onChangeField('memberPrice', e.target.value)}
-          required
-          className={inputClass}
-          placeholder="Digite o preço de membro"
-        />
-      </div>
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          PV
-        </label>
-        <input
-          type="number"
-          step="0.01"
-          min="0"
-          value={values.pv}
-          onChange={(e) => onChangeField('pv', e.target.value)}
-          required
-          className={inputClass}
-          placeholder="Digite o PV"
-        />
       </div>
       {isKit && (
         <div className="mb-4 p-3 border border-primary-200 dark:border-primary-800 rounded-md">
@@ -237,23 +273,6 @@ const ProductForm = ({
           placeholder="https://www.doterra.com/BR/pt_BR/..."
         />
       </div>
-      {isEdit && (
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Status
-          </label>
-          <select
-            value={status}
-            onChange={(e) => onChangeStatus(e.target.value)}
-            data-testid="edit-status-select"
-            className={inputClass}
-          >
-            <option value="ATIVO">Ativo</option>
-            <option value="INDISPONIVEL">Indisponível</option>
-            <option value="INATIVO">Inativo</option>
-          </select>
-        </div>
-      )}
       <div className="flex items-center justify-end space-x-3">
         <button
           type="button"
