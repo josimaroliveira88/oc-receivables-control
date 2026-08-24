@@ -2400,4 +2400,223 @@ describe('OrdersPage', () => {
       });
     });
   });
+
+  describe('Kit stock mode selection', () => {
+    const selfPerson = { id: 'p-self', name: 'Eu', isSelf: true };
+    const kitProduct = {
+      id: 'prod-kit',
+      name: 'Kit Bem-estar',
+      code: 'KIT1',
+      memberPrice: '120.00',
+      pv: '15',
+      status: 'ATIVO',
+      productType: 'KIT',
+    };
+    const simpleProduct = {
+      id: 'prod-simple',
+      name: 'Óleo Simples',
+      code: 'OLEO1',
+      memberPrice: '90.00',
+      pv: '9',
+      status: 'ATIVO',
+      productType: 'SIMPLES',
+    };
+
+    const mockKitGet = () => {
+      mockGet.mockImplementation((url) => {
+        if (url === '/orders') return Promise.resolve({ data: [] });
+        if (url === '/people') return Promise.resolve({ data: [selfPerson] });
+        if (url.startsWith('/products'))
+          return Promise.resolve({
+            data: { data: [kitProduct, simpleProduct] },
+          });
+        return Promise.resolve({ data: [] });
+      });
+    };
+
+    const openCreateModal = async () => {
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByText('Novo Pedido'));
+      await waitFor(() => {
+        expect(
+          screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        ).toBeInTheDocument();
+      });
+    };
+
+    const selectSelfAndKitProduct = async () => {
+      fireEvent.change(screen.getByDisplayValue('Selecione uma pessoa'), {
+        target: { value: 'p-self' },
+      });
+      const combobox = screen.getByPlaceholderText('Busque um produto...');
+      fireEvent.change(combobox, { target: { value: 'Kit Bem-estar' } });
+      fireEvent.mouseDown(screen.getAllByText(/Kit Bem-estar/).at(-1));
+      await waitFor(() => {
+        expect(combobox.value).toContain('Kit Bem-estar');
+      });
+    };
+
+    it('shows the stock mode radios for a self + forStock + kit item', async () => {
+      mockKitGet();
+      mockPost.mockResolvedValue({ data: { id: '1', orderNumber: 'K' } });
+      renderPage();
+      await openCreateModal();
+
+      await selectSelfAndKitProduct();
+      fireEvent.click(screen.getByTestId('order-item-stock-toggle-0'));
+
+      expect(
+        screen.getByTestId('order-item-kit-mode-kit-0'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId('order-item-kit-mode-components-0'),
+      ).toBeInTheDocument();
+    });
+
+    it('does not show the stock mode radios for a simple product', async () => {
+      mockKitGet();
+      mockPost.mockResolvedValue({ data: { id: '1', orderNumber: 'K' } });
+      renderPage();
+      await openCreateModal();
+
+      fireEvent.change(screen.getByDisplayValue('Selecione uma pessoa'), {
+        target: { value: 'p-self' },
+      });
+      const combobox = screen.getByPlaceholderText('Busque um produto...');
+      fireEvent.change(combobox, { target: { value: 'Óleo Simples' } });
+      fireEvent.mouseDown(screen.getAllByText(/Óleo Simples/).at(-1));
+      await waitFor(() => {
+        expect(combobox.value).toContain('Óleo Simples');
+      });
+      fireEvent.click(screen.getByTestId('order-item-stock-toggle-0'));
+
+      expect(
+        screen.queryByTestId('order-item-kit-mode-kit-0'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('blocks submit until a stock mode is chosen for a kit item', async () => {
+      mockKitGet();
+      mockPost.mockResolvedValue({ data: { id: '1', orderNumber: 'K' } });
+      renderPage();
+      await openCreateModal();
+
+      await selectSelfAndKitProduct();
+      fireEvent.click(screen.getByTestId('order-item-stock-toggle-0'));
+      fireEvent.change(
+        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        { target: { value: 'ORD-KIT-MODE' } },
+      );
+      fireEvent.change(screen.getByPlaceholderText('0.00'), {
+        target: { value: '120' },
+      });
+
+      const form = screen
+        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
+        .closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Escolha como enviar o kit para o estoque'),
+        ).toBeInTheDocument();
+      });
+      expect(mockPost).not.toHaveBeenCalled();
+    });
+
+    it('sends kitStockMode in the payload when COMPONENTS is selected', async () => {
+      mockKitGet();
+      mockPost.mockResolvedValue({ data: { id: '1', orderNumber: 'K' } });
+      renderPage();
+      await openCreateModal();
+
+      await selectSelfAndKitProduct();
+      fireEvent.click(screen.getByTestId('order-item-stock-toggle-0'));
+      fireEvent.click(screen.getByTestId('order-item-kit-mode-components-0'));
+      fireEvent.change(
+        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        { target: { value: 'ORD-KIT-COMP' } },
+      );
+      fireEvent.change(screen.getByPlaceholderText('0.00'), {
+        target: { value: '120' },
+      });
+
+      const form = screen
+        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
+        .closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith(
+          '/orders',
+          expect.objectContaining({
+            items: expect.arrayContaining([
+              expect.objectContaining({
+                personId: 'p-self',
+                forStock: true,
+                kitStockMode: 'COMPONENTS',
+              }),
+            ]),
+          }),
+        );
+      });
+    });
+
+    it('prefills the chosen mode when editing an order item', async () => {
+      const orderWithKit = [
+        {
+          id: '1',
+          orderNumber: 'ORD-KIT-EDIT',
+          orderDate: '2026-05-15T00:00:00.000Z',
+          totalValue: '120.00',
+          status: 'PENDENTE',
+          items: [
+            {
+              id: 'i-kit',
+              description: 'Kit Bem-estar',
+              chargedValue: '120.00',
+              personId: 'p-self',
+              person: { name: 'Eu', isSelf: true },
+              productId: 'prod-kit',
+              memberPrice: '120.00',
+              pv: '15',
+              quantity: 1,
+              forStock: true,
+              kitStockMode: 'COMPONENTS',
+            },
+          ],
+        },
+      ];
+      mockGet.mockImplementation((url) => {
+        if (url === '/orders') return Promise.resolve({ data: orderWithKit });
+        if (url === '/people') return Promise.resolve({ data: [selfPerson] });
+        if (url.startsWith('/products'))
+          return Promise.resolve({
+            data: { data: [kitProduct, simpleProduct] },
+          });
+        return Promise.resolve({ data: [] });
+      });
+      mockPut.mockResolvedValue({ data: { id: '1', orderNumber: 'K' } });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-KIT-EDIT')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('order-actions-1-trigger'));
+      fireEvent.click(screen.getByTestId('order-actions-1-item-Editar'));
+      await waitFor(() => {
+        expect(
+          screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        ).toBeInTheDocument();
+      });
+
+      expect(
+        screen.getByTestId('order-item-kit-mode-components-0'),
+      ).toBeChecked();
+      expect(screen.getByTestId('order-item-stock-toggle-0')).toBeChecked();
+    });
+  });
 });
