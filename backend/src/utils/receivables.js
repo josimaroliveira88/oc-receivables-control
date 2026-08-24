@@ -23,11 +23,21 @@ const personPendingCents = ({ itemCents, paymentCents, isSelf }) => {
 // - items: [{ personId, chargedValue, person?: { isSelf } }]
 // - payments: [{ personId, amount }]
 // - shippingCents: order-level shipping cost (defaults to 0)
+// - isTeamOrder: when true the order is only recorded for reference (a team
+//   member placed it and paid for it), so it is always EQUIPE and never
+//   participates in receivables/pending computation.
 // Items without a person are ignored (existing behavior).
 // Shipping is an order-level cost: when the order has chargeable non-self
 // items, the total of payments must also cover the shipping for QUITADO.
 // Overpayments on non-self persons can absorb the shipping.
-const computeOrderStatus = ({ items, payments = [], shippingCents = 0 }) => {
+const computeOrderStatus = ({
+  items,
+  payments = [],
+  shippingCents = 0,
+  isTeamOrder = false,
+}) => {
+  if (isTeamOrder) return 'EQUIPE';
+
   const selfPersonIds = collectSelfPersonIds(items);
 
   const itemSums = new Map();
@@ -94,6 +104,7 @@ const syncOrderStatuses = async (db, orderIds) => {
       items: order.items,
       payments: order.payments,
       shippingCents: toCents(order.shippingValue ?? 0),
+      isTeamOrder: order.isTeamOrder,
     });
     if (nextStatus !== order.status) {
       await db.order.update({
