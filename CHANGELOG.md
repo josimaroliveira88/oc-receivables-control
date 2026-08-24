@@ -10,6 +10,33 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 66 — Menu de ações sem rolagem e fechamento educado de modais (2026-08-24)
+
+### Added
+- **Polite close em todas as modais com formulário**: fechar por backdrop, `Escape` ou botão `×`/Cancelar agora verifica se há alterações pendentes; se houver, abre um `ConfirmDialog` ("Descartar alterações?") antes de fechar; se não, fecha direto. `submitting` bloqueia o fechamento. Modais somente-leitura (Detalhamento, Histórico) fecham por backdrop sem confirmação.
+- **`Modal` compartilhado** (`frontend/src/components/Modal.jsx`): wrapper único para todas as modais, centralizando o backdrop `z-[60]`, o clique no backdrop, o `Escape` e a lógica de descarte. Substitui `OrderModal`, `PersonModal` e `ProductModal` (removidos). Os filhos são passados como render prop `(requestClose) => ...` para que o botão Cancelar passe pela mesma checagem.
+- **`useDirtyForm` + `hasFormChanges`** (`frontend/src/hooks/useDirtyForm.js`, `frontend/src/utils/formChanges.js`): comparação estrutural profunda (arrays/objetos aninhados) entre o estado atual e um snapshot que o hook de domínio captura ao abrir a modal e limpa ao fechar/salvar.
+- **Modal de produto mais larga e reorganizada**: largura `max-w-2xl` (como o modal de pedidos) na criação e na edição, com os campos em duas colunas no desktop (`grid-cols-1 sm:grid-cols-2`) e empilhados no mobile.
+- **Tipo de produto como radiobutton**: o seletor de tipo (`SIMPLES`/`KIT`) no formulário de produto virou um grupo de dois radiobuttons (reverter para `<select>` caso a quantidade de tipos aumente).
+
+### Changed
+- `frontend/src/components/ActionMenu.jsx`: o menu abre **para cima** (`bottom-full mb-2`) quando o gatilho está perto da base do viewport, mantendo as ações visíveis sem rolar e evitando que a altura da página aumente — corrige o bug em que clicar na barra de rolagem (ou scroll do mouse no último item) fechava o menu.
+- `frontend/src/pages/Products/useProducts.js`: o status de edição (`editStatus`) agora entra no snapshot e na comparação de `editDirty`, para que mudar apenas o status marque a modal como suja (antes o fechamento por fora não detectava a alteração).
+- `frontend/src/pages/Orders/useOrders.js`, `useOrderPayments.js`, `People/usePeople.js`, `Stock/useStock.js`: capturam snapshot ao abrir e expõem flags `isDirty` para o `Modal`.
+
+### Removed
+- `frontend/src/pages/Orders/components/OrderModal.jsx`, `frontend/src/pages/People/components/PersonModal.jsx`, `frontend/src/pages/Products/components/ProductModal.jsx` (substituídos pelo `Modal` compartilhado).
+
+### Files touched
+- `frontend/src/components/Modal.jsx` (novo), `frontend/src/hooks/useDirtyForm.js` (novo), `frontend/src/utils/formChanges.js` (novo).
+- `frontend/src/components/ActionMenu.jsx`; modais de Orders (`PaymentModal`, `EditPaymentModal`, `DetailsModal`), People, Products (`ProductForm`), Stock (`MovementDialog`, `HistoryDialog`) e páginas `index.jsx` de Orders/People/Products/Stock.
+- Hooks de domínio `useOrders`, `useOrderPayments`, `usePeople`, `useProducts`, `useStock`; `AGENTS.md` e `frontend/docs/frontend-architecture-guide.md`.
+
+### Tests
+- Frontend: novos `ActionMenu.test.jsx` (4), `Modal.test.jsx` (16), `formChanges.test.js` (13), `useDirtyForm.test.js` (6); `ProductsPage.test.jsx` com regressão de status + radiobuttons e `OrdersPayments.test.jsx` (confirmar descarte). **520 frontend passing** (was 475).
+- Verified: `npm run format:check` clean, `cd frontend && npm run build` clean.
+
+
 ## Phase 65 — Edição sem reset de scroll no cadastro de produtos (2026-08-24)
 
 ### Changed

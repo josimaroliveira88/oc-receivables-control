@@ -62,7 +62,7 @@ The ~400-line threshold is a mandatory review trigger, not an absolute rule: fil
 | Component | Focused on one concern; receives data and callbacks via props. Split when it has multiple visual regions or repeated JSX. |
 | Hook (`use{Nome}.js`) | Owns state and I/O for one domain. No generic hooks like `useApi`. |
 | Utils (`{nome}Helpers.js`) | Pure functions for one domain. Split by domain when unrelated concepts accumulate. |
-| Shared component | Lives in `src/components/` only if genuinely reusable (`ActionMenu`, `ConfirmDialog`, `Toast`); page-only widgets stay in the page folder. |
+| Shared component | Lives in `src/components/` only if genuinely reusable (`ActionMenu`, `Modal`, `ConfirmDialog`, `Toast`); page-only widgets stay in the page folder. `Modal` is the single wrapper for every dialog (see `AGENTS.md` High-Value Pitfalls): it owns the `z-[60]` backdrop, backdrop click + Escape, and the polite close (`isDirty` → discard `ConfirmDialog`). Form modals pass children as a render prop `(requestClose) => ...` and compute `isDirty` with the shared `src/hooks/useDirtyForm.js` against a snapshot the domain hook owns. |
 
 ## 4. Rules for any request
 
