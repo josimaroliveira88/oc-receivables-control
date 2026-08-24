@@ -10,6 +10,22 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 65 — Edição sem reset de scroll no cadastro de produtos (2026-08-24)
+
+### Changed
+- **Edição sem recarregar a lista**: ao criar, editar ou trocar o status de um produto, a tabela não é mais recarregada nem desmontada (antes `loadProducts()` ligava `loading`, exibindo um spinner que resetava o scroll e recolhia a janela do scroll infinito para 20 linhas). Agora as mutações atualizam o item **localmente** em `allProducts` usando o produto completo retornado pelo backend (`projectCurrentPrice`), mantendo a posição de rolagem e a lista visível intactas.
+- **Fluxo "Salvar e editar próximo"**: novo botão no modal de edição que salva o produto atual e abre imediatamente o modal de edição do próximo produto da lista filtrada, permitindo editar vários itens em sequência sem rolar. O botão fica desabilitado quando o produto em edição é o último da lista.
+
+### Files touched
+- `frontend/src/pages/Products/useProducts.js`: extração de `validateEditProduct`/`persistEditProduct`; atualização local em `handleCreateProduct`, `handleUpdateProduct` e `confirmChangeStatus`; novo `handleUpdateAndEditNext` e `hasNextProduct`.
+- `frontend/src/pages/Products/components/ProductForm.jsx`: botão "Salvar e editar próximo" (só em edição, `disabled` no último item).
+- `frontend/src/pages/Products/index.jsx`: conexão das novas props.
+
+### Tests
+- Frontend (`tests/ProductsPage.test.jsx`): 5 novos testes — criar/editar/trocar status atualizam localmente sem refetch (`mockGet` permanece 1 chamada), fluxo "Salvar e editar próximo" abre o próximo produto, e botão desabilitado ao editar o último; teste de scroll infinito pós-criação ajustado para não refetch. **480 frontend passing** (was 475).
+- Verified: `npm run format:check` clean, `cd frontend && npm run build` clean.
+
+
 ## Phase 64 — Produtos do tipo Kit e estoque por componentes (2026-08-23)
 
 ### Added
