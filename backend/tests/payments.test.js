@@ -1569,3 +1569,72 @@ describe('Shipping value status transitions', () => {
     expect(order.status).toBe('QUITADO');
   });
 });
+
+describe('Team order payments rejection', () => {
+  let authToken;
+  let userId;
+  let createdOrderIds = [];
+  let createdPersonIds = [];
+
+  beforeAll(async () => {
+    await prisma.$connect();
+    const username = `payments_team_${Date.now()}`;
+    const regRes = await request(app)
+      .post('/api/auth/register')
+      .send({ username, password: 'testpass123' });
+    userId = regRes.body.id;
+
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ username, password: 'testpass123' });
+    authToken = loginRes.body.token;
+  });
+
+  afterAll(async () => {
+    if (userId) {
+      await prisma.user.delete({ where: { id: userId } }).catch(() => {});
+    }
+    await prisma.$disconnect();
+  });
+
+  afterEach(async () => {
+    for (const id of createdOrderIds) {
+      await prisma.order.delete({ where: { id } }).catch(() => {});
+    }
+    createdOrderIds = [];
+    for (const id of createdPersonIds) {
+      await prisma.person.delete({ where: { id } }).catch(() => {});
+    }
+    createdPersonIds = [];
+  });
+
+  const makePerson = async (name) => {
+    const person = await prisma.person.create({
+      data: { name, userId },
+    });
+    createdPersonIds.push(person.id);
+    return person.id;
+  };
+
+  it('should reject creating a payment on a team order', async () => {
+    const personId = await makePerson('Cliente Equipe');
+    const created = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        orderNumber: uniqueOrderNumber('TEAM-PAY'),
+        isTeamOrder: true,
+        items: [{ description: 'Item', chargedValue: 100.0, personId }],
+      });
+    createdOrderIds.push(created.body.id);
+    expect(created.body.status).toBe('EQUIPE');
+
+    const response = await request(app)
+      .post(`/api/orders/${created.body.id}/payments`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ amount: 100.0, personId });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toMatch(/equipe/i);
+  });
+});
