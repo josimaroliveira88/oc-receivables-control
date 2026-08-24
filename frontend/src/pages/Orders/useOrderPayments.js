@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import api from '../../services/api';
 import { useToast } from '../../components/Toast';
+import { useDirtyForm } from '../../hooks/useDirtyForm';
 import { toCents } from '../../utils/money';
 import {
   getTodayString,
@@ -39,6 +40,8 @@ export function useOrderPayments({ refreshOrders }) {
   const [editPaymentError, setEditPaymentError] = useState('');
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [showEditOverpayConfirm, setShowEditOverpayConfirm] = useState(false);
+  const [paymentInitial, setPaymentInitial] = useState(null);
+  const [editPaymentInitial, setEditPaymentInitial] = useState(null);
   const { addToast } = useToast();
 
   const openPaymentModal = async (order) => {
@@ -54,11 +57,21 @@ export function useOrderPayments({ refreshOrders }) {
       const response = await api.get(`/orders/${order.id}/balance`);
       const responseBalances = response.data.balances;
       setBalances(responseBalances);
+      let selectedPersonId = '';
+      let paymentAmount = '';
       if (responseBalances.length > 0) {
-        setSelectedPersonId(responseBalances[0].personId);
+        selectedPersonId = responseBalances[0].personId;
         const firstBalance = responseBalances[0];
-        setPaymentAmount(toCents(firstBalance.itemTotal) === 0 ? '0' : '');
+        paymentAmount = toCents(firstBalance.itemTotal) === 0 ? '0' : '';
+        setSelectedPersonId(selectedPersonId);
+        setPaymentAmount(paymentAmount);
       }
+      setPaymentInitial({
+        selectedPersonId,
+        paymentAmount,
+        paymentNotes: '',
+        paymentDate: getTodayString(),
+      });
       setShowPaymentModal(true);
     } catch (err) {
       addToast('Erro ao carregar saldo do pedido.', 'error');
@@ -74,6 +87,7 @@ export function useOrderPayments({ refreshOrders }) {
     setPaymentNotes('');
     setPaymentDate(getTodayString());
     setPaymentError('');
+    setPaymentInitial(null);
   };
 
   const handleChangePerson = (personId) => {
@@ -180,12 +194,16 @@ export function useOrderPayments({ refreshOrders }) {
   };
 
   const openEditPaymentModal = (payment) => {
+    const paymentAmount = payment.amount;
+    const paymentNotes = payment.notes || '';
+    const paymentDate = toLocalDateInput(payment.paidAt);
     setEditingPayment(payment);
-    setEditPaymentAmount(payment.amount);
-    setEditPaymentNotes(payment.notes || '');
-    setEditPaymentDate(toLocalDateInput(payment.paidAt));
+    setEditPaymentAmount(paymentAmount);
+    setEditPaymentNotes(paymentNotes);
+    setEditPaymentDate(paymentDate);
     setEditPaymentError('');
     setShowEditOverpayConfirm(false);
+    setEditPaymentInitial({ paymentAmount, paymentNotes, paymentDate });
     setShowEditPaymentModal(true);
   };
 
@@ -197,6 +215,7 @@ export function useOrderPayments({ refreshOrders }) {
     setEditPaymentDate(getTodayString());
     setEditPaymentError('');
     setShowEditOverpayConfirm(false);
+    setEditPaymentInitial(null);
   };
 
   const handleChangeEditAmount = (value) => {
@@ -369,6 +388,25 @@ export function useOrderPayments({ refreshOrders }) {
     : (editingPayment && editingPayment.person && editingPayment.person.name) ||
       '';
 
+  const paymentDirty = useDirtyForm(
+    {
+      selectedPersonId,
+      paymentAmount,
+      paymentNotes,
+      paymentDate,
+    },
+    paymentInitial,
+  ).isDirty;
+
+  const editPaymentDirty = useDirtyForm(
+    {
+      paymentAmount: editPaymentAmount,
+      paymentNotes: editPaymentNotes,
+      paymentDate: editPaymentDate,
+    },
+    editPaymentInitial,
+  ).isDirty;
+
   return {
     showPaymentModal,
     selectedOrder,
@@ -406,6 +444,8 @@ export function useOrderPayments({ refreshOrders }) {
     getDetailPersonPayments,
     showEditPaymentModal,
     editingPayment,
+    paymentDirty,
+    editPaymentDirty,
     editPaymentAmount,
     editPaymentNotes,
     editPaymentDate,

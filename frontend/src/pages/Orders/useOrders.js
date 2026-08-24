@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import { useToast } from '../../components/Toast';
+import { useDirtyForm } from '../../hooks/useDirtyForm';
 import { useOrderFilters } from './useOrderFilters';
 import {
   emptyItem,
@@ -52,6 +53,7 @@ export function useOrders() {
   const addItemBtnRef = useRef(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [orderFormInitial, setOrderFormInitial] = useState(null);
   const ordersAbortRef = useRef(null);
   const { addToast } = useToast();
 
@@ -255,6 +257,7 @@ export function useOrders() {
     setItems([emptyItem()]);
     setOrderNumberError('');
     setItemErrors({});
+    setOrderFormInitial(null);
     setError('');
     setShowCreateModal(false);
     setShowEditModal(false);
@@ -372,19 +375,30 @@ export function useOrders() {
     setOrderNumberError('');
     setItemErrors({});
     setError('');
-    setOrderDate(
-      order.orderDate ? order.orderDate.split('T')[0] : getTodayString(),
-    );
+    const orderDate = order.orderDate
+      ? order.orderDate.split('T')[0]
+      : getTodayString();
+    setOrderDate(orderDate);
     setAccountOwner(order.accountOwner || '');
     setPaymentType(order.paymentType || '');
     setOrderNotes(order.orderNotes || '');
-    setShippingValue(
+    const shippingValue =
       order.shippingValue != null
         ? String(parseFloat(order.shippingValue))
-        : '',
-    );
+        : '';
+    setShippingValue(shippingValue);
     setShippingValueError('');
-    setItems(order.items.map(editItemFromApi));
+    const items = order.items.map(editItemFromApi);
+    setItems(items);
+    setOrderFormInitial({
+      orderNumber: order.orderNumber,
+      orderDate,
+      accountOwner: order.accountOwner || '',
+      paymentType: order.paymentType || '',
+      orderNotes: order.orderNotes || '',
+      shippingValue,
+      items,
+    });
     setShowEditModal(true);
   };
 
@@ -447,6 +461,20 @@ export function useOrders() {
   const fetchOrdersRef = useRef(fetchOrders);
   fetchOrdersRef.current = fetchOrders;
 
+  const orderFormValues = {
+    orderNumber,
+    orderDate,
+    accountOwner,
+    paymentType,
+    orderNotes,
+    shippingValue,
+    items,
+  };
+  const orderFormDirty = useDirtyForm(
+    orderFormValues,
+    orderFormInitial,
+  ).isDirty;
+
   // Auto-refetch when a filter or the sort changes. Search text is excluded on
   // purpose: the search term is only committed when the user presses Enter or
   // clicks the search button (handleSearchSubmit).
@@ -503,6 +531,7 @@ export function useOrders() {
     addItemBtnRef,
     confirmDeleteId,
     deleting,
+    orderFormDirty,
     setFormField,
     addItem,
     removeItem,

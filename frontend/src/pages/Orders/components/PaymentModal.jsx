@@ -2,6 +2,7 @@ import React from 'react';
 import { formatBRL, toCents, fromCents } from '../../../utils/money';
 import { formatDateBR } from '../../../utils/dates';
 import { lineValueCents } from '../utils/orderHelpers';
+import Modal from '../../../components/Modal';
 
 const PaymentModal = ({
   order,
@@ -17,6 +18,7 @@ const PaymentModal = ({
   selectedIsZeroItem,
   selectedIsSelf,
   selectedPersonItems,
+  isDirty = false,
   onClose,
   onChangePerson,
   onChangeAmount,
@@ -25,22 +27,15 @@ const PaymentModal = ({
   onSubmit,
 }) => {
   return (
-    <div
-      data-testid="payment-modal"
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+    <Modal
+      title={`Registrar Pagamento — ${order.orderNumber}`}
+      onClose={onClose}
+      isDirty={isDirty}
+      submitting={submitting}
+      testId="payment-modal"
+      closeAriaLabel="Fechar pagamento"
     >
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-            Registrar Pagamento — {order.orderNumber}
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-2xl leading-none"
-          >
-            &times;
-          </button>
-        </div>
+      {(requestClose) => (
         <form onSubmit={onSubmit} className="px-6 py-4">
           <div className="mb-4 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 p-3">
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
@@ -249,7 +244,7 @@ const PaymentModal = ({
           <div className="flex items-center justify-end space-x-3">
             <button
               type="button"
-              onClick={onClose}
+              onClick={requestClose}
               className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
             >
               Cancelar
@@ -267,8 +262,8 @@ const PaymentModal = ({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      )}
+    </Modal>
   );
 };
 

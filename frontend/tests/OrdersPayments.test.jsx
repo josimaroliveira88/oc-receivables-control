@@ -1627,6 +1627,14 @@ describe('OrdersPayments', () => {
 
       fireEvent.click(screen.getByText('Cancelar'));
 
+      // The date was changed, so the polite close asks for confirmation.
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', { name: 'Descartar' }),
+        ).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Descartar' }));
+
       await waitFor(() => {
         expect(
           screen.queryByText(/Registrar Pagamento — ORD-001/),

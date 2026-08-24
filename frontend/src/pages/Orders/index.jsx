@@ -3,7 +3,7 @@ import { formatBRL, toCents } from '../../utils/money';
 import { useOrders } from './useOrders';
 import { useOrderPayments } from './useOrderPayments';
 import OrdersTable from './components/OrdersTable';
-import OrderModal from './components/OrderModal';
+import Modal from '../../components/Modal';
 import OrderForm from './components/OrderForm';
 import PaymentModal from './components/PaymentModal';
 import DetailsModal from './components/DetailsModal';
@@ -48,6 +48,7 @@ const OrdersPage = () => {
     addItemBtnRef,
     confirmDeleteId,
     deleting,
+    orderFormDirty,
     setFormField,
     addItem,
     removeItem,
@@ -101,6 +102,8 @@ const OrdersPage = () => {
     getDetailPersonPayments,
     showEditPaymentModal,
     editingPayment,
+    paymentDirty,
+    editPaymentDirty,
     editPaymentAmount,
     editPaymentNotes,
     editPaymentDate,
@@ -177,37 +180,42 @@ const OrdersPage = () => {
         </div>
       </div>
 
-      <OrderModal
+      <Modal
         isOpen={showCreateModal || showEditModal}
         title={showEditModal ? 'Editar Pedido' : 'Novo Pedido'}
         onClose={resetForm}
+        isDirty={orderFormDirty}
+        maxWidth="max-w-2xl"
+        closeAriaLabel="Fechar pedido"
       >
-        <OrderForm
-          orderNumber={orderNumber}
-          orderNumberBlurred={orderNumberBlurred}
-          orderDate={orderDate}
-          accountOwner={accountOwner}
-          paymentType={paymentType}
-          orderNotes={orderNotes}
-          shippingValue={shippingValue}
-          shippingValueError={shippingValueError}
-          items={items}
-          people={people}
-          products={products}
-          isEdit={showEditModal}
-          orderNumberError={orderNumberError}
-          itemErrors={itemErrors}
-          onChangeField={setFormField}
-          onItemUpdate={updateItemField}
-          onItemPersonSelect={onPersonSelect}
-          onItemProductSelect={onProductSelect}
-          onAddItem={addItem}
-          onRemoveItem={removeItem}
-          addItemBtnRef={addItemBtnRef}
-          onSubmit={showEditModal ? handleUpdateOrder : handleCreateOrder}
-          onCancel={resetForm}
-        />
-      </OrderModal>
+        {(requestClose) => (
+          <OrderForm
+            orderNumber={orderNumber}
+            orderNumberBlurred={orderNumberBlurred}
+            orderDate={orderDate}
+            accountOwner={accountOwner}
+            paymentType={paymentType}
+            orderNotes={orderNotes}
+            shippingValue={shippingValue}
+            shippingValueError={shippingValueError}
+            items={items}
+            people={people}
+            products={products}
+            isEdit={showEditModal}
+            orderNumberError={orderNumberError}
+            itemErrors={itemErrors}
+            onChangeField={setFormField}
+            onItemUpdate={updateItemField}
+            onItemPersonSelect={onPersonSelect}
+            onItemProductSelect={onProductSelect}
+            onAddItem={addItem}
+            onRemoveItem={removeItem}
+            addItemBtnRef={addItemBtnRef}
+            onSubmit={showEditModal ? handleUpdateOrder : handleCreateOrder}
+            onCancel={requestClose}
+          />
+        )}
+      </Modal>
 
       {showPaymentModal && selectedOrder && (
         <PaymentModal
@@ -224,6 +232,7 @@ const OrdersPage = () => {
           selectedIsZeroItem={selectedIsZeroItem}
           selectedIsSelf={selectedIsSelf}
           selectedPersonItems={selectedPersonItems}
+          isDirty={paymentDirty}
           onClose={closePaymentModal}
           onChangePerson={handleChangePerson}
           onChangeAmount={handleChangeAmount}
@@ -260,6 +269,7 @@ const OrdersPage = () => {
           paymentDate={editPaymentDate}
           paymentError={editPaymentError}
           submitting={editSubmitting}
+          isDirty={editPaymentDirty}
           onClose={closeEditPaymentModal}
           onChangeAmount={handleChangeEditAmount}
           onChangeNotes={handleChangeEditNotes}
