@@ -10,6 +10,31 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 67 — Pedidos da equipe com status EQUIPE (2026-08-24)
+
+### Added
+- **Pedidos da equipe (status `EQUIPE`)**: novo tipo de pedido para registrar situações em que outra pessoa da equipe fez o pedido e pagou por conta própria. Marcado por `Order.isTeamOrder` (migração `20260824164617_add_team_order`), o pedido é apenas um registro: não entra no controle de recebimento, nos gastos do usuário nem no estoque.
+- **Status dedicado `EQUIPE`**: `computeOrderStatus` retorna sempre `EQUIPE` para pedidos com `isTeamOrder` (nunca `PENDENTE`/`PARCIAL`/`QUITADO`), cobrindo todos os pontos que recomputam status (criar/editar pedido e item, sincronização). Alternar o pedido de volta para normal recomputa o status padrão.
+- **Exclusão do dashboard**: `GET /api/dashboard` filtra `isTeamOrder: false`, excluindo os pedidos da equipe de `totalPending`, `totalPaid`, `currentMonthReceipts`, `personBalances` e `yearlyBreakdown` (pagamentos dos membros não contam como recebimento).
+- **Sem estoque e sem pagamentos**: pedidos da equipe não geram movimentações de estoque (mesmo com itens self + `forStock`; a opção "para meu estoque" é ocultada no formulário) e rejeitam `POST`/`PUT` de pagamentos (400 "Pedidos da equipe não aceitam pagamentos").
+- **UI**: toggle "Pedido da equipe (outra pessoa fez o pedido e pagou)" no formulário com aviso explicativo; badge roxo "Equipe" na listagem; coluna "Valor Pendente" exibida como "—"; ação "Registrar Pagamento" oculta; novo filtro de status "Somente da equipe".
+- **Suíte e2e Playwright** (`frontend/e2e/`, `frontend/playwright.config.js`): 5 casos cobrindo criar pedido da equipe pelo formulário, filtro "Somente da equipe", detalhamento somente-leitura, exclusão do dashboard e alternância para pedido normal; dependência `@playwright/test` e scripts `test:e2e`/`test:e2e:headed`.
+
+### Changed
+- `backend/src/utils/receivables.js`: `computeOrderStatus` aceita `isTeamOrder` e retorna `EQUIPE`; `syncOrderStatuses` repassa o flag.
+- `backend/src/controllers/ordersController.js`: schema aceita `isTeamOrder`; criação/edição pulam a validação de item de estoque, as movimentações e o diff de estoque em pedidos da equipe; `pendingCents` de ordenação = 0.
+- `backend/src/controllers/paymentsController.js`: rejeita criar/editar pagamento em pedido da equipe.
+- `backend/src/controllers/dashboardController.js`: o `where` adiciona `isTeamOrder: false`.
+- Frontend: `useOrders.js` (estado/payload `isTeamOrder`), `OrderForm.jsx` (toggle + aviso), `OrderItemFields.jsx` (oculta "para meu estoque"), `Badges.jsx` (config `EQUIPE`), `OrdersTable.jsx` (pendente "—"), `orderHelpers.js` (filtro "Somente da equipe") e `receivablesHelpers.js` (pendente 0 e ação de pagamento oculta).
+- `frontend/vitest.config.js` exclui `e2e/**` do Vitest; `.gitignore`/`.prettierignore` ignoram `test-results/`, `playwright-report/` e `e2e/screenshots/`.
+- `ARCHITECTURE.md` e `AGENTS.md` documentam o status `EQUIPE` e a regra de exclusão do dashboard.
+
+### Tests
+- Backend: `tests/receivables.test.js` (+2 — `EQUIPE` com `isTeamOrder`), `tests/orders.test.js` (+5 — criação, default, toggle, notas, sem estoque e valor inválido), `tests/payments.test.js` (+1 — rejeição de pagamento), `tests/dashboard.test.js` (+4 — exclusão de todas as métricas). **403 backend passing** (was 390).
+- Frontend: `tests/OrdersPage.test.jsx` (+2 — payload `isTeamOrder` e aviso) e `tests/OrdersPayments.test.jsx` (+1 — badge Equipe, pendente "—" e ação de pagamento oculta). **523 frontend passing** (was 520).
+- e2e: `frontend/e2e/team-orders.spec.js` — **5 casos Playwright passing** (usuário dedicado `e2e_team_*`, registros mantidos na base).
+- Verified: `npm run format:check` clean, `cd frontend && npm run build` clean.
+
 ## Phase 66 — Menu de ações sem rolagem e fechamento educado de modais (2026-08-24)
 
 ### Added
