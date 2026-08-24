@@ -45,6 +45,7 @@ model Order {
   shippingValue Decimal     @db.Decimal(10, 2) @default(0)
   orderDate    DateTime     @default(now())
   status       OrderStatus  @default(PENDENTE)
+  isTeamOrder  Boolean      @default(false)
   accountOwner String?      @db.VarChar(120)
   paymentType  PaymentType?
   orderNotes   String?      @db.VarChar(500)
@@ -63,6 +64,7 @@ enum OrderStatus {
   PENDENTE
   PARCIAL
   QUITADO
+  EQUIPE
 }
 
 enum PaymentType {
