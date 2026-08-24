@@ -41,6 +41,8 @@ const ProductsPage = () => {
     setConfirmStatus,
     handleCreateProduct,
     handleUpdateProduct,
+    handleUpdateAndEditNext,
+    hasNextProduct,
     handleStatusChange,
     confirmChangeStatus,
     openEditModal,
@@ -137,6 +139,8 @@ const ProductsPage = () => {
           onChangeField={setEditField}
           onChangeStatus={setEditStatus}
           onSubmit={handleUpdateProduct}
+          onSaveAndEditNext={handleUpdateAndEditNext}
+          hasNextProduct={hasNextProduct}
           onClose={closeEditModal}
         />
       </ProductModal>

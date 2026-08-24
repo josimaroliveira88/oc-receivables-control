@@ -133,11 +133,15 @@ export function useProducts() {
       return;
     }
     try {
-      await api.post('/products', createProductPayload(createForm));
+      const { data } = await api.post(
+        '/products',
+        createProductPayload(createForm),
+      );
+      setAllProducts((prev) => [...prev, data]);
       setCreateForm(emptyForm());
       setShowCreateModal(false);
       setError('');
-      loadProducts();
+      addToast('Produto criado com sucesso!', 'success');
     } catch (err) {
       addToast(
         err.response?.data?.error || 'Erro ao criar produto. Tente novamente.',
@@ -146,33 +150,66 @@ export function useProducts() {
     }
   };
 
-  const handleUpdateProduct = async (e) => {
-    e.preventDefault();
+  const validateEditProduct = () => {
     if (!editProduct.name.trim()) {
       setError('Nome é obrigatório');
-      return;
+      return false;
     }
     if (
       editProduct.productType === 'KIT' &&
       kitComponentsPayload(editProduct.components).length === 0
     ) {
       setError('É obrigatório vincular ao menos um produto ao kit');
-      return;
+      return false;
     }
     if (!isValidUrl(editProduct.doterraUrl)) {
       setError('URL do produto inválida');
-      return;
+      return false;
     }
+    return true;
+  };
+
+  const persistEditProduct = async () => {
+    const { data } = await api.put(
+      `/products/${editProductId}`,
+      updateProductPayload(editProduct, editStatus),
+    );
+    setAllProducts((prev) =>
+      prev.map((p) => (p.id === editProductId ? data : p)),
+    );
+    return data;
+  };
+
+  const handleUpdateProduct = async (e) => {
+    e.preventDefault();
+    if (!validateEditProduct()) return;
     try {
-      await api.put(
-        `/products/${editProductId}`,
-        updateProductPayload(editProduct, editStatus),
-      );
+      await persistEditProduct();
       setEditProductId(null);
       setEditProduct(emptyForm());
       setShowEditModal(false);
       setError('');
-      loadProducts();
+      addToast('Produto atualizado com sucesso!', 'success');
+    } catch (err) {
+      addToast(
+        err.response?.data?.error ||
+          'Erro ao atualizar produto. Tente novamente.',
+        'error',
+      );
+    }
+  };
+
+  const handleUpdateAndEditNext = async (e) => {
+    e.preventDefault();
+    if (!validateEditProduct()) return;
+    const idx = filteredProducts.findIndex((p) => p.id === editProductId);
+    const nextProduct = idx >= 0 ? filteredProducts[idx + 1] : undefined;
+    if (!nextProduct) return;
+    try {
+      await persistEditProduct();
+      setVisibleCount((prev) => Math.max(prev, idx + 2));
+      addToast('Produto atualizado.', 'success');
+      openEditModal(nextProduct);
     } catch (err) {
       addToast(
         err.response?.data?.error ||
@@ -190,11 +227,13 @@ export function useProducts() {
     if (!confirmStatus) return;
     try {
       setUpdatingStatus(true);
-      await api.put(`/products/${confirmStatus.product.id}`, {
+      const { data } = await api.put(`/products/${confirmStatus.product.id}`, {
         status: confirmStatus.newStatus,
       });
+      setAllProducts((prev) =>
+        prev.map((p) => (p.id === confirmStatus.product.id ? data : p)),
+      );
       addToast('Status do produto atualizado com sucesso!', 'success');
-      loadProducts();
     } catch (err) {
       addToast(
         err.response?.data?.error ||
@@ -263,6 +302,10 @@ export function useProducts() {
 
   const hasActiveFilters = search.trim() !== '' || statusFilter !== '';
 
+  const editIndex = filteredProducts.findIndex((p) => p.id === editProductId);
+  const hasNextProduct =
+    showEditModal && editIndex >= 0 && editIndex < filteredProducts.length - 1;
+
   return {
     visibleProducts,
     allProducts,
@@ -298,6 +341,8 @@ export function useProducts() {
     setConfirmStatus,
     handleCreateProduct,
     handleUpdateProduct,
+    handleUpdateAndEditNext,
+    hasNextProduct,
     handleStatusChange,
     confirmChangeStatus,
     openEditModal,
