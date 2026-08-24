@@ -4,6 +4,17 @@ const prisma = new PrismaClient();
 const { toCents, pricePerPv } = require('../utils/money');
 
 const productStatusSchema = z.enum(['ATIVO', 'INDISPONIVEL', 'INATIVO']);
+const productTypeSchema = z.enum(['SIMPLES', 'KIT']);
+
+const componentSchema = z.object({
+  componentProductId: z
+    .string()
+    .uuid('Component product ID must be a valid UUID'),
+  quantity: z
+    .number()
+    .int('Component quantity must be an integer')
+    .min(1, 'Component quantity must be at least 1'),
+});
 
 const createProductSchema = z.object({
   code: z.string().min(1, 'Code is required'),
@@ -18,6 +29,8 @@ const createProductSchema = z.object({
     .max(2048, 'Product URL is too long')
     .optional()
     .nullable(),
+  productType: productTypeSchema.default('SIMPLES'),
+  components: z.array(componentSchema).optional().default([]),
 });
 
 const updateProductSchema = z.object({
@@ -39,7 +52,60 @@ const updateProductSchema = z.object({
     .nonnegative('Member price must be non-negative')
     .optional(),
   pv: z.number().nonnegative('PV must be non-negative').optional(),
+  productType: productTypeSchema.optional(),
+  components: z.array(componentSchema).optional(),
 });
+
+// Validates a kit composition before it is persisted:
+// - KIT products require at least one component.
+// - SIMPLES products cannot have components.
+// - Components must exist, be unique, not be the kit itself, and be SIMPLES
+//   (nested kits are forbidden).
+const validateKitComponents = async (
+  client,
+  { productId = null, productType, components },
+) => {
+  const list = components || [];
+
+  if (productType === 'KIT' && list.length === 0) {
+    const error = new Error('A KIT product must have at least one component');
+    error.status = 400;
+    throw error;
+  }
+  if (productType === 'SIMPLES' && list.length > 0) {
+    const error = new Error('Components are only allowed for KIT products');
+    error.status = 400;
+    throw error;
+  }
+  if (list.length === 0) return;
+
+  const ids = list.map((c) => c.componentProductId);
+  if (new Set(ids).size !== ids.length) {
+    const error = new Error('A kit cannot contain the same component twice');
+    error.status = 400;
+    throw error;
+  }
+  if (productId && ids.includes(productId)) {
+    const error = new Error('A kit cannot contain itself');
+    error.status = 400;
+    throw error;
+  }
+
+  const products = await client.product.findMany({
+    where: { id: { in: ids } },
+  });
+  if (products.length !== ids.length) {
+    const error = new Error('One or more components do not exist');
+    error.status = 400;
+    throw error;
+  }
+  const notSimples = products.find((p) => p.productType === 'KIT');
+  if (notSimples) {
+    const error = new Error('A kit can only contain SIMPLES products');
+    error.status = 400;
+    throw error;
+  }
+};
 
 const priceFieldsPresent = (data) =>
   data.regularPrice !== undefined ||
@@ -61,6 +127,7 @@ const projectCurrentPrice = (product) => {
     name: product.name,
     size: product.size,
     status: product.status,
+    productType: product.productType ?? 'SIMPLES',
     doterraUrl: product.doterraUrl,
     createdAt: product.createdAt,
     updatedAt: product.updatedAt,
@@ -70,6 +137,10 @@ const projectCurrentPrice = (product) => {
     pricePerPv: currentPrice
       ? pricePerPv(currentPrice.memberPrice, currentPrice.pv)
       : null,
+    components: (product.kitComponents || []).map((c) => ({
+      componentProductId: c.componentProductId,
+      quantity: c.quantity,
+    })),
   };
 };
 
@@ -149,6 +220,7 @@ const getProducts = async (req, res) => {
           orderBy: { validFrom: 'desc' },
           take: 1,
         },
+        kitComponents: true,
       },
     });
 
@@ -198,6 +270,7 @@ const getProductById = async (req, res) => {
           orderBy: { validFrom: 'desc' },
           take: 1,
         },
+        kitComponents: true,
       },
     });
 
@@ -224,33 +297,57 @@ const createProduct = async (req, res) => {
       return res.status(409).json({ error: 'Product code already exists' });
     }
 
-    const product = await prisma.product.create({
-      data: {
-        code: validatedData.code,
-        name: validatedData.name,
-        size: validatedData.size,
-        doterraUrl: validatedData.doterraUrl ?? null,
-        prices: {
-          create: {
-            regularPrice: validatedData.regularPrice,
-            memberPrice: validatedData.memberPrice,
-            pv: validatedData.pv,
+    const product = await prisma.$transaction(async (tx) => {
+      await validateKitComponents(tx, {
+        productType: validatedData.productType,
+        components: validatedData.components,
+      });
+
+      const created = await tx.product.create({
+        data: {
+          code: validatedData.code,
+          name: validatedData.name,
+          size: validatedData.size,
+          doterraUrl: validatedData.doterraUrl ?? null,
+          productType: validatedData.productType,
+          prices: {
+            create: {
+              regularPrice: validatedData.regularPrice,
+              memberPrice: validatedData.memberPrice,
+              pv: validatedData.pv,
+            },
           },
+          ...(validatedData.productType === 'KIT'
+            ? {
+                kitComponents: {
+                  create: validatedData.components.map((c) => ({
+                    componentProductId: c.componentProductId,
+                    quantity: c.quantity,
+                  })),
+                },
+              }
+            : {}),
         },
-      },
-      include: {
-        prices: {
-          where: { validTo: null },
-          orderBy: { validFrom: 'desc' },
-          take: 1,
+        include: {
+          prices: {
+            where: { validTo: null },
+            orderBy: { validFrom: 'desc' },
+            take: 1,
+          },
+          kitComponents: true,
         },
-      },
+      });
+
+      return created;
     });
 
     res.status(201).json(projectCurrentPrice(product));
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors });
+    }
+    if (error.status) {
+      return res.status(error.status).json({ error: error.message });
     }
     console.error('Error creating product:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -270,6 +367,7 @@ const updateProduct = async (req, res) => {
           orderBy: { validFrom: 'desc' },
           take: 1,
         },
+        kitComponents: true,
       },
     });
 
@@ -278,6 +376,24 @@ const updateProduct = async (req, res) => {
     }
 
     const product = await prisma.$transaction(async (tx) => {
+      const newProductType =
+        validatedData.productType ?? existingProduct.productType;
+      const componentsProvided = validatedData.components !== undefined;
+      const newComponents = componentsProvided
+        ? validatedData.components
+        : newProductType === 'KIT'
+          ? existingProduct.kitComponents.map((c) => ({
+              componentProductId: c.componentProductId,
+              quantity: c.quantity,
+            }))
+          : [];
+
+      await validateKitComponents(tx, {
+        productId: id,
+        productType: newProductType,
+        components: newComponents,
+      });
+
       const updateData = {
         ...(validatedData.name !== undefined && { name: validatedData.name }),
         ...(validatedData.size !== undefined && { size: validatedData.size }),
@@ -286,6 +402,9 @@ const updateProduct = async (req, res) => {
         }),
         ...(validatedData.doterraUrl !== undefined && {
           doterraUrl: validatedData.doterraUrl,
+        }),
+        ...(validatedData.productType !== undefined && {
+          productType: validatedData.productType,
         }),
       };
 
@@ -340,6 +459,22 @@ const updateProduct = async (req, res) => {
         }
       }
 
+      // Replace or clear the kit composition when the type or components
+      // change. Existing order items keep their own frozen snapshots, so this
+      // never affects stock control of already-registered orders.
+      if (validatedData.productType !== undefined || componentsProvided) {
+        await tx.kitComposition.deleteMany({ where: { kitProductId: id } });
+        if (newProductType === 'KIT' && newComponents.length > 0) {
+          await tx.kitComposition.createMany({
+            data: newComponents.map((c) => ({
+              kitProductId: id,
+              componentProductId: c.componentProductId,
+              quantity: c.quantity,
+            })),
+          });
+        }
+      }
+
       return tx.product.update({
         where: { id },
         data: updateData,
@@ -349,6 +484,7 @@ const updateProduct = async (req, res) => {
             orderBy: { validFrom: 'desc' },
             take: 1,
           },
+          kitComponents: true,
         },
       });
     });
@@ -357,6 +493,9 @@ const updateProduct = async (req, res) => {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors });
+    }
+    if (error.status) {
+      return res.status(error.status).json({ error: error.message });
     }
     console.error('Error updating product:', error);
     res.status(500).json({ error: 'Internal server error' });
