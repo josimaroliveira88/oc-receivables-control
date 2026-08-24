@@ -1,7 +1,7 @@
 import React from 'react';
 import { useProducts } from './useProducts';
 import ProductsTable from './components/ProductsTable';
-import ProductModal from './components/ProductModal';
+import Modal from '../../components/Modal';
 import ProductForm from './components/ProductForm';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { PRODUCT_STATUS } from './utils/productHelpers';
@@ -26,6 +26,8 @@ const ProductsPage = () => {
     createForm,
     editProduct,
     editStatus,
+    createDirty,
+    editDirty,
     confirmStatus,
     updatingStatus,
     setShowCreateModal,
@@ -109,41 +111,51 @@ const ProductsPage = () => {
         </div>
       </div>
 
-      <ProductModal
+      <Modal
         isOpen={showCreateModal}
         title="Novo Produto"
         onClose={closeCreateModal}
+        isDirty={createDirty}
+        maxWidth="max-w-2xl"
+        closeAriaLabel="Fechar novo produto"
       >
-        <ProductForm
-          values={createForm}
-          isEdit={false}
-          error={error}
-          products={allProducts}
-          onChangeField={setCreateField}
-          onSubmit={handleCreateProduct}
-          onClose={closeCreateModal}
-        />
-      </ProductModal>
+        {(requestClose) => (
+          <ProductForm
+            values={createForm}
+            isEdit={false}
+            error={error}
+            products={allProducts}
+            onChangeField={setCreateField}
+            onSubmit={handleCreateProduct}
+            onClose={requestClose}
+          />
+        )}
+      </Modal>
 
-      <ProductModal
+      <Modal
         isOpen={showEditModal}
         title="Editar Produto"
         onClose={closeEditModal}
+        isDirty={editDirty}
+        maxWidth="max-w-2xl"
+        closeAriaLabel="Fechar edição de produto"
       >
-        <ProductForm
-          values={editProduct}
-          isEdit={true}
-          status={editStatus}
-          error={error}
-          products={allProducts}
-          onChangeField={setEditField}
-          onChangeStatus={setEditStatus}
-          onSubmit={handleUpdateProduct}
-          onSaveAndEditNext={handleUpdateAndEditNext}
-          hasNextProduct={hasNextProduct}
-          onClose={closeEditModal}
-        />
-      </ProductModal>
+        {(requestClose) => (
+          <ProductForm
+            values={editProduct}
+            isEdit={true}
+            status={editStatus}
+            error={error}
+            products={allProducts}
+            onChangeField={setEditField}
+            onChangeStatus={setEditStatus}
+            onSubmit={handleUpdateProduct}
+            onSaveAndEditNext={handleUpdateAndEditNext}
+            hasNextProduct={hasNextProduct}
+            onClose={requestClose}
+          />
+        )}
+      </Modal>
 
       <ConfirmDialog
         open={!!confirmStatus}

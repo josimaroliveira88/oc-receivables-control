@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import api from '../../services/api';
 import { useToast } from '../../components/Toast';
+import { useDirtyForm } from '../../hooks/useDirtyForm';
 import { copyToClipboard } from '../../utils/clipboard';
 import {
   PAGE_SIZE,
@@ -31,6 +32,8 @@ export function useProducts() {
   const [createForm, setCreateForm] = useState(emptyForm());
   const [confirmStatus, setConfirmStatus] = useState(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [createFormInitial, setCreateFormInitial] = useState(null);
+  const [editProductInitial, setEditProductInitial] = useState(null);
   const { addToast } = useToast();
 
   const sentinelRef = useRef(null);
@@ -98,12 +101,14 @@ export function useProducts() {
 
   const openCreateModal = () => {
     setShowCreateModal(true);
+    setCreateFormInitial(emptyForm());
     setError('');
   };
 
   const closeCreateModal = () => {
     setShowCreateModal(false);
     setCreateForm(emptyForm());
+    setCreateFormInitial(null);
     setError('');
   };
 
@@ -247,8 +252,7 @@ export function useProducts() {
   };
 
   const openEditModal = (product) => {
-    setEditProductId(product.id);
-    setEditProduct({
+    const form = {
       code: product.code,
       name: product.name,
       size: product.size,
@@ -262,8 +266,12 @@ export function useProducts() {
         componentProductId: c.componentProductId,
         quantity: c.quantity,
       })),
-    });
-    setEditStatus(product.status || 'ATIVO');
+    };
+    const status = product.status || 'ATIVO';
+    setEditProductId(product.id);
+    setEditProduct(form);
+    setEditProductInitial({ ...form, status });
+    setEditStatus(status);
     setError('');
     setShowEditModal(true);
   };
@@ -272,6 +280,7 @@ export function useProducts() {
     setShowEditModal(false);
     setEditProductId(null);
     setEditProduct(emptyForm());
+    setEditProductInitial(null);
     setError('');
   };
 
@@ -306,6 +315,12 @@ export function useProducts() {
   const hasNextProduct =
     showEditModal && editIndex >= 0 && editIndex < filteredProducts.length - 1;
 
+  const createDirty = useDirtyForm(createForm, createFormInitial).isDirty;
+  const editDirty = useDirtyForm(
+    { ...editProduct, status: editStatus },
+    editProductInitial,
+  ).isDirty;
+
   return {
     visibleProducts,
     allProducts,
@@ -325,6 +340,8 @@ export function useProducts() {
     createForm,
     editProduct,
     editStatus,
+    createDirty,
+    editDirty,
     confirmStatus,
     updatingStatus,
     setShowCreateModal,
