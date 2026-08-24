@@ -14,6 +14,7 @@ export const emptyItem = () => ({
   quantity: 1,
   forStock: false,
   chargedValueMode: 'UNIT',
+  kitStockMode: '',
 });
 
 // Sentinel value used by the person <select> to represent the logged-in user
@@ -73,6 +74,7 @@ export const PAYMENT_TYPE_FILTER_OPTIONS = [
 ];
 
 export const itemPayload = (item) => ({
+  ...(typeof item.id === 'string' && item.id ? { id: item.id } : {}),
   description: item.description.trim() || null,
   chargedValue:
     item.chargedValue === '' || item.chargedValue == null
@@ -89,6 +91,7 @@ export const itemPayload = (item) => ({
   quantity: Number(item.quantity) || 1,
   forStock: !!item.forStock,
   chargedValueMode: item.chargedValueMode || 'UNIT',
+  kitStockMode: item.kitStockMode || null,
 });
 
 export const editItemFromApi = (item) => ({
@@ -107,7 +110,15 @@ export const editItemFromApi = (item) => ({
   quantity: item.quantity != null ? Number(item.quantity) : 1,
   forStock: !!item.forStock,
   chargedValueMode: item.chargedValueMode || 'UNIT',
+  kitStockMode: item.kitStockMode || '',
 });
+
+// Whether an order item references a KIT product from the loaded catalog.
+export const isKitItem = (item, products) => {
+  if (!item.productId) return false;
+  const product = (products || []).find((p) => p.id === item.productId);
+  return !!product && product.productType === 'KIT';
+};
 
 // Whether an order item belongs to the logged-in user themselves.
 export const isItemForSelf = (item, people) => {

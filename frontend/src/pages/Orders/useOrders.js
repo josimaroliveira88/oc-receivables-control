@@ -8,6 +8,7 @@ import {
   getTodayString,
   itemPayload,
   editItemFromApi,
+  isKitItem,
   SELF_PERSON_ID,
   findSelfPerson,
 } from './utils/orderHelpers';
@@ -178,6 +179,7 @@ export function useOrders() {
                 product && product.pv != null
                   ? parseFloat(product.pv).toString()
                   : '',
+              kitStockMode: '',
             }
           : item,
       ),
@@ -198,6 +200,7 @@ export function useOrders() {
           if (i !== index) return item;
           const updated = { ...item, personId: value };
           if (updated.forStock) updated.forStock = false;
+          if (updated.kitStockMode) updated.kitStockMode = '';
           return updated;
         }),
       );
@@ -318,6 +321,12 @@ export function useOrders() {
         newItemErrors[item.id] = 'Quantidade deve ser maior ou igual a 1';
       } else if (!item.personId) {
         newItemErrors[item.id] = 'Pessoa é obrigatória';
+      } else if (
+        item.forStock &&
+        isKitItem(item, products) &&
+        !item.kitStockMode
+      ) {
+        newItemErrors[item.id] = 'Escolha como enviar o kit para o estoque';
       }
     });
     setItemErrors(newItemErrors);

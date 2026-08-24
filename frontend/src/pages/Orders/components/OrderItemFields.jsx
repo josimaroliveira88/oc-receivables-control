@@ -7,6 +7,7 @@ import {
   findSelfPerson,
   personSelectLabel,
   isItemForSelf,
+  isKitItem,
   memberLineTotal,
   lineValueCents,
 } from '../utils/orderHelpers';
@@ -25,6 +26,7 @@ const OrderItemFields = ({
 }) => {
   const selfPerson = findSelfPerson(people);
   const isSelfItem = isItemForSelf(item, people);
+  const isKit = isKitItem(item, products);
 
   return (
     <div
@@ -211,7 +213,10 @@ const OrderItemFields = ({
                 type="checkbox"
                 data-testid={`order-item-stock-toggle-${index}`}
                 checked={item.forStock}
-                onChange={(e) => onUpdateField('forStock', e.target.checked)}
+                onChange={(e) => {
+                  onUpdateField('forStock', e.target.checked);
+                  if (!e.target.checked) onUpdateField('kitStockMode', '');
+                }}
                 className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
               />
               <span>
@@ -221,6 +226,38 @@ const OrderItemFields = ({
                 </span>
               </span>
             </label>
+          </div>
+        )}
+
+        {isSelfItem && item.forStock && isKit && (
+          <div className="md:col-span-3">
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              Como enviar para o estoque?
+            </label>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                <input
+                  type="radio"
+                  name={`order-item-kit-mode-${index}`}
+                  data-testid={`order-item-kit-mode-kit-${index}`}
+                  checked={item.kitStockMode === 'KIT'}
+                  onChange={() => onUpdateField('kitStockMode', 'KIT')}
+                  className="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                Estocar o kit
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                <input
+                  type="radio"
+                  name={`order-item-kit-mode-${index}`}
+                  data-testid={`order-item-kit-mode-components-${index}`}
+                  checked={item.kitStockMode === 'COMPONENTS'}
+                  onChange={() => onUpdateField('kitStockMode', 'COMPONENTS')}
+                  className="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                Estocar os componentes do kit
+              </label>
+            </div>
           </div>
         )}
 
