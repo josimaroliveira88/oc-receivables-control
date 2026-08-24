@@ -5,7 +5,7 @@ const { toCents, fromCents } = require('../utils/money');
 const getDashboardData = async (req, res) => {
   try {
     const orders = await prisma.order.findMany({
-      where: { userId: req.user.userId },
+      where: { userId: req.user.userId, isTeamOrder: false },
       include: {
         items: {
           include: {
