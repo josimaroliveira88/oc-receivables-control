@@ -388,6 +388,37 @@ describe('OrdersPayments', () => {
         expect(screen.getByText(/Quitado/)).toBeInTheDocument();
       });
     });
+
+    it('should render Equipe badge, "—" pending and no payment action for a team order', async () => {
+      const teamOrder = {
+        id: 'order-team',
+        orderNumber: 'ORD-TEAM',
+        orderDate: '2026-08-05',
+        accountOwner: null,
+        orderNotes: null,
+        totalValue: '300.00',
+        status: 'EQUIPE',
+        isTeamOrder: true,
+        items: [{ pv: '10.00' }],
+        payments: [],
+      };
+      mockGetImplementation([teamOrder]);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText(/Equipe/)).toBeInTheDocument();
+      });
+
+      const pendingCell = document.querySelector(
+        'td[data-label="Valor Pendente"]',
+      );
+      expect(pendingCell).toHaveTextContent('—');
+
+      fireEvent.click(screen.getByTestId('order-actions-order-team-trigger'));
+      expect(screen.queryByText('Registrar Pagamento')).not.toBeInTheDocument();
+      expect(
+        screen.getByTestId('order-actions-order-team-item-Detalhar-Pagamentos'),
+      ).toBeInTheDocument();
+    });
   });
 
   describe('Action Buttons', () => {
