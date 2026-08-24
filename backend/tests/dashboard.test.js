@@ -383,3 +383,158 @@ describe('Dashboard self person exclusion', () => {
     expect(parseFloat(response.body.currentMonthReceipts)).toBe(0);
   });
 });
+
+describe('Dashboard team order exclusion', () => {
+  let authToken;
+  let userId;
+  let createdOrderIds = [];
+  let createdPersonIds = [];
+
+  beforeAll(async () => {
+    await prisma.$connect();
+    const username = `dashboard_team_${Date.now()}`;
+    const regRes = await request(app)
+      .post('/api/auth/register')
+      .send({ username, password: 'testpass123' });
+    userId = regRes.body.id;
+
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ username, password: 'testpass123' });
+    authToken = loginRes.body.token;
+  });
+
+  afterAll(async () => {
+    if (userId) {
+      await prisma.user.delete({ where: { id: userId } }).catch(() => {});
+    }
+    await prisma.$disconnect();
+  });
+
+  afterEach(async () => {
+    for (const id of createdOrderIds) {
+      await prisma.order.delete({ where: { id } }).catch(() => {});
+    }
+    createdOrderIds = [];
+    for (const id of createdPersonIds) {
+      await prisma.person.delete({ where: { id } }).catch(() => {});
+    }
+    createdPersonIds = [];
+  });
+
+  const makePerson = async (name) => {
+    const person = await prisma.person.create({
+      data: { name, userId },
+    });
+    createdPersonIds.push(person.id);
+    return person.id;
+  };
+
+  const makeOrder = async (
+    orderNumber,
+    totalValue,
+    items,
+    status = 'PENDENTE',
+    isTeamOrder = false,
+  ) => {
+    const order = await prisma.order.create({
+      data: {
+        orderNumber,
+        totalValue,
+        status,
+        isTeamOrder,
+        userId,
+        items: { create: items },
+      },
+    });
+    createdOrderIds.push(order.id);
+    return order;
+  };
+
+  const getDashboard = async () => {
+    const response = await request(app)
+      .get('/api/dashboard')
+      .set('Authorization', `Bearer ${authToken}`);
+    expect(response.status).toBe(200);
+    return response.body;
+  };
+
+  it('should exclude team orders from totalPending and totalPaid', async () => {
+    const personId = await makePerson('Cliente');
+    const normalId = await makePerson('Outro Cliente');
+    await makeOrder(
+      uniqueOrderNumber('DT-TEAM'),
+      500.0,
+      [{ description: 'Item Equipe', chargedValue: 500.0, personId }],
+      'PENDENTE',
+      true,
+    );
+    await makeOrder(uniqueOrderNumber('DT-NORM'), 300.0, [
+      { description: 'Item Normal', chargedValue: 300.0, personId: normalId },
+    ]);
+
+    const dashboard = await getDashboard();
+    expect(parseFloat(dashboard.totalPending)).toBe(300.0);
+    expect(parseFloat(dashboard.totalPaid)).toBe(0);
+  });
+
+  it('should exclude a QUITADO team order from totalPaid and yearlyBreakdown', async () => {
+    const personId = await makePerson('Cliente');
+    const year = new Date().getFullYear();
+    await makeOrder(
+      uniqueOrderNumber('DT-QUIT'),
+      400.0,
+      [{ description: 'Item Equipe', chargedValue: 400.0, personId }],
+      'QUITADO',
+      true,
+    );
+
+    const dashboard = await getDashboard();
+    expect(parseFloat(dashboard.totalPaid)).toBe(0);
+
+    const entry = dashboard.yearlyBreakdown.find((y) => y.year === year);
+    expect(entry).toBeUndefined();
+  });
+
+  it('should exclude team order payments from currentMonthReceipts', async () => {
+    const personId = await makePerson('Cliente');
+    const order = await prisma.order.create({
+      data: {
+        orderNumber: uniqueOrderNumber('DT-RECEIPTS'),
+        totalValue: 250.0,
+        status: 'EQUIPE',
+        isTeamOrder: true,
+        userId,
+        items: {
+          create: [
+            { description: 'Item Equipe', chargedValue: 250.0, personId },
+          ],
+        },
+        payments: {
+          create: [{ amount: 250.0, personId }],
+        },
+      },
+    });
+    createdOrderIds.push(order.id);
+
+    const dashboard = await getDashboard();
+    expect(parseFloat(dashboard.currentMonthReceipts)).toBe(0);
+  });
+
+  it('should exclude team order items and payments from personBalances', async () => {
+    const personId = await makePerson('Cliente');
+    await makeOrder(
+      uniqueOrderNumber('DT-BAL'),
+      300.0,
+      [{ description: 'Item Equipe', chargedValue: 300.0, personId }],
+      'PENDENTE',
+      true,
+    );
+
+    const dashboard = await getDashboard();
+    const balance = dashboard.personBalances.find(
+      (b) => b.personId === personId,
+    );
+    expect(balance).toBeUndefined();
+  });
+});
