@@ -1,20 +1,24 @@
+const { expandItemToStockProducts } = require('./kitStock');
+
 // Computes the net per-product stock delta (in whole units) between two item
 // lists, considering only items that belong to the self person AND are flagged
-// for stock (forStock). Used by the order update flow (which replaces all items
-// destructively) to know how much stock to add or reverse.
+// for stock (forStock). Used by the order update flow to know how much stock to
+// add or reverse.
 //
 // Items may come from a DB query (with `forStock`, `quantity`, `productId`,
-// `personId`) or from the validated request payload.
+// `personId`, and for kit items `kitStockMode`/`kitSnapshot`) or from the
+// validated request payload. Kit items are expanded to their effective stock
+// products via `expandItemToStockProducts` so the diff naturally handles kit vs
+// components modes and quantity changes.
 // `selfPersonIds` is a Set of person ids that represent the user themselves.
 const computeStockDiff = (oldItems, newItems, selfPersonIds) => {
   const stockByProduct = (items) => {
     const map = new Map();
     for (const item of items) {
-      if (!item.forStock) continue;
-      if (!item.productId) continue;
       if (!selfPersonIds.has(item.personId)) continue;
-      const qty = Math.max(1, Number(item.quantity) || 1);
-      map.set(item.productId, (map.get(item.productId) || 0) + qty);
+      for (const { productId, quantity } of expandItemToStockProducts(item)) {
+        map.set(productId, (map.get(productId) || 0) + quantity);
+      }
     }
     return map;
   };
