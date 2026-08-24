@@ -1024,6 +1024,8 @@ describe('ProductsPage', () => {
           memberPrice: 231.25,
           pv: 31,
           doterraUrl: 'https://www.doterra.com/BR/pt_BR/p/adaptiv',
+          productType: 'SIMPLES',
+          components: [],
         });
       });
     });
@@ -1123,6 +1125,8 @@ describe('ProductsPage', () => {
           regularPrice: 308,
           memberPrice: 231.25,
           pv: 31,
+          productType: 'SIMPLES',
+          components: [],
         });
       });
     });
@@ -1167,6 +1171,8 @@ describe('ProductsPage', () => {
           regularPrice: 320,
           memberPrice: 240,
           pv: 33,
+          productType: 'SIMPLES',
+          components: [],
         });
       });
     });
@@ -1568,6 +1574,184 @@ describe('ProductsPage', () => {
           screen.getByText('Falha ao copiar. Tente novamente.'),
         ).toBeInTheDocument();
       });
+    });
+  });
+
+  describe('Kit product form', () => {
+    const mockComponent = {
+      id: '10',
+      code: 'COMP1',
+      name: 'Componente Lavanda',
+      size: '15 ml',
+      status: 'ATIVO',
+      productType: 'SIMPLES',
+      regularPrice: 10,
+      memberPrice: 7.5,
+      pv: 1,
+      pricePerPv: '7.50',
+      doterraUrl: null,
+    };
+    const mockKit = {
+      id: '5',
+      code: 'KIT1',
+      name: 'Kit Bem-estar',
+      size: 'kit',
+      status: 'ATIVO',
+      productType: 'KIT',
+      regularPrice: 150,
+      memberPrice: 120,
+      pv: 15,
+      pricePerPv: '8.00',
+      doterraUrl: null,
+      components: [{ componentProductId: '10', quantity: 2 }],
+    };
+
+    const openCreateModal = async () => {
+      renderPage();
+      await waitFor(() => {
+        fireEvent.click(screen.getByText('Novo'));
+      });
+      await screen.findByText('Novo Produto');
+    };
+
+    const selectKitType = () => {
+      fireEvent.change(screen.getByTestId('product-type-select'), {
+        target: { value: 'KIT' },
+      });
+    };
+
+    const fillBaseFields = (code) => {
+      fireEvent.change(screen.getByPlaceholderText('Digite o código'), {
+        target: { value: code },
+      });
+      fireEvent.change(
+        screen.getByPlaceholderText('Digite o nome do produto'),
+        { target: { value: 'Kit Teste' } },
+      );
+      fireEvent.change(screen.getByPlaceholderText('Digite o tamanho'), {
+        target: { value: 'kit' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('Digite o preço regular'), {
+        target: { value: '150.00' },
+      });
+      fireEvent.change(
+        screen.getByPlaceholderText('Digite o preço de membro'),
+        { target: { value: '120.00' } },
+      );
+      fireEvent.change(screen.getByPlaceholderText('Digite o PV'), {
+        target: { value: '15' },
+      });
+    };
+
+    it('defaults to SIMPLES and hides the kit builder', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockComponent]) });
+      await openCreateModal();
+
+      expect(screen.getByTestId('product-type-select').value).toBe('SIMPLES');
+      expect(
+        screen.queryByText('Adicionar componente'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('reveals the component builder when KIT is selected', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockComponent]) });
+      await openCreateModal();
+      selectKitType();
+
+      expect(screen.getByText('Adicionar componente')).toBeInTheDocument();
+    });
+
+    it('blocks saving a kit without any component', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockComponent]) });
+      await openCreateModal();
+      selectKitType();
+      fillBaseFields('KIT1');
+
+      const form = screen
+        .getByPlaceholderText('Digite o código')
+        .closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('É obrigatório vincular ao menos um produto ao kit'),
+        ).toBeInTheDocument();
+      });
+      expect(mockPost).not.toHaveBeenCalled();
+    });
+
+    it('sends productType KIT and components in the create payload', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockComponent]) });
+      mockPost.mockResolvedValue({ data: { ...mockKit } });
+      await openCreateModal();
+      selectKitType();
+
+      fireEvent.click(screen.getByText('Adicionar componente'));
+      const combobox = screen.getAllByPlaceholderText(
+        'Busque um produto...',
+      )[0];
+      fireEvent.change(combobox, { target: { value: 'Lavanda' } });
+      const componentOption = screen.getAllByText(/Componente Lavanda/).at(-1);
+      fireEvent.mouseDown(componentOption);
+      fireEvent.change(screen.getByTestId('kit-component-quantity-0'), {
+        target: { value: '3' },
+      });
+
+      fillBaseFields('KIT1');
+      const form = screen
+        .getByPlaceholderText('Digite o código')
+        .closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => expect(mockPost).toHaveBeenCalled());
+      expect(mockPost).toHaveBeenCalledWith(
+        '/products',
+        expect.objectContaining({
+          productType: 'KIT',
+          components: [{ componentProductId: '10', quantity: 3 }],
+        }),
+      );
+    });
+
+    it('loads the kit composition when editing', async () => {
+      mockGet.mockResolvedValue({
+        data: fullResponse([mockComponent, mockKit]),
+      });
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('Kit Bem-estar')).toBeInTheDocument();
+      });
+
+      await clickProductAction('5', 'Editar');
+      await waitFor(() => {
+        expect(screen.getByText('Editar Produto')).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId('product-type-select').value).toBe('KIT');
+      expect(
+        screen.getAllByPlaceholderText('Busque um produto...')[0].value,
+      ).toContain('Componente Lavanda');
+      expect(screen.getByTestId('kit-component-quantity-0').value).toBe('2');
+    });
+
+    it('blocks saving a kit whose component row is empty', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockComponent]) });
+      await openCreateModal();
+      selectKitType();
+      fireEvent.click(screen.getByText('Adicionar componente'));
+      fillBaseFields('KIT2');
+
+      const form = screen
+        .getByPlaceholderText('Digite o código')
+        .closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('É obrigatório vincular ao menos um produto ao kit'),
+        ).toBeInTheDocument();
+      });
+      expect(mockPost).not.toHaveBeenCalled();
     });
   });
 });
