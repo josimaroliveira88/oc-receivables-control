@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../../services/api';
 import { useToast } from '../../components/Toast';
+import { useDirtyForm } from '../../hooks/useDirtyForm';
 import {
   emptyForm,
   buildPayload,
@@ -22,6 +23,8 @@ export function usePeople() {
   const [deleting, setDeleting] = useState(false);
   const [createForm, setCreateForm] = useState(emptyForm());
   const [editForm, setEditForm] = useState(emptyForm());
+  const [createFormInitial, setCreateFormInitial] = useState(null);
+  const [editFormInitial, setEditFormInitial] = useState(null);
   const { addToast } = useToast();
 
   const fetchPeople = useCallback(async () => {
@@ -48,11 +51,13 @@ export function usePeople() {
 
   const closeCreateModal = () => {
     setShowCreateModal(false);
+    setCreateFormInitial(null);
     setError('');
   };
 
   const openCreateModal = () => {
     setShowCreateModal(true);
+    setCreateFormInitial(emptyForm());
     setError('');
   };
 
@@ -60,6 +65,7 @@ export function usePeople() {
     setShowEditModal(false);
     setEditPersonId(null);
     setEditForm(emptyForm());
+    setEditFormInitial(null);
     setError('');
   };
 
@@ -116,8 +122,7 @@ export function usePeople() {
   };
 
   const handleEditPerson = (person) => {
-    setEditPersonId(person.id);
-    setEditForm({
+    const form = {
       name: person.name || '',
       commonGroups: person.commonGroups || '',
       whatsapp: person.whatsapp || '',
@@ -127,7 +132,10 @@ export function usePeople() {
       isVip: person.isVip || false,
       isDoterraMember: person.isDoterraMember || false,
       isSelf: person.isSelf || false,
-    });
+    };
+    setEditPersonId(person.id);
+    setEditForm(form);
+    setEditFormInitial(form);
     setError('');
     setShowEditModal(true);
   };
@@ -158,6 +166,9 @@ export function usePeople() {
     fetchPeople();
   }, [fetchPeople]);
 
+  const createDirty = useDirtyForm(createForm, createFormInitial).isDirty;
+  const editDirty = useDirtyForm(editForm, editFormInitial).isDirty;
+
   return {
     people: visiblePeople,
     totalCount: visiblePeople.length,
@@ -175,6 +186,8 @@ export function usePeople() {
     showEditModal,
     createForm,
     editForm,
+    createDirty,
+    editDirty,
     confirmDeleteId,
     deleting,
     setShowCreateModal,

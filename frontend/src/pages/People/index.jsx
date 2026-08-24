@@ -1,7 +1,7 @@
 import React from 'react';
 import { usePeople } from './usePeople';
 import PeopleTable from './components/PeopleTable';
-import PersonModal from './components/PersonModal';
+import Modal from '../../components/Modal';
 import PersonForm from './components/PersonForm';
 import ConfirmDialog from '../../components/ConfirmDialog';
 
@@ -23,6 +23,8 @@ const PeoplePage = () => {
     showEditModal,
     createForm,
     editForm,
+    createDirty,
+    editDirty,
     confirmDeleteId,
     deleting,
     setShowCreateModal,
@@ -89,33 +91,43 @@ const PeoplePage = () => {
         </div>
       </div>
 
-      <PersonModal
+      <Modal
         isOpen={showCreateModal}
         title="Novo Cliente"
         onClose={closeCreateModal}
+        isDirty={createDirty}
+        maxWidth="max-w-md"
+        closeAriaLabel="Fechar novo cliente"
       >
-        <PersonForm
-          values={createForm}
-          onChange={setCreateField}
-          onSubmit={handleCreatePerson}
-          onClose={closeCreateModal}
-          error={error}
-        />
-      </PersonModal>
+        {(requestClose) => (
+          <PersonForm
+            values={createForm}
+            onChange={setCreateField}
+            onSubmit={handleCreatePerson}
+            onClose={requestClose}
+            error={error}
+          />
+        )}
+      </Modal>
 
-      <PersonModal
+      <Modal
         isOpen={showEditModal}
         title="Editar Cliente"
         onClose={closeEditModal}
+        isDirty={editDirty}
+        maxWidth="max-w-md"
+        closeAriaLabel="Fechar edição de cliente"
       >
-        <PersonForm
-          values={editForm}
-          onChange={setEditField}
-          onSubmit={handleUpdatePerson}
-          onClose={closeEditModal}
-          error={error}
-        />
-      </PersonModal>
+        {(requestClose) => (
+          <PersonForm
+            values={editForm}
+            onChange={setEditField}
+            onSubmit={handleUpdatePerson}
+            onClose={requestClose}
+            error={error}
+          />
+        )}
+      </Modal>
 
       <ConfirmDialog
         open={!!confirmDeleteId}
