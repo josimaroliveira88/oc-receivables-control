@@ -10,6 +10,15 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 68 — Ajustes visuais no fluxo de pedidos da equipe (2026-08-24)
+
+### Changed
+- **Indentação do aviso do toggle de equipe**: em `frontend/src/pages/Orders/components/OrderForm.jsx`, o parágrafo "Este pedido é apenas um registro…" ganhou `ml-7`, alinhando-o com o texto do checkbox em vez de começar colado na caixa de seleção.
+- **Cor neutra no valor de pedidos da equipe**: em `frontend/src/pages/Orders/components/OrdersTable.jsx`, a coluna "Valor (R$)" de pedidos com `isTeamOrder` agora usa `text-gray-400 dark:text-gray-500` (mesma cor do placeholder "—"), sinalizando que o valor é apenas o total do registro e não um valor a receber.
+
+### Tests
+- Frontend: **523 passing** (sem novos testes — mudanças exclusivamente visuais, cobertas pela suíte existente). Verified: `npm run format:check` clean, `cd frontend && npm run build` clean.
+
 ## Phase 67 — Pedidos da equipe com status EQUIPE (2026-08-24)
 
 ### Added

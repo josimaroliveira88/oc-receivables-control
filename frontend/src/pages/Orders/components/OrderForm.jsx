@@ -134,7 +134,7 @@ const OrderForm = ({
         {isTeamOrder && (
           <p
             data-testid="order-team-notice"
-            className="mt-1 text-xs text-gray-500 dark:text-gray-400"
+            className="mt-1 ml-7 text-xs text-gray-500 dark:text-gray-400"
           >
             Este pedido é apenas um registro: não entra no controle de
             recebimento, nos seus gastos nem no estoque.
