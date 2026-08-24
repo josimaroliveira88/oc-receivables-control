@@ -48,6 +48,12 @@ const createPayment = async (req, res) => {
         throw new Error('Order not found');
       }
 
+      if (order.isTeamOrder) {
+        throw new Error(
+          'Pedidos da equipe não aceitam pagamentos (a equipe já realizou o pagamento)',
+        );
+      }
+
       const person = await tx.person.findFirst({
         where: { id: validatedData.personId, userId: req.user.userId },
       });
@@ -157,6 +163,12 @@ const updatePayment = async (req, res) => {
 
       if (!order) {
         throw new NotFoundError('Payment not found');
+      }
+
+      if (order.isTeamOrder) {
+        throw new Error(
+          'Pedidos da equipe não aceitam pagamentos (a equipe já realizou o pagamento)',
+        );
       }
 
       const itemSumCents = order.items
