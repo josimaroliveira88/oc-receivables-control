@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../../services/api';
 import { useToast } from '../../components/Toast';
+import { useDirtyForm } from '../../hooks/useDirtyForm';
 import {
   emptyMovementForm,
   buildMovementPayload,
@@ -24,6 +25,7 @@ export function useStock() {
 
   const [showMovementDialog, setShowMovementDialog] = useState(false);
   const [movementForm, setMovementForm] = useState(emptyMovementForm());
+  const [movementFormInitial, setMovementFormInitial] = useState(null);
 
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [historyProduct, setHistoryProduct] = useState(null);
@@ -76,8 +78,12 @@ export function useStock() {
     return (products || []).filter((p) => !inventoryIds.has(p.id));
   }, [products, inventory]);
 
+  const movementDirty = useDirtyForm(movementForm, movementFormInitial).isDirty;
+
   const openMovementDialog = (item, type) => {
-    setMovementForm(emptyMovementForm(item.productId, type));
+    const form = emptyMovementForm(item.productId, type);
+    setMovementForm(form);
+    setMovementFormInitial(form);
     setMovementProduct(item);
     setMovementError('');
     setShowMovementDialog(true);
@@ -85,7 +91,9 @@ export function useStock() {
 
   const openAddStockDialog = async () => {
     await loadProductsCatalog();
-    setMovementForm(emptyMovementForm('', 'ENTRADA'));
+    const form = emptyMovementForm('', 'ENTRADA');
+    setMovementForm(form);
+    setMovementFormInitial(form);
     setMovementProduct(null);
     setMovementError('');
     setShowMovementDialog(true);
@@ -94,6 +102,7 @@ export function useStock() {
   const closeMovementDialog = () => {
     setShowMovementDialog(false);
     setMovementForm(emptyMovementForm());
+    setMovementFormInitial(null);
     setMovementError('');
     setMovementProduct(null);
   };
@@ -187,6 +196,7 @@ export function useStock() {
     movementForm,
     movementError,
     movementProduct,
+    movementDirty,
     submittingMovement,
     showHistoryDialog,
     historyProduct,

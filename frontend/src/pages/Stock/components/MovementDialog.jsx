@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import ProductCombobox from '../../../components/ProductCombobox';
+import Modal from '../../../components/Modal';
 import { MOVEMENT_TYPE_OPTIONS } from '../utils/stockHelpers';
 
 const inputClass =
@@ -11,40 +12,24 @@ const MovementDialog = ({
   form,
   error,
   submitting = false,
+  isDirty = false,
   onChange,
   onSubmit,
   onClose,
   products = [],
   product = null,
 }) => {
-  useEffect(() => {
-    if (!isOpen) return undefined;
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && !submitting) onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, submitting, onClose]);
-
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-            {title}
-          </h3>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={submitting}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-2xl leading-none disabled:opacity-50"
-            aria-label="Fechar"
-          >
-            &times;
-          </button>
-        </div>
+    <Modal
+      isOpen={isOpen}
+      title={title}
+      onClose={onClose}
+      isDirty={isDirty}
+      submitting={submitting}
+      testId="movement-dialog"
+      closeAriaLabel="Fechar"
+    >
+      {(requestClose) => (
         <form onSubmit={onSubmit} className="px-6 py-4">
           {error && (
             <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md">
@@ -150,7 +135,7 @@ const MovementDialog = ({
           <div className="flex items-center justify-end space-x-3">
             <button
               type="button"
-              onClick={onClose}
+              onClick={requestClose}
               disabled={submitting}
               className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -165,8 +150,8 @@ const MovementDialog = ({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      )}
+    </Modal>
   );
 };
 

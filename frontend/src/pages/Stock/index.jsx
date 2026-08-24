@@ -23,6 +23,7 @@ const StockPage = () => {
     movementForm,
     movementError,
     movementProduct,
+    movementDirty,
     submittingMovement,
     showHistoryDialog,
     historyProduct,
@@ -110,6 +111,7 @@ const StockPage = () => {
         form={movementForm}
         error={movementError}
         submitting={submittingMovement}
+        isDirty={movementDirty}
         products={availableProducts}
         product={movementProduct}
         onChange={setMovementField}
