@@ -84,6 +84,30 @@ describe('receivables util', () => {
         computeOrderStatus({ items, payments: [], shippingCents: toCents(30) }),
       ).toBe('QUITADO');
     });
+
+    it('returns EQUIPE when isTeamOrder is true regardless of items and payments', () => {
+      const items = [
+        { personId: 'other', chargedValue: 500.0, person: { isSelf: false } },
+      ];
+      expect(
+        computeOrderStatus({ items, payments: [], isTeamOrder: true }),
+      ).toBe('EQUIPE');
+    });
+
+    it('returns EQUIPE for a team order even with partial payments and shipping', () => {
+      const items = [
+        { personId: 'other', chargedValue: 500.0, person: { isSelf: false } },
+      ];
+      const payments = [{ personId: 'other', amount: 100.0 }];
+      expect(
+        computeOrderStatus({
+          items,
+          payments,
+          shippingCents: toCents(50),
+          isTeamOrder: true,
+        }),
+      ).toBe('EQUIPE');
+    });
   });
 
   describe('personPendingCents', () => {
