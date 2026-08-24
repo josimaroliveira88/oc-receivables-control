@@ -1,16 +1,23 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { MoreVertical } from 'lucide-react';
 
+const OPEN_UPWARD_MARGIN = 12;
+
 const ActionMenu = ({
   actions,
   ariaLabel = 'Ações',
   testIdPrefix = 'action-menu',
 }) => {
   const [open, setOpen] = useState(false);
+  const [openUpward, setOpenUpward] = useState(false);
   const containerRef = useRef(null);
+  const menuRef = useRef(null);
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open) {
+      setOpenUpward(false);
+      return undefined;
+    }
 
     const handleDocumentMouseDown = (event) => {
       if (
@@ -33,6 +40,27 @@ const ActionMenu = ({
       document.removeEventListener('mousedown', handleDocumentMouseDown);
       document.removeEventListener('keydown', handleKeyDown);
     };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const trigger = containerRef.current;
+    const menu = menuRef.current;
+    if (!trigger || !menu) return undefined;
+
+    const triggerRect = trigger.getBoundingClientRect();
+    const menuHeight = menu.offsetHeight || 0;
+    const viewportHeight = window.innerHeight || 0;
+    const spaceBelow = viewportHeight - triggerRect.bottom;
+
+    // When the menu would overflow the bottom edge, open it upward so the
+    // user never has to scroll to reach an action (and the page height does
+    // not expand to accommodate it).
+    setOpenUpward(
+      spaceBelow < menuHeight + OPEN_UPWARD_MARGIN &&
+        triggerRect.top > menuHeight,
+    );
   }, [open]);
 
   const handleTriggerClick = (event) => {
@@ -78,10 +106,11 @@ const ActionMenu = ({
             data-testid={`${testIdPrefix}-backdrop`}
           />
           <div
+            ref={menuRef}
             role="menu"
             aria-orientation="vertical"
             data-testid={`${testIdPrefix}-menu`}
-            className="absolute right-0 mt-2 z-[80] w-44 origin-top-right bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700 rounded-lg shadow-lg py-1 focus:outline-none"
+            className={`absolute right-0 ${openUpward ? 'bottom-full mb-2 origin-bottom-right' : 'mt-2 origin-top-right'} z-[80] w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700 rounded-lg shadow-lg py-1 focus:outline-none`}
           >
             {actions.map((action) => {
               const Icon = action.icon;
