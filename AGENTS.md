@@ -27,7 +27,7 @@ MVP and Phases 1-64 are complete (see `CHANGELOG.md`). The application provides 
 - Persist monetary values as Prisma `Decimal(10,2)`; Prisma commonly returns Decimal values as strings, so normalize before calculations or formatting.
 - Never compare or sum BRL values with raw floating-point arithmetic.
 - Payments allow overpayment after explicit frontend confirmation. A zero payment is valid only for a person whose item total is zero. Negative payments are invalid.
-- Preserve transactional consistency and order status transitions: `PENDENTE` -> `PARCIAL` -> `QUITADO`.
+- Preserve transactional consistency and order status transitions: `PENDENTE` -> `PARCIAL` -> `QUITADO`. Orders flagged `isTeamOrder` are an exception: `computeOrderStatus` always returns the dedicated `EQUIPE` status (never one of the three standard states), and team orders are excluded from all dashboard metrics, generate no stock movements, and reject payments. Toggling a team order back to normal recomputes the standard status.
 
 ### Data isolation and security
 
