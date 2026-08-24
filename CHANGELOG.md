@@ -10,6 +10,32 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 64 — Produtos do tipo Kit e estoque por componentes (2026-08-23)
+
+### Added
+- **Tipo de produto Kit**: novo `ProductType` (`SIMPLES` default | `KIT`) no cadastro de produtos (migração `20260823234735_add_kit_product_type`). Ao marcar um produto como Kit, o formulário abre o construtor de componentes (produtos simples + quantidade por componente); salvar é bloqueado enquanto não houver ao menos um componente vinculado. Kits não podem conter outros kits nem a si mesmos, e componentes só podem ser produtos simples.
+- **Composição de kits**: nova tabela `KitComposition` (`kitProductId`, `componentProductId`, `quantity`, `@@unique([kitProductId, componentProductId])`). A composição atual pode ser substituída ao editar o produto; converter de Kit para Simples limpa a composição. O preço/PV do kit é informado manualmente (a composição não afeta o preço).
+- **Escolha de envio ao estoque**: ao marcar um item de kit como "para meu estoque" (pessoa self), o formulário do pedido pergunta como enviar: **Estocar o kit** (`KIT`) ou **Estocar os componentes do kit** (`COMPONENTS`) — obrigatório antes de salvar. O backend exige `kitStockMode` para item `forStock` de produto Kit (400 caso ausente).
+- **Snapshot congelado da composição**: o item de pedido grava `Item.kitSnapshot` (JSON) com a composição no momento da criação; `Item.kitStockMode` guarda a escolha. Alterações futuras na composição de um kit **não afetam** o controle de estoque de pedidos já cadastrados, mesmo ao editar itens desses pedidos.
+- **Ajuste automático de estoque por kit**: criação/edição/exclusão de itens de kit aplicam movimentações por produto efetivo — em `COMPONENTS`, cada componente é estocado por `componentQty × itemQty` (ex.: 2 kits com 3 produtos ⇒ cada produto +2); em `KIT`, só o kit é estocado. Alterar quantidade, excluir o item/pedido ou trocar o modo `KIT` ↔ `COMPONENTS` ajusta o estoque de forma consistente.
+
+### Changed
+- `backend/src/controllers/productController.js`: `createProductSchema`/`updateProductSchema` aceitam `productType` e `components`; validações de composição; resposta inclui `productType` e `components`.
+- `backend/src/utils/kitStock.js` (novo): `resolveKitSnapshot(client, productId)` e `expandItemToStockProducts(item)` — expansão única usada por `itemStockMovements`, `computeStockDiff` e exclusões de item/pedido.
+- `backend/src/utils/stockDiff.js`: agregação por produto agora expande itens de kit via `expandItemToStockProducts`.
+- `backend/src/controllers/ordersController.js`: `createOrder`/`addItemToOrder` congelam o snapshot e aplicam ENTRADA por produto efetivo; `updateItem` preserva o snapshot quando o produto não muda (regenera se mudar para outro kit; limpa se virar simples); `deleteItem`/`deleteOrder` revertem via expansão; `updateOrder` refatorado para **sync por id** (atualiza itens mantidos preservando `kitSnapshot`, cria novos, exclui removidos).
+- `frontend/src/pages/Products/components/ProductForm.jsx`: seletor "Tipo de produto" e construtor de componentes (combobox de produtos simples + quantidade + Remover + Adicionar componente).
+- `frontend/src/pages/Products/useProducts.js` + `utils/productHelpers.js`: payload com `productType`/`components`, validação de ≥1 componente, carregamento da composição ao editar.
+- `frontend/src/pages/Orders/components/OrderItemFields.jsx`: rádio "Estocar o kit / Estocar os componentes do kit" quando `self + forStock + kit`.
+- `frontend/src/pages/Orders/useOrders.js` + `utils/orderHelpers.js`: `itemPayload` envia `id` (UUID) e `kitStockMode`; validação exige o modo; reset do modo ao trocar produto/pessoa.
+- `ARCHITECTURE.md` e `AGENTS.md` atualizados com o modelo de kits, o snapshot congelado, o sync por id e os pitfalls de teste.
+
+### Tests
+- Backend: `tests/kitProducts.test.js` (17) — CRUD de kit, validações de composição, troca de tipo; `tests/kitStock.test.js` (9) — `expandItemToStockProducts`/`resolveKitSnapshot`; `tests/ordersKit.test.js` (16) — ENTRADA/SAIDA em KIT vs COMPONENTS, multiplicador `componentQty × itemQty`, updateItem quantidade/modo/produto, delete item/pedido, snapshot congelado após mudança de composição, sync por id no `updateOrder`; `tests/stockDiff.test.js` estendido com casos de kit. **390 backend passing** (was 343).
+- Frontend: `tests/ProductsPage.test.jsx` — novo bloco "Kit product form" (6) cobrindo o seletor de tipo, construtor, validação e payload; `tests/OrdersPage.test.jsx` — novo bloco "Kit stock mode selection" (5) cobrindo o rádio, obrigatoriedade e pré-preenchimento na edição. **475 frontend passing** (was 464).
+- Verified: `npm run format:check` clean, `cd frontend && npm run build` clean.
+
+
 ## Phase 63 — Edição de pagamentos, Frete no pedido, PV zero e Data Efetiva no estoque (2026-08-23)
 
 ### Added

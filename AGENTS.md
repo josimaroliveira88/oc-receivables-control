@@ -2,11 +2,11 @@
 
 ## Current State
 
-MVP and Phases 17-48 are complete. The application provides authenticated, user-isolated client, order, receivables, payment, dashboard, export, and dōTERRA product-catalog workflows.
+MVP and Phases 1-64 are complete (see `CHANGELOG.md`). The application provides authenticated, user-isolated client, order, receivables, payment, dashboard, export, stock, and dōTERRA product-catalog workflows, including KIT products with per-component stock control.
 
 - Internal documentation and code comments: English.
 - User-facing content: Brazilian Portuguese (PT-BR).
-- Last recorded test result: 293 backend + 419 frontend = 712 passing tests.
+- Last recorded test result: 390 backend + 475 frontend = 865 passing tests.
 
 ## Stack and Ports
 
@@ -91,6 +91,9 @@ The project no longer maintains a running `## [Unreleased]` section in `CHANGELO
 - Keep `prettier` declared in the `package.json` of each workspace that owns source files (root, `backend/`, `frontend/`) so the binary resolves in the local `node_modules/.bin`.
 - On **Windows**, `npx prisma generate` can fail with `EPERM` renaming `query_engine-windows.dll.node` when the backend Node process, VS Code's TS server, or Windows Defender is locking the DLL. Kill `node.exe`, close VS Code, delete `backend/node_modules/.prisma/client`, retry; if it still fails, exclude `node_modules/.prisma` from Defender. See `docs/DEPLOYMENT.md` step 6 for the full procedure.
 - `frontend/docs/frontend-architecture-guide.md` is the single frontend structure reference: it defines the progressive complexity policy (Level 1 single file → Level 2 point extraction → Level 3 page orchestrator), conventions per file type, and rules for any request. Apply it to every frontend change — new feature, improvement, or maintenance — so files stay cohesive and don't grow past their threshold (the ~400-line trigger is a review signal, not the only one).
+- KIT products have their composition in `KitComposition`, but order items **freeze** it into `Item.kitSnapshot` at creation time; `expandItemToStockProducts` (in `utils/kitStock.js`) is the single expansion used by `itemStockMovements`, the stock diff, and item/order deletion, so kit vs components modes and quantity changes stay consistent. Never recompute a snapshot from the live kit when editing an existing order item whose product is unchanged — that would break requirement 5.
+- `updateOrder` syncs items **by id** (updates kept items preserving `kitSnapshot`, creates new ones, deletes removed ones). The frontend sends the existing item's UUID in `itemPayload`; keep that contract when adding order-item payload fields.
+- When deleting test products that participate in `KitComposition`, delete the composition rows first (the `componentProductId` FK is `ON DELETE RESTRICT`), otherwise shared-DB suites like `productLoader.test.js` fail with `P2003`.
 
 ## New Feature Workflow
 
