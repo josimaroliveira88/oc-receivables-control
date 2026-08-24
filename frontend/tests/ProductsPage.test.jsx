@@ -1252,6 +1252,30 @@ describe('ProductsPage', () => {
       });
     });
 
+    it('should ask for discard confirmation when only the status is changed and the backdrop is clicked', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      await clickProductAction('1', 'Editar');
+
+      const statusSelect = await screen.findByTestId('edit-status-select');
+      fireEvent.change(statusSelect, { target: { value: 'INDISPONIVEL' } });
+
+      fireEvent.mouseDown(
+        document.querySelector('[data-testid="modal-backdrop"]'),
+      );
+
+      expect(
+        screen.getByRole('button', { name: 'Descartar' }),
+      ).toBeInTheDocument();
+      expect(screen.getByText('Editar Produto')).toBeInTheDocument();
+    });
+
     it('should update the row in place without refetching the list', async () => {
       mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
       mockPut.mockResolvedValue({
@@ -1781,9 +1805,7 @@ describe('ProductsPage', () => {
     };
 
     const selectKitType = () => {
-      fireEvent.change(screen.getByTestId('product-type-select'), {
-        target: { value: 'KIT' },
-      });
+      fireEvent.click(screen.getByTestId('product-type-radio-KIT'));
     };
 
     const fillBaseFields = (code) => {
@@ -1813,7 +1835,8 @@ describe('ProductsPage', () => {
       mockGet.mockResolvedValue({ data: fullResponse([mockComponent]) });
       await openCreateModal();
 
-      expect(screen.getByTestId('product-type-select').value).toBe('SIMPLES');
+      expect(screen.getByTestId('product-type-radio-SIMPLES')).toBeChecked();
+      expect(screen.getByTestId('product-type-radio-KIT')).not.toBeChecked();
       expect(
         screen.queryByText('Adicionar componente'),
       ).not.toBeInTheDocument();
@@ -1893,7 +1916,10 @@ describe('ProductsPage', () => {
         expect(screen.getByText('Editar Produto')).toBeInTheDocument();
       });
 
-      expect(screen.getByTestId('product-type-select').value).toBe('KIT');
+      expect(screen.getByTestId('product-type-radio-KIT')).toBeChecked();
+      expect(
+        screen.getByTestId('product-type-radio-SIMPLES'),
+      ).not.toBeChecked();
       expect(
         screen.getAllByPlaceholderText('Busque um produto...')[0].value,
       ).toContain('Componente Lavanda');
