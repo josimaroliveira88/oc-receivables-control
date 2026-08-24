@@ -6,6 +6,9 @@ backend/.env
 frontend/dist
 backend/dist
 frontend/screenshot.mjs
+frontend/test-results/
+frontend/playwright-report/
+frontend/e2e/screenshots/
 docs/*.csv
 .opencode/oldagents/lgpd-auditor.md
 node_modules
