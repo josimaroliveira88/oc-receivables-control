@@ -21,6 +21,12 @@ export const StatusBadge = ({ status }) => {
       className:
         'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400',
     },
+    EQUIPE: {
+      label: 'Equipe',
+      dot: 'bg-violet-500',
+      className:
+        'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400',
+    },
   };
   const cfg = config[status] || {
     label: status,

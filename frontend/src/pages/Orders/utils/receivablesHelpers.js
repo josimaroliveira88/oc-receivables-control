@@ -48,7 +48,7 @@ export const getOrderSelfCents = (order) => {
 };
 
 export const getOrderPendingCents = (order) => {
-  if (!order) return 0;
+  if (!order || order.isTeamOrder) return 0;
   return Math.max(
     0,
     toCents(parseFloat(order.totalValue)) -
@@ -76,11 +76,14 @@ export const getOrderFinancials = (order) => {
   const totalCents = toCents(parseFloat(order.totalValue));
   const paidCents = getOrderPaidCents(order);
   const selfCents = getOrderSelfCents(order);
-  const pendingCents = Math.max(0, totalCents - selfCents - paidCents);
+  const pendingCents = order.isTeamOrder
+    ? 0
+    : Math.max(0, totalCents - selfCents - paidCents);
   return { totalCents, paidCents, selfCents, pendingCents };
 };
 
 export const shouldShowPaymentAction = (order) => {
+  if (order.isTeamOrder) return false;
   const { totalCents, pendingCents } = getOrderFinancials(order);
   return pendingCents > 0 || (totalCents === 0 && order.status !== 'QUITADO');
 };

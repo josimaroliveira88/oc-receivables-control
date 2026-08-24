@@ -63,6 +63,7 @@ export const STATUS_FILTER_OPTIONS = [
   { value: 'PENDENTE', label: 'Somente pendentes' },
   { value: 'PARCIAL', label: 'Somente parciais' },
   { value: 'QUITADO', label: 'Somente quitados' },
+  { value: 'EQUIPE', label: 'Somente da equipe' },
 ];
 
 // Options for the payment type filter.
