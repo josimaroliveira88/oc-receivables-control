@@ -13,10 +13,15 @@ const {
 } = require('../utils/money');
 const { applyMovement } = require('../services/stockService');
 const { computeStockDiff } = require('../utils/stockDiff');
+const {
+  resolveKitSnapshot,
+  expandItemToStockProducts,
+} = require('../utils/kitStock');
 const { findIdsByTextSearch } = require('../utils/search');
 const { parseLocalDate } = require('../utils/date');
 
 const itemSchema = z.object({
+  id: z.string().optional().nullable(),
   description: z.string().max(500).optional().nullable(),
   chargedValue: z
     .number()
@@ -46,6 +51,7 @@ const itemSchema = z.object({
     .default(1),
   forStock: z.boolean().default(false),
   chargedValueMode: z.enum(['UNIT', 'TOTAL']).default('UNIT'),
+  kitStockMode: z.enum(['KIT', 'COMPONENTS']).optional().nullable(),
 });
 
 const paymentTypeSchema = z.enum(['PIX', 'BOLETO', 'CARTAO_CREDITO']);
@@ -146,7 +152,124 @@ const itemCreateData = (item) => ({
   quantity: item.quantity ?? 1,
   forStock: item.forStock ?? false,
   chargedValueMode: item.chargedValueMode ?? 'UNIT',
+  kitStockMode: item.kitStockMode ?? null,
+  ...(item.kitSnapshot !== undefined
+    ? { kitSnapshot: item.kitSnapshot ?? null }
+    : {}),
 });
+
+// Attaches the frozen kit snapshot (and validates the stock mode) to each item
+// based on its product type. For KIT products the current composition is
+// snapshotted into `kitSnapshot`; for non-kit products the kit fields are
+// cleared. A forStock item referencing a KIT product must provide a
+// `kitStockMode` (KIT or COMPONENTS).
+const resolveKitFields = async (client, items) => {
+  const productIds = [
+    ...new Set(items.map((item) => item.productId).filter(Boolean)),
+  ];
+  const products =
+    productIds.length === 0
+      ? []
+      : await client.product.findMany({
+          where: { id: { in: productIds } },
+          select: { id: true, productType: true },
+        });
+  const typeById = new Map(products.map((p) => [p.id, p.productType]));
+
+  for (const item of items) {
+    const type = item.productId ? typeById.get(item.productId) : null;
+    if (type === 'KIT') {
+      if (item.forStock && !item.kitStockMode) {
+        const error = new Error(
+          'Stock items for KIT products require a kitStockMode (KIT or COMPONENTS)',
+        );
+        error.status = 400;
+        throw error;
+      }
+      item.kitStockMode = item.kitStockMode ?? null;
+      item.kitSnapshot = await resolveKitSnapshot(client, item.productId);
+    } else {
+      item.kitStockMode = null;
+      item.kitSnapshot = null;
+    }
+  }
+};
+
+// Resolves the kit fields of a single edited item, preserving the frozen
+// snapshot whenever the product (kit) is unchanged so kit composition changes
+// never affect stock control of already-registered orders (requirement 5).
+const resolveEditedKitFields = async (client, oldItem, newItem) => {
+  if (newItem.productId !== oldItem.productId) {
+    await resolveKitFields(client, [newItem]);
+    return;
+  }
+  const type = newItem.productId
+    ? (
+        await client.product.findUnique({
+          where: { id: newItem.productId },
+          select: { productType: true },
+        })
+      )?.productType
+    : null;
+  if (type === 'KIT') {
+    if (newItem.forStock && !newItem.kitStockMode && !oldItem.kitStockMode) {
+      const error = new Error(
+        'Stock items for KIT products require a kitStockMode (KIT or COMPONENTS)',
+      );
+      error.status = 400;
+      throw error;
+    }
+    newItem.kitStockMode = newItem.kitStockMode ?? oldItem.kitStockMode ?? null;
+    newItem.kitSnapshot = oldItem.kitSnapshot ?? null;
+  } else {
+    newItem.kitStockMode = null;
+    newItem.kitSnapshot = null;
+  }
+};
+
+// Resolves the frozen kit snapshot per payload item during a bulk order update,
+// preserving the snapshot of unchanged kit items (matched by id) so kit
+// composition changes never affect stock control of already-registered orders.
+// Items without a matching id are created fresh (current composition snapshot).
+const resolveOrderUpdateItems = async (client, existingItems, payloadItems) => {
+  const oldById = new Map(existingItems.map((it) => [it.id, it]));
+  const resolved = [];
+  for (const item of payloadItems) {
+    const existing = item.id ? oldById.get(item.id) : null;
+    const productChanged =
+      !existing || existing.productId !== (item.productId ?? null);
+    if (productChanged) {
+      await resolveKitFields(client, [item]);
+      resolved.push({ ...item, __existingId: existing ? existing.id : null });
+      continue;
+    }
+    // Same product: preserve the frozen snapshot.
+    const type = item.productId
+      ? (
+          await client.product.findUnique({
+            where: { id: item.productId },
+            select: { productType: true },
+          })
+        )?.productType
+      : null;
+    if (type === 'KIT') {
+      if (item.forStock && !item.kitStockMode && !existing.kitStockMode) {
+        const error = new Error(
+          'Stock items for KIT products require a kitStockMode (KIT or COMPONENTS)',
+        );
+        error.status = 400;
+        throw error;
+      }
+      item.kitStockMode = item.kitStockMode ?? existing.kitStockMode ?? null;
+      item.kitSnapshot = existing.kitSnapshot ?? null;
+    } else {
+      item.kitStockMode = null;
+      item.kitSnapshot = null;
+    }
+    resolved.push({ ...item, __existingId: existing.id });
+  }
+  return resolved;
+};
 
 const orderLineTotalCents = (items) =>
   items.reduce((sum, item) => sum + lineValueCents(item), 0);
@@ -169,20 +292,23 @@ const itemStockMovements = async (client, order, orderNumber, items) => {
     error.status = 400;
     throw error;
   }
-  // Apply ENTRADA movements for every self + forStock + product item.
+  // Apply ENTRADA movements for every self + forStock item, expanding kit
+  // items into their effective stock products (the kit itself or its frozen
+  // components, depending on the chosen mode).
   for (const item of items) {
-    if (!item.forStock || !item.productId) continue;
     if (!item.person || !item.person.isSelf) continue;
-    await applyMovement(client, {
-      userId: order.userId,
-      productId: item.productId,
-      type: 'ENTRADA',
-      quantity: item.quantity ?? 1,
-      reason: `Pedido ${orderNumber}`,
-      orderId: order.id,
-      itemId: item.id,
-      effectiveDate: order.orderDate,
-    });
+    for (const { productId, quantity } of expandItemToStockProducts(item)) {
+      await applyMovement(client, {
+        userId: order.userId,
+        productId,
+        type: 'ENTRADA',
+        quantity,
+        reason: `Pedido ${orderNumber}`,
+        orderId: order.id,
+        itemId: item.id,
+        effectiveDate: order.orderDate,
+      });
+    }
   }
 };
 
@@ -392,6 +518,9 @@ const createOrder = async (req, res) => {
       const selfIds = selfPersonIdSet(persons);
       validateStockItemRules(validatedData.items, selfIds);
 
+      // Attach frozen kit snapshots and validate the stock mode for kit items.
+      await resolveKitFields(tx, validatedData.items);
+
       const personMap = new Map(persons.map((p) => [p.id, p]));
 
       // Calculate total value in integer cents, honoring price mode × quantity
@@ -567,11 +696,16 @@ const updateOrder = async (req, res) => {
       const totalCents =
         orderLineTotalCents(validatedData.items) + shippingCents;
 
-      // Compute stock diff (self + forStock) between old and new items, then
-      // apply before replacing items (old items are destroyed afterwards).
-      const diff = computeStockDiff(
+      // Resolve kit fields (preserving frozen snapshots for unchanged items),
+      // then compute the stock diff between old and new items.
+      const resolvedItems = await resolveOrderUpdateItems(
+        tx,
         existingOrder.items,
         validatedData.items,
+      );
+      const diff = computeStockDiff(
+        existingOrder.items,
+        resolvedItems,
         selfIds,
       );
       const effectiveOrderDate = validatedData.orderDate
@@ -608,7 +742,7 @@ const updateOrder = async (req, res) => {
         }
       }
 
-      const order = await tx.order.update({
+      await tx.order.update({
         where: { id },
         data: {
           orderNumber: validatedData.orderNumber || existingOrder.orderNumber,
@@ -626,11 +760,47 @@ const updateOrder = async (req, res) => {
           ...(validatedData.orderNotes !== undefined && {
             orderNotes: validatedData.orderNotes,
           }),
-          items: {
-            deleteMany: {},
-            create: validatedData.items.map(itemCreateData),
-          },
         },
+      });
+
+      // Sync items by id: update kept items (preserving their frozen kit
+      // snapshots), create new ones, and delete removed ones.
+      const keptIds = new Set();
+      for (const newItem of resolvedItems) {
+        const fields = {
+          description: newItem.description ?? null,
+          chargedValue: newItem.chargedValue,
+          personId: newItem.personId,
+          productId: newItem.productId ?? null,
+          memberPrice: newItem.memberPrice ?? null,
+          pv: newItem.pv ?? null,
+          details: newItem.details ?? null,
+          quantity: newItem.quantity ?? 1,
+          forStock: newItem.forStock ?? false,
+          chargedValueMode: newItem.chargedValueMode ?? 'UNIT',
+          kitStockMode: newItem.kitStockMode ?? null,
+          ...(newItem.kitSnapshot !== undefined
+            ? { kitSnapshot: newItem.kitSnapshot ?? null }
+            : {}),
+        };
+        if (newItem.__existingId) {
+          keptIds.add(newItem.__existingId);
+          await tx.item.update({
+            where: { id: newItem.__existingId },
+            data: fields,
+          });
+        } else {
+          await tx.item.create({ data: { ...fields, orderId: id } });
+        }
+      }
+      for (const oldItem of existingOrder.items) {
+        if (!keptIds.has(oldItem.id)) {
+          await tx.item.delete({ where: { id: oldItem.id } });
+        }
+      }
+
+      const order = await tx.order.findUnique({
+        where: { id },
         include: {
           items: {
             include: {
@@ -700,19 +870,21 @@ const deleteOrder = async (req, res) => {
         throw error;
       }
 
-      // Reverse stock for every self + forStock + product item before deleting
+      // Reverse stock for every self + forStock item before deleting, expanding
+      // kit items into their effective stock products.
       for (const item of existingOrder.items) {
-        if (!item.forStock || !item.productId) continue;
         if (!item.person || !item.person.isSelf) continue;
-        await applyMovement(tx, {
-          userId: req.user.userId,
-          productId: item.productId,
-          type: 'SAIDA',
-          quantity: item.quantity ?? 1,
-          reason: `Pedido ${existingOrder.orderNumber}`,
-          orderId: existingOrder.id,
-          effectiveDate: existingOrder.orderDate,
-        });
+        for (const { productId, quantity } of expandItemToStockProducts(item)) {
+          await applyMovement(tx, {
+            userId: req.user.userId,
+            productId,
+            type: 'SAIDA',
+            quantity,
+            reason: `Pedido ${existingOrder.orderNumber}`,
+            orderId: existingOrder.id,
+            effectiveDate: existingOrder.orderDate,
+          });
+        }
       }
 
       await tx.order.delete({ where: { id } });
@@ -774,6 +946,9 @@ const addItemToOrder = async (req, res) => {
         new Set(person.isSelf ? [person.id] : []),
       );
 
+      // Attach the frozen kit snapshot and validate the stock mode for kit items.
+      await resolveKitFields(tx, [validatedData]);
+
       const lineCents = lineValueCents(validatedData);
       const newTotalCents =
         orderLineTotalCents([
@@ -809,18 +984,21 @@ const addItemToOrder = async (req, res) => {
         },
       });
 
-      // Apply stock if self + forStock
-      if (item.forStock && item.productId && person.isSelf) {
-        await applyMovement(tx, {
-          userId: req.user.userId,
-          productId: item.productId,
-          type: 'ENTRADA',
-          quantity: item.quantity ?? 1,
-          reason: `Pedido ${order.orderNumber}`,
-          orderId,
-          itemId: item.id,
-          effectiveDate: order.orderDate,
-        });
+      // Apply stock if the item belongs to the self person, expanding kit
+      // items into their effective stock products.
+      if (person.isSelf) {
+        for (const { productId, quantity } of expandItemToStockProducts(item)) {
+          await applyMovement(tx, {
+            userId: req.user.userId,
+            productId,
+            type: 'ENTRADA',
+            quantity,
+            reason: `Pedido ${order.orderNumber}`,
+            orderId,
+            itemId: item.id,
+            effectiveDate: order.orderDate,
+          });
+        }
       }
 
       // Recompute order status after adding the item
@@ -912,26 +1090,13 @@ const updateItem = async (req, res) => {
       );
       validateStockItemRules([newData], selfIds);
 
-      // Compute stock diff between the old and new item state
-      const diff = computeStockDiff(
-        [
-          {
-            productId: existingItem.productId,
-            quantity: existingItem.quantity,
-            forStock: existingItem.forStock,
-            personId: existingItem.personId,
-          },
-        ],
-        [
-          {
-            productId: newData.productId,
-            quantity: newData.quantity,
-            forStock: newData.forStock,
-            personId: newData.personId,
-          },
-        ],
-        selfIds,
-      );
+      // Preserve the frozen snapshot when the product is unchanged; refresh it
+      // when the product changes to a different kit.
+      await resolveEditedKitFields(tx, existingItem, newData);
+
+      // Compute stock diff between the old and new item state, expanding kit
+      // items into their effective stock products.
+      const diff = computeStockDiff([existingItem], [newData], selfIds);
 
       for (const { productId, delta } of diff) {
         if (delta > 0) {
@@ -974,6 +1139,10 @@ const updateItem = async (req, res) => {
           quantity: itemData.quantity ?? 1,
           forStock: itemData.forStock ?? false,
           chargedValueMode: itemData.chargedValueMode ?? 'UNIT',
+          kitStockMode: itemData.kitStockMode ?? null,
+          ...(itemData.kitSnapshot !== undefined
+            ? { kitSnapshot: itemData.kitSnapshot ?? null }
+            : {}),
         },
         include: {
           person: true,
@@ -1059,23 +1228,23 @@ const deleteItem = async (req, res) => {
         throw error;
       }
 
-      // Reverse stock if the item was self + forStock
-      if (
-        existingItem.forStock &&
-        existingItem.productId &&
-        existingItem.person &&
-        existingItem.person.isSelf
-      ) {
-        await applyMovement(tx, {
-          userId: req.user.userId,
-          productId: existingItem.productId,
-          type: 'SAIDA',
-          quantity: existingItem.quantity ?? 1,
-          reason: `Pedido ${existingItem.order.orderNumber}`,
-          orderId: existingItem.orderId,
-          itemId,
-          effectiveDate: existingItem.order.orderDate,
-        });
+      // Reverse stock if the item belonged to the self person, expanding kit
+      // items into their effective stock products.
+      if (existingItem.person && existingItem.person.isSelf) {
+        for (const { productId, quantity } of expandItemToStockProducts(
+          existingItem,
+        )) {
+          await applyMovement(tx, {
+            userId: req.user.userId,
+            productId,
+            type: 'SAIDA',
+            quantity,
+            reason: `Pedido ${existingItem.order.orderNumber}`,
+            orderId: existingItem.orderId,
+            itemId,
+            effectiveDate: existingItem.order.orderDate,
+          });
+        }
       }
 
       // Delete item
