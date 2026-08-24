@@ -124,7 +124,24 @@ export const emptyForm = () => ({
   memberPrice: '',
   pv: '',
   doterraUrl: '',
+  productType: 'SIMPLES',
+  components: [],
 });
+
+export const emptyComponent = () => ({
+  id: Date.now(),
+  componentProductId: '',
+  quantity: 1,
+});
+
+// Builds the components array sent to the API, dropping empty component rows.
+export const kitComponentsPayload = (components) =>
+  (components || [])
+    .filter((c) => c.componentProductId)
+    .map((c) => ({
+      componentProductId: c.componentProductId,
+      quantity: Number(c.quantity) || 1,
+    }));
 
 export const isValidUrl = (value) => {
   const trimmed = (value || '').trim();
@@ -146,6 +163,8 @@ export const createProductPayload = (form) => ({
   memberPrice: parseFloat(form.memberPrice),
   pv: parseFloat(form.pv),
   doterraUrl: form.doterraUrl.trim() || null,
+  productType: form.productType || 'SIMPLES',
+  components: kitComponentsPayload(form.components),
 });
 
 export const updateProductPayload = (form, status) => ({
@@ -156,6 +175,8 @@ export const updateProductPayload = (form, status) => ({
   regularPrice: parseFloat(form.regularPrice),
   memberPrice: parseFloat(form.memberPrice),
   pv: parseFloat(form.pv),
+  productType: form.productType || 'SIMPLES',
+  components: kitComponentsPayload(form.components),
 });
 
 export const filterAndSortProducts = (products, search, statusFilter, sort) => {

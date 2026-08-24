@@ -1,16 +1,52 @@
 import React from 'react';
-import { inputClass } from '../utils/productHelpers';
+import { Plus } from 'lucide-react';
+import { inputClass, emptyComponent } from '../utils/productHelpers';
+import ProductCombobox from '../../../components/ProductCombobox';
 
 const ProductForm = ({
   values,
   isEdit,
   status,
   error,
+  products,
   onChangeField,
   onChangeStatus,
   onSubmit,
   onClose,
 }) => {
+  const simpleProducts = (products || []).filter(
+    (p) => !p.productType || p.productType === 'SIMPLES',
+  );
+  const components = values.components || [];
+  const isKit = values.productType === 'KIT';
+
+  const addComponent = () => {
+    onChangeField('components', [...components, emptyComponent()]);
+  };
+
+  const removeComponent = (index) => {
+    onChangeField(
+      'components',
+      components.filter((_, i) => i !== index),
+    );
+  };
+
+  const updateComponent = (index, field, value) => {
+    onChangeField(
+      'components',
+      components.map((c, i) => (i === index ? { ...c, [field]: value } : c)),
+    );
+  };
+
+  const handleTypeChange = (value) => {
+    onChangeField('productType', value);
+    if (value === 'KIT' && components.length === 0) {
+      onChangeField('components', [emptyComponent()]);
+    } else if (value === 'SIMPLES') {
+      onChangeField('components', []);
+    }
+  };
+
   return (
     <form onSubmit={onSubmit} className="px-6 py-4">
       {error && (
@@ -77,6 +113,20 @@ const ProductForm = ({
       </div>
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Tipo de produto
+        </label>
+        <select
+          data-testid="product-type-select"
+          value={values.productType || 'SIMPLES'}
+          onChange={(e) => handleTypeChange(e.target.value)}
+          className={inputClass}
+        >
+          <option value="SIMPLES">Simples</option>
+          <option value="KIT">Kit</option>
+        </select>
+      </div>
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Preço Regular (R$)
         </label>
         <input
@@ -120,6 +170,59 @@ const ProductForm = ({
           placeholder="Digite o PV"
         />
       </div>
+      {isKit && (
+        <div className="mb-4 p-3 border border-primary-200 dark:border-primary-800 rounded-md">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Componentes do kit
+          </label>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+            Vincule ao menos um produto simples ao kit.
+          </p>
+          {components.map((comp, index) => (
+            <div
+              key={comp.id}
+              data-testid={`kit-component-row-${index}`}
+              className="flex items-center gap-2 mb-2"
+            >
+              <div className="flex-1">
+                <ProductCombobox
+                  products={simpleProducts}
+                  value={comp.componentProductId}
+                  onChange={(id) =>
+                    updateComponent(index, 'componentProductId', id)
+                  }
+                />
+              </div>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                aria-label="Quantidade no kit"
+                data-testid={`kit-component-quantity-${index}`}
+                value={comp.quantity}
+                onChange={(e) =>
+                  updateComponent(index, 'quantity', e.target.value)
+                }
+                className="w-20 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => removeComponent(index)}
+                className="px-3 py-2 text-xs font-medium text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-md transition-colors whitespace-nowrap"
+              >
+                Remover
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={addComponent}
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-primary-700 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-md transition-colors"
+          >
+            <Plus size={16} /> Adicionar componente
+          </button>
+        </div>
+      )}
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           URL do produto no site da dōTERRA

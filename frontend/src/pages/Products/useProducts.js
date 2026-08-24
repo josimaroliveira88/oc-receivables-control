@@ -10,6 +10,7 @@ import {
   updateProductPayload,
   filterAndSortProducts,
   formatProductRowForCopy,
+  kitComponentsPayload,
 } from './utils/productHelpers';
 
 export function useProducts() {
@@ -120,6 +121,13 @@ export function useProducts() {
       setError('Tamanho é obrigatório');
       return;
     }
+    if (
+      createForm.productType === 'KIT' &&
+      kitComponentsPayload(createForm.components).length === 0
+    ) {
+      setError('É obrigatório vincular ao menos um produto ao kit');
+      return;
+    }
     if (!isValidUrl(createForm.doterraUrl)) {
       setError('URL do produto inválida');
       return;
@@ -142,6 +150,13 @@ export function useProducts() {
     e.preventDefault();
     if (!editProduct.name.trim()) {
       setError('Nome é obrigatório');
+      return;
+    }
+    if (
+      editProduct.productType === 'KIT' &&
+      kitComponentsPayload(editProduct.components).length === 0
+    ) {
+      setError('É obrigatório vincular ao menos um produto ao kit');
       return;
     }
     if (!isValidUrl(editProduct.doterraUrl)) {
@@ -202,6 +217,12 @@ export function useProducts() {
       memberPrice: product.memberPrice,
       pv: product.pv,
       doterraUrl: product.doterraUrl || '',
+      productType: product.productType || 'SIMPLES',
+      components: (product.components || []).map((c) => ({
+        id: c.componentProductId,
+        componentProductId: c.componentProductId,
+        quantity: c.quantity,
+      })),
     });
     setEditStatus(product.status || 'ATIVO');
     setError('');
@@ -244,6 +265,7 @@ export function useProducts() {
 
   return {
     visibleProducts,
+    allProducts,
     totalCount: filteredProducts.length,
     hasMore,
     hasActiveFilters,

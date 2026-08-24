@@ -9,6 +9,7 @@ import { PRODUCT_STATUS } from './utils/productHelpers';
 const ProductsPage = () => {
   const {
     visibleProducts,
+    allProducts,
     totalCount,
     hasMore,
     hasActiveFilters,
@@ -115,6 +116,7 @@ const ProductsPage = () => {
           values={createForm}
           isEdit={false}
           error={error}
+          products={allProducts}
           onChangeField={setCreateField}
           onSubmit={handleCreateProduct}
           onClose={closeCreateModal}
@@ -131,6 +133,7 @@ const ProductsPage = () => {
           isEdit={true}
           status={editStatus}
           error={error}
+          products={allProducts}
           onChangeField={setEditField}
           onChangeStatus={setEditStatus}
           onSubmit={handleUpdateProduct}
