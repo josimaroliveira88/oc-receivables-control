@@ -1106,7 +1106,6 @@ describe('Orders CRUD with Items', () => {
   describe('Orders with self person items', () => {
     let selfOrderIds = [];
     let selfPersonIds = [];
-
     afterEach(async () => {
       for (const oid of selfOrderIds) {
         await prisma.order.delete({ where: { id: oid } }).catch(() => {});
@@ -1276,6 +1275,161 @@ describe('Orders CRUD with Items', () => {
 
       expect(updated.status).toBe(200);
       expect(updated.body.status).toBe('PENDENTE');
+    });
+  });
+
+  describe('Orders marked as team (isTeamOrder)', () => {
+    let teamOrderIds = [];
+    let teamPersonIds = [];
+
+    afterEach(async () => {
+      for (const oid of teamOrderIds) {
+        await prisma.order.delete({ where: { id: oid } }).catch(() => {});
+      }
+      teamOrderIds = [];
+      for (const pid of teamPersonIds) {
+        await prisma.person.delete({ where: { id: pid } }).catch(() => {});
+      }
+      teamPersonIds = [];
+    });
+
+    const makePerson = async (name, isSelf = false) => {
+      const person = await prisma.person.create({
+        data: { name, isSelf, userId },
+      });
+      teamPersonIds.push(person.id);
+      return person.id;
+    };
+
+    it('should create an order as EQUIPE when isTeamOrder is true', async () => {
+      const personId = await makePerson('Cliente da Equipe');
+
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-TEAM'),
+          isTeamOrder: true,
+          items: [
+            {
+              description: 'Item Equipe',
+              chargedValue: 100.0,
+              personId,
+            },
+          ],
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.isTeamOrder).toBe(true);
+      expect(response.body.status).toBe('EQUIPE');
+      teamOrderIds.push(response.body.id);
+    });
+
+    it('should default isTeamOrder to false and keep normal status computation', async () => {
+      const personId = await makePerson('Cliente');
+
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-NOTEAM'),
+          items: [{ description: 'Item', chargedValue: 100.0, personId }],
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.isTeamOrder).toBe(false);
+      expect(response.body.status).toBe('PENDENTE');
+      teamOrderIds.push(response.body.id);
+    });
+
+    it('should recompute to PENDENTE when toggling a team order back to normal', async () => {
+      const personId = await makePerson('Cliente');
+
+      const created = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-TOGGLE'),
+          isTeamOrder: true,
+          items: [{ description: 'Item', chargedValue: 100.0, personId }],
+        });
+      teamOrderIds.push(created.body.id);
+      expect(created.body.status).toBe('EQUIPE');
+
+      const updated = await request(app)
+        .put(`/api/orders/${created.body.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ isTeamOrder: false });
+
+      expect(updated.status).toBe(200);
+      expect(updated.body.isTeamOrder).toBe(false);
+      expect(updated.body.status).toBe('PENDENTE');
+    });
+
+    it('should keep status EQUIPE when a team order is updated without items', async () => {
+      const personId = await makePerson('Cliente');
+
+      const created = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-KEEPEQ'),
+          isTeamOrder: true,
+          items: [{ description: 'Item', chargedValue: 100.0, personId }],
+        });
+      teamOrderIds.push(created.body.id);
+
+      const updated = await request(app)
+        .put(`/api/orders/${created.body.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ orderNotes: 'nota de equipe' });
+
+      expect(updated.status).toBe(200);
+      expect(updated.body.status).toBe('EQUIPE');
+    });
+
+    it('should not create stock movements for team orders with self + forStock items', async () => {
+      const selfId = await makePerson('Eu', true);
+
+      const created = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-TEAMSTOCK'),
+          isTeamOrder: true,
+          items: [
+            {
+              description: 'Item Estoque',
+              chargedValue: 50.0,
+              personId: selfId,
+              forStock: true,
+            },
+          ],
+        });
+      teamOrderIds.push(created.body.id);
+
+      expect(created.status).toBe(201);
+      expect(created.body.status).toBe('EQUIPE');
+
+      const movements = await prisma.stockMovement.findMany({
+        where: { orderId: created.body.id },
+      });
+      expect(movements).toHaveLength(0);
+    });
+
+    it('should reject an invalid isTeamOrder value', async () => {
+      const personId = await makePerson('Cliente');
+
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-BADTEAM'),
+          isTeamOrder: 'yes',
+          items: [{ description: 'Item', chargedValue: 100.0, personId }],
+        });
+
+      expect(response.status).toBe(400);
     });
   });
 
