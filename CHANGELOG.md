@@ -10,6 +10,24 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 73 — Campo Equipe em clientes e ajustes de listas e formulários (2026-08-30)
+
+### Added
+- **Campo "Equipe" em clientes**: novo `Person.isTeamMember` (migração `20260830120000_add_person_team_member`, `BOOLEAN NOT NULL DEFAULT false`) para marcar clientes que fazem parte da equipe do usuário. Puramente informativo — não afeta pedidos, dashboard nem financeiro. O formulário ganhou o select Sim/Não "Equipe", a lista ganhou a coluna ordenável "Equipe" (badge Sim/Não, larguras rebalanceadas: Grupos em Comum 17→15, Observação 22→17 para caber a coluna de 7%), o modal de detalhes ganhou a linha e o filtro de classificação ganhou a opção "Somente Equipe" (`classification=team` no backend mapeia para `isTeamMember`). A exportação Excel da aba Clientes inclui a coluna "Equipe".
+- **Cabeçalhos ordenáveis na lista de produtos**: as colunas Código, Produto, Tamanho, Preço Regular, Preço Membro, PV e R$/PV são agora botões de ordenação clicáveis via `SortableHeader`, substituindo o dropdown "Ordenar por". `filterAndSortProducts` passa a receber `sortBy` + `sortDir` com allowlist (`SORTABLE_FIELDS`); novo `ProductsTableHeader.jsx` (extração Level 2) mantém `ProductsTable` abaixo do limite de revisão.
+- **Filtro "Aniversariantes do mês"**: botão de alternância ao lado de "Novo" (ícone `Cake`, `aria-pressed`) que filtra a lista para clientes cujo mês do aniversário é o atual, combinando com a busca e a classificação; `birthMonthOf` virou a fonte única usada tanto pelo destaque da linha quanto pelo filtro (`filterAndSortPeople` ganhou `birthdayOnly` + mês corrente).
+
+### Changed
+- **Ordenação da lista de clientes**: os cabeçalhos WhatsApp, Instagram e Aniversário deixaram de ser ordenáveis (viraram `<th>` simples); "Aniversário" agora é Title Case. Padronização de caixa de "Aniversário", "Observação" e "Ações" (apenas a primeira letra maiúscula) em cabeçalhos desktop e `data-label` mobile.
+- **Ordenação da lista de pedidos**: as colunas Pagamento, PV doTERRA, Valor doTERRA, Valor (R$) e Descrição deixaram de ser ordenáveis (mantidas Número, Data, Conta ID, Valor Pendente e Status).
+- **Largura do layout**: o container principal (`App.jsx`) e o cabeçalho (`Header.jsx`) passaram de `max-w-7xl` para `max-w-screen-2xl` para melhor aproveitamento das tabelas largas.
+- **Lista de produtos da Nova Venda**: passa a oferecer apenas produtos que existem no estoque do usuário (novo filtro `inStock=true` em `GET /api/products`; o formulário de vendas usa `available=true&inStock=true`), em vez de todo o catálogo.
+- **Máscara monetária ATM em todos os campos de valor**: via `react-number-format`, o usuário digita só dígitos e os dois últimos são centavos (`"1234"` → `12,34`); dígitos não numéricos são descartados e o input é limitado a 10 dígitos (máx. `99.999.999,99`, limite do Prisma `Decimal(10,2)`). Novo `CurrencyInput.jsx` + `utils/currencyMask.js`; 11 campos monetários em Orders, Sales e Products trocados para a máscara; dígito de negativo não é mais digitável na UI (validações frontend/backend mantidas). Nova dependência `react-number-format@^5.4.5`.
+
+### Tests
+- Backend: `people.test.js` (+5 — criação com `isTeamMember`, default false, rejeição de não-booleano, toggle na edição, ordenação e filtro `classification=team`). **518 backend passing** (was 513).
+- Frontend: `peopleHelpers.test.js` (+7 — `emptyForm`/`buildPayload`, opção "Somente Equipe", classificação e ordenação por `isTeamMember`), `PeoplePage.test.jsx` (+2 — filtro Equipe e ordenação pela coluna; também cria/edita payload, pré-preenchimento do select, badges, modal de detalhes), `exportExcel.test.js` (coluna Equipe no sheet Clientes), `productHelpers.test.js` (+7 — `filterAndSortProducts`) e `ProductsPage.test.jsx` (ordenação por cabeçalho). **681 frontend passing** (was 662). `npm run build` e `npm run format:check` limpos.
+
 ## Phase 72 — Pedidos de Venda (2026-08-30)
 
 ### Added
