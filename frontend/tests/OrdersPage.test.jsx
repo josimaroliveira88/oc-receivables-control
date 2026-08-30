@@ -34,6 +34,9 @@ const mockOrders = [
     accountOwner: '6254862 - Ana Silva',
     paymentType: 'PIX',
     orderNotes: 'Pedido de promoção de março',
+    doterraPv: '45.00',
+    doterraValue: '350.00',
+    attachmentFilename: null,
     items: [
       {
         id: 'i1',
@@ -43,7 +46,6 @@ const mockOrders = [
         person: { name: 'João' },
         productId: 'prod-1',
         memberPrice: '90.00',
-        pv: '15',
       },
       {
         id: 'i2',
@@ -53,7 +55,6 @@ const mockOrders = [
         person: { name: 'João' },
         productId: 'prod-2',
         memberPrice: '180.00',
-        pv: '30',
       },
     ],
   },
@@ -66,6 +67,9 @@ const mockOrders = [
     accountOwner: null,
     paymentType: null,
     orderNotes: null,
+    doterraPv: null,
+    doterraValue: null,
+    attachmentFilename: null,
     items: [
       {
         id: 'i3',
@@ -75,7 +79,6 @@ const mockOrders = [
         person: { name: 'Maria' },
         productId: null,
         memberPrice: null,
-        pv: null,
       },
     ],
   },
@@ -396,12 +399,94 @@ describe('OrdersPage', () => {
       });
     });
 
-    it('should display total PV per order', async () => {
+    it('should display PV doTERRA per order', async () => {
       renderPage();
       await waitFor(() => {
         expect(screen.getByText('45.00')).toBeInTheDocument();
-        expect(screen.getByText('0.00')).toBeInTheDocument();
       });
+      const row = screen.getByText('ORD-002').closest('tr');
+      const pvCell = row.querySelector('td[data-label="PV doTERRA"]');
+      expect(pvCell).toHaveTextContent('—');
+    });
+
+    it('should display Valor doTERRA per order', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText(/R\$\s*350,00/)).toBeInTheDocument();
+      });
+    });
+
+    it('should display "Conta ID", "Pagamento", "PV doTERRA" and "Valor doTERRA" column headers', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(
+          screen.getByRole('columnheader', { name: 'Conta ID' }),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByRole('columnheader', { name: 'Pagamento' }),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByRole('columnheader', { name: 'PV doTERRA' }),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByRole('columnheader', { name: 'Valor doTERRA' }),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('should not show "Visualizar Anexo" when the order has no attachment', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByTestId('order-actions-1-trigger'));
+      await waitFor(() => {
+        expect(
+          screen.queryByTestId('order-actions-1-item-Visualizar-Anexo'),
+        ).not.toBeInTheDocument();
+      });
+    });
+
+    it('should show "Visualizar Anexo" and open the attachment modal for orders with an attachment', async () => {
+      const orderWithAttachment = {
+        ...mockOrders[0],
+        id: '5',
+        orderNumber: 'ORD-ATT',
+        attachmentFilename: 'abc.png',
+      };
+      mockGet.mockImplementation((url) => {
+        if (url === '/orders')
+          return Promise.resolve({ data: [orderWithAttachment] });
+        if (url === '/people') return Promise.resolve({ data: mockPeople });
+        if (url.startsWith('/products'))
+          return Promise.resolve({ data: { data: mockProducts } });
+        if (url === '/orders/5/attachment')
+          return Promise.resolve({
+            data: new Blob(['print'], { type: 'image/png' }),
+          });
+        return Promise.resolve({ data: [] });
+      });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-ATT')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByTestId('order-actions-5-trigger'));
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('order-actions-5-item-Visualizar-Anexo'),
+        ).toBeInTheDocument();
+      });
+      fireEvent.click(
+        screen.getByTestId('order-actions-5-item-Visualizar-Anexo'),
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('attachment-preview-image'),
+        ).toBeInTheDocument();
+      });
+      expect(screen.getByText('Anexo do Pedido ORD-ATT')).toBeInTheDocument();
     });
 
     it('should display order notes in description column', async () => {
@@ -659,7 +744,7 @@ describe('OrdersPage', () => {
       });
     });
 
-    it('should display "Responsável pela conta" field in create modal', async () => {
+    it('should display "Conta ID" field in create modal', async () => {
       renderPage();
 
       await waitFor(() => {
@@ -670,7 +755,7 @@ describe('OrdersPage', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByLabelText('Responsável pela conta (ID dōTERRA ou nome)'),
+          screen.getByLabelText('Conta ID (ID dōTERRA ou nome)'),
         ).toBeInTheDocument();
       });
     });
@@ -693,6 +778,42 @@ describe('OrdersPage', () => {
         ).toBeInTheDocument();
         expect(
           screen.getByRole('option', { name: 'Cartão de Crédito' }),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByRole('option', { name: 'InfinitePay' }),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('should display PV doTERRA and Valor doTERRA fields initialized empty', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Novo Pedido'));
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('PV doTERRA')).toBeInTheDocument();
+        expect(screen.getByLabelText('Valor doTERRA (R$)')).toBeInTheDocument();
+      });
+      expect(screen.getByLabelText('PV doTERRA').value).toBe('');
+      expect(screen.getByLabelText('Valor doTERRA (R$)').value).toBe('');
+    });
+
+    it('should display the attachment file input in create modal', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Novo Pedido'));
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('order-attachment-input'),
         ).toBeInTheDocument();
       });
     });
@@ -798,7 +919,7 @@ describe('OrdersPage', () => {
       });
     });
 
-    it('should display "Soma dos Produtos" and "Soma dos PV" summary', async () => {
+    it('should display "Soma dos Produtos" summary without PV blocks', async () => {
       renderPage();
 
       await waitFor(() => {
@@ -811,19 +932,19 @@ describe('OrdersPage', () => {
         expect(
           screen.getAllByText('Soma dos Produtos (Valor Cobrado)').length,
         ).toBeGreaterThan(0);
-        expect(screen.getAllByText('Soma dos PV').length).toBeGreaterThan(0);
       });
 
-      expect(screen.getByTestId('order-totals-pv')).toHaveTextContent('0.00');
+      expect(screen.queryByText('Soma dos PV')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('order-totals-pv')).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('order-totals-pv-footer'),
+      ).not.toBeInTheDocument();
       expect(screen.getByTestId('order-totals-charged')).toHaveTextContent(
         'R$ 0,00',
       );
       expect(
         screen.getByTestId('order-totals-charged-footer'),
       ).toHaveTextContent('R$ 0,00');
-      expect(screen.getByTestId('order-totals-pv-footer')).toHaveTextContent(
-        '0.00',
-      );
       expect(screen.getByTestId('order-freight')).toBeInTheDocument();
     });
 
@@ -846,19 +967,12 @@ describe('OrdersPage', () => {
       fireEvent.change(combobox, { target: { value: 'Lavanda' } });
       fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
 
-      // PV is masked to 0 until a charged value is entered (free item rule).
-      await waitFor(() => {
-        expect(screen.getByDisplayValue('0')).toBeInTheDocument();
-      });
-
       const valueInput = screen.getByPlaceholderText('0.00');
       fireEvent.change(valueInput, { target: { value: '175' } });
 
       await waitFor(() => {
         expect(screen.getAllByText(/R\$\s*175,00/).length).toBeGreaterThan(0);
       });
-      expect(screen.getByDisplayValue('30')).toBeInTheDocument();
-      expect(screen.getAllByText('30.00').length).toBeGreaterThan(0);
     });
 
     it('should send accountOwner, paymentType and orderNotes in create payload', async () => {
@@ -883,15 +997,20 @@ describe('OrdersPage', () => {
         screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
         { target: { value: 'ORD-DESC' } },
       );
-      fireEvent.change(
-        screen.getByLabelText('Responsável pela conta (ID dōTERRA ou nome)'),
-        { target: { value: 'Ana Silva' } },
-      );
+      fireEvent.change(screen.getByLabelText('Conta ID (ID dōTERRA ou nome)'), {
+        target: { value: 'Ana Silva' },
+      });
       fireEvent.change(screen.getByLabelText('Tipo de Pagamento'), {
         target: { value: 'PIX' },
       });
       fireEvent.change(screen.getByLabelText('Descrição do Pedido'), {
         target: { value: 'Promoção de março' },
+      });
+      fireEvent.change(screen.getByLabelText('PV doTERRA'), {
+        target: { value: '35.5' },
+      });
+      fireEvent.change(screen.getByLabelText('Valor doTERRA (R$)'), {
+        target: { value: '250.75' },
       });
 
       const valueInput = screen.getByPlaceholderText('0.00');
@@ -911,6 +1030,8 @@ describe('OrdersPage', () => {
             accountOwner: 'Ana Silva',
             paymentType: 'PIX',
             orderNotes: 'Promoção de março',
+            doterraPv: 35.5,
+            doterraValue: 250.75,
           }),
         );
       });
@@ -1027,6 +1148,8 @@ describe('OrdersPage', () => {
             accountOwner: null,
             paymentType: null,
             orderNotes: null,
+            doterraPv: null,
+            doterraValue: null,
           }),
         );
       });
@@ -1092,7 +1215,7 @@ describe('OrdersPage', () => {
       expect(screen.queryByText('Limpar produto')).not.toBeInTheDocument();
     });
 
-    it('should auto-fill member price and PV when selecting a product', async () => {
+    it('should auto-fill member price when selecting a product', async () => {
       await openModal();
       const combobox = screen.getByPlaceholderText('Busque um produto...');
       fireEvent.change(combobox, { target: { value: 'Lavanda' } });
@@ -1102,13 +1225,6 @@ describe('OrdersPage', () => {
         expect(
           screen.getAllByDisplayValue(/R\$\s*180,00/).length,
         ).toBeGreaterThanOrEqual(1);
-      });
-      // PV is masked to 0 while the item has no charged value.
-      expect(screen.getByDisplayValue('0')).toBeInTheDocument();
-      const valueInput = screen.getByPlaceholderText('0.00');
-      fireEvent.change(valueInput, { target: { value: '175' } });
-      await waitFor(() => {
-        expect(screen.getByDisplayValue('30')).toBeInTheDocument();
       });
       expect(screen.getByText('Limpar produto')).toBeInTheDocument();
     });
@@ -1133,7 +1249,7 @@ describe('OrdersPage', () => {
       );
     });
 
-    it('should send productId, chargedValue, memberPrice, pv and details in payload', async () => {
+    it('should send productId, chargedValue, memberPrice and details in payload', async () => {
       mockPost.mockResolvedValue({ data: { id: '3', orderNumber: 'ORD-ENH' } });
       await openModal();
 
@@ -1148,10 +1264,6 @@ describe('OrdersPage', () => {
 
       const valueInput = screen.getByPlaceholderText('0.00');
       fireEvent.change(valueInput, { target: { value: '175' } });
-
-      await waitFor(() => {
-        expect(screen.getByDisplayValue('30')).toBeInTheDocument();
-      });
 
       const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
       fireEvent.change(personSelect, { target: { value: 'p1' } });
@@ -1174,7 +1286,6 @@ describe('OrdersPage', () => {
                 productId: 'prod-2',
                 chargedValue: 175,
                 memberPrice: 180,
-                pv: 30,
                 details: 'Pedido urgente',
                 personId: 'p1',
               }),
@@ -1213,7 +1324,6 @@ describe('OrdersPage', () => {
               expect.objectContaining({
                 productId: null,
                 memberPrice: null,
-                pv: null,
                 chargedValue: 50,
                 personId: 'p1',
               }),
@@ -1556,7 +1666,6 @@ describe('OrdersPage', () => {
       expect(
         screen.getByDisplayValue('Adaptiv Pastilhas (60226006)'),
       ).toBeInTheDocument();
-      expect(screen.getByDisplayValue('15')).toBeInTheDocument();
     });
 
     it('should display an INATIVO product name in edit modal even when not in the available list', async () => {
@@ -1628,14 +1737,15 @@ describe('OrdersPage', () => {
         expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
       });
 
-      expect(
-        screen.getByLabelText('Responsável pela conta (ID dōTERRA ou nome)')
-          .value,
-      ).toBe('6254862 - Ana Silva');
+      expect(screen.getByLabelText('Conta ID (ID dōTERRA ou nome)').value).toBe(
+        '6254862 - Ana Silva',
+      );
       expect(screen.getByLabelText('Tipo de Pagamento').value).toBe('PIX');
       expect(screen.getByLabelText('Descrição do Pedido').value).toBe(
         'Pedido de promoção de março',
       );
+      expect(screen.getByLabelText('PV doTERRA').value).toBe('45');
+      expect(screen.getByLabelText('Valor doTERRA (R$)').value).toBe('350');
     });
 
     it('should send descriptive fields when updating an order', async () => {
@@ -1652,10 +1762,9 @@ describe('OrdersPage', () => {
         expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
       });
 
-      fireEvent.change(
-        screen.getByLabelText('Responsável pela conta (ID dōTERRA ou nome)'),
-        { target: { value: 'João Pereira' } },
-      );
+      fireEvent.change(screen.getByLabelText('Conta ID (ID dōTERRA ou nome)'), {
+        target: { value: 'João Pereira' },
+      });
       fireEvent.change(screen.getByLabelText('Tipo de Pagamento'), {
         target: { value: 'BOLETO' },
       });
@@ -1678,7 +1787,7 @@ describe('OrdersPage', () => {
       });
     });
 
-    it('should send chargedValue, pv and details when updating an order', async () => {
+    it('should send chargedValue and details when updating an order', async () => {
       mockPut.mockResolvedValue({ data: { id: '1', orderNumber: 'ORD-001' } });
       renderPage();
 
@@ -1707,13 +1816,11 @@ describe('OrdersPage', () => {
                 productId: 'prod-1',
                 chargedValue: 95,
                 memberPrice: 90,
-                pv: 15,
               }),
               expect.objectContaining({
                 productId: 'prod-2',
                 chargedValue: 200,
                 memberPrice: 180,
-                pv: 30,
               }),
             ],
           }),
@@ -1822,6 +1929,97 @@ describe('OrdersPage', () => {
         expect(mockPut).toHaveBeenCalledWith(
           '/orders/98',
           expect.objectContaining({ shippingValue: 40 }),
+        );
+      });
+    });
+
+    it('should show existing attachment with remove option when editing', async () => {
+      const orderWithAttachment = {
+        ...mockOrders[0],
+        id: '50',
+        orderNumber: 'ORD-ATT-EDIT',
+        attachmentFilename: 'abc.png',
+      };
+      mockGetImplementation([orderWithAttachment]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-ATT-EDIT')).toBeInTheDocument();
+      });
+
+      await clickOrderAction('50', 'Editar');
+
+      await waitFor(() => {
+        expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
+      });
+      expect(
+        screen.getByTestId('order-attachment-existing'),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('order-attachment-remove')).toBeInTheDocument();
+    });
+
+    it('should delete the attachment when removing it and updating the order', async () => {
+      const orderWithAttachment = {
+        ...mockOrders[0],
+        id: '51',
+        orderNumber: 'ORD-ATT-REM',
+        attachmentFilename: 'abc.png',
+      };
+      mockGetImplementation([orderWithAttachment]);
+      mockPut.mockResolvedValue({
+        data: { id: '51', orderNumber: 'ORD-ATT-REM' },
+      });
+      mockDelete.mockResolvedValue({
+        data: { message: 'Attachment deleted successfully' },
+      });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-ATT-REM')).toBeInTheDocument();
+      });
+
+      await clickOrderAction('51', 'Editar');
+
+      await waitFor(() => {
+        expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByTestId('order-attachment-remove'));
+
+      const form = screen.getByDisplayValue('ORD-ATT-REM').closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockDelete).toHaveBeenCalledWith('/orders/51/attachment');
+      });
+    });
+
+    it('should upload a new attachment after updating the order', async () => {
+      mockPut.mockResolvedValue({ data: { id: '1', orderNumber: 'ORD-001' } });
+      mockPost.mockResolvedValue({ data: { attachmentFilename: 'x.png' } });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+
+      await clickOrderAction('1', 'Editar');
+
+      await waitFor(() => {
+        expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
+      });
+
+      const file = new File(['print'], 'print.png', { type: 'image/png' });
+      fireEvent.change(screen.getByTestId('order-attachment-input'), {
+        target: { files: [file] },
+      });
+
+      const form = screen.getByDisplayValue('ORD-001').closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith(
+          '/orders/1/attachment',
+          expect.any(FormData),
         );
       });
     });
@@ -2271,36 +2469,106 @@ describe('OrdersPage', () => {
       expect(screen.getByTestId('order-item-price-mode-0').value).toBe('TOTAL');
     });
 
-    it('should exclude PV from zero-charged items in the summary blocks and the item field', async () => {
+    it('should block submit when PV doTERRA is negative', async () => {
       mockGetImplementation([], mockPeople);
       renderPage();
       await openCreateModal();
-      const combobox = screen.getByPlaceholderText('Busque um produto...');
-      fireEvent.change(combobox, { target: { value: 'Lavanda' } });
-      fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
+      fireEvent.change(screen.getByLabelText('PV doTERRA'), {
+        target: { value: '-5' },
+      });
+      fireEvent.change(
+        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        { target: { value: 'ORD-NEGPV' } },
+      );
+      fireEvent.change(screen.getByDisplayValue('Selecione uma pessoa'), {
+        target: { value: 'p1' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('0.00'), {
+        target: { value: '50' },
+      });
+
+      const form = screen
+        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
+        .closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('order-doterra-pv-error')).toHaveTextContent(
+          'PV doTERRA não pode ser negativo',
+        );
+      });
+      expect(mockPost).not.toHaveBeenCalled();
+    });
+
+    it('should block submit when Valor doTERRA is negative', async () => {
+      mockGetImplementation([], mockPeople);
+      renderPage();
+      await openCreateModal();
+      fireEvent.change(screen.getByLabelText('Valor doTERRA (R$)'), {
+        target: { value: '-1' },
+      });
+      fireEvent.change(
+        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        { target: { value: 'ORD-NEGVAL' } },
+      );
+      fireEvent.change(screen.getByDisplayValue('Selecione uma pessoa'), {
+        target: { value: 'p1' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('0.00'), {
+        target: { value: '50' },
+      });
+
+      const form = screen
+        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
+        .closest('form');
+      fireEvent.submit(form);
 
       await waitFor(() => {
         expect(
-          screen.getAllByDisplayValue(/R\$\s*180,00/).length,
-        ).toBeGreaterThanOrEqual(1);
+          screen.getByTestId('order-doterra-value-error'),
+        ).toHaveTextContent('Valor doTERRA não pode ser negativo');
+      });
+      expect(mockPost).not.toHaveBeenCalled();
+    });
+
+    it('should upload the attachment after creating the order', async () => {
+      mockGetImplementation([], mockPeople);
+      mockPost.mockResolvedValue({ data: { id: '3', orderNumber: 'ORD-A' } });
+      renderPage();
+      await openCreateModal();
+
+      const file = new File(['print'], 'print.png', { type: 'image/png' });
+      fireEvent.change(screen.getByTestId('order-attachment-input'), {
+        target: { files: [file] },
+      });
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('order-attachment-preview'),
+        ).toBeInTheDocument();
       });
 
-      // chargedValue stays empty (0) → PV masked to 0 on the item.
-      expect(screen.getByDisplayValue('0')).toBeInTheDocument();
-      expect(screen.getByTestId('order-totals-pv')).toHaveTextContent('0.00');
-      expect(screen.getByTestId('order-totals-pv-footer')).toHaveTextContent(
-        '0.00',
+      fireEvent.change(
+        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        { target: { value: 'ORD-A' } },
       );
-
-      // Charging the item brings the PV back in both blocks.
       fireEvent.change(screen.getByPlaceholderText('0.00'), {
-        target: { value: '175' },
+        target: { value: '100' },
       });
-      expect(screen.getByDisplayValue('30')).toBeInTheDocument();
-      expect(screen.getByTestId('order-totals-pv')).toHaveTextContent('30.00');
-      expect(screen.getByTestId('order-totals-pv-footer')).toHaveTextContent(
-        '30.00',
-      );
+      fireEvent.change(screen.getByDisplayValue('Selecione uma pessoa'), {
+        target: { value: 'p1' },
+      });
+
+      const form = screen
+        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
+        .closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith(
+          '/orders/3/attachment',
+          expect.any(FormData),
+        );
+      });
     });
   });
 

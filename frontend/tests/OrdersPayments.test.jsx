@@ -31,6 +31,9 @@ const mockOrders = [
     orderNotes: 'Pedido de teste',
     totalValue: '300.00',
     status: 'PENDENTE',
+    doterraPv: '15.50',
+    doterraValue: '310.00',
+    attachmentFilename: null,
     items: [{ pv: '10.50' }, { pv: '5.00' }],
     payments: [],
   },
@@ -42,6 +45,9 @@ const mockOrders = [
     orderNotes: 'Descrição ORD-002',
     totalValue: '500.00',
     status: 'PARCIAL',
+    doterraPv: null,
+    doterraValue: null,
+    attachmentFilename: null,
     items: [{ pv: '20.00' }],
     payments: [{ amount: '50.00' }],
   },
@@ -53,6 +59,9 @@ const mockOrders = [
     orderNotes: null,
     totalValue: '200.00',
     status: 'QUITADO',
+    doterraPv: null,
+    doterraValue: null,
+    attachmentFilename: null,
     items: [{ pv: '5.00' }],
     payments: [{ amount: '250.00' }],
   },
@@ -64,6 +73,9 @@ const mockOrders = [
     orderNotes: null,
     totalValue: '0.00',
     status: 'PENDENTE',
+    doterraPv: null,
+    doterraValue: null,
+    attachmentFilename: null,
     items: [{ pv: '0.00' }],
     payments: [],
   },
@@ -77,6 +89,9 @@ const paidOrder = {
   orderNotes: null,
   totalValue: '100.00',
   status: 'PARCIAL',
+  doterraPv: null,
+  doterraValue: null,
+  attachmentFilename: null,
   items: [],
   payments: [{ amount: '100.00' }],
 };
@@ -684,7 +699,7 @@ describe('OrdersPayments', () => {
       });
 
       const row = rowFor('ORD-002');
-      const ownerCell = row.querySelector('td[data-label="Responsável"]');
+      const ownerCell = row.querySelector('td[data-label="Conta ID"]');
       expect(ownerCell).toHaveTextContent('—');
     });
 
@@ -726,24 +741,54 @@ describe('OrdersPayments', () => {
       ).toBeInTheDocument();
     });
 
-    it('should render PV Total as the sum of item pv', async () => {
-      const orderWithCharges = {
-        ...mockOrders[0],
-        id: 'order-pv',
-        orderNumber: 'ORD-PV',
-        items: [
-          { pv: '10.50', chargedValue: '10.00' },
-          { pv: '5.00', chargedValue: '5.00' },
-        ],
-      };
-      mockGetImplementation([orderWithCharges]);
+    it('should render PV doTERRA from the order field', async () => {
+      mockGetImplementation([mockOrders[0]]);
       renderPage();
 
       await waitFor(() => {
-        expect(screen.getByText('ORD-PV')).toBeInTheDocument();
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
 
-      expect(within(rowFor('ORD-PV')).getByText('15.50')).toBeInTheDocument();
+      expect(within(rowFor('ORD-001')).getByText('15.50')).toBeInTheDocument();
+    });
+
+    it('should render a dash when PV doTERRA is absent', async () => {
+      mockGetImplementation([mockOrders[1]]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-002')).toBeInTheDocument();
+      });
+
+      const row = rowFor('ORD-002');
+      const pvCell = row.querySelector('td[data-label="PV doTERRA"]');
+      expect(pvCell).toHaveTextContent('—');
+    });
+
+    it('should render Valor doTERRA formatted as BRL', async () => {
+      mockGetImplementation([mockOrders[0]]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+
+      expect(
+        within(rowFor('ORD-001')).getByText(/R\$\s*310,00/),
+      ).toBeInTheDocument();
+    });
+
+    it('should render a dash when Valor doTERRA is absent', async () => {
+      mockGetImplementation([mockOrders[1]]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-002')).toBeInTheDocument();
+      });
+
+      const row = rowFor('ORD-002');
+      const valueCell = row.querySelector('td[data-label="Valor doTERRA"]');
+      expect(valueCell).toHaveTextContent('—');
     });
 
     it('should render description truncated with full text in title', async () => {
@@ -919,7 +964,7 @@ describe('OrdersPayments', () => {
 
       expect(modal.getByText('Número')).toBeInTheDocument();
       expect(modal.getByText('Data')).toBeInTheDocument();
-      expect(modal.getByText('Responsável')).toBeInTheDocument();
+      expect(modal.getByText('Conta ID')).toBeInTheDocument();
       expect(modal.getByText('Valor Total')).toBeInTheDocument();
       expect(modal.getByText('Valor Pendente')).toBeInTheDocument();
       expect(modal.getByText('Descrição')).toBeInTheDocument();
@@ -1076,7 +1121,7 @@ describe('OrdersPayments', () => {
       expect(modal.getByText('Detalhamento — ORD-DETAIL')).toBeInTheDocument();
       expect(modal.getByText('Número')).toBeInTheDocument();
       expect(modal.getByText('Data')).toBeInTheDocument();
-      expect(modal.getByText('Responsável')).toBeInTheDocument();
+      expect(modal.getByText('Conta ID')).toBeInTheDocument();
       expect(modal.getByText('Valor Total')).toBeInTheDocument();
       expect(modal.getByText('Valor Pendente')).toBeInTheDocument();
       expect(modal.getByText('Descrição')).toBeInTheDocument();

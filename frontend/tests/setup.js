@@ -19,3 +19,10 @@ Object.defineProperty(window, 'matchMedia', {
 if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = vi.fn();
 }
+
+// Polyfill URL.createObjectURL/revokeObjectURL for jsdom (image previews and
+// attachment viewing rely on object URLs).
+if (typeof URL.createObjectURL !== 'function') {
+  URL.createObjectURL = vi.fn(() => 'blob:test-object-url');
+  URL.revokeObjectURL = vi.fn();
+}

@@ -54,6 +54,32 @@ describe('API Interceptors', () => {
       const result = onRequest(config);
       expect(result).toBe(config);
     });
+
+    it('should remove Content-Type when the payload is FormData', () => {
+      const config = {
+        headers: { 'Content-Type': 'application/json' },
+        data: new FormData(),
+      };
+      const result = onRequest(config);
+      expect(result.headers['Content-Type']).toBeUndefined();
+    });
+
+    it('should keep Content-Type for JSON payloads', () => {
+      const config = {
+        headers: { 'Content-Type': 'application/json' },
+        data: { foo: 'bar' },
+      };
+      const result = onRequest(config);
+      expect(result.headers['Content-Type']).toBe('application/json');
+    });
+
+    it('should remove Content-Type via headers.delete when available (AxiosHeaders)', () => {
+      const headers = { delete: vi.fn() };
+      const config = { headers, data: new FormData() };
+      const result = onRequest(config);
+      expect(headers.delete).toHaveBeenCalledWith('Content-Type');
+      expect(result).toBe(config);
+    });
   });
 
   describe('Response Interceptor - 401 handling', () => {
