@@ -141,7 +141,7 @@ const OrdersTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[16%]"
+                  width="w-[18%]"
                 />
                 <SortableHeader
                   label="Status"
@@ -149,7 +149,7 @@ const OrdersTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[7%]"
+                  width="w-[5%]"
                 />
                 <th
                   scope="col"
