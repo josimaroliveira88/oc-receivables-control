@@ -7,7 +7,7 @@ Full-stack financial tracking application for clients, dōTERRA orders, receivab
 ## Technology
 
 - Backend: Node.js, Express, Prisma ORM, Zod, JWT, bcryptjs, morgan, multer.
-- Frontend: React 18, React Router 6, Vite, Tailwind CSS 3, Flowbite plugin, Recharts, SheetJS, lucide-react, react-icons (brand icons, e.g. WhatsApp/Instagram).
+- Frontend: React 18, React Router 6, Vite, Tailwind CSS 3, Flowbite plugin, Recharts, SheetJS, lucide-react, react-icons (brand icons, e.g. WhatsApp/Instagram), react-number-format (ATM-style currency masks via `CurrencyInput`).
 - Database: PostgreSQL 15.
 - Tests: Vitest, Supertest, React Testing Library, jsdom.
 - Local infrastructure: Docker Compose with PostgreSQL and Adminer.
@@ -66,7 +66,7 @@ For a database with existing data, apply migrations with `npx prisma migrate dep
 └── frontend/
     ├── src/
     │   ├── App.jsx, main.jsx, index.css
-    │   ├── components/ (layout, auth, dialogs, menus, toast, onboarding; shared widgets such as `ActionMenu`, `ConfirmDialog`, `ProductCombobox`, `SearchInput`, `SortableHeader`)
+    │   ├── components/ (layout, auth, dialogs, menus, toast, onboarding; shared widgets such as `ActionMenu`, `ConfirmDialog`, `CurrencyInput`, `ProductCombobox`, `SearchInput`, `SortableHeader`)
     │   ├── context/ (auth and theme)
     │   ├── pages/
     │   │   ├── LoginPage.jsx, RegisterPage.jsx                # Small pages kept as single files

@@ -11,7 +11,7 @@ MVP and Phases 1-64 are complete (see `CHANGELOG.md`). The application provides 
 ## Stack and Ports
 
 - Backend: Node.js, Express, Prisma, Zod, JWT, PostgreSQL 15.
-- Frontend: React 18, Vite, Tailwind CSS 3, Flowbite plugin, Recharts, SheetJS, lucide-react, react-icons (brand icons, e.g. WhatsApp/Instagram).
+- Frontend: React 18, Vite, Tailwind CSS 3, Flowbite plugin, Recharts, SheetJS, lucide-react, react-icons (brand icons, e.g. WhatsApp/Instagram), react-number-format (ATM-style currency masks via `CurrencyInput`).
 - Infrastructure: Docker Compose; Adminer is included for database inspection.
 - Tooling: Prettier 3 for code formatting.
 - Frontend: `http://localhost:3000`.
