@@ -88,6 +88,7 @@ describe('People CRUD', () => {
       expect(response.body.instagram).toBeNull();
       expect(response.body.address).toBeNull();
       expect(response.body.observacao).toBeNull();
+      expect(response.body.birthday).toBeNull();
       expect(response.body.isVip).toBe(false);
       expect(response.body.isDoterraMember).toBe(false);
       createdPersonId = response.body.id;
@@ -119,6 +120,64 @@ describe('People CRUD', () => {
       expect(response.status).toBe(201);
       expect(response.body.whatsapp).toBe('joao@email.com');
       createdPersonId = response.body.id;
+    });
+
+    it('should create a person with a valid birthday in DD/MM format', async () => {
+      const response = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Cliente com Aniversário', birthday: '15/08' });
+
+      expect(response.status).toBe(201);
+      expect(response.body.birthday).toBe('15/08');
+      createdPersonId = response.body.id;
+    });
+
+    it('should accept 29/02 as birthday (year unknown, leap day allowed)', async () => {
+      const response = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Cliente Leap Day', birthday: '29/02' });
+
+      expect(response.status).toBe(201);
+      expect(response.body.birthday).toBe('29/02');
+      createdPersonId = response.body.id;
+    });
+
+    it('should reject a birthday with an invalid day/month (31/02)', async () => {
+      const response = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Cliente Inválido', birthday: '31/02' });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should reject a birthday with month 13', async () => {
+      const response = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Cliente Inválido', birthday: '01/13' });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should reject a birthday with day 00', async () => {
+      const response = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Cliente Inválido', birthday: '00/05' });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should reject a birthday not in DD/MM format', async () => {
+      const response = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Cliente Inválido', birthday: '15-08-1990' });
+
+      expect(response.status).toBe(400);
     });
 
     it('should reject request with missing name', async () => {
@@ -275,6 +334,289 @@ describe('People CRUD', () => {
 
       expect(response.status).toBe(401);
       expect(response.body.error).toBe('Access token required');
+    });
+  });
+
+  describe('GET /api/people/:id/summary', () => {
+    let summaryPersonId;
+    let createdOrderIds = [];
+
+    const uniqueOrderNumber = (prefix) =>
+      `${prefix}-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+
+    beforeEach(async () => {
+      summaryPersonId = (
+        await prisma.person.create({
+          data: { name: 'Summary Person', whatsapp: '5511999997777', userId },
+        })
+      ).id;
+      createdOrderIds = [];
+    });
+
+    afterEach(async () => {
+      await prisma.order
+        .deleteMany({ where: { id: { in: createdOrderIds } } })
+        .catch(() => {});
+      await prisma.person
+        .delete({ where: { id: summaryPersonId } })
+        .catch(() => {});
+      summaryPersonId = null;
+      createdOrderIds = [];
+    });
+
+    it('should return zeroed summary when the person has no orders', async () => {
+      const response = await request(app)
+        .get(`/api/people/${summaryPersonId}/summary`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.ordersCount).toBe(0);
+      expect(response.body.totalItemsCents).toBe(0);
+      expect(response.body.totalPaidCents).toBe(0);
+      expect(response.body.totalOpenCents).toBe(0);
+    });
+
+    it('should compute items, paid and open totals in cents', async () => {
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: uniqueOrderNumber('ORD-SUM'),
+          totalValue: 150.0,
+          userId,
+          items: {
+            create: {
+              description: 'Item do cliente',
+              chargedValue: 150.0,
+              personId: summaryPersonId,
+            },
+          },
+        },
+      });
+      createdOrderIds.push(order.id);
+
+      await prisma.payment.create({
+        data: {
+          amount: 40.0,
+          personId: summaryPersonId,
+          orderId: order.id,
+        },
+      });
+
+      const response = await request(app)
+        .get(`/api/people/${summaryPersonId}/summary`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.ordersCount).toBe(1);
+      expect(response.body.totalItemsCents).toBe(15000);
+      expect(response.body.totalPaidCents).toBe(4000);
+      expect(response.body.totalOpenCents).toBe(11000);
+    });
+
+    it('should count distinct orders containing items of the person', async () => {
+      const orderA = await prisma.order.create({
+        data: {
+          orderNumber: uniqueOrderNumber('ORD-SUM-A'),
+          totalValue: 100.0,
+          userId,
+          items: {
+            create: {
+              description: 'Item A',
+              chargedValue: 100.0,
+              personId: summaryPersonId,
+            },
+          },
+        },
+      });
+      const orderB = await prisma.order.create({
+        data: {
+          orderNumber: uniqueOrderNumber('ORD-SUM-B'),
+          totalValue: 50.0,
+          userId,
+          items: {
+            create: {
+              description: 'Item B',
+              chargedValue: 50.0,
+              personId: summaryPersonId,
+            },
+          },
+        },
+      });
+      createdOrderIds.push(orderA.id, orderB.id);
+
+      const response = await request(app)
+        .get(`/api/people/${summaryPersonId}/summary`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.ordersCount).toBe(2);
+      expect(response.body.totalItemsCents).toBe(15000);
+    });
+
+    it('should honor quantity and TOTAL mode when computing item totals', async () => {
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: uniqueOrderNumber('ORD-SUM-QTY'),
+          totalValue: 25.0,
+          userId,
+          items: {
+            create: [
+              {
+                description: '2x de 10',
+                chargedValue: 10.0,
+                quantity: 2,
+                personId: summaryPersonId,
+              },
+              {
+                description: 'Total mode',
+                chargedValue: 5.0,
+                chargedValueMode: 'TOTAL',
+                personId: summaryPersonId,
+              },
+            ],
+          },
+        },
+      });
+      createdOrderIds.push(order.id);
+
+      const response = await request(app)
+        .get(`/api/people/${summaryPersonId}/summary`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.body.totalItemsCents).toBe(2500);
+    });
+
+    it('should exclude team orders from the summary', async () => {
+      const normalOrder = await prisma.order.create({
+        data: {
+          orderNumber: uniqueOrderNumber('ORD-SUM-NORMAL'),
+          totalValue: 30.0,
+          userId,
+          items: {
+            create: {
+              description: 'Item normal',
+              chargedValue: 30.0,
+              personId: summaryPersonId,
+            },
+          },
+        },
+      });
+      const teamOrder = await prisma.order.create({
+        data: {
+          orderNumber: uniqueOrderNumber('ORD-SUM-TEAM'),
+          totalValue: 500.0,
+          isTeamOrder: true,
+          userId,
+          items: {
+            create: {
+              description: 'Item de equipe',
+              chargedValue: 500.0,
+              personId: summaryPersonId,
+            },
+          },
+        },
+      });
+      createdOrderIds.push(normalOrder.id, teamOrder.id);
+
+      const response = await request(app)
+        .get(`/api/people/${summaryPersonId}/summary`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.ordersCount).toBe(1);
+      expect(response.body.totalItemsCents).toBe(3000);
+      expect(response.body.totalOpenCents).toBe(3000);
+    });
+
+    it('should return open 0 when paid exceeds the items total', async () => {
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: uniqueOrderNumber('ORD-SUM-OVER'),
+          totalValue: 20.0,
+          userId,
+          items: {
+            create: {
+              description: 'Item com overpayment',
+              chargedValue: 20.0,
+              personId: summaryPersonId,
+            },
+          },
+        },
+      });
+      createdOrderIds.push(order.id);
+
+      await prisma.payment.create({
+        data: {
+          amount: 25.0,
+          personId: summaryPersonId,
+          orderId: order.id,
+        },
+      });
+
+      const response = await request(app)
+        .get(`/api/people/${summaryPersonId}/summary`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.body.totalPaidCents).toBe(2500);
+      expect(response.body.totalOpenCents).toBe(0);
+    });
+
+    it('should return open 0 for a self person even with chargeable items', async () => {
+      await prisma.person.update({
+        where: { id: summaryPersonId },
+        data: { isSelf: true },
+      });
+
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: uniqueOrderNumber('ORD-SUM-SELF'),
+          totalValue: 80.0,
+          userId,
+          items: {
+            create: {
+              description: 'Item do self',
+              chargedValue: 80.0,
+              personId: summaryPersonId,
+            },
+          },
+        },
+      });
+      createdOrderIds.push(order.id);
+
+      const response = await request(app)
+        .get(`/api/people/${summaryPersonId}/summary`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.body.totalItemsCents).toBe(8000);
+      expect(response.body.totalOpenCents).toBe(0);
+    });
+
+    it('should return 404 for a person of another user', async () => {
+      const other = await request(app)
+        .post('/api/auth/register')
+        .send({ username: `other_summary_${Date.now()}`, password: 'x123456' });
+      const otherPersonId = (
+        await prisma.person.create({
+          data: { name: 'Outro User Person', userId: other.body.id },
+        })
+      ).id;
+
+      const response = await request(app)
+        .get(`/api/people/${otherPersonId}/summary`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(404);
+
+      await prisma.person
+        .delete({ where: { id: otherPersonId } })
+        .catch(() => {});
+    });
+
+    it('should return 404 for a non-existent person', async () => {
+      const response = await request(app)
+        .get('/api/people/00000000-0000-0000-0000-000000000000/summary')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(404);
     });
   });
 
@@ -577,6 +919,30 @@ describe('People CRUD', () => {
       expect(response.status).toBe(200);
       expect(response.body.name).toBe('New Name Only');
       expect(response.body.whatsapp).toBe('5511999998888');
+    });
+
+    it('should update the birthday field', async () => {
+      const response = await request(app)
+        .put(`/api/people/${createdPersonId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Birthday Updated', birthday: '03/11' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.birthday).toBe('03/11');
+    });
+
+    it('should clear the birthday with explicit null', async () => {
+      await prisma.person.update({
+        where: { id: createdPersonId },
+        data: { birthday: '15/08' },
+      });
+      const response = await request(app)
+        .put(`/api/people/${createdPersonId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Birthday Cleared', birthday: null });
+
+      expect(response.status).toBe(200);
+      expect(response.body.birthday).toBeNull();
     });
 
     it('should clear whatsapp with explicit null', async () => {
