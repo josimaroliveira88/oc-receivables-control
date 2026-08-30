@@ -489,6 +489,59 @@ describe('OrdersPage', () => {
       expect(screen.getByText('Anexo do Pedido ORD-ATT')).toBeInTheDocument();
     });
 
+    it('should expand the attachment preview when the expand button is clicked', async () => {
+      const orderWithAttachment = {
+        ...mockOrders[0],
+        id: '6',
+        orderNumber: 'ORD-EXP',
+        attachmentFilename: 'print.png',
+      };
+      mockGet.mockImplementation((url) => {
+        if (url === '/orders')
+          return Promise.resolve({ data: [orderWithAttachment] });
+        if (url === '/people') return Promise.resolve({ data: mockPeople });
+        if (url.startsWith('/products'))
+          return Promise.resolve({ data: { data: mockProducts } });
+        if (url === '/orders/6/attachment')
+          return Promise.resolve({
+            data: new Blob(['print'], { type: 'image/png' }),
+          });
+        return Promise.resolve({ data: [] });
+      });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-EXP')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByTestId('order-actions-6-trigger'));
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('order-actions-6-item-Visualizar-Anexo'),
+        ).toBeInTheDocument();
+      });
+      fireEvent.click(
+        screen.getByTestId('order-actions-6-item-Visualizar-Anexo'),
+      );
+
+      const expandButton = await screen.findByTestId(
+        'attachment-preview-expand',
+      );
+      const image = screen.getByTestId('attachment-preview-image');
+
+      expect(expandButton).toHaveAttribute('aria-pressed', 'false');
+      expect(image.className).toContain('max-h-[70vh]');
+
+      fireEvent.click(expandButton);
+
+      expect(expandButton).toHaveAttribute('aria-pressed', 'true');
+      expect(image.className).toContain('max-h-[85vh]');
+
+      fireEvent.click(expandButton);
+
+      expect(expandButton).toHaveAttribute('aria-pressed', 'false');
+      expect(image.className).toContain('max-h-[70vh]');
+    });
+
     it('should display order notes in description column', async () => {
       renderPage();
       await waitFor(() => {
