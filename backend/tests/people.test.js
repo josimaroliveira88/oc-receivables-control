@@ -63,6 +63,7 @@ describe('People CRUD', () => {
           address: 'Rua das Flores, 123 - São Paulo/SP',
           isVip: true,
           isDoterraMember: true,
+          isTeamMember: true,
         });
 
       expect(response.status).toBe(201);
@@ -72,6 +73,7 @@ describe('People CRUD', () => {
       expect(response.body.address).toBe('Rua das Flores, 123 - São Paulo/SP');
       expect(response.body.isVip).toBe(true);
       expect(response.body.isDoterraMember).toBe(true);
+      expect(response.body.isTeamMember).toBe(true);
       createdPersonId = response.body.id;
     });
 
@@ -91,6 +93,7 @@ describe('People CRUD', () => {
       expect(response.body.birthday).toBeNull();
       expect(response.body.isVip).toBe(false);
       expect(response.body.isDoterraMember).toBe(false);
+      expect(response.body.isTeamMember).toBe(false);
       createdPersonId = response.body.id;
     });
 
@@ -252,6 +255,15 @@ describe('People CRUD', () => {
         .post('/api/people')
         .set('Authorization', `Bearer ${authToken}`)
         .send({ name: 'Bad Vip', isVip: 'sim' });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should reject non-boolean isTeamMember', async () => {
+      const response = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Bad Team Member', isTeamMember: 'sim' });
 
       expect(response.status).toBe(400);
     });
@@ -624,6 +636,7 @@ describe('People CRUD', () => {
     let vipPersonId;
     let memberPersonId;
     let nonePersonId;
+    let teamPersonId;
 
     beforeEach(async () => {
       vipPersonId = (
@@ -660,17 +673,34 @@ describe('People CRUD', () => {
           },
         })
       ).id;
+      teamPersonId = (
+        await prisma.person.create({
+          data: {
+            name: 'Equipe Cliente',
+            whatsapp: '5511944440000',
+            isVip: false,
+            isDoterraMember: false,
+            isTeamMember: true,
+            userId,
+          },
+        })
+      ).id;
     });
 
     afterEach(async () => {
       await prisma.person
         .deleteMany({
-          where: { id: { in: [vipPersonId, memberPersonId, nonePersonId] } },
+          where: {
+            id: {
+              in: [vipPersonId, memberPersonId, nonePersonId, teamPersonId],
+            },
+          },
         })
         .catch(() => {});
       vipPersonId = null;
       memberPersonId = null;
       nonePersonId = null;
+      teamPersonId = null;
     });
 
     it('should search people by name (case-insensitive)', async () => {
@@ -749,6 +779,37 @@ describe('People CRUD', () => {
       expect(ids).toContain(nonePersonId);
       expect(ids).not.toContain(vipPersonId);
       expect(ids).not.toContain(memberPersonId);
+    });
+
+    it('should filter by classification=team', async () => {
+      const response = await request(app)
+        .get('/api/people?classification=team')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const ids = response.body.map((p) => p.id);
+      expect(ids).toContain(teamPersonId);
+      expect(ids).not.toContain(vipPersonId);
+      expect(ids).not.toContain(memberPersonId);
+      expect(ids).not.toContain(nonePersonId);
+    });
+
+    it('should sort by isTeamMember descending', async () => {
+      const response = await request(app)
+        .get('/api/people?sortBy=isTeamMember&sortDir=desc')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const members = response.body.filter((p) => p.isTeamMember);
+      const nonMembers = response.body.filter((p) => !p.isTeamMember);
+      expect(members).not.toHaveLength(0);
+      const isDescending = response.body
+        .slice(0, members.length)
+        .every((p) => p.isTeamMember);
+      expect(isDescending).toBe(true);
+      expect(nonMembers).toContainEqual(
+        expect.objectContaining({ id: vipPersonId }),
+      );
     });
 
     it('should sort by whatsapp descending', async () => {
@@ -899,6 +960,7 @@ describe('People CRUD', () => {
           observacao: 'Cliente migrou de plano em 2026.',
           isVip: true,
           isDoterraMember: true,
+          isTeamMember: true,
         });
 
       expect(response.status).toBe(200);
@@ -908,6 +970,21 @@ describe('People CRUD', () => {
       expect(response.body.observacao).toBe('Cliente migrou de plano em 2026.');
       expect(response.body.isVip).toBe(true);
       expect(response.body.isDoterraMember).toBe(true);
+      expect(response.body.isTeamMember).toBe(true);
+    });
+
+    it('should toggle isTeamMember from true to false', async () => {
+      await prisma.person.update({
+        where: { id: createdPersonId },
+        data: { isTeamMember: true },
+      });
+      const response = await request(app)
+        .put(`/api/people/${createdPersonId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Team Flag Cleared', isTeamMember: false });
+
+      expect(response.status).toBe(200);
+      expect(response.body.isTeamMember).toBe(false);
     });
 
     it('should update only name', async () => {
@@ -992,6 +1069,15 @@ describe('People CRUD', () => {
         .put(`/api/people/${createdPersonId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ name: 'Bad Member', isDoterraMember: 'yes' });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should reject update with non-boolean isTeamMember', async () => {
+      const response = await request(app)
+        .put(`/api/people/${createdPersonId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Bad Team Member', isTeamMember: 'yes' });
 
       expect(response.status).toBe(400);
     });
