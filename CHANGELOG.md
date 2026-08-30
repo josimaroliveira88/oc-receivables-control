@@ -10,6 +10,27 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 72 — Pedidos de Venda (2026-08-30)
+
+### Added
+- **Pedidos de venda (sale orders)**: novo recurso para vender produtos do próprio estoque a um cliente. `Order.orderType` (`COMPRA`/`VENDA`), `Order.deliveredAt` (nullable), `Order.additionalValue` (default 0, somado ao `totalValue` e à regra de `QUITADO` junto com o frete), modelo `SaleCounter` (numeração sequencial `V-0001`, `V-0002`… por usuário, com `upsert` atômico e retry em `P2002`) — migração `20260830181046_add_sale_orders_and_payment_type`.
+- **Endpoints `/api/sales`**: `GET/POST /api/sales`, `GET/PUT/DELETE /api/sales/:id` (`backend/src/controllers/salesController.js`, `backend/src/routes/salesRoutes.js`). Cliente fixo no nível do pedido (`clientPersonId`, não-self, injetado nos itens pelo controller); produto do catálogo obrigatório por item; `validateSaleProducts` (ATIVO/INDISPONIVEL); `resolveSaleKitFields`/`resolveSaleUpdateItems` congelam `kitSnapshot` e exigem `kitStockMode` para KIT; `PUT` sincroniza itens **por id**; `GET` suporta `q` + `searchField` (`all`/`orderNumber`/`client`/`description`), `status`, `delivered` e `sortBy` (inclui computados `pendingValue`/`clientName`).
+- **Estoque de venda (semântica invertida)**: criação escreve **SAIDA** por item (kits expandidos via `expandSaleItemToStockProducts`, motivo `Venda V-XXXX`, `effectiveDate = orderDate`); edição aplica o delta líquido (`computeSaleStockDiff`: delta > 0 = SAIDA, delta < 0 = ENTRADA); exclusão reverte com **ENTRADA**. Estoque insuficiente bloqueia com `400 Estoque insuficiente para {nome}: disponível X, necessário Y` (`backend/src/services/stockService.js`).
+- **Pagamento por pagamento**: `Payment.paymentType` (nullable enum `PIX`/`BOLETO`/`CARTAO_CREDITO`/`INFINITE_PAY`, schema Zod compartilhado em `backend/src/utils/paymentTypes.js`) em todos os recebimentos (compras e vendas). Modais de pagamento/edição de Orders e Sales ganharam o select "Forma de Pagamento" (opção "Não informada") e os detalhamentos mostram um badge por pagamento (`payment-badge-<id>`).
+- **Página Vendas no frontend**: rota `/sales`, itens de navegação "Vendas" em `Header.jsx`/`MobileDrawer.jsx`, página Level 3 em `src/pages/Sales/` (`useSales`, `useSaleFilters`, `useSalePayments`, componentes `SalesTable`/`SalesTableToolbar`/`SaleForm`/`SaleItemFields`/`SaleTotals`/`SaleBadges`/`SalePaymentModal`/`SaleDetailsModal`/`SaleEditPaymentModal`, `utils/saleHelpers.js`). Formulário com Cliente (não-self), Data do Pedido, Frete, Valores Adicionais, Descrição e Data de entrega (sem campos de compra); tabela com Nº Venda, Data, Cliente, Valor, Pendente, badge de Entrega ("Pendente de entrega"/"Entregue + data"), Descrição, Status e Ações ("Registrar Pagamento"/"Dar baixa", "Detalhar Pagamentos", "Marcar como entregue"/"Desmarcar entrega", Editar, Excluir). Pagamentos reutilizam os endpoints de `/orders` com cliente fixo. Deep-link `/sales?editSale=<id>`.
+- **Vendas no histórico de estoque e na exportação**: `HistoryDialog`/`Stock/index.jsx` mostram badge `Venda V-XXXX` e deep-link `/sales?editSale=<id>` quando `movement.order.orderType === 'VENDA'` (compras seguem `/orders?editOrder=<id>`); `StockController.getProductHistory` inclui `orderType` e o rótulo do undo usa "Venda" vs "Pedido". `exportExcel` ganhou entrada `sales`: nova aba **Vendas** e o **Histórico de Pagamentos** consolida compras + vendas; o dashboard exporta `GET /api/sales`.
+
+### Changed
+- `GET /api/orders` agora retorna apenas `orderType COMPRA`; `updateOrder`/`deleteOrder`/`addItemToOrder`/`updateItem`/`deleteItem` rejeitam pedidos `VENDA` com `400 use os endpoints de vendas (/api/sales)`; anexos tratam vendas como 404.
+- `computeOrderStatus` recebeu `additionalCents` (`QUITADO` = pagamentos ≥ itens + frete + adicionais) e o dashboard já inclui as vendas nos recebíveis.
+- `paymentsController` aceita `paymentType` opcional/nullable no create/update.
+
+### Tests
+- Backend: novos `tests/sales.test.js` (35), `tests/salesStock.test.js` (18), `tests/salesPayments.test.js` (12); ajustes em `payments.test.js` (paymentType), `dashboard.test.js` (inclusão de vendas), `ordersStock.test.js`/`stock.test.js` (mensagem `Estoque insuficiente`). **510 backend passing** (was 436).
+- Frontend: novos `tests/SalesPage.test.jsx` (44) e `tests/SalesPayments.test.jsx` (16); cobertura de forma de pagamento em `OrdersPayments.test.jsx`; link "Vendas" em `Header.test.jsx`/`MobileDrawer.test.jsx`; badge/link de venda em `StockPage.test.jsx`; vendas na exportação em `exportExcel.test.js`/`DashboardPage.test.jsx`. **625 frontend passing** (was 550).
+- Verified: `npm run format:check` clean, `cd frontend && npm run build` clean.
+
+
 ## Phase 71 — Aniversário do cliente, colunas da lista e detalhamento (2026-08-30)
 
 ### Added
