@@ -31,6 +31,7 @@ model Person {
   birthday        String?   @db.VarChar(5)
   isVip           Boolean   @default(false)
   isDoterraMember Boolean   @default(false)
+  isTeamMember    Boolean   @default(false)
   isSelf          Boolean   @default(false)
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId          String

@@ -50,6 +50,7 @@ const personSchema = z.object({
     .nullable(),
   isVip: z.boolean().optional(),
   isDoterraMember: z.boolean().optional(),
+  isTeamMember: z.boolean().optional(),
   isSelf: z.boolean().optional(),
 });
 
@@ -61,6 +62,7 @@ const SORTABLE_FIELDS = [
   'address',
   'isVip',
   'isDoterraMember',
+  'isTeamMember',
   'createdAt',
   'updatedAt',
 ];
@@ -76,6 +78,8 @@ const classificationToFlags = (classification) => {
       return { isVip: true, isDoterraMember: true };
     case 'none':
       return { isVip: false, isDoterraMember: false };
+    case 'team':
+      return { isTeamMember: true };
     default:
       return null;
   }
