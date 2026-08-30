@@ -85,7 +85,7 @@ export function useSales() {
       const [salesRes, peopleRes, productsRes] = await Promise.all([
         api.get('/sales', { params: buildSaleParams() }),
         api.get('/people'),
-        api.get('/products?available=true&pageSize=all'),
+        api.get('/products?available=true&inStock=true&pageSize=all'),
       ]);
       setSales(salesRes.data);
       setPeople(peopleRes.data);
@@ -406,7 +406,7 @@ export function useSales() {
     try {
       const [peopleRes, productsRes] = await Promise.all([
         api.get('/people'),
-        api.get('/products?available=true&pageSize=all'),
+        api.get('/products?available=true&inStock=true&pageSize=all'),
       ]);
       setPeople(peopleRes.data);
       setProducts(productsRes.data.data);

@@ -180,6 +180,7 @@ const getProducts = async (req, res) => {
       active,
       status,
       available,
+      inStock,
       q,
       sortBy,
       sortDir,
@@ -202,6 +203,12 @@ const getProducts = async (req, res) => {
         statusValues.length === 1 ? statusValues[0] : { in: statusValues };
     } else if (active !== undefined) {
       where.status = active === 'true' ? 'ATIVO' : 'INATIVO';
+    }
+
+    // Restrict to products that exist in the user inventory (any quantity,
+    // including zero). Used by the sale form to offer only stocked products.
+    if (inStock === 'true') {
+      where.inventory = { some: { userId: req.user.userId } };
     }
 
     if (q && q.trim()) {
