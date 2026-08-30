@@ -2,13 +2,13 @@ import React from 'react';
 import { Search, ExternalLink, Pencil, Copy, Eye, EyeOff } from 'lucide-react';
 import { formatBRL } from '../../../utils/money';
 import {
-  SORT_OPTIONS,
   LOYALTY_TIERS,
   calculatePoints,
   formatPoints,
   isBelowMinimumPv,
   getLoyaltyTierDescription,
 } from '../utils/productHelpers';
+import ProductsTableHeader from './ProductsTableHeader';
 import StatusBadgeDropdown from './StatusBadgeDropdown';
 import ActionMenu from '../../../components/ActionMenu';
 
@@ -21,13 +21,14 @@ const ProductsTable = ({
   statusFilter,
   loyaltyTier,
   showPointsColumn,
-  sort,
+  sortBy,
+  sortDir,
   sentinelRef,
   onSearchChange,
   onStatusFilterChange,
   onLoyaltyTierChange,
   onTogglePointsColumn,
-  onSortChange,
+  onSort,
   onStatusChange,
   onEdit,
   onCopyField,
@@ -49,21 +50,6 @@ const ProductsTable = ({
             />
           </div>
           <div className="flex flex-col sm:flex-row gap-3 sm:items-start">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              <span className="sr-only">Ordenar por</span>
-              <select
-                value={sort}
-                onChange={(e) => onSortChange(e.target.value)}
-                className="w-full sm:w-auto px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-                aria-label="Ordenar por"
-              >
-                {SORT_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               <span className="sr-only">Status</span>
               <select
@@ -140,76 +126,12 @@ const ProductsTable = ({
           <div>
             <table className="w-full text-sm text-left block lg:table lg:table-fixed">
               <thead className="hidden lg:table-header-group bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  <th
-                    scope="col"
-                    className="w-[6%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                  >
-                    Código
-                  </th>
-                  <th
-                    scope="col"
-                    className="w-[4%] px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                  >
-                    Site
-                  </th>
-                  <th
-                    scope="col"
-                    className="w-[22%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                  >
-                    Produto
-                  </th>
-                  <th
-                    scope="col"
-                    className="w-[8%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                  >
-                    Tamanho
-                  </th>
-                  <th
-                    scope="col"
-                    className="w-[9%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                  >
-                    Preço Regular
-                  </th>
-                  <th
-                    scope="col"
-                    className="w-[9%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                  >
-                    Preço Membro
-                  </th>
-                  <th
-                    scope="col"
-                    className="w-[5%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                  >
-                    PV
-                  </th>
-                  <th
-                    scope="col"
-                    className="w-[7%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                  >
-                    R$/PV
-                  </th>
-                  {showPointsColumn && (
-                    <th
-                      scope="col"
-                      className="w-[8%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                    >
-                      Pontos
-                    </th>
-                  )}
-                  <th
-                    scope="col"
-                    className="w-[12%] px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                  >
-                    Status
-                  </th>
-                  <th
-                    scope="col"
-                    className="w-[10%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                  >
-                    Ações
-                  </th>
-                </tr>
+                <ProductsTableHeader
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                  showPointsColumn={showPointsColumn}
+                />
               </thead>
               <tbody className="block lg:table-row-group bg-white dark:bg-gray-800 lg:divide-y divide-gray-200 dark:divide-gray-700">
                 {products.map((product) => {

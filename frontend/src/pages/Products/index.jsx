@@ -19,7 +19,8 @@ const ProductsPage = () => {
     statusFilter,
     loyaltyTier,
     showPointsColumn,
-    sort,
+    sortBy,
+    sortDir,
     sentinelRef,
     showCreateModal,
     showEditModal,
@@ -36,7 +37,7 @@ const ProductsPage = () => {
     setStatusFilter,
     setLoyaltyTier,
     togglePointsColumn,
-    setSort,
+    handleSort,
     setCreateField,
     setEditField,
     setEditStatus,
@@ -96,13 +97,14 @@ const ProductsPage = () => {
             statusFilter={statusFilter}
             loyaltyTier={loyaltyTier}
             showPointsColumn={showPointsColumn}
-            sort={sort}
+            sortBy={sortBy}
+            sortDir={sortDir}
             sentinelRef={sentinelRef}
             onSearchChange={setSearch}
             onStatusFilterChange={setStatusFilter}
             onLoyaltyTierChange={setLoyaltyTier}
             onTogglePointsColumn={togglePointsColumn}
-            onSortChange={setSort}
+            onSort={handleSort}
             onStatusChange={handleStatusChange}
             onEdit={openEditModal}
             onCopyField={copyField}

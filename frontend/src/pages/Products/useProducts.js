@@ -22,7 +22,8 @@ export function useProducts() {
   const [statusFilter, setStatusFilter] = useState('');
   const [loyaltyTier, setLoyaltyTier] = useState('');
   const [showPointsColumn, setShowPointsColumn] = useState(false);
-  const [sort, setSort] = useState('name:asc');
+  const [sortBy, setSortBy] = useState('name');
+  const [sortDir, setSortDir] = useState('asc');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -57,13 +58,14 @@ export function useProducts() {
   }, [loadProducts]);
 
   const filteredProducts = useMemo(
-    () => filterAndSortProducts(allProducts, search, statusFilter, sort),
-    [allProducts, search, statusFilter, sort],
+    () =>
+      filterAndSortProducts(allProducts, search, statusFilter, sortBy, sortDir),
+    [allProducts, search, statusFilter, sortBy, sortDir],
   );
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [search, statusFilter, sort]);
+  }, [search, statusFilter, sortBy, sortDir]);
 
   const visibleProducts = filteredProducts.slice(0, visibleCount);
   const hasMore = visibleCount < filteredProducts.length;
@@ -92,6 +94,11 @@ export function useProducts() {
 
   const togglePointsColumn = () => {
     setShowPointsColumn((prev) => !prev);
+  };
+
+  const handleSort = (field, dir) => {
+    setSortBy(field);
+    setSortDir(dir);
   };
 
   const setEditField = (field, value) => {
@@ -333,7 +340,8 @@ export function useProducts() {
     statusFilter,
     loyaltyTier,
     showPointsColumn,
-    sort,
+    sortBy,
+    sortDir,
     sentinelRef,
     showCreateModal,
     showEditModal,
@@ -351,7 +359,7 @@ export function useProducts() {
     setLoyaltyTier,
     setShowPointsColumn,
     togglePointsColumn,
-    setSort,
+    handleSort,
     setCreateField,
     setEditField,
     setEditStatus,

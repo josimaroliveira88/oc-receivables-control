@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { formatProductRowForCopy } from '../src/pages/Products/utils/productHelpers';
+import {
+  formatProductRowForCopy,
+  filterAndSortProducts,
+} from '../src/pages/Products/utils/productHelpers';
 
 describe('formatProductRowForCopy', () => {
   it('should format a full row with name, size and prices', () => {
@@ -104,5 +107,113 @@ describe('formatProductRowForCopy', () => {
     };
 
     expect(formatProductRowForCopy(product).split('\n')).toHaveLength(5);
+  });
+});
+
+describe('filterAndSortProducts', () => {
+  const products = [
+    {
+      id: '1',
+      code: '60226006',
+      name: 'Adaptiv® Pastilhas',
+      size: '60 pastilhas',
+      status: 'ATIVO',
+      regularPrice: '308.00',
+      memberPrice: '231.25',
+      pv: '31',
+      pricePerPv: '7.46',
+    },
+    {
+      id: '2',
+      code: '60215485',
+      name: 'Basil',
+      size: '5 ml',
+      status: 'INATIVO',
+      regularPrice: '103.00',
+      memberPrice: '77.50',
+      pv: '9',
+      pricePerPv: '8.61',
+    },
+    {
+      id: '3',
+      code: '60230001',
+      name: 'Deep Blue',
+      size: '10 ml',
+      status: 'INDISPONIVEL',
+      regularPrice: '150.00',
+      memberPrice: '112.50',
+      pv: '15',
+      pricePerPv: '7.50',
+    },
+  ];
+
+  it('should sort by name ascending by default', () => {
+    const result = filterAndSortProducts(products, '', '', 'name', 'asc');
+    expect(result.map((p) => p.name)).toEqual([
+      'Adaptiv® Pastilhas',
+      'Basil',
+      'Deep Blue',
+    ]);
+  });
+
+  it('should fall back to name ascending for an unknown sort field', () => {
+    const result = filterAndSortProducts(products, '', '', 'status', 'asc');
+    expect(result.map((p) => p.name)).toEqual([
+      'Adaptiv® Pastilhas',
+      'Basil',
+      'Deep Blue',
+    ]);
+  });
+
+  it('should sort by code descending', () => {
+    const result = filterAndSortProducts(products, '', '', 'code', 'desc');
+    expect(result.map((p) => p.code)).toEqual([
+      '60230001',
+      '60226006',
+      '60215485',
+    ]);
+  });
+
+  it('should sort by size ascending alphabetically', () => {
+    const result = filterAndSortProducts(products, '', '', 'size', 'asc');
+    expect(result.map((p) => p.size)).toEqual([
+      '10 ml',
+      '5 ml',
+      '60 pastilhas',
+    ]);
+  });
+
+  it('should sort by regular price numerically even when values are strings', () => {
+    const result = filterAndSortProducts(
+      products,
+      '',
+      '',
+      'regularPrice',
+      'asc',
+    );
+    expect(result.map((p) => p.name)).toEqual([
+      'Basil',
+      'Deep Blue',
+      'Adaptiv® Pastilhas',
+    ]);
+  });
+
+  it('should sort by pricePerPv handling null values as zero', () => {
+    const withNull = [
+      { ...products[0], pricePerPv: null },
+      products[1],
+      products[2],
+    ];
+    const result = filterAndSortProducts(withNull, '', '', 'pricePerPv', 'asc');
+    expect(result.map((p) => p.name)).toEqual([
+      'Adaptiv® Pastilhas',
+      'Deep Blue',
+      'Basil',
+    ]);
+  });
+
+  it('should keep the status filter applied when sorting', () => {
+    const result = filterAndSortProducts(products, '', 'ATIVO', 'pv', 'desc');
+    expect(result.map((p) => p.name)).toEqual(['Adaptiv® Pastilhas']);
   });
 });

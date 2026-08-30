@@ -196,7 +196,7 @@ describe('ProductsPage', () => {
         expect(
           screen.getByPlaceholderText('Buscar por nome ou código...'),
         ).toBeInTheDocument();
-        expect(screen.getByLabelText('Ordenar por')).toBeInTheDocument();
+        expect(screen.queryByLabelText('Ordenar por')).not.toBeInTheDocument();
         expect(screen.getByLabelText('Status')).toBeInTheDocument();
         expect(
           screen.getByRole('button', { name: 'Pontos' }),
@@ -642,9 +642,7 @@ describe('ProductsPage', () => {
         expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
       });
 
-      fireEvent.change(screen.getByLabelText('Ordenar por'), {
-        target: { value: 'pv:asc' },
-      });
+      fireEvent.click(screen.getByTestId('products-sort-pv'));
 
       await waitFor(() => {
         expect(rowNames()).toEqual(['Basil', 'Adaptiv® Pastilhas']);
@@ -662,12 +660,129 @@ describe('ProductsPage', () => {
         expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
       });
 
-      fireEvent.change(screen.getByLabelText('Ordenar por'), {
-        target: { value: 'name:desc' },
-      });
+      fireEvent.click(screen.getByTestId('products-sort-name'));
 
       await waitFor(() => {
         expect(rowNames()).toEqual(['Basil', 'Adaptiv® Pastilhas']);
+      });
+      expect(mockGet).toHaveBeenCalledTimes(1);
+    });
+
+    it('should toggle asc/desc when clicking the same sortable header twice', async () => {
+      mockGet.mockResolvedValue({
+        data: fullResponse([mockProduct, mockInactiveProduct]),
+      });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      const pvHeader = screen.getByTestId('products-sort-pv').closest('th');
+      expect(pvHeader).not.toHaveAttribute('aria-sort', 'ascending');
+
+      fireEvent.click(screen.getByTestId('products-sort-pv'));
+      await waitFor(() => {
+        expect(pvHeader).toHaveAttribute('aria-sort', 'ascending');
+      });
+      expect(rowNames()).toEqual(['Basil', 'Adaptiv® Pastilhas']);
+
+      fireEvent.click(screen.getByTestId('products-sort-pv'));
+      await waitFor(() => {
+        expect(pvHeader).toHaveAttribute('aria-sort', 'descending');
+      });
+      expect(rowNames()).toEqual(['Adaptiv® Pastilhas', 'Basil']);
+      expect(mockGet).toHaveBeenCalledTimes(1);
+    });
+
+    it('should reset to ascending when switching to a different sortable column', async () => {
+      mockGet.mockResolvedValue({
+        data: fullResponse([mockProduct, mockInactiveProduct]),
+      });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      const pvHeader = screen.getByTestId('products-sort-pv').closest('th');
+      const regularPriceHeader = screen
+        .getByTestId('products-sort-regularPrice')
+        .closest('th');
+
+      fireEvent.click(screen.getByTestId('products-sort-pv'));
+      await waitFor(() => {
+        expect(pvHeader).toHaveAttribute('aria-sort', 'ascending');
+      });
+      expect(rowNames()).toEqual(['Basil', 'Adaptiv® Pastilhas']);
+
+      fireEvent.click(screen.getByTestId('products-sort-regularPrice'));
+      await waitFor(() => {
+        expect(regularPriceHeader).toHaveAttribute('aria-sort', 'ascending');
+      });
+      expect(pvHeader).not.toHaveAttribute('aria-sort', 'ascending');
+      expect(rowNames()).toEqual(['Basil', 'Adaptiv® Pastilhas']);
+      expect(mockGet).toHaveBeenCalledTimes(1);
+    });
+
+    it('should sort the list by size alphabetically without a new API call', async () => {
+      mockGet.mockResolvedValue({
+        data: fullResponse([mockProduct, mockInactiveProduct]),
+      });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('products-sort-size'));
+
+      await waitFor(() => {
+        expect(rowNames()).toEqual(['Basil', 'Adaptiv® Pastilhas']);
+      });
+      expect(mockGet).toHaveBeenCalledTimes(1);
+    });
+
+    it('should sort the list by regular price numerically without a new API call', async () => {
+      mockGet.mockResolvedValue({
+        data: fullResponse([mockProduct, mockInactiveProduct]),
+      });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('products-sort-regularPrice'));
+
+      await waitFor(() => {
+        expect(rowNames()).toEqual(['Basil', 'Adaptiv® Pastilhas']);
+      });
+      expect(mockGet).toHaveBeenCalledTimes(1);
+    });
+
+    it('should sort the list by pricePerPv handling null values', async () => {
+      mockGet.mockResolvedValue({
+        data: fullResponse([
+          mockProduct,
+          mockInactiveProduct,
+          { ...mockUnavailableProduct, pricePerPv: null },
+        ]),
+      });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('products-sort-pricePerPv'));
+
+      await waitFor(() => {
+        expect(rowNames()).toEqual([
+          'Deep Blue',
+          'Adaptiv® Pastilhas',
+          'Basil',
+        ]);
       });
       expect(mockGet).toHaveBeenCalledTimes(1);
     });

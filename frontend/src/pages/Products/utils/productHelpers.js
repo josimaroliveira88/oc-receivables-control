@@ -66,18 +66,14 @@ export const getLoyaltyTierDescription = (tierValue) => {
   return `${tier.percentage * 100}% do PV ${tier.rangeLabel} • mínimo ${LOYALTY_MINIMUM_PV} PV por pedido`;
 };
 
-export const SORT_OPTIONS = [
-  { value: 'name:asc', label: 'Nome (A-Z)' },
-  { value: 'name:desc', label: 'Nome (Z-A)' },
-  { value: 'code:asc', label: 'Código (A-Z)' },
-  { value: 'regularPrice:asc', label: 'Preço Regular (menor)' },
-  { value: 'regularPrice:desc', label: 'Preço Regular (maior)' },
-  { value: 'memberPrice:asc', label: 'Preço Membro (menor)' },
-  { value: 'memberPrice:desc', label: 'Preço Membro (maior)' },
-  { value: 'pricePerPv:asc', label: 'R$/PV (menor)' },
-  { value: 'pricePerPv:desc', label: 'R$/PV (maior)' },
-  { value: 'pv:asc', label: 'PV (menor)' },
-  { value: 'pv:desc', label: 'PV (maior)' },
+const SORTABLE_FIELDS = [
+  'name',
+  'code',
+  'size',
+  'regularPrice',
+  'memberPrice',
+  'pv',
+  'pricePerPv',
 ];
 
 export const PRODUCT_STATUS = {
@@ -179,8 +175,14 @@ export const updateProductPayload = (form, status) => ({
   components: kitComponentsPayload(form.components),
 });
 
-export const filterAndSortProducts = (products, search, statusFilter, sort) => {
-  const [sortBy, sortDir] = sort.split(':');
+export const filterAndSortProducts = (
+  products,
+  search,
+  statusFilter,
+  sortBy,
+  sortDir,
+) => {
+  const field = SORTABLE_FIELDS.includes(sortBy) ? sortBy : 'name';
   const direction = sortDir === 'desc' ? -1 : 1;
   const query = search.trim().toLowerCase();
 
@@ -200,13 +202,13 @@ export const filterAndSortProducts = (products, search, statusFilter, sort) => {
 
   return [...result].sort((a, b) => {
     const numericFields = ['regularPrice', 'memberPrice', 'pricePerPv', 'pv'];
-    if (numericFields.includes(sortBy)) {
-      const aValue = parseFloat(a[sortBy]) || 0;
-      const bValue = parseFloat(b[sortBy]) || 0;
+    if (numericFields.includes(field)) {
+      const aValue = parseFloat(a[field]) || 0;
+      const bValue = parseFloat(b[field]) || 0;
       return (aValue - bValue) * direction;
     }
     return (
-      String(a[sortBy] ?? '').localeCompare(String(b[sortBy] ?? ''), 'pt-BR') *
+      String(a[field] ?? '').localeCompare(String(b[field] ?? ''), 'pt-BR') *
       direction
     );
   });
