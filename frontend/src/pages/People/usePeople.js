@@ -15,6 +15,7 @@ export function usePeople() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [classification, setClassification] = useState('');
+  const [birthdayOnly, setBirthdayOnly] = useState(false);
   const [sortBy, setSortBy] = useState('name');
   const [sortDir, setSortDir] = useState('asc');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -41,14 +42,37 @@ export function usePeople() {
     }
   }, []);
 
+  const currentMonth = new Date().getMonth() + 1;
+
   const visiblePeople = useMemo(
-    () => filterAndSortPeople(people, search, classification, sortBy, sortDir),
-    [people, search, classification, sortBy, sortDir],
+    () =>
+      filterAndSortPeople(
+        people,
+        search,
+        classification,
+        sortBy,
+        sortDir,
+        birthdayOnly,
+        currentMonth,
+      ),
+    [
+      people,
+      search,
+      classification,
+      sortBy,
+      sortDir,
+      birthdayOnly,
+      currentMonth,
+    ],
   );
 
   const handleSort = (field, dir) => {
     setSortBy(field);
     setSortDir(dir);
+  };
+
+  const toggleBirthdayOnly = () => {
+    setBirthdayOnly((value) => !value);
   };
 
   const closeCreateModal = () => {
@@ -191,14 +215,17 @@ export function usePeople() {
   return {
     people: visiblePeople,
     totalCount: visiblePeople.length,
-    hasActiveFilters: search.trim() !== '' || classification !== '',
+    hasActiveFilters:
+      search.trim() !== '' || classification !== '' || birthdayOnly,
     search,
     classification,
+    birthdayOnly,
     sortBy,
     sortDir,
     setSearch,
     setClassification,
     handleSort,
+    toggleBirthdayOnly,
     loading,
     error,
     showCreateModal,

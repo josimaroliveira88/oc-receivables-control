@@ -2,17 +2,15 @@ import React from 'react';
 import { Pencil, Trash, Info } from 'lucide-react';
 import { SiWhatsapp, SiInstagram } from 'react-icons/si';
 import { maskWhatsApp, whatsAppLink } from '../../../utils/whatsapp';
-import { instagramHref, CLASSIFICATION_OPTIONS } from '../utils/peopleHelpers';
+import {
+  instagramHref,
+  CLASSIFICATION_OPTIONS,
+  birthMonthOf,
+} from '../utils/peopleHelpers';
 import BoolBadge from './BoolBadge';
 import ActionMenu from '../../../components/ActionMenu';
 import SearchInput from '../../../components/SearchInput';
 import SortableHeader from '../../../components/SortableHeader';
-
-const birthMonthOf = (birthday) => {
-  if (!birthday) return null;
-  const match = birthday.match(/^\d{2}\/(\d{2})$/);
-  return match ? parseInt(match[1], 10) : null;
-};
 
 const PeopleTable = ({
   people,
@@ -92,31 +90,27 @@ const PeopleTable = ({
                   onSort={onSort}
                   width="w-[17%]"
                 />
-                <SortableHeader
-                  label="WhatsApp"
-                  field="whatsapp"
-                  sortBy={sortBy}
-                  sortDir={sortDir}
-                  onSort={onSort}
-                  width="w-[7%]"
-                />
-                <SortableHeader
-                  label="Instagram"
-                  field="instagram"
-                  sortBy={sortBy}
-                  sortDir={sortDir}
-                  onSort={onSort}
-                  width="w-[7%]"
-                />
                 <th
                   scope="col"
-                  className="w-[9%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  className="w-[7%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  WhatsApp
+                </th>
+                <th
+                  scope="col"
+                  className="w-[7%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Instagram
+                </th>
+                <th
+                  scope="col"
+                  className="w-[9%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
                 >
                   Aniversário
                 </th>
                 <th
                   scope="col"
-                  className="w-[22%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  className="w-[22%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
                 >
                   Observação
                 </th>
@@ -138,7 +132,7 @@ const PeopleTable = ({
                 />
                 <th
                   scope="col"
-                  className="w-[7%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  className="w-[7%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
                 >
                   Ações
                 </th>
@@ -219,7 +213,7 @@ const PeopleTable = ({
                     </td>
                     <td
                       data-label="Aniversário"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 lg:before:hidden"
                     >
                       {person.birthday ? (
                         <span
@@ -237,7 +231,7 @@ const PeopleTable = ({
                     </td>
                     <td
                       data-label="Observação"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 lg:before:hidden"
                     >
                       {person.observacao ? (
                         <span
@@ -264,7 +258,7 @@ const PeopleTable = ({
                     </td>
                     <td
                       data-label="Ações"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 text-left lg:text-right text-sm font-medium before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden relative"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 text-left lg:text-right text-sm font-medium before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 lg:before:hidden relative"
                     >
                       <div className="flex justify-end">
                         <ActionMenu

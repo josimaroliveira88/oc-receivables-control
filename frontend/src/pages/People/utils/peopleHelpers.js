@@ -77,12 +77,16 @@ export const CLASSIFICATION_OPTIONS = [
 const SORTABLE_FIELDS = [
   'name',
   'commonGroups',
-  'whatsapp',
-  'instagram',
   'address',
   'isVip',
   'isDoterraMember',
 ];
+
+export const birthMonthOf = (birthday) => {
+  if (!birthday) return null;
+  const match = birthday.match(/^\d{2}\/(\d{2})$/);
+  return match ? Number(match[1]) : null;
+};
 
 const classificationMatch = (person, classification) => {
   switch (classification) {
@@ -105,6 +109,8 @@ export const filterAndSortPeople = (
   classification,
   sortBy,
   sortDir,
+  birthdayOnly = false,
+  currentMonth = new Date().getMonth() + 1,
 ) => {
   const query = search.trim().toLowerCase();
   const field = SORTABLE_FIELDS.includes(sortBy) ? sortBy : 'name';
@@ -124,6 +130,9 @@ export const filterAndSortPeople = (
       return false;
     }
     if (!classificationMatch(person, classification)) return false;
+    if (birthdayOnly && birthMonthOf(person.birthday) !== currentMonth) {
+      return false;
+    }
     return true;
   });
 

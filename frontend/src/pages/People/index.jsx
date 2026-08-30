@@ -1,4 +1,5 @@
 import React from 'react';
+import { Cake } from 'lucide-react';
 import { usePeople } from './usePeople';
 import PeopleTable from './components/PeopleTable';
 import Modal from '../../components/Modal';
@@ -13,11 +14,13 @@ const PeoplePage = () => {
     hasActiveFilters,
     search,
     classification,
+    birthdayOnly,
     sortBy,
     sortDir,
     setSearch,
     setClassification,
     handleSort,
+    toggleBirthdayOnly,
     loading,
     error,
     showCreateModal,
@@ -63,12 +66,38 @@ const PeoplePage = () => {
           <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
             Cadastro de Clientes
           </h2>
-          <button
-            onClick={() => openCreateModal()}
-            className="mt-3 sm:mt-0 px-4 py-2 bg-gradient-to-r from-primary-700 to-primary-500 hover:from-primary-800 hover:to-primary-600 text-white font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-          >
-            Novo
-          </button>
+          <div className="mt-3 sm:mt-0 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={toggleBirthdayOnly}
+              aria-pressed={birthdayOnly}
+              aria-label={
+                birthdayOnly
+                  ? 'Mostrar todos os clientes'
+                  : 'Mostrar apenas aniversariantes do mês'
+              }
+              title={
+                birthdayOnly
+                  ? 'Mostrar todos os clientes'
+                  : 'Mostrar apenas aniversariantes do mês'
+              }
+              data-testid="toggle-birthday-month"
+              className={`inline-flex items-center gap-2 px-4 py-2 font-medium rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
+                birthdayOnly
+                  ? 'bg-primary-600 hover:bg-primary-700 text-white border border-transparent'
+                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+              }`}
+            >
+              <Cake className="w-4 h-4" aria-hidden="true" />
+              <span>Aniversariantes do mês</span>
+            </button>
+            <button
+              onClick={() => openCreateModal()}
+              className="px-4 py-2 bg-gradient-to-r from-primary-700 to-primary-500 hover:from-primary-800 hover:to-primary-600 text-white font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+            >
+              Novo
+            </button>
+          </div>
         </div>
 
         <div className="px-6 py-4">

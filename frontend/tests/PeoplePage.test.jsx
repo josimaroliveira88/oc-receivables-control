@@ -1069,6 +1069,165 @@ describe('PeoplePage', () => {
       });
     });
 
+    it('should not render sortable headers for WhatsApp and Instagram', async () => {
+      mockGet.mockResolvedValue({ data: morePeople });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+
+      const whatsappHeader = screen.getByRole('columnheader', {
+        name: /whatsapp/i,
+      });
+      const instagramHeader = screen.getByRole('columnheader', {
+        name: /instagram/i,
+      });
+      for (const header of [whatsappHeader, instagramHeader]) {
+        expect(header).not.toHaveAttribute('aria-sort');
+        expect(within(header).queryByRole('button')).not.toBeInTheDocument();
+      }
+    });
+
+    it('should not render a sort button on the Aniversário header', async () => {
+      mockGet.mockResolvedValue({ data: mockPeople });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+
+      const header = screen.getByRole('columnheader', {
+        name: /aniversário/i,
+      });
+      expect(header).not.toHaveAttribute('aria-sort');
+      expect(within(header).queryByRole('button')).not.toBeInTheDocument();
+    });
+
+    describe('Aniversariantes do mês toggle', () => {
+      it('should render the toggle button next to "Novo"', async () => {
+        mockGet.mockResolvedValue({ data: mockPeople });
+        renderPage();
+
+        await waitFor(() => {
+          expect(screen.getByText('João Silva')).toBeInTheDocument();
+        });
+
+        const toggle = screen.getByTestId('toggle-birthday-month');
+        expect(toggle).toHaveAttribute('aria-pressed', 'false');
+        expect(toggle).toHaveTextContent(/aniversariantes do mês/i);
+        expect(
+          screen.getByRole('button', { name: /novo/i }),
+        ).toBeInTheDocument();
+      });
+
+      it('should filter the list to people with a birthday in the current month', async () => {
+        const now = new Date();
+        const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+        const people = [
+          {
+            id: '40',
+            name: 'Aniversariante Atual',
+            birthday: `05/${currentMonth}`,
+          },
+          {
+            id: '41',
+            name: 'Outro Mês',
+            birthday: '05/01',
+          },
+          {
+            id: '42',
+            name: 'Sem Aniversário',
+            birthday: null,
+          },
+        ];
+        mockGet.mockResolvedValue({ data: people });
+        renderPage();
+
+        await waitFor(() => {
+          expect(screen.getByText('Aniversariante Atual')).toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByTestId('toggle-birthday-month'));
+
+        await waitFor(() => {
+          expect(screen.getByTestId('toggle-birthday-month')).toHaveAttribute(
+            'aria-pressed',
+            'true',
+          );
+          expect(screen.getByText('Aniversariante Atual')).toBeInTheDocument();
+          expect(screen.queryByText('Outro Mês')).not.toBeInTheDocument();
+          expect(screen.queryByText('Sem Aniversário')).not.toBeInTheDocument();
+        });
+      });
+
+      it('should toggle the filter off and restore the full list', async () => {
+        const now = new Date();
+        const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+        mockGet.mockResolvedValue({
+          data: [
+            {
+              id: '50',
+              name: 'Aniversariante Atual',
+              birthday: `05/${currentMonth}`,
+            },
+            { id: '51', name: 'Outro Mês', birthday: '05/01' },
+          ],
+        });
+        renderPage();
+
+        await waitFor(() => {
+          expect(screen.getByText('Aniversariante Atual')).toBeInTheDocument();
+        });
+
+        const toggle = screen.getByTestId('toggle-birthday-month');
+        fireEvent.click(toggle);
+        await waitFor(() => {
+          expect(toggle).toHaveAttribute('aria-pressed', 'true');
+          expect(screen.queryByText('Outro Mês')).not.toBeInTheDocument();
+        });
+
+        fireEvent.click(toggle);
+        await waitFor(() => {
+          expect(toggle).toHaveAttribute('aria-pressed', 'false');
+          expect(screen.getByText('Outro Mês')).toBeInTheDocument();
+          expect(screen.getByText('Aniversariante Atual')).toBeInTheDocument();
+        });
+      });
+    });
+
+    it('should render Aniversário header without all-caps styling', async () => {
+      mockGet.mockResolvedValue({ data: mockPeople });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+
+      const header = screen.getByRole('columnheader', {
+        name: /aniversário/i,
+      });
+      expect(header.className).not.toMatch(/\buppercase\b/);
+    });
+
+    it('should render Observação and Ações headers without all-caps styling', async () => {
+      mockGet.mockResolvedValue({ data: mockPeople });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+
+      const observacaoHeader = screen.getByRole('columnheader', {
+        name: /observação/i,
+      });
+      const acoesHeader = screen.getByRole('columnheader', {
+        name: /ações/i,
+      });
+      expect(observacaoHeader.className).not.toMatch(/\buppercase\b/);
+      expect(acoesHeader.className).not.toMatch(/\buppercase\b/);
+    });
+
     it('should sort by name descending when the header is clicked twice', async () => {
       mockGet.mockResolvedValue({ data: morePeople });
       renderPage();
