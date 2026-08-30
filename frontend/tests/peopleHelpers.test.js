@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   filterAndSortPeople,
   birthMonthOf,
+  emptyForm,
+  buildPayload,
+  CLASSIFICATION_OPTIONS,
 } from '../src/pages/People/utils/peopleHelpers';
 
 const person = (overrides) => ({
@@ -12,7 +15,27 @@ const person = (overrides) => ({
   birthday: null,
   isVip: false,
   isDoterraMember: false,
+  isTeamMember: false,
   ...overrides,
+});
+
+describe('emptyForm and buildPayload', () => {
+  it('starts isTeamMember as false in the empty form', () => {
+    expect(emptyForm().isTeamMember).toBe(false);
+  });
+
+  it('carries isTeamMember through buildPayload', () => {
+    expect(
+      buildPayload({ ...emptyForm(), name: 'Ana', isTeamMember: true }),
+    ).toMatchObject({ name: 'Ana', isTeamMember: true });
+  });
+
+  it('offers the "Somente Equipe" classification option', () => {
+    expect(CLASSIFICATION_OPTIONS).toContainEqual({
+      value: 'team',
+      label: 'Somente Equipe',
+    });
+  });
 });
 
 describe('birthMonthOf', () => {
@@ -118,6 +141,34 @@ describe('filterAndSortPeople', () => {
         8,
       );
       expect(result.map((p) => p.name)).toEqual(['Agosto VIP']);
+    });
+  });
+
+  describe('team classification and sorting', () => {
+    it('should keep only team members when classification is team', () => {
+      const people = [
+        person({ id: '1', name: 'Ana', isTeamMember: false }),
+        person({ id: '2', name: 'Bruno', isTeamMember: true }),
+        person({ id: '3', name: 'Carla', isTeamMember: true }),
+      ];
+      const result = filterAndSortPeople(people, '', 'team', 'name', 'asc');
+      expect(result.map((p) => p.name)).toEqual(['Bruno', 'Carla']);
+    });
+
+    it('should sort by isTeamMember ascending then by name', () => {
+      const people = [
+        person({ id: '1', name: 'Ana' }),
+        person({ id: '2', name: 'Bruno', isTeamMember: true }),
+        person({ id: '3', name: 'Carla', isTeamMember: true }),
+        person({ id: '4', name: 'Duda' }),
+      ];
+      const result = filterAndSortPeople(people, '', '', 'isTeamMember', 'asc');
+      expect(result.map((p) => p.name)).toEqual([
+        'Ana',
+        'Duda',
+        'Bruno',
+        'Carla',
+      ]);
     });
   });
 });

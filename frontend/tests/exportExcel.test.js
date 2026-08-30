@@ -48,6 +48,7 @@ const mockPeople = [
     observacao: 'Cliente prefere retirar pessoalmente.',
     isVip: true,
     isDoterraMember: true,
+    isTeamMember: true,
   },
   {
     name: 'Maria Santos',
@@ -55,6 +56,7 @@ const mockPeople = [
     observacao: null,
     isVip: false,
     isDoterraMember: false,
+    isTeamMember: false,
   },
 ];
 
@@ -333,6 +335,7 @@ describe('exportExcel', () => {
         'Observação',
         'VIP',
         'Membro doTERRA',
+        'Equipe',
       ]);
     });
 
@@ -356,10 +359,12 @@ describe('exportExcel', () => {
       expect(rows[1][5]).toBe('Cliente prefere retirar pessoalmente.');
       expect(rows[1][6]).toBe('Sim');
       expect(rows[1][7]).toBe('Sim');
+      expect(rows[1][8]).toBe('Sim');
       expect(rows[2][0]).toBe('Maria Santos');
       expect(rows[2][5]).toBe('');
       expect(rows[2][6]).toBe('Não');
       expect(rows[2][7]).toBe('Não');
+      expect(rows[2][8]).toBe('Não');
     });
 
     it('should show empty string for null whatsapp', () => {
@@ -659,6 +664,7 @@ describe('exportExcel', () => {
         'Observação',
         'VIP',
         'Membro doTERRA',
+        'Equipe',
       ]);
     });
 
@@ -739,7 +745,7 @@ describe('exportExcel', () => {
       const ws = wb.Sheets['Clientes'];
 
       expect(ws['!cols']).toBeDefined();
-      expect(ws['!cols'].length).toBe(8);
+      expect(ws['!cols'].length).toBe(9);
     });
 
     it('should set column widths on Histórico de Pagamentos sheet', () => {

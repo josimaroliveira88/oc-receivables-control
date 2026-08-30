@@ -67,6 +67,7 @@ const mockPeople = [
     birthday: '15/08',
     isVip: true,
     isDoterraMember: true,
+    isTeamMember: true,
   },
   {
     id: '2',
@@ -79,6 +80,7 @@ const mockPeople = [
     birthday: null,
     isVip: false,
     isDoterraMember: false,
+    isTeamMember: false,
   },
 ];
 
@@ -231,13 +233,13 @@ describe('PeoplePage', () => {
       expect(cells.length).toBeGreaterThan(0);
     });
 
-    it('should render VIP and Membro doTERRA badges', async () => {
+    it('should render VIP, Membro doTERRA and Equipe badges', async () => {
       mockGet.mockResolvedValue({ data: mockPeople });
       renderPage();
 
       await waitFor(() => {
-        expect(screen.getAllByText('Sim')).toHaveLength(2);
-        expect(screen.getAllByText('Não')).toHaveLength(2);
+        expect(screen.getAllByText('Sim')).toHaveLength(3);
+        expect(screen.getAllByText('Não')).toHaveLength(3);
       });
     });
 
@@ -481,6 +483,9 @@ describe('PeoplePage', () => {
       fireEvent.change(screen.getByLabelText('Grupo VIP'), {
         target: { value: 'true' },
       });
+      fireEvent.change(screen.getByLabelText('Equipe'), {
+        target: { value: 'true' },
+      });
       fireEvent.click(screen.getByText('Salvar'));
 
       await waitFor(() => {
@@ -494,6 +499,7 @@ describe('PeoplePage', () => {
           birthday: '15/08',
           isVip: true,
           isDoterraMember: false,
+          isTeamMember: true,
           isSelf: false,
         });
       });
@@ -568,6 +574,7 @@ describe('PeoplePage', () => {
           birthday: null,
           isVip: false,
           isDoterraMember: false,
+          isTeamMember: false,
           isSelf: true,
         });
       });
@@ -604,6 +611,7 @@ describe('PeoplePage', () => {
         expect(
           screen.getByDisplayValue('Cliente prefere retirar pessoalmente.'),
         ).toBeInTheDocument();
+        expect(screen.getByLabelText('Equipe')).toHaveValue('true');
       });
     });
 
@@ -659,6 +667,7 @@ describe('PeoplePage', () => {
           birthday: '15/08',
           isVip: true,
           isDoterraMember: false,
+          isTeamMember: true,
           isSelf: false,
         });
       });
@@ -742,6 +751,7 @@ describe('PeoplePage', () => {
       const modal = within(screen.getByTestId('client-details-modal'));
       expect(modal.getByText('15/08')).toBeInTheDocument();
       expect(modal.getByText('Rua das Flores, 123')).toBeInTheDocument();
+      expect(modal.getByText('Equipe')).toBeInTheDocument();
       expect(modal.getByText('R$ 150,00')).toBeInTheDocument();
       expect(modal.getByText('R$ 60,00')).toBeInTheDocument();
       expect(modal.getByText('R$ 90,00')).toBeInTheDocument();
@@ -911,6 +921,7 @@ describe('PeoplePage', () => {
         address: null,
         isVip: false,
         isDoterraMember: true,
+        isTeamMember: false,
       },
     ];
 
@@ -1040,6 +1051,25 @@ describe('PeoplePage', () => {
       await waitFor(() => {
         expect(screen.getByText('Ana Souza')).toBeInTheDocument();
         expect(screen.queryByText('João Silva')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should filter by Equipe classification', async () => {
+      mockGet.mockResolvedValue({ data: morePeople });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByLabelText('Classificação'), {
+        target: { value: 'team' },
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+        expect(screen.queryByText('Maria Santos')).not.toBeInTheDocument();
+        expect(screen.queryByText('Ana Souza')).not.toBeInTheDocument();
       });
     });
 
@@ -1251,6 +1281,26 @@ describe('PeoplePage', () => {
       const names = document.querySelectorAll('tbody tr td[data-label="Nome"]');
       const nameTexts = Array.from(names).map((td) => td.textContent.trim());
       expect(nameTexts).toEqual(['Ana Souza', 'João Silva', 'Maria Santos']);
+    });
+
+    it('should sort by Equipe when the column header is clicked', async () => {
+      mockGet.mockResolvedValue({ data: morePeople });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+
+      const header = screen.getByTestId('people-sort-isTeamMember');
+      fireEvent.click(header);
+
+      await waitFor(() => {
+        const names = document.querySelectorAll(
+          'tbody tr td[data-label="Nome"]',
+        );
+        const nameTexts = Array.from(names).map((td) => td.textContent.trim());
+        expect(nameTexts).toEqual(['Maria Santos', 'Ana Souza', 'João Silva']);
+      });
     });
   });
 });
