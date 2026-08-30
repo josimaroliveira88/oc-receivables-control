@@ -82,6 +82,7 @@ const OrdersPage = () => {
     paymentAmount,
     paymentNotes,
     paymentDate,
+    paymentFormType,
     paymentError,
     submitting,
     showOverpayConfirm,
@@ -101,6 +102,7 @@ const OrdersPage = () => {
     handleChangeAmount,
     handleChangeNotes,
     handleChangeDate,
+    handleChangePaymentType,
     handlePaymentSubmit,
     confirmOverpay,
     cancelOverpay,
@@ -116,6 +118,7 @@ const OrdersPage = () => {
     editPaymentAmount,
     editPaymentNotes,
     editPaymentDate,
+    editPaymentType,
     editPaymentError,
     editSubmitting,
     showEditOverpayConfirm,
@@ -128,6 +131,7 @@ const OrdersPage = () => {
     handleChangeEditAmount,
     handleChangeEditNotes,
     handleChangeEditDate,
+    handleChangeEditPaymentType,
     handleEditSubmit,
     confirmEditOverpay,
     cancelEditOverpay,
@@ -245,6 +249,7 @@ const OrdersPage = () => {
           paymentAmount={paymentAmount}
           paymentNotes={paymentNotes}
           paymentDate={paymentDate}
+          paymentFormType={paymentFormType}
           paymentError={paymentError}
           submitting={submitting}
           orderPendingCents={orderPendingCents}
@@ -258,6 +263,7 @@ const OrdersPage = () => {
           onChangeAmount={handleChangeAmount}
           onChangeNotes={handleChangeNotes}
           onChangeDate={handleChangeDate}
+          onChangePaymentType={handleChangePaymentType}
           onSubmit={handlePaymentSubmit}
         />
       )}
@@ -287,6 +293,7 @@ const OrdersPage = () => {
           paymentAmount={editPaymentAmount}
           paymentNotes={editPaymentNotes}
           paymentDate={editPaymentDate}
+          paymentFormType={editPaymentType}
           paymentError={editPaymentError}
           submitting={editSubmitting}
           isDirty={editPaymentDirty}
@@ -294,6 +301,7 @@ const OrdersPage = () => {
           onChangeAmount={handleChangeEditAmount}
           onChangeNotes={handleChangeEditNotes}
           onChangeDate={handleChangeEditDate}
+          onChangePaymentType={handleChangeEditPaymentType}
           onSubmit={handleEditSubmit}
         />
       )}

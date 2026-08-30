@@ -11,6 +11,7 @@ const PaymentModal = ({
   paymentAmount,
   paymentNotes,
   paymentDate,
+  paymentFormType,
   paymentError,
   submitting,
   orderPendingCents,
@@ -24,6 +25,7 @@ const PaymentModal = ({
   onChangeAmount,
   onChangeNotes,
   onChangeDate,
+  onChangePaymentType,
   onSubmit,
 }) => {
   return (
@@ -121,6 +123,7 @@ const PaymentModal = ({
               </p>
             ) : (
               <select
+                aria-label="Pessoa"
                 value={selectedPersonId}
                 onChange={(e) => onChangePerson(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
@@ -218,6 +221,27 @@ const PaymentModal = ({
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder="0.00"
             />
+          </div>
+
+          <div className="mb-4">
+            <label
+              htmlFor="paymentFormType"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
+              Forma de Pagamento
+            </label>
+            <select
+              id="paymentFormType"
+              value={paymentFormType}
+              onChange={(e) => onChangePaymentType(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+            >
+              <option value="">Não informada</option>
+              <option value="PIX">PIX</option>
+              <option value="BOLETO">Boleto</option>
+              <option value="CARTAO_CREDITO">Cartão de Crédito</option>
+              <option value="INFINITE_PAY">InfinitePay</option>
+            </select>
           </div>
 
           <div className="mb-4">

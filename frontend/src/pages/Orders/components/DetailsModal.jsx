@@ -4,6 +4,7 @@ import { formatBRL, toCents, fromCents } from '../../../utils/money';
 import { formatDateBR } from '../../../utils/dates';
 import { getOrderPendingCents } from '../utils/receivablesHelpers';
 import { lineValueCents } from '../utils/orderHelpers';
+import { PaymentTypeBadge } from './Badges';
 import Modal from '../../../components/Modal';
 
 const DetailsModal = ({
@@ -220,6 +221,12 @@ const DetailsModal = ({
                                     <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 whitespace-nowrap">
                                       {formatBRL(parseFloat(payment.amount))}
                                     </span>
+                                    {payment.paymentType && (
+                                      <PaymentTypeBadge
+                                        type={payment.paymentType}
+                                        testId={`payment-badge-${payment.id}`}
+                                      />
+                                    )}
                                     <button
                                       type="button"
                                       data-testid={`edit-payment-${payment.id}`}

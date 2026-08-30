@@ -95,19 +95,29 @@ export const paymentPayload = ({
   selectedPersonId,
   paymentDate,
   paymentNotes,
-}) => ({
-  amount: parseFloat(paymentAmount || '0'),
-  personId: selectedPersonId,
-  paidAt: paymentDate || undefined,
-  notes: paymentNotes.trim() || undefined,
-});
+  paymentType,
+}) => {
+  const payload = {
+    amount: parseFloat(paymentAmount || '0'),
+    personId: selectedPersonId,
+    paidAt: paymentDate || undefined,
+    notes: paymentNotes.trim() || undefined,
+  };
+  if (paymentType) payload.paymentType = paymentType;
+  return payload;
+};
 
 export const editPaymentPayload = ({
   paymentAmount,
   paymentDate,
   paymentNotes,
-}) => ({
-  amount: parseFloat(paymentAmount || '0'),
-  paidAt: paymentDate || undefined,
-  notes: paymentNotes.trim() || null,
-});
+  paymentType,
+}) => {
+  const payload = {
+    amount: parseFloat(paymentAmount || '0'),
+    paidAt: paymentDate || undefined,
+    notes: paymentNotes.trim() || null,
+  };
+  if (paymentType !== undefined) payload.paymentType = paymentType || null;
+  return payload;
+};

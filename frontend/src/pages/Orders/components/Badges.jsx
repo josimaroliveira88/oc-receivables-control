@@ -43,7 +43,7 @@ export const StatusBadge = ({ status }) => {
   );
 };
 
-export const PaymentTypeBadge = ({ type }) => {
+export const PaymentTypeBadge = ({ type, testId }) => {
   if (!type) return <span className="text-gray-400 dark:text-gray-500">—</span>;
   const config = {
     PIX: {
@@ -68,6 +68,7 @@ export const PaymentTypeBadge = ({ type }) => {
   };
   return (
     <span
+      data-testid={testId}
       className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${cfg.className}`}
     >
       {paymentTypeLabel(type)}

@@ -24,6 +24,7 @@ export function useOrderPayments({ refreshOrders }) {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentNotes, setPaymentNotes] = useState('');
   const [paymentDate, setPaymentDate] = useState(getTodayString());
+  const [paymentType, setPaymentType] = useState('');
   const [paymentError, setPaymentError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showOverpayConfirm, setShowOverpayConfirm] = useState(false);
@@ -37,6 +38,7 @@ export function useOrderPayments({ refreshOrders }) {
   const [editPaymentAmount, setEditPaymentAmount] = useState('');
   const [editPaymentNotes, setEditPaymentNotes] = useState('');
   const [editPaymentDate, setEditPaymentDate] = useState(getTodayString());
+  const [editPaymentType, setEditPaymentType] = useState('');
   const [editPaymentError, setEditPaymentError] = useState('');
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [showEditOverpayConfirm, setShowEditOverpayConfirm] = useState(false);
@@ -50,6 +52,7 @@ export function useOrderPayments({ refreshOrders }) {
     setPaymentAmount('');
     setPaymentNotes('');
     setPaymentDate(getTodayString());
+    setPaymentType('');
     setPaymentError('');
     setBalances([]);
 
@@ -71,6 +74,7 @@ export function useOrderPayments({ refreshOrders }) {
         paymentAmount,
         paymentNotes: '',
         paymentDate: getTodayString(),
+        paymentType: '',
       });
       setShowPaymentModal(true);
     } catch (err) {
@@ -86,6 +90,7 @@ export function useOrderPayments({ refreshOrders }) {
     setPaymentAmount('');
     setPaymentNotes('');
     setPaymentDate(getTodayString());
+    setPaymentType('');
     setPaymentError('');
     setPaymentInitial(null);
   };
@@ -112,6 +117,10 @@ export function useOrderPayments({ refreshOrders }) {
     setPaymentDate(value);
   };
 
+  const handleChangePaymentType = (value) => {
+    setPaymentType(value);
+  };
+
   const submitPayment = async () => {
     try {
       setSubmitting(true);
@@ -122,6 +131,7 @@ export function useOrderPayments({ refreshOrders }) {
           selectedPersonId,
           paymentDate,
           paymentNotes,
+          paymentType,
         }),
       );
       addToast('Pagamento registrado com sucesso!', 'success');
@@ -197,13 +207,20 @@ export function useOrderPayments({ refreshOrders }) {
     const paymentAmount = payment.amount;
     const paymentNotes = payment.notes || '';
     const paymentDate = toLocalDateInput(payment.paidAt);
+    const paymentType = payment.paymentType || '';
     setEditingPayment(payment);
     setEditPaymentAmount(paymentAmount);
     setEditPaymentNotes(paymentNotes);
     setEditPaymentDate(paymentDate);
+    setEditPaymentType(paymentType);
     setEditPaymentError('');
     setShowEditOverpayConfirm(false);
-    setEditPaymentInitial({ paymentAmount, paymentNotes, paymentDate });
+    setEditPaymentInitial({
+      paymentAmount,
+      paymentNotes,
+      paymentDate,
+      paymentType,
+    });
     setShowEditPaymentModal(true);
   };
 
@@ -213,6 +230,7 @@ export function useOrderPayments({ refreshOrders }) {
     setEditPaymentAmount('');
     setEditPaymentNotes('');
     setEditPaymentDate(getTodayString());
+    setEditPaymentType('');
     setEditPaymentError('');
     setShowEditOverpayConfirm(false);
     setEditPaymentInitial(null);
@@ -229,6 +247,10 @@ export function useOrderPayments({ refreshOrders }) {
 
   const handleChangeEditDate = (value) => {
     setEditPaymentDate(value);
+  };
+
+  const handleChangeEditPaymentType = (value) => {
+    setEditPaymentType(value);
   };
 
   const refreshDetailBalance = async () => {
@@ -251,6 +273,7 @@ export function useOrderPayments({ refreshOrders }) {
           paymentAmount: editPaymentAmount,
           paymentDate: editPaymentDate,
           paymentNotes: editPaymentNotes,
+          paymentType: editPaymentType,
         }),
       );
       addToast('Pagamento atualizado com sucesso!', 'success');
@@ -394,6 +417,7 @@ export function useOrderPayments({ refreshOrders }) {
       paymentAmount,
       paymentNotes,
       paymentDate,
+      paymentType,
     },
     paymentInitial,
   ).isDirty;
@@ -403,6 +427,7 @@ export function useOrderPayments({ refreshOrders }) {
       paymentAmount: editPaymentAmount,
       paymentNotes: editPaymentNotes,
       paymentDate: editPaymentDate,
+      paymentType: editPaymentType,
     },
     editPaymentInitial,
   ).isDirty;
@@ -415,6 +440,7 @@ export function useOrderPayments({ refreshOrders }) {
     paymentAmount,
     paymentNotes,
     paymentDate,
+    paymentType,
     paymentError,
     submitting,
     showOverpayConfirm,
@@ -434,6 +460,7 @@ export function useOrderPayments({ refreshOrders }) {
     handleChangeAmount,
     handleChangeNotes,
     handleChangeDate,
+    handleChangePaymentType,
     handlePaymentSubmit,
     confirmOverpay,
     cancelOverpay,
@@ -449,6 +476,7 @@ export function useOrderPayments({ refreshOrders }) {
     editPaymentAmount,
     editPaymentNotes,
     editPaymentDate,
+    editPaymentType,
     editPaymentError,
     editSubmitting,
     showEditOverpayConfirm,
@@ -461,6 +489,7 @@ export function useOrderPayments({ refreshOrders }) {
     handleChangeEditAmount,
     handleChangeEditNotes,
     handleChangeEditDate,
+    handleChangeEditPaymentType,
     handleEditSubmit,
     confirmEditOverpay,
     cancelEditOverpay,
