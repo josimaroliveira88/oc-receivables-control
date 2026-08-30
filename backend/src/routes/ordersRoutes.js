@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const ordersController = require('../controllers/ordersController');
 const paymentsController = require('../controllers/paymentsController');
+const attachmentsController = require('../controllers/orderAttachmentsController');
+const { upload } = require('../middlewares/upload');
 const { authenticateToken } = require('../middlewares/auth');
 
 // All routes require authentication
@@ -39,5 +41,28 @@ router.put('/payments/:id', paymentsController.updatePayment);
 
 // GET /api/orders/:orderId/balance
 router.get('/:orderId/balance', paymentsController.getOrderBalance);
+
+// POST /api/orders/:id/attachment
+router.post(
+  '/:id/attachment',
+  (req, res, next) => {
+    upload.single('file')(req, res, (err) => {
+      if (err) {
+        if (err.code === 'INVALID_FILE_TYPE') {
+          return res.status(400).json({ error: 'Invalid file type' });
+        }
+        return next(err);
+      }
+      next();
+    });
+  },
+  attachmentsController.uploadAttachment,
+);
+
+// GET /api/orders/:id/attachment
+router.get('/:id/attachment', attachmentsController.getAttachment);
+
+// DELETE /api/orders/:id/attachment
+router.delete('/:id/attachment', attachmentsController.deleteAttachment);
 
 module.exports = router;

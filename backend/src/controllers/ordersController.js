@@ -5,12 +5,7 @@ const {
   computeOrderStatus,
   syncOrderStatuses,
 } = require('../utils/receivables');
-const {
-  lineValueCents,
-  fromCents,
-  toCents,
-  effectivePvCents,
-} = require('../utils/money');
+const { lineValueCents, fromCents, toCents } = require('../utils/money');
 const { applyMovement } = require('../services/stockService');
 const { computeStockDiff } = require('../utils/stockDiff');
 const {
@@ -19,6 +14,7 @@ const {
 } = require('../utils/kitStock');
 const { findIdsByTextSearch } = require('../utils/search');
 const { parseLocalDate } = require('../utils/date');
+const { removeAttachmentFile } = require('./orderAttachmentsController');
 
 const itemSchema = z.object({
   id: z.string().optional().nullable(),
@@ -38,7 +34,6 @@ const itemSchema = z.object({
     .nonnegative('Member price must not be negative')
     .optional()
     .nullable(),
-  pv: z.number().nonnegative('PV must not be negative').optional().nullable(),
   details: z
     .string()
     .max(500, 'Details must be at most 500 characters')
@@ -54,7 +49,12 @@ const itemSchema = z.object({
   kitStockMode: z.enum(['KIT', 'COMPONENTS']).optional().nullable(),
 });
 
-const paymentTypeSchema = z.enum(['PIX', 'BOLETO', 'CARTAO_CREDITO']);
+const paymentTypeSchema = z.enum([
+  'PIX',
+  'BOLETO',
+  'CARTAO_CREDITO',
+  'INFINITE_PAY',
+]);
 
 const orderDescriptiveSchema = {
   isTeamOrder: z.boolean().optional(),
@@ -67,6 +67,16 @@ const orderDescriptiveSchema = {
   orderNotes: z
     .string()
     .max(500, 'Order notes must be at most 500 characters')
+    .optional()
+    .nullable(),
+  doterraPv: z
+    .number()
+    .nonnegative('PV doTERRA must not be negative')
+    .optional()
+    .nullable(),
+  doterraValue: z
+    .number()
+    .nonnegative('Valor doTERRA must not be negative')
     .optional()
     .nullable(),
 };
@@ -148,7 +158,6 @@ const itemCreateData = (item) => ({
   personId: item.personId,
   productId: item.productId || null,
   memberPrice: item.memberPrice ?? null,
-  pv: item.pv ?? null,
   details: item.details || null,
   quantity: item.quantity ?? 1,
   forStock: item.forStock ?? false,
@@ -321,12 +330,13 @@ const ORDER_SORTABLE_FIELDS = [
   'paymentType',
   'accountOwner',
   'orderNotes',
+  'doterraPv',
+  'doterraValue',
   'createdAt',
 ];
 
-// Computed values used to sort orders that have no direct DB column:
+// Computed value used to sort orders that have no direct DB column:
 // - pendingCents: totalValue - (self person items) - (payments)
-// - totalPv: sum of (item.pv * item.quantity)
 const orderSortValue = (order, field) => {
   if (field === 'pendingCents') {
     if (order.isTeamOrder) return 0;
@@ -342,18 +352,12 @@ const orderSortValue = (order, field) => {
       toCents(parseFloat(order.totalValue)) - selfCents - paidCents,
     );
   }
-  if (field === 'totalPv') {
-    return (order.items || []).reduce(
-      (sum, item) => sum + effectivePvCents(item),
-      0,
-    );
-  }
   return undefined;
 };
 
 const sortOrdersInMemory = (orders, sortBy, sortDir) => {
   const direction = sortDir === 'desc' ? -1 : 1;
-  const numericFields = ['pendingCents', 'totalPv', 'totalValue'];
+  const numericFields = ['pendingCents', 'totalValue'];
   return [...orders].sort((a, b) => {
     if (numericFields.includes(sortBy)) {
       const aComputed = orderSortValue(a, sortBy);
@@ -420,9 +424,9 @@ const getOrders = async (req, res) => {
       where.paymentType = paymentType;
     }
 
-    // The pendingValue / totalPv columns are derived from items and payments,
-    // so they are sorted in-memory after fetching the filtered set.
-    const COMPUTED_SORT_FIELDS = ['pendingValue', 'totalPv'];
+    // The pendingValue column is derived from items and payments, so it is
+    // sorted in-memory after fetching the filtered set.
+    const COMPUTED_SORT_FIELDS = ['pendingValue'];
     const inMemorySort = COMPUTED_SORT_FIELDS.includes(sortBy);
 
     const direction = sortDir === 'desc' ? 'desc' : 'asc';
@@ -450,7 +454,7 @@ const getOrders = async (req, res) => {
     });
 
     const computedSortField =
-      sortBy === 'pendingValue' ? 'pendingCents' : 'totalPv';
+      sortBy === 'pendingValue' ? 'pendingCents' : sortBy;
     const result = inMemorySort
       ? sortOrdersInMemory(orders, computedSortField, sortDir)
       : orders;
@@ -559,6 +563,14 @@ const createOrder = async (req, res) => {
           accountOwner: validatedData.accountOwner ?? null,
           paymentType: validatedData.paymentType ?? null,
           orderNotes: validatedData.orderNotes ?? null,
+          doterraPv:
+            validatedData.doterraPv != null
+              ? fromCents(toCents(validatedData.doterraPv)).toFixed(2)
+              : null,
+          doterraValue:
+            validatedData.doterraValue != null
+              ? fromCents(toCents(validatedData.doterraValue)).toFixed(2)
+              : null,
           status,
           userId: req.user.userId,
           items: {
@@ -634,6 +646,18 @@ const updateOrder = async (req, res) => {
             }),
             ...(validatedData.orderNotes !== undefined && {
               orderNotes: validatedData.orderNotes,
+            }),
+            ...(validatedData.doterraPv !== undefined && {
+              doterraPv:
+                validatedData.doterraPv != null
+                  ? fromCents(toCents(validatedData.doterraPv)).toFixed(2)
+                  : null,
+            }),
+            ...(validatedData.doterraValue !== undefined && {
+              doterraValue:
+                validatedData.doterraValue != null
+                  ? fromCents(toCents(validatedData.doterraValue)).toFixed(2)
+                  : null,
             }),
             ...(validatedData.shippingValue !== undefined && {
               shippingValue: fromCents(
@@ -782,6 +806,18 @@ const updateOrder = async (req, res) => {
           ...(validatedData.orderNotes !== undefined && {
             orderNotes: validatedData.orderNotes,
           }),
+          ...(validatedData.doterraPv !== undefined && {
+            doterraPv:
+              validatedData.doterraPv != null
+                ? fromCents(toCents(validatedData.doterraPv)).toFixed(2)
+                : null,
+          }),
+          ...(validatedData.doterraValue !== undefined && {
+            doterraValue:
+              validatedData.doterraValue != null
+                ? fromCents(toCents(validatedData.doterraValue)).toFixed(2)
+                : null,
+          }),
         },
       });
 
@@ -795,7 +831,6 @@ const updateOrder = async (req, res) => {
           personId: newItem.personId,
           productId: newItem.productId ?? null,
           memberPrice: newItem.memberPrice ?? null,
-          pv: newItem.pv ?? null,
           details: newItem.details ?? null,
           quantity: newItem.quantity ?? 1,
           forStock: newItem.forStock ?? false,
@@ -872,6 +907,7 @@ const deleteOrder = async (req, res) => {
   try {
     const { id } = req.params;
 
+    let attachmentFilename = null;
     const result = await prisma.$transaction(async (tx) => {
       // Check if order exists and belongs to user
       const existingOrder = await tx.order.findFirst({
@@ -884,6 +920,8 @@ const deleteOrder = async (req, res) => {
         error.status = 404;
         throw error;
       }
+
+      attachmentFilename = existingOrder.attachmentFilename;
 
       // Reverse stock for every self + forStock item before deleting, expanding
       // kit items into their effective stock products. Team orders never
@@ -917,6 +955,10 @@ const deleteOrder = async (req, res) => {
       await tx.order.delete({ where: { id } });
       return { message: 'Order deleted successfully' };
     });
+
+    if (attachmentFilename) {
+      removeAttachmentFile(attachmentFilename);
+    }
 
     res.status(200).json(result);
   } catch (error) {
@@ -1166,7 +1208,6 @@ const updateItem = async (req, res) => {
           personId: itemData.personId,
           productId: itemData.productId ?? null,
           memberPrice: itemData.memberPrice ?? null,
-          pv: itemData.pv ?? null,
           details: itemData.details ?? null,
           quantity: itemData.quantity ?? 1,
           forStock: itemData.forStock ?? false,
