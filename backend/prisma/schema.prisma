@@ -27,6 +27,7 @@ model Person {
   instagram       String?   @db.VarChar(255)
   address         String?   @db.VarChar(500)
   observacao      String?   @db.VarChar(2000)
+  birthday        String?   @db.VarChar(5)
   isVip           Boolean   @default(false)
   isDoterraMember Boolean   @default(false)
   isSelf          Boolean   @default(false)

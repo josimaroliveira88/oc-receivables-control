@@ -2,7 +2,33 @@ const { PrismaClient } = require('@prisma/client');
 const { z } = require('zod');
 const prisma = new PrismaClient();
 const { syncOrderStatusesForPersons } = require('../utils/receivables');
+const { toCents, lineValueCents } = require('../utils/money');
 const { findIdsByTextSearch } = require('../utils/search');
+
+const MAX_DAYS_BY_MONTH = {
+  1: 31,
+  2: 29,
+  3: 31,
+  4: 30,
+  5: 31,
+  6: 30,
+  7: 31,
+  8: 31,
+  9: 30,
+  10: 31,
+  11: 30,
+  12: 31,
+};
+
+// Validates a "DD/MM" birthday (no year). February 29th is accepted because
+// the year is unknown.
+const isValidBirthday = (value) => {
+  const [day, month] = value.split('/').map(Number);
+  if (!Number.isInteger(day) || !Number.isInteger(month)) return false;
+  return (
+    month >= 1 && month <= 12 && day >= 1 && day <= MAX_DAYS_BY_MONTH[month]
+  );
+};
 
 // Zod schema for person validation
 const personSchema = z.object({
@@ -14,6 +40,12 @@ const personSchema = z.object({
   observacao: z
     .string()
     .max(2000, 'Observação deve ter no máximo 2000 caracteres')
+    .optional()
+    .nullable(),
+  birthday: z
+    .string()
+    .regex(/^\d{2}\/\d{2}$/, 'Aniversário deve estar no formato DD/MM')
+    .refine(isValidBirthday, 'Data de aniversário inválida')
     .optional()
     .nullable(),
   isVip: z.boolean().optional(),
@@ -102,6 +134,61 @@ const getPersonById = async (req, res) => {
     res.status(200).json(person);
   } catch (error) {
     console.error('Error fetching person:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// Financial summary for a single person. Team orders are excluded because
+// they never participate in receivables. Values are returned in integer cents.
+const getPersonSummary = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const person = await prisma.person.findFirst({
+      where: { id, userId: req.user.userId },
+    });
+
+    if (!person) {
+      return res.status(404).json({ error: 'Person not found' });
+    }
+
+    const [items, payments] = await Promise.all([
+      prisma.item.findMany({
+        where: { personId: id, order: { isTeamOrder: false } },
+        select: {
+          chargedValue: true,
+          chargedValueMode: true,
+          quantity: true,
+          orderId: true,
+        },
+      }),
+      prisma.payment.findMany({
+        where: { personId: id, order: { isTeamOrder: false } },
+        select: { amount: true },
+      }),
+    ]);
+
+    const orderIds = new Set();
+    let totalItemsCents = 0;
+    for (const item of items) {
+      totalItemsCents += lineValueCents(item);
+      orderIds.add(item.orderId);
+    }
+    const totalPaidCents = payments.reduce(
+      (sum, payment) => sum + toCents(payment.amount),
+      0,
+    );
+    const totalOpenCents = person.isSelf
+      ? 0
+      : Math.max(0, totalItemsCents - totalPaidCents);
+
+    res.status(200).json({
+      ordersCount: orderIds.size,
+      totalItemsCents,
+      totalPaidCents,
+      totalOpenCents,
+    });
+  } catch (error) {
+    console.error('Error fetching person summary:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -250,6 +337,7 @@ const deletePerson = async (req, res) => {
 module.exports = {
   getPeople,
   getPersonById,
+  getPersonSummary,
   createPerson,
   updatePerson,
   deletePerson,

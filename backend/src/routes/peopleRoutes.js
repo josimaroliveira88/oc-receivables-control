@@ -12,6 +12,9 @@ router.get('/', peopleController.getPeople);
 // GET /api/people/:id
 router.get('/:id', peopleController.getPersonById);
 
+// GET /api/people/:id/summary
+router.get('/:id/summary', peopleController.getPersonSummary);
+
 // POST /api/people
 router.post('/', peopleController.createPerson);
 
