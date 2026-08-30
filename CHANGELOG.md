@@ -10,6 +10,14 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 74 — Checkbox "Esta pessoa sou eu" dinâmico (2026-08-30)
+
+### Changed
+- **Checkbox "Esta pessoa sou eu" dinâmico**: o campo só é exibido quando ainda não existe um cliente marcado como a própria pessoa (`Person.isSelf`). No modal de novo cliente, ele desaparece assim que um cliente self já existe; no de edição, continua aparecendo apenas para o próprio cliente self (marcado, permitindo desmarcar o flag) e some para os demais clientes. `usePeople.js` expõe `hasSelfPerson` (calculado sobre a lista completa, não a filtrada) e os formulários recebem `showSelfCheckbox` via `PersonForm`/`PersonFormFields` (`frontend/src/pages/People/index.jsx`, `components/PersonForm.jsx`, `components/PersonFormFields.jsx`, `usePeople.js`).
+
+### Tests
+- Frontend: `PeoplePage.test.jsx` (+4 — checkbox oculto no novo cliente quando já existe um self; oculto ao editar um não-self com self existente; visível e marcado ao editar o próprio self; visível e desmarcado quando não há self). **685 frontend passing** (was 681). `npm run build` e `npm run format:check` limpos.
+
 ## Phase 73 — Campo Equipe em clientes e ajustes de listas e formulários (2026-08-30)
 
 ### Added
