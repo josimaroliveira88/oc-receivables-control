@@ -10,6 +10,16 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 70 — Expansão da visualização do anexo (2026-08-30)
+
+### Added
+- **Botão "Expandir/Reduzir" no modal de anexo**: em `frontend/src/pages/Orders/components/AttachmentPreviewModal.jsx`, quando a imagem do anexo é carregada, um botão ("Expandir" com ícone `Maximize2`, alternando para "Reduzir" com `Minimize2`) amplia a visualização: o modal alarga de `max-w-2xl` para `max-w-[95vw]` e a imagem passa de `max-h-[70vh]` para `w-full max-h-[85vh] object-contain`, permitindo inspecionar mais detalhes do print do pedido. O botão expõe `aria-pressed` e `data-testid="attachment-preview-expand"`.
+
+### Tests
+- Frontend: novo caso em `frontend/tests/OrdersPage.test.jsx` cobrindo a alternância completa (normal → expandido → normal) via `aria-pressed` e classes da imagem. **541 frontend passing** (was 540).
+- Verified: `cd frontend && npm run build` clean, `npm run format:check` clean.
+
+
 ## Phase 69 — Campos doTERRA, InfinitePay e anexo de pedidos (2026-08-30)
 
 ### Added
