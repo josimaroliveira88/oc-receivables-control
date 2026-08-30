@@ -1,11 +1,18 @@
 import React from 'react';
-import { Pencil, Trash } from 'lucide-react';
+import { Pencil, Trash, Info } from 'lucide-react';
+import { SiWhatsapp, SiInstagram } from 'react-icons/si';
 import { maskWhatsApp, whatsAppLink } from '../../../utils/whatsapp';
 import { instagramHref, CLASSIFICATION_OPTIONS } from '../utils/peopleHelpers';
 import BoolBadge from './BoolBadge';
 import ActionMenu from '../../../components/ActionMenu';
 import SearchInput from '../../../components/SearchInput';
 import SortableHeader from '../../../components/SortableHeader';
+
+const birthMonthOf = (birthday) => {
+  if (!birthday) return null;
+  const match = birthday.match(/^\d{2}\/(\d{2})$/);
+  return match ? parseInt(match[1], 10) : null;
+};
 
 const PeopleTable = ({
   people,
@@ -18,9 +25,12 @@ const PeopleTable = ({
   onSearchChange,
   onClassificationChange,
   onSort,
+  onDetails,
   onEdit,
   onDelete,
 }) => {
+  const currentMonth = new Date().getMonth() + 1;
+
   return (
     <div>
       <div className="flex flex-col md:flex-row md:items-center gap-3">
@@ -71,7 +81,7 @@ const PeopleTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[14%]"
+                  width="w-[15%]"
                   testIdPrefix="people"
                 />
                 <SortableHeader
@@ -80,7 +90,7 @@ const PeopleTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[11%]"
+                  width="w-[17%]"
                 />
                 <SortableHeader
                   label="WhatsApp"
@@ -88,7 +98,7 @@ const PeopleTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[13%]"
+                  width="w-[7%]"
                 />
                 <SortableHeader
                   label="Instagram"
@@ -96,19 +106,17 @@ const PeopleTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[9%]"
-                />
-                <SortableHeader
-                  label="Endereço"
-                  field="address"
-                  sortBy={sortBy}
-                  sortDir={sortDir}
-                  onSort={onSort}
-                  width="w-[13%]"
+                  width="w-[7%]"
                 />
                 <th
                   scope="col"
-                  className="w-[12%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  className="w-[9%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Aniversário
+                </th>
+                <th
+                  scope="col"
+                  className="w-[22%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                 >
                   Observação
                 </th>
@@ -118,7 +126,7 @@ const PeopleTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[6%]"
+                  width="w-[7%]"
                 />
                 <SortableHeader
                   label="Membro doTERRA"
@@ -126,11 +134,11 @@ const PeopleTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[8%]"
+                  width="w-[9%]"
                 />
                 <th
                   scope="col"
-                  className="w-[14%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  className="w-[7%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                 >
                   Ações
                 </th>
@@ -139,10 +147,15 @@ const PeopleTable = ({
             <tbody className="block lg:table-row-group bg-white dark:bg-gray-800 lg:divide-y divide-gray-200 dark:divide-gray-700">
               {people.map((person) => {
                 const waLink = whatsAppLink(person.whatsapp);
+                const isBirthdayMonth =
+                  currentMonth === birthMonthOf(person.birthday);
+                const rowClasses = isBirthdayMonth
+                  ? 'bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/40'
+                  : 'hover:bg-gray-50 dark:hover:bg-gray-700';
                 return (
                   <tr
                     key={person.id}
-                    className="block lg:table-row border border-gray-200 dark:border-gray-700 lg:border-0 rounded-lg lg:rounded-none shadow-sm lg:shadow-none mb-3 lg:mb-0 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    className={`block lg:table-row border border-gray-200 dark:border-gray-700 lg:border-0 rounded-lg lg:rounded-none shadow-sm lg:shadow-none mb-3 lg:mb-0 transition-colors ${rowClasses}`}
                   >
                     <td
                       data-label="Nome"
@@ -160,43 +173,67 @@ const PeopleTable = ({
                       data-label="WhatsApp"
                       className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
                     >
-                      {waLink ? (
-                        <a
-                          href={waLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
-                          title="Abrir conversa no WhatsApp"
-                        >
-                          {maskWhatsApp(person.whatsapp)}
-                        </a>
+                      {person.whatsapp ? (
+                        waLink ? (
+                          <a
+                            href={waLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={maskWhatsApp(person.whatsapp)}
+                            aria-label={`Abrir WhatsApp ${maskWhatsApp(person.whatsapp)}`}
+                            className="inline-flex text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
+                          >
+                            <SiWhatsapp size={20} />
+                          </a>
+                        ) : (
+                          <span
+                            title={person.whatsapp}
+                            aria-label={`WhatsApp: ${person.whatsapp}`}
+                            className="inline-flex text-gray-400 dark:text-gray-500"
+                          >
+                            <SiWhatsapp size={20} />
+                          </span>
+                        )
                       ) : (
-                        person.whatsapp || '-'
+                        '-'
                       )}
                     </td>
                     <td
                       data-label="Instagram"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 break-words text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
                     >
                       {person.instagram ? (
                         <a
                           href={instagramHref(person.instagram)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
                           title={person.instagram}
+                          aria-label={`Abrir Instagram ${person.instagram}`}
+                          className="inline-flex text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
                         >
-                          {person.instagram}
+                          <SiInstagram size={20} />
                         </a>
                       ) : (
                         '-'
                       )}
                     </td>
                     <td
-                      data-label="Endereço"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 break-words text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                      data-label="Aniversário"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
                     >
-                      {person.address || '-'}
+                      {person.birthday ? (
+                        <span
+                          className={
+                            isBirthdayMonth
+                              ? 'font-medium text-amber-700 dark:text-amber-400'
+                              : ''
+                          }
+                        >
+                          {person.birthday}
+                        </span>
+                      ) : (
+                        '-'
+                      )}
                     </td>
                     <td
                       data-label="Observação"
@@ -232,6 +269,11 @@ const PeopleTable = ({
                       <div className="flex justify-end">
                         <ActionMenu
                           actions={[
+                            {
+                              label: 'Detalhes',
+                              icon: Info,
+                              onClick: () => onDetails(person),
+                            },
                             {
                               label: 'Editar',
                               icon: Pencil,
