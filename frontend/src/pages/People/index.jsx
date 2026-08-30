@@ -4,6 +4,7 @@ import PeopleTable from './components/PeopleTable';
 import Modal from '../../components/Modal';
 import PersonForm from './components/PersonForm';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import ClientDetailsModal from './components/ClientDetailsModal';
 
 const PeoplePage = () => {
   const {
@@ -27,8 +28,11 @@ const PeoplePage = () => {
     editDirty,
     confirmDeleteId,
     deleting,
+    detailsPerson,
     setShowCreateModal,
     openCreateModal,
+    openDetails,
+    closeDetails,
     setCreateField,
     setEditField,
     handleCreatePerson,
@@ -85,6 +89,7 @@ const PeoplePage = () => {
             onSearchChange={setSearch}
             onClassificationChange={setClassification}
             onSort={handleSort}
+            onDetails={openDetails}
             onEdit={handleEditPerson}
             onDelete={handleDeletePerson}
           />
@@ -139,6 +144,8 @@ const PeoplePage = () => {
         onConfirm={confirmDeletePerson}
         onCancel={cancelDeletePerson}
       />
+
+      <ClientDetailsModal person={detailsPerson} onClose={closeDetails} />
     </>
   );
 };
