@@ -1078,7 +1078,7 @@ describe('OrdersPayments', () => {
     it('should show only the selected person items when changing the person', async () => {
       const modal = await openRichOrderModal();
 
-      fireEvent.change(modal.getByRole('combobox'), {
+      fireEvent.change(modal.getByLabelText('Pessoa'), {
         target: { value: 'p2' },
       });
 
@@ -1274,6 +1274,7 @@ describe('OrdersPayments', () => {
             amount: 120,
             paidAt: '2026-08-08',
             notes: 'Pix atualizado',
+            paymentType: null,
           },
         );
       });
@@ -1773,6 +1774,191 @@ describe('OrdersPayments', () => {
         ).toBeInTheDocument();
       });
     });
+  });
+});
+
+describe('Payment type on order payments', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const paymentTypedOrder = {
+    ...mockOrders[0],
+    id: 'order-pt',
+    orderNumber: 'ORD-PT',
+    items: [
+      {
+        id: 'pt-item-1',
+        personId: 'p1',
+        description: 'Item',
+        chargedValue: '300.00',
+        quantity: 1,
+        chargedValueMode: 'UNIT',
+      },
+    ],
+    payments: [],
+  };
+
+  const paymentTypedDetailOrder = {
+    ...detailRichOrder,
+    id: 'order-pt-detail',
+    orderNumber: 'ORD-PT-DETAIL',
+    payments: [
+      {
+        id: 'pt-pay-1',
+        personId: 'p1',
+        person: { name: 'João Silva' },
+        amount: '100.00',
+        paidAt: '2026-08-06T12:00:00.000Z',
+        paymentType: 'CARTAO_CREDITO',
+        notes: 'Cartão',
+      },
+    ],
+  };
+
+  const ptBalances = {
+    'order-pt': {
+      balances: [
+        {
+          personId: 'p1',
+          personName: 'João Silva',
+          isSelf: false,
+          itemTotal: '300.00',
+          paymentTotal: '0.00',
+          pending: '300.00',
+        },
+      ],
+    },
+    'order-pt-detail': {
+      balances: [
+        {
+          personId: 'p1',
+          personName: 'João Silva',
+          isSelf: false,
+          itemTotal: '300.00',
+          paymentTotal: '100.00',
+          pending: '200.00',
+        },
+      ],
+    },
+  };
+
+  const mockPTGet = (order) => {
+    mockGet.mockImplementation((url) => {
+      if (url === '/orders') return Promise.resolve({ data: [order] });
+      if (url === '/people') return Promise.resolve({ data: [] });
+      if (url.startsWith('/products'))
+        return Promise.resolve({ data: { data: [] } });
+      const balanceMatch = url.match(/^\/orders\/(.+)\/balance$/);
+      if (balanceMatch) {
+        return Promise.resolve({
+          data: ptBalances[balanceMatch[1]] || { balances: [] },
+        });
+      }
+      return Promise.resolve({ data: [] });
+    });
+  };
+
+  it('should show the "Forma de Pagamento" select in the payment modal', async () => {
+    mockPTGet(paymentTypedOrder);
+    renderPage();
+    await openPaymentAction('order-pt');
+
+    const select = screen.getByLabelText('Forma de Pagamento');
+    expect(select).toBeInTheDocument();
+    expect(select.value).toBe('');
+    expect(
+      screen.getByRole('option', { name: 'Não informada' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'PIX' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Boleto' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', { name: 'Cartão de Crédito' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', { name: 'InfinitePay' }),
+    ).toBeInTheDocument();
+  });
+
+  it('should send paymentType in the create payment payload when selected', async () => {
+    mockPTGet(paymentTypedOrder);
+    mockPost.mockResolvedValue({
+      data: { id: 'pay-pt', amount: '100.00', personId: 'p1' },
+    });
+    renderPage();
+    await openPaymentAction('order-pt');
+
+    fireEvent.change(screen.getByPlaceholderText('0.00'), {
+      target: { value: '100' },
+    });
+    fireEvent.change(screen.getByLabelText('Forma de Pagamento'), {
+      target: { value: 'PIX' },
+    });
+    const form = screen.getByPlaceholderText('0.00').closest('form');
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(mockPost).toHaveBeenCalledWith('/orders/order-pt/payments', {
+        amount: 100,
+        personId: 'p1',
+        paidAt: expect.any(String),
+        notes: undefined,
+        paymentType: 'PIX',
+      });
+    });
+  });
+
+  it('should show the payment type badge in the details modal', async () => {
+    mockPTGet(paymentTypedDetailOrder);
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByText('ORD-PT-DETAIL')).toBeInTheDocument(),
+    );
+    fireEvent.click(
+      screen.getByTestId('order-actions-order-pt-detail-trigger'),
+    );
+    fireEvent.click(
+      screen.getByTestId(
+        'order-actions-order-pt-detail-item-Detalhar-Pagamentos',
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('details-modal')).toBeInTheDocument(),
+    );
+    const modal = within(screen.getByTestId('details-modal'));
+    fireEvent.click(modal.getByTestId('detail-person-p1'));
+    expect(modal.getByTestId('payment-badge-pt-pay-1')).toHaveTextContent(
+      'Cartão de Crédito',
+    );
+  });
+
+  it('should prefill the payment type in the edit payment modal', async () => {
+    mockPTGet(paymentTypedDetailOrder);
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByText('ORD-PT-DETAIL')).toBeInTheDocument(),
+    );
+    fireEvent.click(
+      screen.getByTestId('order-actions-order-pt-detail-trigger'),
+    );
+    fireEvent.click(
+      screen.getByTestId(
+        'order-actions-order-pt-detail-item-Detalhar-Pagamentos',
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('details-modal')).toBeInTheDocument(),
+    );
+    const modal = within(screen.getByTestId('details-modal'));
+    fireEvent.click(modal.getByTestId('detail-person-p1'));
+    fireEvent.click(modal.getByTestId('edit-payment-pt-pay-1'));
+    await waitFor(() =>
+      expect(screen.getByTestId('edit-payment-modal')).toBeInTheDocument(),
+    );
+    const editModal = within(screen.getByTestId('edit-payment-modal'));
+    expect(editModal.getByLabelText('Forma de Pagamento').value).toBe(
+      'CARTAO_CREDITO',
+    );
   });
 });
 

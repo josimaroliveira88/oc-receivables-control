@@ -55,20 +55,30 @@ describe('MobileDrawer', () => {
     );
   });
 
-  it('should render all 5 navigation items in the drawer', () => {
+  it('should render all 6 navigation items in the drawer', () => {
     renderDrawer();
     fireEvent.click(screen.getByLabelText('Abrir menu'));
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Clientes')).toBeInTheDocument();
     expect(screen.getByText('Pedidos')).toBeInTheDocument();
+    expect(screen.getByText('Vendas')).toBeInTheDocument();
     expect(screen.getByText('Produtos')).toBeInTheDocument();
     expect(screen.getByText('Estoque')).toBeInTheDocument();
   });
 
-  it('should have 5 links in the drawer', () => {
+  it('should have 6 links in the drawer', () => {
     renderDrawer();
     fireEvent.click(screen.getByLabelText('Abrir menu'));
-    expect(screen.getAllByRole('link')).toHaveLength(5);
+    expect(screen.getAllByRole('link')).toHaveLength(6);
+  });
+
+  it('should link Vendas to /sales', () => {
+    renderDrawer();
+    fireEvent.click(screen.getByLabelText('Abrir menu'));
+    const salesLink = screen
+      .getAllByRole('link')
+      .find((link) => link.getAttribute('href') === '/sales');
+    expect(salesLink).toHaveTextContent('Vendas');
   });
 
   it('should close the drawer when a nav link is clicked', () => {

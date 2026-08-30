@@ -6,7 +6,7 @@ import {
   act,
   within,
 } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import StockPage from '../src/pages/StockPage';
 import { ToastProvider } from '../src/components/Toast';
@@ -1319,6 +1319,119 @@ describe('StockPage', () => {
       expect(screen.getByTestId('movement-order-ENTRADA')).toHaveTextContent(
         'Pedido #ORD-42',
       );
+    });
+  });
+
+  describe('Sale-linked last movement', () => {
+    const saleMovement = mockMovement({
+      type: 'SAIDA',
+      reason: 'Venda V-0001',
+      orderId: 'order-sale',
+      order: { id: 'order-sale', orderNumber: 'V-0001', orderType: 'VENDA' },
+    });
+
+    const renderWithRoutes = () =>
+      render(
+        <MemoryRouter initialEntries={['/stock']}>
+          <Routes>
+            <Route
+              path="/stock"
+              element={
+                <ToastProvider>
+                  <StockPage />
+                </ToastProvider>
+              }
+            />
+            <Route
+              path="/sales"
+              element={<div data-testid="sales-route">Vendas</div>}
+            />
+            <Route
+              path="/orders"
+              element={<div data-testid="orders-route">Pedidos</div>}
+            />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+    it('should display a "Venda V-NNNN" badge on movement rows linked to a sale', async () => {
+      mockGet
+        .mockResolvedValueOnce({ data: [mockInventoryItem] })
+        .mockResolvedValueOnce({ data: [saleMovement] });
+
+      renderPage();
+
+      await clickStockAction(
+        '11111111-1111-1111-1111-111111111111',
+        'Ver-Historico',
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('movement-order-SAIDA')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('movement-order-SAIDA')).toHaveTextContent(
+        'Venda V-0001',
+      );
+    });
+
+    it('should link the locked notice to /sales?editSale=<id> for a sale movement', async () => {
+      mockGet
+        .mockResolvedValueOnce({ data: [mockInventoryItem] })
+        .mockResolvedValueOnce({ data: [saleMovement] });
+
+      renderWithRoutes();
+
+      await clickStockAction(
+        '11111111-1111-1111-1111-111111111111',
+        'Ver-Historico',
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/vinculada à Venda #V-0001/),
+        ).toBeInTheDocument();
+      });
+      const goButton = screen.getByTestId('go-to-order-from-history');
+      expect(goButton).toHaveTextContent('Ver venda');
+
+      fireEvent.click(goButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('sales-route')).toBeInTheDocument();
+      });
+    });
+
+    it('should keep the purchase deep-link (/orders?editOrder) for non-sale orders', async () => {
+      const orderMovement = mockMovement({
+        type: 'ENTRADA',
+        reason: 'Pedido ORD-42',
+        orderId: 'order-1',
+        order: { id: 'order-1', orderNumber: 'ORD-42' },
+      });
+      mockGet
+        .mockResolvedValueOnce({ data: [mockInventoryItem] })
+        .mockResolvedValueOnce({ data: [orderMovement] });
+
+      renderWithRoutes();
+
+      await clickStockAction(
+        '11111111-1111-1111-1111-111111111111',
+        'Ver-Historico',
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/vinculada ao Pedido #ORD-42/),
+        ).toBeInTheDocument();
+      });
+      const goButton = screen.getByTestId('go-to-order-from-history');
+      expect(goButton).toHaveTextContent('Ver pedido');
+
+      fireEvent.click(goButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('orders-route')).toBeInTheDocument();
+      });
     });
   });
 

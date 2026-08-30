@@ -35,6 +35,7 @@ const mockGetImplementation = (data = mockDashboardData) => {
   mockGet.mockImplementation((url) => {
     if (url === '/dashboard') return Promise.resolve({ data });
     if (url === '/orders') return Promise.resolve({ data: [] });
+    if (url === '/sales') return Promise.resolve({ data: [] });
     if (url === '/people') return Promise.resolve({ data: [] });
     return Promise.resolve({ data: {} });
   });
@@ -281,15 +282,17 @@ describe('DashboardPage', () => {
       });
     });
 
-    it('should call exportExcel with fetched orders, people, and dashboard data on click', async () => {
+    it('should call exportExcel with fetched orders, people, sales and dashboard data on click', async () => {
       const mockOrders = [{ orderNumber: 'ORD-001', totalValue: '500.00' }];
       const mockPeople = [{ name: 'João Silva', contact: 'joao@email.com' }];
+      const mockSales = [{ orderNumber: 'V-0001', totalValue: '200.00' }];
 
       mockGet.mockImplementation((url) => {
         if (url === '/dashboard')
           return Promise.resolve({ data: mockDashboardData });
         if (url === '/orders') return Promise.resolve({ data: mockOrders });
         if (url === '/people') return Promise.resolve({ data: mockPeople });
+        if (url === '/sales') return Promise.resolve({ data: mockSales });
         return Promise.resolve({ data: {} });
       });
       mockExportExcel.mockImplementation(() => {});
@@ -305,10 +308,12 @@ describe('DashboardPage', () => {
       await waitFor(() => {
         expect(mockGet).toHaveBeenCalledWith('/orders');
         expect(mockGet).toHaveBeenCalledWith('/people');
+        expect(mockGet).toHaveBeenCalledWith('/sales');
         expect(mockGet).toHaveBeenCalledWith('/dashboard');
         expect(mockExportExcel).toHaveBeenCalledWith({
           orders: mockOrders,
           people: mockPeople,
+          sales: mockSales,
           dashboard: mockDashboardData,
         });
       });

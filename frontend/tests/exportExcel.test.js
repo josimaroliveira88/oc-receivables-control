@@ -78,16 +78,46 @@ const mockDashboard = {
   ],
 };
 
+const mockSales = [
+  {
+    orderNumber: 'V-0001',
+    orderDate: '2024-04-01T10:00:00.000Z',
+    createdAt: '2024-04-01T10:00:00.000Z',
+    totalValue: '250.00',
+    status: 'PENDENTE',
+    items: [{ person: { name: 'Maria Santos' } }],
+    payments: [
+      {
+        person: { name: 'Maria Santos' },
+        amount: '100.00',
+        paidAt: '2024-04-05T14:00:00.000Z',
+        createdAt: '2024-04-05T14:00:00.000Z',
+        notes: 'Entrada da venda',
+      },
+    ],
+  },
+  {
+    orderNumber: 'V-0002',
+    orderDate: '2024-05-02T09:00:00.000Z',
+    createdAt: '2024-05-02T09:00:00.000Z',
+    totalValue: '100.00',
+    status: 'QUITADO',
+    items: [{ person: { name: 'João Silva' } }],
+    payments: [],
+  },
+];
+
 describe('exportExcel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   describe('Workbook Structure', () => {
-    it('should create a workbook with 4 sheets', () => {
+    it('should create a workbook with 5 sheets', () => {
       exportExcel({
         orders: mockOrders,
         people: mockPeople,
+        sales: mockSales,
         dashboard: mockDashboard,
       });
 
@@ -95,19 +125,21 @@ describe('exportExcel', () => {
       expect(writeFileCalls).toHaveLength(1);
 
       const wb = writeFileCalls[0][0];
-      expect(wb.SheetNames).toHaveLength(4);
+      expect(wb.SheetNames).toHaveLength(5);
     });
 
-    it('should have sheet names: Pedidos, Clientes, Histórico de Pagamentos, Saldo Pendente', () => {
+    it('should have sheet names: Pedidos, Vendas, Clientes, Histórico de Pagamentos, Saldo Pendente', () => {
       exportExcel({
         orders: mockOrders,
         people: mockPeople,
+        sales: mockSales,
         dashboard: mockDashboard,
       });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
       expect(wb.SheetNames).toEqual([
         'Pedidos',
+        'Vendas',
         'Clientes',
         'Histórico de Pagamentos',
         'Saldo Pendente',
@@ -192,6 +224,91 @@ describe('exportExcel', () => {
       expect(cell.t).toBe('n');
       expect(cell.v).toBe(1500.5);
       expect(cell.z).toBe('#,##0.00');
+    });
+  });
+
+  describe('Vendas Sheet', () => {
+    it('should have correct headers', () => {
+      exportExcel({
+        orders: [],
+        sales: mockSales,
+        people: [],
+        dashboard: { personBalances: [] },
+      });
+
+      const wb = XLSX.writeFile.mock.calls[0][0];
+      const ws = wb.Sheets['Vendas'];
+      const headers = XLSX.utils.sheet_to_json(ws, { header: 1 })[0];
+
+      expect(headers).toEqual([
+        'Número',
+        'Data',
+        'Cliente',
+        'Valor Total (R$)',
+        'Status',
+      ]);
+    });
+
+    it('should populate sale rows with correct data', () => {
+      exportExcel({
+        orders: [],
+        sales: mockSales,
+        people: [],
+        dashboard: { personBalances: [] },
+      });
+
+      const wb = XLSX.writeFile.mock.calls[0][0];
+      const ws = wb.Sheets['Vendas'];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+
+      expect(rows).toHaveLength(3);
+      expect(rows[1][0]).toBe('V-0001');
+      expect(rows[1][2]).toBe('Maria Santos');
+      expect(rows[1][3]).toBe(250);
+      expect(rows[1][4]).toBe('PENDENTE');
+      expect(rows[2][0]).toBe('V-0002');
+      expect(rows[2][4]).toBe('QUITADO');
+    });
+
+    it('should format sale dates as DD/MM/YYYY', () => {
+      exportExcel({
+        orders: [],
+        sales: mockSales,
+        people: [],
+        dashboard: { personBalances: [] },
+      });
+
+      const wb = XLSX.writeFile.mock.calls[0][0];
+      const ws = wb.Sheets['Vendas'];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+
+      expect(rows[1][1]).toBe('01/04/2024');
+    });
+
+    it('should show "—" when the sale has no client name', () => {
+      const salesWithoutClient = [
+        {
+          orderNumber: 'V-0003',
+          orderDate: '2024-06-01T00:00:00.000Z',
+          createdAt: '2024-06-01T00:00:00.000Z',
+          totalValue: '100.00',
+          status: 'PENDENTE',
+          payments: [],
+        },
+      ];
+
+      exportExcel({
+        orders: [],
+        sales: salesWithoutClient,
+        people: [],
+        dashboard: { personBalances: [] },
+      });
+
+      const wb = XLSX.writeFile.mock.calls[0][0];
+      const ws = wb.Sheets['Vendas'];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+
+      expect(rows[1][2]).toBe('—');
     });
   });
 
@@ -400,6 +517,24 @@ describe('exportExcel', () => {
 
       expect(rows).toHaveLength(1);
     });
+
+    it('should include sale payments when sales are provided', () => {
+      exportExcel({
+        orders: [],
+        sales: mockSales,
+        people: [],
+        dashboard: { personBalances: [] },
+      });
+
+      const wb = XLSX.writeFile.mock.calls[0][0];
+      const ws = wb.Sheets['Histórico de Pagamentos'];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+
+      expect(rows).toHaveLength(2);
+      expect(rows[1][0]).toBe('V-0001');
+      expect(rows[1][1]).toBe('Maria Santos');
+      expect(rows[1][4]).toBe('Entrada da venda');
+    });
   });
 
   describe('Saldo Pendente Sheet', () => {
@@ -477,7 +612,7 @@ describe('exportExcel', () => {
   });
 
   describe('Empty Data Handling', () => {
-    it('should create all 4 sheets even with empty orders', () => {
+    it('should create all 5 sheets even with empty orders', () => {
       exportExcel({
         orders: [],
         people: [],
@@ -485,7 +620,7 @@ describe('exportExcel', () => {
       });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
-      expect(wb.SheetNames).toHaveLength(4);
+      expect(wb.SheetNames).toHaveLength(5);
     });
 
     it('should create Pedidos sheet with only headers when no orders', () => {
@@ -559,7 +694,7 @@ describe('exportExcel', () => {
       exportExcel({ orders: null, people: null, dashboard: null });
 
       const wb = XLSX.writeFile.mock.calls[0][0];
-      expect(wb.SheetNames).toHaveLength(4);
+      expect(wb.SheetNames).toHaveLength(5);
     });
   });
 
@@ -576,6 +711,21 @@ describe('exportExcel', () => {
 
       expect(ws['!cols']).toBeDefined();
       expect(ws['!cols'].length).toBe(4);
+    });
+
+    it('should set column widths on Vendas sheet', () => {
+      exportExcel({
+        orders: [],
+        sales: mockSales,
+        people: [],
+        dashboard: { personBalances: [] },
+      });
+
+      const wb = XLSX.writeFile.mock.calls[0][0];
+      const ws = wb.Sheets['Vendas'];
+
+      expect(ws['!cols']).toBeDefined();
+      expect(ws['!cols'].length).toBe(5);
     });
 
     it('should set column widths on Clientes sheet', () => {

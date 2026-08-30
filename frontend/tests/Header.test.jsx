@@ -40,8 +40,15 @@ describe('Header', () => {
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Clientes')).toBeInTheDocument();
     expect(screen.getByText('Pedidos')).toBeInTheDocument();
+    expect(screen.getByText('Vendas')).toBeInTheDocument();
     expect(screen.getByText('Produtos')).toBeInTheDocument();
     expect(screen.getByText('Estoque')).toBeInTheDocument();
+  });
+
+  it('should link Vendas to /sales', () => {
+    renderHeader();
+    const salesLink = screen.getByRole('link', { name: /Vendas/ });
+    expect(salesLink).toHaveAttribute('href', '/sales');
   });
 
   it('should render Sair button', () => {
