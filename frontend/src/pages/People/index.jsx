@@ -23,6 +23,7 @@ const PeoplePage = () => {
     toggleBirthdayOnly,
     loading,
     error,
+    hasSelfPerson,
     showCreateModal,
     showEditModal,
     createForm,
@@ -140,6 +141,7 @@ const PeoplePage = () => {
             onSubmit={handleCreatePerson}
             onClose={requestClose}
             error={error}
+            showSelfCheckbox={!hasSelfPerson}
           />
         )}
       </Modal>
@@ -159,6 +161,7 @@ const PeoplePage = () => {
             onSubmit={handleUpdatePerson}
             onClose={requestClose}
             error={error}
+            showSelfCheckbox={!hasSelfPerson || editForm.isSelf}
           />
         )}
       </Modal>

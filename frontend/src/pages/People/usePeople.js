@@ -44,6 +44,11 @@ export function usePeople() {
 
   const currentMonth = new Date().getMonth() + 1;
 
+  const hasSelfPerson = useMemo(
+    () => people.some((person) => person.isSelf),
+    [people],
+  );
+
   const visiblePeople = useMemo(
     () =>
       filterAndSortPeople(
@@ -229,6 +234,7 @@ export function usePeople() {
     toggleBirthdayOnly,
     loading,
     error,
+    hasSelfPerson,
     showCreateModal,
     showEditModal,
     createForm,

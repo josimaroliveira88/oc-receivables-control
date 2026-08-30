@@ -1,7 +1,14 @@
 import React from 'react';
 import PersonFormFields from './PersonFormFields';
 
-const PersonForm = ({ values, onChange, onSubmit, onClose, error }) => (
+const PersonForm = ({
+  values,
+  onChange,
+  onSubmit,
+  onClose,
+  error,
+  showSelfCheckbox = true,
+}) => (
   <form onSubmit={onSubmit} className="px-6 py-4">
     {error && (
       <div
@@ -11,7 +18,11 @@ const PersonForm = ({ values, onChange, onSubmit, onClose, error }) => (
         <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
       </div>
     )}
-    <PersonFormFields values={values} onChange={onChange} />
+    <PersonFormFields
+      values={values}
+      onChange={onChange}
+      showSelfCheckbox={showSelfCheckbox}
+    />
     <div className="flex items-center justify-end space-x-3">
       <button
         type="button"
