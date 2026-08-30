@@ -41,6 +41,32 @@ const buildPedidosSheet = (orders) => {
   return ws;
 };
 
+const buildVendasSheet = (sales) => {
+  const headers = ['Número', 'Data', 'Cliente', 'Valor Total (R$)', 'Status'];
+  const rows = (sales || []).map((sale) => ({
+    Número: sale.orderNumber,
+    Data: formatDate(sale.orderDate || sale.createdAt),
+    Cliente: sale.items?.[0]?.person?.name || '—',
+    'Valor Total (R$)': parseFloat(sale.totalValue) || 0,
+    Status: sale.status,
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(rows, { header: headers });
+  ws['!cols'] = [
+    { wch: 20 },
+    { wch: 12 },
+    { wch: 30 },
+    { wch: 18 },
+    { wch: 12 },
+  ];
+
+  for (let i = 1; i <= rows.length; i++) {
+    setMonetaryCell(ws, i, 3, rows[i - 1]['Valor Total (R$)']);
+  }
+
+  return ws;
+};
+
 const buildClientesSheet = (people) => {
   const headers = [
     'Nome',
@@ -80,11 +106,12 @@ const buildClientesSheet = (people) => {
   return ws;
 };
 
-const buildHistoricoSheet = (orders) => {
+const buildHistoricoSheet = (orders, sales) => {
   const headers = ['Pedido', 'Pessoa', 'Valor (R$)', 'Data', 'Notas'];
   const rows = [];
 
-  for (const order of orders) {
+  const sources = [...(orders || []), ...(sales || [])];
+  for (const order of sources) {
     if (!order.payments || order.payments.length === 0) continue;
     for (const payment of order.payments) {
       rows.push({
@@ -139,16 +166,19 @@ const buildSaldoPendenteSheet = (personBalances) => {
   return ws;
 };
 
-export const exportExcel = ({ orders, people, dashboard }) => {
+export const exportExcel = ({ orders, people, sales, dashboard }) => {
   const wb = XLSX.utils.book_new();
 
   const wsPedidos = buildPedidosSheet(orders || []);
   XLSX.utils.book_append_sheet(wb, wsPedidos, 'Pedidos');
 
+  const wsVendas = buildVendasSheet(sales || []);
+  XLSX.utils.book_append_sheet(wb, wsVendas, 'Vendas');
+
   const wsClientes = buildClientesSheet(people || []);
   XLSX.utils.book_append_sheet(wb, wsClientes, 'Clientes');
 
-  const wsHistorico = buildHistoricoSheet(orders || []);
+  const wsHistorico = buildHistoricoSheet(orders || [], sales || []);
   XLSX.utils.book_append_sheet(wb, wsHistorico, 'Histórico de Pagamentos');
 
   const wsSaldo = buildSaldoPendenteSheet(dashboard?.personBalances || []);

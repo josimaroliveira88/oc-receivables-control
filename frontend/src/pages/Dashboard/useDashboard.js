@@ -30,14 +30,16 @@ export function useDashboard() {
   const handleExport = async () => {
     try {
       setExporting(true);
-      const [ordersRes, peopleRes, dashboardRes] = await Promise.all([
+      const [ordersRes, peopleRes, salesRes, dashboardRes] = await Promise.all([
         api.get('/orders'),
         api.get('/people'),
+        api.get('/sales'),
         api.get('/dashboard'),
       ]);
       exportExcel({
         orders: ordersRes.data,
         people: peopleRes.data,
+        sales: salesRes.data,
         dashboard: dashboardRes.data,
       });
       addToast('Relatório exportado com sucesso!', 'success');
