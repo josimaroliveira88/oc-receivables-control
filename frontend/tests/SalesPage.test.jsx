@@ -801,6 +801,23 @@ describe('SalesPage', () => {
     });
   });
 
+  describe('Sale form product list', () => {
+    it('should request only products that exist in stock (available + inStock)', async () => {
+      mockGetImplementation([]);
+      renderPage();
+      await waitFor(() => {
+        const productCalls = mockGet.mock.calls.filter(([url]) =>
+          url.startsWith('/products'),
+        );
+        expect(productCalls.length).toBeGreaterThan(0);
+        productCalls.forEach(([url]) => {
+          expect(url).toContain('available=true');
+          expect(url).toContain('inStock=true');
+        });
+      });
+    });
+  });
+
   describe('Search, filters and sorting (server-side)', () => {
     it('should fetch sales with the committed search term on submit', async () => {
       mockGetImplementation(mockSales);

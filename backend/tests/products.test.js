@@ -397,6 +397,116 @@ describe('Products CRUD', () => {
     });
   });
 
+  describe('GET /api/products inStock filter', () => {
+    let otherUser;
+
+    const createInStockProduct = async (code, status = 'ATIVO') => {
+      return prisma.product.create({
+        data: {
+          code,
+          name: `Produto Estoque ${code}`,
+          size: '15 ml',
+          status,
+          prices: {
+            create: { regularPrice: 50, memberPrice: 37.5, pv: 5 },
+          },
+        },
+      });
+    };
+
+    const seedInventory = async (targetUserId, productId, quantity) => {
+      await prisma.inventory.upsert({
+        where: { userId_productId: { userId: targetUserId, productId } },
+        create: { userId: targetUserId, productId, quantity },
+        update: { quantity },
+      });
+    };
+
+    beforeAll(async () => {
+      const username = `products_stock_${Date.now()}`;
+      const regRes = await request(app)
+        .post('/api/auth/register')
+        .send({ username, password: 'testpass123' });
+      const loginRes = await request(app)
+        .post('/api/auth/login')
+        .send({ username, password: 'testpass123' });
+      otherUser = { id: regRes.body.id, token: loginRes.body.token };
+    });
+
+    afterAll(async () => {
+      if (otherUser) {
+        await prisma.inventory
+          .deleteMany({ where: { userId: otherUser.id } })
+          .catch(() => {});
+        await prisma.user
+          .delete({ where: { id: otherUser.id } })
+          .catch(() => {});
+      }
+    });
+
+    beforeEach(async () => {
+      const p1 = await createInStockProduct('TESTCRUD121');
+      const p2 = await createInStockProduct('TESTCRUD122');
+      const p3 = await createInStockProduct('TESTCRUD123');
+      const p4 = await createInStockProduct('TESTCRUD124', 'INATIVO');
+      await seedInventory(userId, p1.id, 5);
+      await seedInventory(userId, p2.id, 0);
+      await seedInventory(otherUser.id, p3.id, 3);
+      await seedInventory(userId, p4.id, 9);
+    });
+
+    afterEach(async () => {
+      await prisma.inventory.deleteMany({ where: { userId } }).catch(() => {});
+      await prisma.inventory
+        .deleteMany({ where: { userId: otherUser.id } })
+        .catch(() => {});
+    });
+
+    it('returns only products with an inventory row for the user, including zeroed ones', async () => {
+      const response = await request(app)
+        .get('/api/products?inStock=true&pageSize=all')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const testProducts = response.body.data.filter((p) =>
+        p.code.startsWith('TESTCRUD12'),
+      );
+      const codes = testProducts.map((p) => p.code).sort();
+      // TESTCRUD121 has stock (qty 5), TESTCRUD122 has stock but qty 0 (still
+      // listed), TESTCRUD124 has stock (qty 9) but is INATIVO (inStock only
+      // filters on inventory). TESTCRUD123 belongs to another user → excluded.
+      expect(codes).toEqual(['TESTCRUD121', 'TESTCRUD122', 'TESTCRUD124']);
+    });
+
+    it('is scoped per user and does not leak another user inventory', async () => {
+      const response = await request(app)
+        .get('/api/products?inStock=true&pageSize=all')
+        .set('Authorization', `Bearer ${otherUser.token}`);
+
+      expect(response.status).toBe(200);
+      const testProducts = response.body.data.filter((p) =>
+        p.code.startsWith('TESTCRUD12'),
+      );
+      const codes = testProducts.map((p) => p.code).sort();
+      // Only TESTCRUD123 is in the second user inventory.
+      expect(codes).toEqual(['TESTCRUD123']);
+    });
+
+    it('combines with available=true to exclude inactive products', async () => {
+      const response = await request(app)
+        .get('/api/products?available=true&inStock=true&pageSize=all')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const testProducts = response.body.data.filter((p) =>
+        p.code.startsWith('TESTCRUD12'),
+      );
+      const codes = testProducts.map((p) => p.code).sort();
+      // TESTCRUD124 is INATIVO → filtered out by available=true.
+      expect(codes).toEqual(['TESTCRUD121', 'TESTCRUD122']);
+    });
+  });
+
   describe('GET /api/products sorting & pagination', () => {
     beforeEach(async () => {
       const products = [
