@@ -15,6 +15,7 @@ model User {
   orders         Order[]
   inventory      Inventory[]
   stockMovements StockMovement[]
+  saleCounter    SaleCounter?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 }
@@ -44,9 +45,12 @@ model Order {
   orderNumber  String
   totalValue   Decimal      @db.Decimal(10, 2)
   shippingValue Decimal     @db.Decimal(10, 2) @default(0)
+  additionalValue Decimal   @db.Decimal(10, 2) @default(0)
   orderDate    DateTime     @default(now())
   status       OrderStatus  @default(PENDENTE)
+  orderType    OrderType    @default(COMPRA)
   isTeamOrder  Boolean      @default(false)
+  deliveredAt  DateTime?
   accountOwner String?      @db.VarChar(120)
   paymentType  PaymentType?
   orderNotes   String?      @db.VarChar(500)
@@ -62,6 +66,21 @@ model Order {
   updatedAt    DateTime     @updatedAt
 
   @@unique([orderNumber, userId])
+}
+
+enum OrderType {
+  COMPRA
+  VENDA
+}
+
+// Per-user sequence used to generate human-friendly sale order numbers (V-0001,
+// V-0002, ...). Incremented atomically inside the create-sale transaction.
+model SaleCounter {
+  userId     String @id
+  lastNumber Int    @default(0)
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 enum OrderStatus {
@@ -116,16 +135,17 @@ enum KitStockMode {
 }
 
 model Payment {
-  id        String   @id @default(uuid())
-  amount    Decimal  @db.Decimal(10, 2)
-  paidAt    DateTime @default(now())
-  notes     String?
-  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  orderId   String
-  person    Person?  @relation(fields: [personId], references: [id], onDelete: SetNull)
-  personId  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String      @id @default(uuid())
+  amount      Decimal     @db.Decimal(10, 2)
+  paidAt      DateTime    @default(now())
+  paymentType PaymentType?
+  notes       String?
+  order       Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId     String
+  person      Person?     @relation(fields: [personId], references: [id], onDelete: SetNull)
+  personId    String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 }
 
 model Product {
