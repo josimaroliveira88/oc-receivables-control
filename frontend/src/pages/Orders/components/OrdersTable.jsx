@@ -94,39 +94,30 @@ const OrdersTable = ({
                   onSort={onSort}
                   width="w-[9%]"
                 />
-                <SortableHeader
-                  label="Pagamento"
-                  field="paymentType"
-                  sortBy={sortBy}
-                  sortDir={sortDir}
-                  onSort={onSort}
-                  width="w-[8%]"
-                />
-                <SortableHeader
-                  label="PV doTERRA"
-                  field="doterraPv"
-                  sortBy={sortBy}
-                  sortDir={sortDir}
-                  onSort={onSort}
-                  width="w-[7%]"
-                />
-                <SortableHeader
-                  label="Valor doTERRA"
-                  field="doterraValue"
-                  sortBy={sortBy}
-                  sortDir={sortDir}
-                  onSort={onSort}
-                  width="w-[8%]"
-                />
-                <SortableHeader
-                  label="Valor (R$)"
-                  field="totalValue"
-                  sortBy={sortBy}
-                  sortDir={sortDir}
-                  onSort={onSort}
-                  width="w-[7%]"
-                  testIdPrefix="orders"
-                />
+                <th
+                  scope="col"
+                  className="w-[8%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Pagamento
+                </th>
+                <th
+                  scope="col"
+                  className="w-[7%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  PV doTERRA
+                </th>
+                <th
+                  scope="col"
+                  className="w-[8%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Valor doTERRA
+                </th>
+                <th
+                  scope="col"
+                  className="w-[7%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Valor (R$)
+                </th>
                 <SortableHeader
                   label="Valor Pendente"
                   field="pendingValue"
@@ -135,14 +126,12 @@ const OrdersTable = ({
                   onSort={onSort}
                   width="w-[8%]"
                 />
-                <SortableHeader
-                  label="Descrição"
-                  field="orderNotes"
-                  sortBy={sortBy}
-                  sortDir={sortDir}
-                  onSort={onSort}
-                  width="w-[18%]"
-                />
+                <th
+                  scope="col"
+                  className="w-[18%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Descrição
+                </th>
                 <SortableHeader
                   label="Status"
                   field="status"
@@ -239,7 +228,7 @@ const OrdersTable = ({
                       {order.orderNotes ? (
                         <span
                           title={order.orderNotes}
-                          className="block text-sm text-gray-900 dark:text-gray-100 line-clamp-2"
+                          className="block text-sm text-gray-900 dark:text-gray-100 truncate"
                         >
                           {order.orderNotes}
                         </span>

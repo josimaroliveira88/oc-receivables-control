@@ -2705,13 +2705,13 @@ describe('OrdersPage', () => {
         expect(calls.at(-1)[1].params.status).toBe('QUITADO');
       });
 
-      fireEvent.click(screen.getByTestId('orders-sort-totalValue'));
+      fireEvent.click(screen.getByTestId('orders-sort-orderNumber'));
 
       await waitFor(() => {
         const calls = mockGet.mock.calls.filter(([url]) => url === '/orders');
         const last = calls.at(-1);
         expect(last[1].params.status).toBe('QUITADO');
-        expect(last[1].params.sortBy).toBe('totalValue');
+        expect(last[1].params.sortBy).toBe('orderNumber');
         expect(last[1].params.sortDir).toBe('asc');
       });
     });
@@ -2724,21 +2724,21 @@ describe('OrdersPage', () => {
         expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByTestId('orders-sort-totalValue'));
+      fireEvent.click(screen.getByTestId('orders-sort-orderNumber'));
       await waitFor(() => {
         const last = mockGet.mock.calls
           .filter(([url]) => url === '/orders')
           .at(-1);
-        expect(last[1].params.sortBy).toBe('totalValue');
+        expect(last[1].params.sortBy).toBe('orderNumber');
         expect(last[1].params.sortDir).toBe('asc');
       });
 
-      fireEvent.click(screen.getByTestId('orders-sort-totalValue'));
+      fireEvent.click(screen.getByTestId('orders-sort-orderNumber'));
       await waitFor(() => {
         const last = mockGet.mock.calls
           .filter(([url]) => url === '/orders')
           .at(-1);
-        expect(last[1].params.sortBy).toBe('totalValue');
+        expect(last[1].params.sortBy).toBe('orderNumber');
         expect(last[1].params.sortDir).toBe('desc');
       });
     });
