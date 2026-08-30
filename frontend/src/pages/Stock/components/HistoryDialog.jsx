@@ -61,20 +61,30 @@ const HistoryDialog = ({
                   data-testid="history-order-locked-notice"
                   className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md"
                 >
-                  <p className="text-sm text-blue-700 dark:text-blue-300">
-                    A última movimentação está vinculada ao Pedido #
-                    {lastMovementOrder.orderNumber} e só pode ser desfeita
-                    editando ou removendo o item correspondente nesse pedido.
-                  </p>
+                  {lastMovementOrder.orderType === 'VENDA' ? (
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                      A última movimentação está vinculada à Venda #
+                      {lastMovementOrder.orderNumber} e só pode ser desfeita
+                      editando ou removendo o item correspondente nessa venda.
+                    </p>
+                  ) : (
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                      A última movimentação está vinculada ao Pedido #
+                      {lastMovementOrder.orderNumber} e só pode ser desfeita
+                      editando ou removendo o item correspondente nesse pedido.
+                    </p>
+                  )}
                   <button
                     type="button"
                     onClick={() =>
-                      onGoToOrder && onGoToOrder(lastMovementOrder.id)
+                      onGoToOrder && onGoToOrder(lastMovementOrder)
                     }
                     className="mt-2 px-3 py-1.5 text-sm font-medium text-white bg-primary-700 hover:bg-primary-800 rounded-md transition-colors"
                     data-testid="go-to-order-from-history"
                   >
-                    Ver pedido
+                    {lastMovementOrder.orderType === 'VENDA'
+                      ? 'Ver venda'
+                      : 'Ver pedido'}
                   </button>
                 </div>
               )}
@@ -181,7 +191,9 @@ const HistoryDialog = ({
                               data-testid={`movement-order-${m.type}`}
                               className="mr-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300"
                             >
-                              Pedido #{m.order.orderNumber}
+                              {m.order.orderType === 'VENDA'
+                                ? `Venda ${m.order.orderNumber}`
+                                : `Pedido #${m.order.orderNumber}`}
                             </span>
                           )}
                           {m.reason || '—'}

@@ -62,8 +62,13 @@ const StockPage = () => {
     setConfirmUndo(false);
   };
 
-  const handleGoToOrder = (orderId) => {
-    navigate(`/orders?editOrder=${orderId}`);
+  const handleGoToOrder = (order) => {
+    if (!order) return;
+    if (order.orderType === 'VENDA') {
+      navigate(`/sales?editSale=${order.id}`);
+    } else {
+      navigate(`/orders?editOrder=${order.id}`);
+    }
   };
 
   return (
