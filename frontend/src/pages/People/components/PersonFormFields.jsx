@@ -1,7 +1,11 @@
 import React from 'react';
 import WhatsappField from './WhatsappField';
 import SimNaoSelect from './SimNaoSelect';
-import { fieldClass, inputLabelClass } from '../utils/peopleHelpers';
+import {
+  fieldClass,
+  inputLabelClass,
+  maskBirthday,
+} from '../utils/peopleHelpers';
 
 const PersonFormFields = ({ values, onChange }) => {
   return (
@@ -45,6 +49,29 @@ const PersonFormFields = ({ values, onChange }) => {
           className={fieldClass}
           placeholder="https://instagram.com/usuario"
         />
+      </div>
+
+      <div className="mb-4">
+        <label className={inputLabelClass} htmlFor="person-birthday">
+          Aniversário
+        </label>
+        <input
+          id="person-birthday"
+          type="text"
+          value={values.birthday ?? ''}
+          onChange={(e) => onChange('birthday', maskBirthday(e.target.value))}
+          maxLength={5}
+          inputMode="numeric"
+          className={fieldClass}
+          placeholder="DD/MM"
+          aria-describedby="person-birthday-hint"
+        />
+        <p
+          id="person-birthday-hint"
+          className="mt-1 text-xs text-gray-500 dark:text-gray-400"
+        >
+          Dia e mês do aniversário (ex.: 15/08)
+        </p>
       </div>
 
       <div className="mb-4">

@@ -9,6 +9,37 @@ export const instagramHref = (value) =>
     ? value
     : `https://${value}`;
 
+const MAX_DAYS_BY_MONTH = {
+  1: 31,
+  2: 29,
+  3: 31,
+  4: 30,
+  5: 31,
+  6: 30,
+  7: 31,
+  8: 31,
+  9: 30,
+  10: 31,
+  11: 30,
+  12: 31,
+};
+
+export const isValidBirthday = (value) => {
+  if (!value || !value.trim()) return true;
+  if (!/^\d{2}\/\d{2}$/.test(value)) return false;
+  const [day, month] = value.split('/').map(Number);
+  if (!Number.isInteger(day) || !Number.isInteger(month)) return false;
+  return (
+    month >= 1 && month <= 12 && day >= 1 && day <= MAX_DAYS_BY_MONTH[month]
+  );
+};
+
+export const maskBirthday = (value) => {
+  const digits = (value || '').replace(/\D/g, '').slice(0, 4);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+};
+
 export const emptyForm = () => ({
   name: '',
   commonGroups: '',
@@ -16,6 +47,7 @@ export const emptyForm = () => ({
   instagram: '',
   address: '',
   observacao: '',
+  birthday: '',
   isVip: false,
   isDoterraMember: false,
   isSelf: false,
@@ -28,6 +60,7 @@ export const buildPayload = (form) => ({
   instagram: form.instagram.trim() || null,
   address: form.address.trim() || null,
   observacao: form.observacao.trim() || null,
+  birthday: form.birthday.trim() || null,
   isVip: form.isVip,
   isDoterraMember: form.isDoterraMember,
   isSelf: form.isSelf,

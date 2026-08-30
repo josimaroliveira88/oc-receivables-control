@@ -6,6 +6,7 @@ import {
   emptyForm,
   buildPayload,
   filterAndSortPeople,
+  isValidBirthday,
 } from './utils/peopleHelpers';
 
 export function usePeople() {
@@ -21,6 +22,7 @@ export function usePeople() {
   const [editPersonId, setEditPersonId] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [detailsPerson, setDetailsPerson] = useState(null);
   const [createForm, setCreateForm] = useState(emptyForm());
   const [editForm, setEditForm] = useState(emptyForm());
   const [createFormInitial, setCreateFormInitial] = useState(null);
@@ -85,6 +87,10 @@ export function usePeople() {
       setError('Nome é obrigatório');
       return;
     }
+    if (!isValidBirthday(createForm.birthday)) {
+      setError('Aniversário deve estar no formato DD/MM com data válida');
+      return;
+    }
     try {
       await api.post('/people', buildPayload(createForm));
       setCreateForm(emptyForm());
@@ -103,6 +109,10 @@ export function usePeople() {
     e.preventDefault();
     if (!editForm.name.trim()) {
       setError('Nome é obrigatório');
+      return;
+    }
+    if (!isValidBirthday(editForm.birthday)) {
+      setError('Aniversário deve estar no formato DD/MM com data válida');
       return;
     }
     try {
@@ -129,6 +139,7 @@ export function usePeople() {
       instagram: person.instagram || '',
       address: person.address || '',
       observacao: person.observacao || '',
+      birthday: person.birthday || '',
       isVip: person.isVip || false,
       isDoterraMember: person.isDoterraMember || false,
       isSelf: person.isSelf || false,
@@ -142,6 +153,14 @@ export function usePeople() {
 
   const handleDeletePerson = (id) => {
     setConfirmDeleteId(id);
+  };
+
+  const openDetails = (person) => {
+    setDetailsPerson(person);
+  };
+
+  const closeDetails = () => {
+    setDetailsPerson(null);
   };
 
   const cancelDeletePerson = () => {
@@ -190,8 +209,11 @@ export function usePeople() {
     editDirty,
     confirmDeleteId,
     deleting,
+    detailsPerson,
     setShowCreateModal,
     openCreateModal,
+    openDetails,
+    closeDetails,
     setCreateField,
     setEditField,
     handleCreatePerson,
