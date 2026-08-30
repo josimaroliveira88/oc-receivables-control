@@ -10,6 +10,25 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 71 — Aniversário do cliente, colunas da lista e detalhamento (2026-08-30)
+
+### Added
+- **Aniversário (dia/mês) do cliente**: novo campo opcional `Person.birthday` (string `"DD/MM"`, sem ano, `VARCHAR(5)`, migração `20260830110000_add_person_birthday`) validado no Zod de `backend/src/controllers/peopleController.js` (dia/mês real; `31/02` rejeitado, `29/02` aceito pois o ano é desconhecido). No formulário da página Clientes, input com máscara automática `DD/MM` (`maskBirthday` em `frontend/src/pages/People/utils/peopleHelpers.js`) e validação no submit (`usePeople.js`); pré-preenchido na edição.
+- **Coluna "Aniversário" na listagem**: exibe o `DD/MM`; quando o mês atual é o do aniversário, a **linha inteira** ganha destaque âmbar (`bg-amber-50 dark:bg-amber-900/20`) e a data fica destacada em âmbar.
+- **Detalhamento do cliente**: nova ação "Detalhes" (primeira) no menu de ações da linha, abrindo `ClientDetailsModal.jsx` com todos os dados cadastrados (nome, grupos em comum, aniversário, endereço, WhatsApp/Instagram clicáveis, observação, VIP, membro doTERRA) e o **resumo financeiro** do cliente: nº de pedidos, total dos itens, total pago e total em aberto.
+- **Resumo financeiro por cliente**: novo endpoint `GET /api/people/:id/summary` (com checagem de ownership) retornando `ordersCount`, `totalItemsCents`, `totalPaidCents` e `totalOpenCents` em centavos inteiros (`lineValueCents`/`toCents`). Exclui pedidos de equipe; `totalOpenCents` é 0 para pessoas "self" e é limitado a 0 quando o pago supera o valor dos itens.
+- **Ícones de marca (react-icons)**: nova dependência `react-icons` (v5.7.0) para os ícones de WhatsApp (`SiWhatsapp`) e Instagram (`SiInstagram`) na listagem e no detalhamento.
+
+### Changed
+- **Colunas da lista de clientes**: agora `Nome | Grupos em Comum | WhatsApp | Instagram | Aniversário | Observação | VIP | Membro doTERRA | Ações`. A coluna **Endereço foi removida** da tabela (mantida no formulário e no detalhamento); WhatsApp e Instagram passam a exibir apenas o ícone (link mantido, número/URL preservados em `title`/`aria-label`); "Grupos em Comum" ganhou mais largura e "Ações" foi reduzida.
+- **Modal de detalhamento ampliado**: largura aumentada de `max-w-lg` para `max-w-3xl` para exibir textos longos (ex.: observação) por completo, com `break-words` e rolagem interna.
+
+### Tests
+- Backend: `tests/people.test.js` (+17: criação/atualização com `birthday`, inválidos `31/02`, `01/13`, `00/05` e formato errado, `29/02` aceito, default `null`; resumo com zeros, totais em centavos, qty e modo `TOTAL`, exclusão de pedidos de equipe, overpayment, pessoa "self", 404 por ownership/inexistente). **436 backend passing** (was 419).
+- Frontend: `PeoplePage.test.jsx` (+9: campo aniversário e máscara, validação de data inválida, colunas com ícones de marca, ausência da coluna Endereço, destaque da linha no mês, modal de detalhes com resumo financeiro e links WhatsApp/Instagram). **550 frontend passing** (was 541).
+- Verified: `npm run format:check` clean, `cd frontend && npm run build` clean.
+
+
 ## Phase 70 — Expansão da visualização do anexo (2026-08-30)
 
 ### Added
