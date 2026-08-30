@@ -77,6 +77,7 @@ const buildClientesSheet = (people) => {
     'Observação',
     'VIP',
     'Membro doTERRA',
+    'Equipe',
   ];
   const rows = people.map((person) => ({
     Nome: person.name,
@@ -89,6 +90,7 @@ const buildClientesSheet = (people) => {
     Observação: person.observacao || '',
     VIP: person.isVip ? 'Sim' : 'Não',
     'Membro doTERRA': person.isDoterraMember ? 'Sim' : 'Não',
+    Equipe: person.isTeamMember ? 'Sim' : 'Não',
   }));
 
   const ws = XLSX.utils.json_to_sheet(rows, { header: headers });
@@ -101,6 +103,7 @@ const buildClientesSheet = (people) => {
     { wch: 40 },
     { wch: 6 },
     { wch: 12 },
+    { wch: 8 },
   ];
 
   return ws;

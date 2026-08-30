@@ -166,6 +166,7 @@ export function usePeople() {
       birthday: person.birthday || '',
       isVip: person.isVip || false,
       isDoterraMember: person.isDoterraMember || false,
+      isTeamMember: person.isTeamMember || false,
       isSelf: person.isSelf || false,
     };
     setEditPersonId(person.id);

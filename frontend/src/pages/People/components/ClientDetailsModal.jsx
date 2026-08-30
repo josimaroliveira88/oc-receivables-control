@@ -107,6 +107,9 @@ const ClientDetailsModal = ({ person, onClose }) => {
               <DetailItem label="Membro doTERRA">
                 <BoolBadge value={person.isDoterraMember} />
               </DetailItem>
+              <DetailItem label="Equipe">
+                <BoolBadge value={person.isTeamMember} />
+              </DetailItem>
               <div className="sm:col-span-2">
                 <DetailItem label="Observação">
                   {person.observacao || '—'}

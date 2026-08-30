@@ -50,6 +50,7 @@ export const emptyForm = () => ({
   birthday: '',
   isVip: false,
   isDoterraMember: false,
+  isTeamMember: false,
   isSelf: false,
 });
 
@@ -63,6 +64,7 @@ export const buildPayload = (form) => ({
   birthday: form.birthday.trim() || null,
   isVip: form.isVip,
   isDoterraMember: form.isDoterraMember,
+  isTeamMember: form.isTeamMember,
   isSelf: form.isSelf,
 });
 
@@ -71,6 +73,7 @@ export const CLASSIFICATION_OPTIONS = [
   { value: 'vip', label: 'Somente VIP' },
   { value: 'member', label: 'Somente Membro doTERRA' },
   { value: 'vip_member', label: 'VIP + Membro doTERRA' },
+  { value: 'team', label: 'Somente Equipe' },
   { value: 'none', label: 'Sem classificação' },
 ];
 
@@ -80,6 +83,7 @@ const SORTABLE_FIELDS = [
   'address',
   'isVip',
   'isDoterraMember',
+  'isTeamMember',
 ];
 
 export const birthMonthOf = (birthday) => {
@@ -96,6 +100,8 @@ const classificationMatch = (person, classification) => {
       return !person.isVip && person.isDoterraMember;
     case 'vip_member':
       return person.isVip && person.isDoterraMember;
+    case 'team':
+      return Boolean(person.isTeamMember);
     case 'none':
       return !person.isVip && !person.isDoterraMember;
     default:
@@ -137,7 +143,11 @@ export const filterAndSortPeople = (
   });
 
   return [...result].sort((a, b) => {
-    if (field === 'isVip' || field === 'isDoterraMember') {
+    if (
+      field === 'isVip' ||
+      field === 'isDoterraMember' ||
+      field === 'isTeamMember'
+    ) {
       return (Number(a[field]) - Number(b[field])) * direction;
     }
     return (

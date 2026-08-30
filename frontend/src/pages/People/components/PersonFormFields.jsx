@@ -138,6 +138,17 @@ const PersonFormFields = ({ values, onChange }) => {
           onChange={(v) => onChange('isDoterraMember', v)}
         />
       </div>
+
+      <div className="mb-4">
+        <label className={inputLabelClass} htmlFor="person-team">
+          Equipe
+        </label>
+        <SimNaoSelect
+          id="person-team"
+          value={values.isTeamMember}
+          onChange={(v) => onChange('isTeamMember', v)}
+        />
+      </div>
     </>
   );
 };

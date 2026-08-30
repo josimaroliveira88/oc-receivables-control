@@ -88,7 +88,7 @@ const PeopleTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[17%]"
+                  width="w-[15%]"
                 />
                 <th
                   scope="col"
@@ -110,7 +110,7 @@ const PeopleTable = ({
                 </th>
                 <th
                   scope="col"
-                  className="w-[22%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
+                  className="w-[17%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
                 >
                   Observação
                 </th>
@@ -129,6 +129,15 @@ const PeopleTable = ({
                   sortDir={sortDir}
                   onSort={onSort}
                   width="w-[9%]"
+                />
+                <SortableHeader
+                  label="Equipe"
+                  field="isTeamMember"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                  width="w-[7%]"
+                  testIdPrefix="people"
                 />
                 <th
                   scope="col"
@@ -255,6 +264,12 @@ const PeopleTable = ({
                       className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
                     >
                       <BoolBadge value={person.isDoterraMember} />
+                    </td>
+                    <td
+                      data-label="Equipe"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                    >
+                      <BoolBadge value={person.isTeamMember} />
                     </td>
                     <td
                       data-label="Ações"
