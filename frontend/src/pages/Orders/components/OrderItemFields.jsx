@@ -130,26 +130,6 @@ const OrderItemFields = ({
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-            PV
-          </label>
-          <input
-            type="text"
-            value={
-              item.pv !== ''
-                ? lineValueCents(item) === 0
-                  ? 0
-                  : parseFloat(item.pv)
-                : ''
-            }
-            readOnly
-            tabIndex={-1}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md shadow-sm cursor-not-allowed text-sm"
-            placeholder="—"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
             Quantidade
           </label>
           <input

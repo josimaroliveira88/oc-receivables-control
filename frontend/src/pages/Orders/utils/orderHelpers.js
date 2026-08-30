@@ -9,7 +9,6 @@ export const emptyItem = () => ({
   productName: '',
   productCode: '',
   memberPrice: '',
-  pv: '',
   details: '',
   quantity: 1,
   forStock: false,
@@ -45,6 +44,7 @@ export const paymentTypeLabel = (type) => {
     PIX: 'PIX',
     BOLETO: 'Boleto',
     CARTAO_CREDITO: 'Cartão de Crédito',
+    INFINITE_PAY: 'InfinitePay',
   };
   return map[type] || type;
 };
@@ -53,7 +53,7 @@ export const paymentTypeLabel = (type) => {
 export const SEARCH_FIELD_OPTIONS = [
   { value: 'all', label: 'Todas as colunas' },
   { value: 'orderNumber', label: 'Número do pedido' },
-  { value: 'accountOwner', label: 'Responsável' },
+  { value: 'accountOwner', label: 'Conta ID' },
   { value: 'orderNotes', label: 'Descrição' },
 ];
 
@@ -72,6 +72,7 @@ export const PAYMENT_TYPE_FILTER_OPTIONS = [
   { value: 'PIX', label: 'Somente PIX' },
   { value: 'BOLETO', label: 'Somente Boleto' },
   { value: 'CARTAO_CREDITO', label: 'Somente Cartão de Crédito' },
+  { value: 'INFINITE_PAY', label: 'Somente InfinitePay' },
 ];
 
 export const itemPayload = (item) => ({
@@ -87,7 +88,6 @@ export const itemPayload = (item) => ({
     item.memberPrice !== '' && item.memberPrice != null
       ? parseFloat(item.memberPrice)
       : null,
-  pv: item.pv !== '' && item.pv != null ? parseFloat(item.pv) : null,
   details: item.details.trim() || null,
   quantity: Number(item.quantity) || 1,
   forStock: !!item.forStock,
@@ -106,7 +106,6 @@ export const editItemFromApi = (item) => ({
   productCode: item.product ? item.product.code : '',
   memberPrice:
     item.memberPrice != null ? parseFloat(item.memberPrice).toString() : '',
-  pv: item.pv != null ? parseFloat(item.pv).toString() : '',
   details: item.details || '',
   quantity: item.quantity != null ? Number(item.quantity) : 1,
   forStock: !!item.forStock,
@@ -135,14 +134,6 @@ export const lineValueCents = (item) => {
   if (item.chargedValueMode === 'TOTAL') return base;
   const qty = Math.max(1, Number(item.quantity) || 1);
   return base * qty;
-};
-
-// Effective PV in cents for an order item. When the charged line value is
-// zero (free item), the item does not accumulate PV.
-export const effectivePvCents = (item) => {
-  if (lineValueCents(item) === 0) return 0;
-  const qty = Math.max(1, Number(item.quantity) || 1);
-  return Math.round((parseFloat(item.pv) || 0) * 100) * qty;
 };
 
 // Member price total for display: unit member price * quantity.

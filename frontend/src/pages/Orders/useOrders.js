@@ -46,8 +46,14 @@ export function useOrders() {
   const [accountOwner, setAccountOwner] = useState('');
   const [paymentType, setPaymentType] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
+  const [doterraPv, setDoterraPv] = useState('');
+  const [doterraValue, setDoterraValue] = useState('');
+  const [attachmentFile, setAttachmentFile] = useState(null);
+  const [attachmentRemoved, setAttachmentRemoved] = useState(false);
   const [shippingValue, setShippingValue] = useState('');
   const [shippingValueError, setShippingValueError] = useState('');
+  const [doterraPvError, setDoterraPvError] = useState('');
+  const [doterraValueError, setDoterraValueError] = useState('');
   const [items, setItems] = useState([emptyItem()]);
   const [orderNumberError, setOrderNumberError] = useState('');
   const [itemErrors, setItemErrors] = useState({});
@@ -178,10 +184,6 @@ export function useOrders() {
                 product && product.memberPrice != null
                   ? parseFloat(product.memberPrice).toString()
                   : '',
-              pv:
-                product && product.pv != null
-                  ? parseFloat(product.pv).toString()
-                  : '',
               kitStockMode: '',
             }
           : item,
@@ -254,8 +256,14 @@ export function useOrders() {
     setAccountOwner('');
     setPaymentType('');
     setOrderNotes('');
+    setDoterraPv('');
+    setDoterraValue('');
+    setAttachmentFile(null);
+    setAttachmentRemoved(false);
     setShippingValue('');
     setShippingValueError('');
+    setDoterraPvError('');
+    setDoterraValueError('');
     setItems([emptyItem()]);
     setOrderNumberError('');
     setItemErrors({});
@@ -290,6 +298,20 @@ export function useOrders() {
       case 'orderNotes':
         setOrderNotes(value);
         break;
+      case 'doterraPv':
+        setDoterraPv(value);
+        break;
+      case 'doterraValue':
+        setDoterraValue(value);
+        break;
+      case 'attachmentFile':
+        setAttachmentFile(value);
+        setAttachmentRemoved(false);
+        break;
+      case 'attachmentRemoved':
+        setAttachmentRemoved(value);
+        if (value) setAttachmentFile(null);
+        break;
       case 'shippingValue':
         setShippingValue(value);
         setShippingValueError('');
@@ -312,6 +334,20 @@ export function useOrders() {
         ? 'Frete não pode ser negativo'
         : '';
     setShippingValueError(newShippingValueError);
+
+    const newDoterraPvError =
+      doterraPv !== '' && doterraPv != null && parseFloat(doterraPv) < 0
+        ? 'PV doTERRA não pode ser negativo'
+        : '';
+    setDoterraPvError(newDoterraPvError);
+
+    const newDoterraValueError =
+      doterraValue !== '' &&
+      doterraValue != null &&
+      parseFloat(doterraValue) < 0
+        ? 'Valor doTERRA não pode ser negativo'
+        : '';
+    setDoterraValueError(newDoterraValueError);
 
     const newItemErrors = {};
     items.forEach((item) => {
@@ -341,6 +377,8 @@ export function useOrders() {
 
     if (newOrderNumberError) return false;
     if (newShippingValueError) return false;
+    if (newDoterraPvError) return false;
+    if (newDoterraValueError) return false;
     return Object.keys(newItemErrors).length === 0;
   };
 
@@ -351,6 +389,12 @@ export function useOrders() {
     accountOwner: accountOwner.trim() || null,
     paymentType: paymentType || null,
     orderNotes: orderNotes.trim() || null,
+    doterraPv:
+      doterraPv === '' || doterraPv == null ? null : parseFloat(doterraPv),
+    doterraValue:
+      doterraValue === '' || doterraValue == null
+        ? null
+        : parseFloat(doterraValue),
     shippingValue:
       shippingValue === '' || shippingValue == null
         ? 0
@@ -362,7 +406,12 @@ export function useOrders() {
     e.preventDefault();
     if (!validateForm()) return;
     try {
-      await api.post('/orders', buildPayload());
+      const created = await api.post('/orders', buildPayload());
+      if (attachmentFile) {
+        const formData = new FormData();
+        formData.append('file', attachmentFile);
+        await api.post(`/orders/${created.data.id}/attachment`, formData);
+      }
       addToast('Pedido criado com sucesso!', 'success');
       resetForm();
       fetchData();
@@ -389,6 +438,14 @@ export function useOrders() {
     setAccountOwner(order.accountOwner || '');
     setPaymentType(order.paymentType || '');
     setOrderNotes(order.orderNotes || '');
+    setDoterraPv(
+      order.doterraPv != null ? String(parseFloat(order.doterraPv)) : '',
+    );
+    setDoterraValue(
+      order.doterraValue != null ? String(parseFloat(order.doterraValue)) : '',
+    );
+    setAttachmentFile(null);
+    setAttachmentRemoved(false);
     const shippingValue =
       order.shippingValue != null
         ? String(parseFloat(order.shippingValue))
@@ -404,6 +461,12 @@ export function useOrders() {
       accountOwner: order.accountOwner || '',
       paymentType: order.paymentType || '',
       orderNotes: order.orderNotes || '',
+      doterraPv:
+        order.doterraPv != null ? String(parseFloat(order.doterraPv)) : '',
+      doterraValue:
+        order.doterraValue != null
+          ? String(parseFloat(order.doterraValue))
+          : '',
       shippingValue,
       items,
     });
@@ -415,6 +478,13 @@ export function useOrders() {
     if (!validateForm()) return;
     try {
       await api.put(`/orders/${editOrderId}`, buildPayload());
+      if (attachmentFile) {
+        const formData = new FormData();
+        formData.append('file', attachmentFile);
+        await api.post(`/orders/${editOrderId}/attachment`, formData);
+      } else if (attachmentRemoved) {
+        await api.delete(`/orders/${editOrderId}/attachment`);
+      }
       addToast('Pedido atualizado com sucesso!', 'success');
       resetForm();
       fetchData();
@@ -476,6 +546,8 @@ export function useOrders() {
     accountOwner,
     paymentType,
     orderNotes,
+    doterraPv,
+    doterraValue,
     shippingValue,
     items,
   };
@@ -533,6 +605,12 @@ export function useOrders() {
     accountOwner,
     paymentType,
     orderNotes,
+    doterraPv,
+    doterraValue,
+    doterraPvError,
+    doterraValueError,
+    attachmentFile,
+    attachmentRemoved,
     shippingValue,
     shippingValueError,
     items,

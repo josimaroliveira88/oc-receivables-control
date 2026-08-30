@@ -57,7 +57,7 @@ const PaymentModal = ({
               </div>
               <div>
                 <dt className="text-xs text-gray-500 dark:text-gray-400">
-                  Responsável
+                  Conta ID
                 </dt>
                 <dd className="text-sm font-medium text-gray-900 dark:text-gray-100">
                   {order.accountOwner || '—'}

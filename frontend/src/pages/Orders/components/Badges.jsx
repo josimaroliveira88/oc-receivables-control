@@ -58,6 +58,10 @@ export const PaymentTypeBadge = ({ type }) => {
       className:
         'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
     },
+    INFINITE_PAY: {
+      className:
+        'bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400',
+    },
   };
   const cfg = config[type] || {
     className: 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300',

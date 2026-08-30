@@ -1,11 +1,17 @@
 import React from 'react';
-import { DollarSign, ExternalLink, Eye, Pencil, Trash } from 'lucide-react';
-import { formatBRL, fromCents } from '../../../utils/money';
+import {
+  DollarSign,
+  ExternalLink,
+  Eye,
+  Paperclip,
+  Pencil,
+  Trash,
+} from 'lucide-react';
+import { formatBRL } from '../../../utils/money';
 import { formatDateBR } from '../../../utils/dates';
 import { trackingUrl } from '../utils/orderHelpers';
 import {
   getOrderFinancials,
-  getOrderTotalPV,
   getPaymentActionLabel,
   shouldShowPaymentAction,
 } from '../utils/receivablesHelpers';
@@ -33,6 +39,7 @@ const OrdersTable = ({
   onDelete,
   onPayment,
   onDetails,
+  onViewAttachment,
 }) => {
   return (
     <div>
@@ -67,7 +74,7 @@ const OrdersTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[11%]"
+                  width="w-[9%]"
                   align="right"
                   testIdPrefix="orders"
                 />
@@ -77,23 +84,39 @@ const OrdersTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[8%]"
+                  width="w-[7%]"
                 />
                 <SortableHeader
-                  label="Responsável"
+                  label="Conta ID"
                   field="accountOwner"
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[10%]"
+                  width="w-[9%]"
                 />
                 <SortableHeader
-                  label="Tipo Pgto"
+                  label="Pagamento"
                   field="paymentType"
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[9%]"
+                  width="w-[8%]"
+                />
+                <SortableHeader
+                  label="PV doTERRA"
+                  field="doterraPv"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                  width="w-[7%]"
+                />
+                <SortableHeader
+                  label="Valor doTERRA"
+                  field="doterraValue"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                  width="w-[8%]"
                 />
                 <SortableHeader
                   label="Valor (R$)"
@@ -101,7 +124,7 @@ const OrdersTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[8%]"
+                  width="w-[7%]"
                   testIdPrefix="orders"
                 />
                 <SortableHeader
@@ -110,15 +133,7 @@ const OrdersTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[9%]"
-                />
-                <SortableHeader
-                  label="PV Total"
-                  field="totalPv"
-                  sortBy={sortBy}
-                  sortDir={sortDir}
-                  onSort={onSort}
-                  width="w-[7%]"
+                  width="w-[8%]"
                 />
                 <SortableHeader
                   label="Descrição"
@@ -126,7 +141,7 @@ const OrdersTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[10%]"
+                  width="w-[16%]"
                 />
                 <SortableHeader
                   label="Status"
@@ -134,11 +149,11 @@ const OrdersTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[8%]"
+                  width="w-[7%]"
                 />
                 <th
                   scope="col"
-                  className="w-[16%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                  className="w-[14%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
                 >
                   Ações
                 </th>
@@ -146,7 +161,6 @@ const OrdersTable = ({
             </thead>
             <tbody className="block lg:table-row-group bg-white dark:bg-gray-800 lg:divide-y divide-gray-200 dark:divide-gray-700">
               {orders.map((order) => {
-                const totalPV = getOrderTotalPV(order);
                 const { pendingCents } = getOrderFinancials(order);
                 const showPaymentAction = shouldShowPaymentAction(order);
                 const paymentActionLabel = getPaymentActionLabel(order);
@@ -179,16 +193,32 @@ const OrdersTable = ({
                       {formatDateBR(order.orderDate)}
                     </td>
                     <td
-                      data-label="Responsável"
+                      data-label="Conta ID"
                       className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 break-words text-sm text-gray-900 dark:text-gray-100 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
                     >
                       {order.accountOwner || '—'}
                     </td>
                     <td
-                      data-label="Tipo Pgto"
+                      data-label="Pagamento"
                       className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
                     >
                       <PaymentTypeBadge type={order.paymentType} />
+                    </td>
+                    <td
+                      data-label="PV doTERRA"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                    >
+                      {order.doterraPv != null
+                        ? parseFloat(order.doterraPv).toFixed(2)
+                        : '—'}
+                    </td>
+                    <td
+                      data-label="Valor doTERRA"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                    >
+                      {order.doterraValue != null
+                        ? formatBRL(parseFloat(order.doterraValue))
+                        : '—'}
                     </td>
                     <td
                       data-label="Valor (R$)"
@@ -203,19 +233,13 @@ const OrdersTable = ({
                       {order.isTeamOrder ? '—' : formatBRL(pendingCents / 100)}
                     </td>
                     <td
-                      data-label="PV Total"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
-                    >
-                      {fromCents(totalPV).toFixed(2)}
-                    </td>
-                    <td
                       data-label="Descrição"
                       className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
                     >
                       {order.orderNotes ? (
                         <span
                           title={order.orderNotes}
-                          className="block truncate text-sm text-gray-900 dark:text-gray-100"
+                          className="block text-sm text-gray-900 dark:text-gray-100 line-clamp-2"
                         >
                           {order.orderNotes}
                         </span>
@@ -253,6 +277,15 @@ const OrdersTable = ({
                               icon: Eye,
                               onClick: () => onDetails(order),
                             },
+                            ...(order.attachmentFilename
+                              ? [
+                                  {
+                                    label: 'Visualizar Anexo',
+                                    icon: Paperclip,
+                                    onClick: () => onViewAttachment(order),
+                                  },
+                                ]
+                              : []),
                             {
                               label: 'Editar',
                               icon: Pencil,

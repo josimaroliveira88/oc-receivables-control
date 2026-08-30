@@ -1,12 +1,8 @@
-import React, { useEffect } from 'react';
-import { ExternalLink, Plus } from 'lucide-react';
+import React, { useEffect, useMemo } from 'react';
+import { ExternalLink, Image as ImageIcon, Plus, X } from 'lucide-react';
 import { formatBRL } from '../../../utils/money';
 import { fromCents } from '../../../utils/money';
-import {
-  trackingUrl,
-  lineValueCents,
-  effectivePvCents,
-} from '../utils/orderHelpers';
+import { trackingUrl, lineValueCents } from '../utils/orderHelpers';
 import OrderItemFields from './OrderItemFields';
 import OrderTotals from './OrderTotals';
 
@@ -18,6 +14,13 @@ const OrderForm = ({
   accountOwner,
   paymentType,
   orderNotes,
+  doterraPv,
+  doterraValue,
+  doterraPvError,
+  doterraValueError,
+  attachmentFile,
+  attachmentRemoved,
+  hasExistingAttachment,
   shippingValue,
   shippingValueError,
   items,
@@ -50,9 +53,9 @@ const OrderForm = ({
     0,
   );
 
-  const totalPvCents = items.reduce(
-    (total, item) => total + effectivePvCents(item),
-    0,
+  const previewUrl = useMemo(
+    () => (attachmentFile ? URL.createObjectURL(attachmentFile) : null),
+    [attachmentFile],
   );
 
   return (
@@ -104,7 +107,7 @@ const OrderForm = ({
           htmlFor="accountOwner"
           className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
         >
-          Responsável pela conta (ID dōTERRA ou nome)
+          Conta ID (ID dōTERRA ou nome)
         </label>
         <input
           id="accountOwner"
@@ -175,7 +178,124 @@ const OrderForm = ({
           <option value="PIX">PIX</option>
           <option value="BOLETO">Boleto</option>
           <option value="CARTAO_CREDITO">Cartão de Crédito</option>
+          <option value="INFINITE_PAY">InfinitePay</option>
         </select>
+      </div>
+
+      <div className="mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label
+              htmlFor="doterraPv"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
+              PV doTERRA
+            </label>
+            <input
+              id="doterraPv"
+              type="number"
+              step="0.01"
+              min="0"
+              value={doterraPv}
+              onChange={(e) => onChangeField('doterraPv', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+              placeholder="Ex.: 46.5"
+            />
+            {doterraPvError && (
+              <div
+                data-testid="order-doterra-pv-error"
+                className="mt-1 p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md"
+              >
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  {doterraPvError}
+                </p>
+              </div>
+            )}
+          </div>
+          <div>
+            <label
+              htmlFor="doterraValue"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
+              Valor doTERRA (R$)
+            </label>
+            <input
+              id="doterraValue"
+              type="number"
+              step="0.01"
+              min="0"
+              value={doterraValue}
+              onChange={(e) => onChangeField('doterraValue', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+              placeholder="Ex.: 250.00"
+            />
+            {doterraValueError && (
+              <div
+                data-testid="order-doterra-value-error"
+                className="mt-1 p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md"
+              >
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  {doterraValueError}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <label
+          htmlFor="orderAttachment"
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+        >
+          Anexo (print do pedido doTERRA)
+        </label>
+        {isEdit &&
+        hasExistingAttachment &&
+        !attachmentFile &&
+        !attachmentRemoved ? (
+          <div
+            data-testid="order-attachment-existing"
+            className="flex flex-wrap items-center gap-2"
+          >
+            <span className="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+              <ImageIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+              Anexo existente
+            </span>
+            <button
+              type="button"
+              data-testid="order-attachment-remove"
+              onClick={() => onChangeField('attachmentRemoved', true)}
+              className="inline-flex items-center gap-1 text-sm text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+              Remover
+            </button>
+          </div>
+        ) : (
+          <div>
+            <input
+              id="orderAttachment"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              data-testid="order-attachment-input"
+              onChange={(e) =>
+                onChangeField('attachmentFile', e.target.files?.[0] || null)
+              }
+              className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-primary-50 file:text-primary-700 dark:file:bg-primary-900/30 dark:file:text-primary-400 hover:file:bg-primary-100 transition-colors"
+            />
+            {previewUrl && (
+              <div className="mt-2">
+                <img
+                  data-testid="order-attachment-preview"
+                  src={previewUrl}
+                  alt="Prévia do anexo"
+                  className="max-h-40 rounded-md border border-gray-200 dark:border-gray-700"
+                />
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="mb-4">
@@ -200,28 +320,15 @@ const OrderForm = ({
       </div>
 
       <div className="mb-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-md p-3">
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              Soma dos Produtos (Valor Cobrado)
-            </div>
-            <div
-              data-testid="order-totals-charged"
-              className="text-lg font-medium text-gray-900 dark:text-gray-100"
-            >
-              {formatBRL(fromCents(totalChargedCents))}
-            </div>
+        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-md p-3">
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            Soma dos Produtos (Valor Cobrado)
           </div>
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-md p-3">
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              Soma dos PV
-            </div>
-            <div
-              data-testid="order-totals-pv"
-              className="text-lg font-medium text-gray-900 dark:text-gray-100"
-            >
-              {fromCents(totalPvCents).toFixed(2)}
-            </div>
+          <div
+            data-testid="order-totals-charged"
+            className="text-lg font-medium text-gray-900 dark:text-gray-100"
+          >
+            {formatBRL(fromCents(totalChargedCents))}
           </div>
         </div>
       </div>
@@ -265,7 +372,6 @@ const OrderForm = ({
 
       <OrderTotals
         totalChargedCents={totalChargedCents}
-        totalPvCents={totalPvCents}
         shippingValue={shippingValue}
         shippingValueError={shippingValueError}
         onChangeField={onChangeField}

@@ -2,18 +2,17 @@ import React from 'react';
 import { formatBRL, fromCents } from '../../../utils/money';
 
 // Bottom summary block placed after the items list and before the submit
-// buttons. Shows the read-only products/PV sums together with the editable
-// order shipping (frete) value.
+// buttons. Shows the read-only products sum together with the editable order
+// shipping (frete) value.
 const OrderTotals = ({
   totalChargedCents,
-  totalPvCents,
   shippingValue,
   shippingValueError,
   onChangeField,
 }) => {
   return (
     <div className="mb-4">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="bg-gray-50 dark:bg-gray-700/50 rounded-md p-3">
           <label
             htmlFor="shippingValue"
@@ -51,17 +50,6 @@ const OrderTotals = ({
             className="text-lg font-medium text-gray-900 dark:text-gray-100"
           >
             {formatBRL(fromCents(totalChargedCents))}
-          </div>
-        </div>
-        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-md p-3">
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            Soma dos PV
-          </div>
-          <div
-            data-testid="order-totals-pv-footer"
-            className="text-lg font-medium text-gray-900 dark:text-gray-100"
-          >
-            {fromCents(totalPvCents).toFixed(2)}
           </div>
         </div>
       </div>

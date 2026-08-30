@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { formatBRL, toCents } from '../../utils/money';
 import { useOrders } from './useOrders';
 import { useOrderPayments } from './useOrderPayments';
@@ -8,9 +8,11 @@ import OrderForm from './components/OrderForm';
 import PaymentModal from './components/PaymentModal';
 import DetailsModal from './components/DetailsModal';
 import EditPaymentModal from './components/EditPaymentModal';
+import AttachmentPreviewModal from './components/AttachmentPreviewModal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 
 const OrdersPage = () => {
+  const [viewAttachmentOrder, setViewAttachmentOrder] = useState(null);
   const {
     orders,
     people,
@@ -41,6 +43,12 @@ const OrdersPage = () => {
     accountOwner,
     paymentType,
     orderNotes,
+    doterraPv,
+    doterraValue,
+    doterraPvError,
+    doterraValueError,
+    attachmentFile,
+    attachmentRemoved,
     shippingValue,
     shippingValueError,
     items,
@@ -125,6 +133,8 @@ const OrdersPage = () => {
     cancelEditOverpay,
   } = useOrderPayments({ refreshOrders });
 
+  const editOrder = orders.find((o) => o.id === editOrderId);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -177,6 +187,7 @@ const OrdersPage = () => {
             onDelete={handleDeleteOrder}
             onPayment={openPaymentModal}
             onDetails={openDetailsModal}
+            onViewAttachment={setViewAttachmentOrder}
           />
         </div>
       </div>
@@ -198,6 +209,13 @@ const OrdersPage = () => {
             accountOwner={accountOwner}
             paymentType={paymentType}
             orderNotes={orderNotes}
+            doterraPv={doterraPv}
+            doterraValue={doterraValue}
+            doterraPvError={doterraPvError}
+            doterraValueError={doterraValueError}
+            attachmentFile={attachmentFile}
+            attachmentRemoved={attachmentRemoved}
+            hasExistingAttachment={!!editOrder?.attachmentFilename}
             shippingValue={shippingValue}
             shippingValueError={shippingValueError}
             items={items}
@@ -277,6 +295,13 @@ const OrdersPage = () => {
           onChangeNotes={handleChangeEditNotes}
           onChangeDate={handleChangeEditDate}
           onSubmit={handleEditSubmit}
+        />
+      )}
+
+      {viewAttachmentOrder && (
+        <AttachmentPreviewModal
+          order={viewAttachmentOrder}
+          onClose={() => setViewAttachmentOrder(null)}
         />
       )}
 
