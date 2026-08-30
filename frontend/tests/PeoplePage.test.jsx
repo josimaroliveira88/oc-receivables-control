@@ -64,6 +64,7 @@ const mockPeople = [
     instagram: 'https://instagram.com/joao',
     address: 'Rua das Flores, 123',
     observacao: 'Cliente prefere retirar pessoalmente.',
+    birthday: '15/08',
     isVip: true,
     isDoterraMember: true,
   },
@@ -75,6 +76,7 @@ const mockPeople = [
     instagram: null,
     address: null,
     observacao: null,
+    birthday: null,
     isVip: false,
     isDoterraMember: false,
   },
@@ -128,45 +130,105 @@ describe('PeoplePage', () => {
         expect(screen.getByText('João Silva')).toBeInTheDocument();
         expect(screen.getByText('Maria Santos')).toBeInTheDocument();
         expect(screen.getByText('Grupo do WhatsApp')).toBeInTheDocument();
-        expect(screen.getByText('Rua das Flores, 123')).toBeInTheDocument();
+        expect(screen.getByText('15/08')).toBeInTheDocument();
         expect(
           screen.getByText('Cliente prefere retirar pessoalmente.'),
         ).toBeInTheDocument();
       });
     });
 
-    it('should render WhatsApp as a wa.me link for valid numbers', async () => {
+    it('should not render an Endereço column', async () => {
+      mockGet.mockResolvedValue({ data: mockPeople });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+      expect(screen.queryByText('Rua das Flores, 123')).not.toBeInTheDocument();
+      expect(screen.queryByText('Endereço')).not.toBeInTheDocument();
+    });
+
+    it('should render WhatsApp as a wa.me icon link for valid numbers', async () => {
       mockGet.mockResolvedValue({ data: [mockPeople[0]] });
       renderPage();
 
       await waitFor(() => {
-        const link = screen.getByText('+55 (11) 99999-8888');
+        const link = screen.getByLabelText(
+          'Abrir WhatsApp +55 (11) 99999-8888',
+        );
         expect(link.tagName).toBe('A');
         expect(link).toHaveAttribute('href', 'https://wa.me/5511999998888');
         expect(link).toHaveAttribute('target', '_blank');
       });
     });
 
-    it('should render WhatsApp as plain text when out of pattern (legacy value)', async () => {
+    it('should render a muted WhatsApp icon for out-of-pattern values', async () => {
       mockGet.mockResolvedValue({ data: [mockPeople[1]] });
       renderPage();
 
       await waitFor(() => {
-        const cell = screen.getByText('joao@email.com');
-        expect(cell.tagName).not.toBe('A');
+        const icon = screen.getByLabelText('WhatsApp: joao@email.com');
+        expect(icon.tagName).not.toBe('A');
       });
     });
 
-    it('should render Instagram as a clickable link', async () => {
+    it('should render Instagram as a clickable icon link', async () => {
       mockGet.mockResolvedValue({ data: [mockPeople[0]] });
       renderPage();
 
       await waitFor(() => {
-        const link = screen.getByText('https://instagram.com/joao');
+        const link = screen.getByLabelText(
+          'Abrir Instagram https://instagram.com/joao',
+        );
         expect(link.tagName).toBe('A');
         expect(link).toHaveAttribute('href', 'https://instagram.com/joao');
         expect(link).toHaveAttribute('target', '_blank');
       });
+    });
+
+    it('should render a dash when Instagram is missing', async () => {
+      mockGet.mockResolvedValue({ data: [mockPeople[1]] });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getAllByText('-').length).toBeGreaterThan(0);
+      });
+    });
+
+    it('should highlight the whole row when the client has a birthday this month', async () => {
+      const now = new Date();
+      const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+      const birthdayPerson = {
+        ...mockPeople[0],
+        id: '5',
+        name: 'Aniversariante do Mês',
+        birthday: `05/${currentMonth}`,
+      };
+      mockGet.mockResolvedValue({ data: [birthdayPerson, mockPeople[1]] });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Aniversariante do Mês')).toBeInTheDocument();
+      });
+
+      const birthdayRow = screen
+        .getByText('Aniversariante do Mês')
+        .closest('tr');
+      expect(birthdayRow.className).toMatch(/bg-amber-50/);
+
+      const regularRow = screen.getByText('Maria Santos').closest('tr');
+      expect(regularRow.className).not.toMatch(/bg-amber/);
+    });
+
+    it('should render a dash in the Aniversário column when there is no birthday', async () => {
+      mockGet.mockResolvedValue({ data: [mockPeople[1]] });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Maria Santos')).toBeInTheDocument();
+      });
+      const cells = screen.getAllByText('-');
+      expect(cells.length).toBeGreaterThan(0);
     });
 
     it('should render VIP and Membro doTERRA badges', async () => {
@@ -400,6 +462,7 @@ describe('PeoplePage', () => {
       const addressInput = screen.getByPlaceholderText(
         'Digite o endereço completo',
       );
+      const birthdayInput = screen.getByPlaceholderText('DD/MM');
       const observacaoInput = screen.getByPlaceholderText(
         'Informações gerais sobre o cliente (até 2000 caracteres)',
       );
@@ -411,6 +474,7 @@ describe('PeoplePage', () => {
         target: { value: 'https://instagram.com/novo' },
       });
       fireEvent.change(addressInput, { target: { value: 'Rua Nova, 1' } });
+      fireEvent.change(birthdayInput, { target: { value: '1508' } });
       fireEvent.change(observacaoInput, {
         target: { value: 'Cliente novo no grupo.' },
       });
@@ -427,11 +491,54 @@ describe('PeoplePage', () => {
           instagram: 'https://instagram.com/novo',
           address: 'Rua Nova, 1',
           observacao: 'Cliente novo no grupo.',
+          birthday: '15/08',
           isVip: true,
           isDoterraMember: false,
           isSelf: false,
         });
       });
+    });
+
+    it('should mask the birthday input as DD/MM', async () => {
+      mockGet.mockResolvedValue({ data: [] });
+      renderPage();
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByText('Novo'));
+      });
+
+      const birthdayInput = await screen.findByPlaceholderText('DD/MM');
+      fireEvent.change(birthdayInput, { target: { value: '3012' } });
+
+      await waitFor(() => {
+        expect(birthdayInput.value).toBe('30/12');
+      });
+    });
+
+    it('should show a validation error for an invalid birthday', async () => {
+      mockGet.mockResolvedValue({ data: [] });
+      renderPage();
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByText('Novo'));
+      });
+
+      const nameInput = await screen.findByPlaceholderText('Digite o nome');
+      const birthdayInput = screen.getByPlaceholderText('DD/MM');
+      fireEvent.change(nameInput, { target: { value: 'Cliente' } });
+      fireEvent.change(birthdayInput, { target: { value: '31/02' } });
+
+      const form = nameInput.closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(
+            'Aniversário deve estar no formato DD/MM com data válida',
+          ),
+        ).toBeInTheDocument();
+      });
+      expect(mockPost).not.toHaveBeenCalled();
     });
 
     it('should send isSelf true when "Esta pessoa sou eu" is checked', async () => {
@@ -458,6 +565,7 @@ describe('PeoplePage', () => {
           instagram: null,
           address: null,
           observacao: null,
+          birthday: null,
           isVip: false,
           isDoterraMember: false,
           isSelf: true,
@@ -492,6 +600,7 @@ describe('PeoplePage', () => {
         expect(
           screen.getByDisplayValue('Rua das Flores, 123'),
         ).toBeInTheDocument();
+        expect(screen.getByDisplayValue('15/08')).toBeInTheDocument();
         expect(
           screen.getByDisplayValue('Cliente prefere retirar pessoalmente.'),
         ).toBeInTheDocument();
@@ -547,6 +656,7 @@ describe('PeoplePage', () => {
           instagram: 'https://instagram.com/joao',
           address: 'Rua das Flores, 123',
           observacao: 'Cliente prefere retirar pessoalmente.',
+          birthday: '15/08',
           isVip: true,
           isDoterraMember: false,
           isSelf: false,
@@ -594,6 +704,93 @@ describe('PeoplePage', () => {
     });
   });
 
+  describe('Client Details Modal', () => {
+    const summaryData = {
+      ordersCount: 2,
+      totalItemsCents: 15000,
+      totalPaidCents: 6000,
+      totalOpenCents: 9000,
+    };
+    const zeroSummary = {
+      ordersCount: 0,
+      totalItemsCents: 0,
+      totalPaidCents: 0,
+      totalOpenCents: 0,
+    };
+
+    const mockWithSummary = (summary) =>
+      mockGet.mockImplementation((url) => {
+        if (url.includes('/summary')) {
+          return Promise.resolve({ data: summary });
+        }
+        return Promise.resolve({ data: [mockPeople[0]] });
+      });
+
+    it('should open the details modal with client data and financial summary', async () => {
+      mockWithSummary(summaryData);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+
+      await clickClientAction('1', 'Detalhes');
+
+      await waitFor(() => {
+        expect(screen.getByText('Detalhes do Cliente')).toBeInTheDocument();
+      });
+      const modal = within(screen.getByTestId('client-details-modal'));
+      expect(modal.getByText('15/08')).toBeInTheDocument();
+      expect(modal.getByText('Rua das Flores, 123')).toBeInTheDocument();
+      expect(modal.getByText('R$ 150,00')).toBeInTheDocument();
+      expect(modal.getByText('R$ 60,00')).toBeInTheDocument();
+      expect(modal.getByText('R$ 90,00')).toBeInTheDocument();
+      expect(modal.getByTestId('client-summary-orders')).toHaveTextContent('2');
+    });
+
+    it('should show WhatsApp and Instagram links in the details modal', async () => {
+      mockWithSummary(zeroSummary);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+
+      await clickClientAction('1', 'Detalhes');
+
+      await waitFor(() => {
+        expect(screen.getByText('Detalhes do Cliente')).toBeInTheDocument();
+      });
+      expect(screen.getByText('+55 (11) 99999-8888')).toBeInTheDocument();
+      expect(
+        screen.getByText('https://instagram.com/joao'),
+      ).toBeInTheDocument();
+    });
+
+    it('should close the details modal when clicking Fechar', async () => {
+      mockWithSummary(zeroSummary);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+
+      await clickClientAction('1', 'Detalhes');
+
+      await waitFor(() => {
+        expect(screen.getByText('Detalhes do Cliente')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Fechar'));
+
+      await waitFor(() => {
+        expect(
+          screen.queryByText('Detalhes do Cliente'),
+        ).not.toBeInTheDocument();
+      });
+    });
+  });
+
   describe('Action Menu (kebab)', () => {
     it('should render one kebab trigger per row', async () => {
       mockGet.mockResolvedValue({ data: mockPeople });
@@ -620,12 +817,15 @@ describe('PeoplePage', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('should show Editar and Excluir items when the trigger is clicked', async () => {
+    it('should show Detalhes, Editar and Excluir items when the trigger is clicked', async () => {
       mockGet.mockResolvedValue({ data: [mockPeople[0]] });
       renderPage();
 
       await openClientActionsMenu('1');
 
+      expect(
+        screen.getByTestId('client-actions-1-item-Detalhes'),
+      ).toHaveTextContent('Detalhes');
       expect(
         screen.getByTestId('client-actions-1-item-Editar'),
       ).toHaveTextContent('Editar');
