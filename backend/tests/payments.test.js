@@ -1638,3 +1638,154 @@ describe('Team order payments rejection', () => {
     expect(response.body.error).toMatch(/equipe/i);
   });
 });
+
+describe('Payment type on payment records', () => {
+  let authToken;
+  let userId;
+  let createdOrderIds = [];
+  let createdPersonIds = [];
+
+  beforeAll(async () => {
+    await prisma.$connect();
+    const username = `paytype_test_${Date.now()}`;
+    const regRes = await request(app)
+      .post('/api/auth/register')
+      .send({ username, password: 'testpass123' });
+    userId = regRes.body.id;
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ username, password: 'testpass123' });
+    authToken = loginRes.body.token;
+  });
+
+  afterAll(async () => {
+    if (userId) {
+      await prisma.user.delete({ where: { id: userId } }).catch(() => {});
+    }
+  });
+
+  afterEach(async () => {
+    for (const id of createdOrderIds) {
+      await prisma.order.delete({ where: { id } }).catch(() => {});
+    }
+    createdOrderIds = [];
+    for (const id of createdPersonIds) {
+      await prisma.person.delete({ where: { id } }).catch(() => {});
+    }
+    createdPersonIds = [];
+  });
+
+  const makeOrder = async (personId) => {
+    const created = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        orderNumber: uniqueOrderNumber('PAYTYPE'),
+        items: [{ description: 'Item', chargedValue: 100.0, personId }],
+      });
+    createdOrderIds.push(created.body.id);
+    return created.body;
+  };
+
+  it('saves the paymentType on a payment for a purchase order', async () => {
+    const person = await prisma.person.create({
+      data: { name: 'Cliente PayType', userId },
+    });
+    createdPersonIds.push(person.id);
+    const order = await makeOrder(person.id);
+
+    const res = await request(app)
+      .post(`/api/orders/${order.id}/payments`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ amount: 40.0, personId: person.id, paymentType: 'PIX' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.payment.paymentType).toBe('PIX');
+    const stored = await prisma.payment.findUnique({
+      where: { id: res.body.payment.id },
+    });
+    expect(stored.paymentType).toBe('PIX');
+  });
+
+  it('accepts payments without a paymentType (null)', async () => {
+    const person = await prisma.person.create({
+      data: { name: 'Cliente PayType Null', userId },
+    });
+    createdPersonIds.push(person.id);
+    const order = await makeOrder(person.id);
+
+    const res = await request(app)
+      .post(`/api/orders/${order.id}/payments`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ amount: 40.0, personId: person.id });
+
+    expect(res.status).toBe(201);
+    expect(res.body.payment.paymentType).toBeNull();
+  });
+
+  it('rejects an invalid paymentType on create', async () => {
+    const person = await prisma.person.create({
+      data: { name: 'Cliente PayType Bad', userId },
+    });
+    createdPersonIds.push(person.id);
+    const order = await makeOrder(person.id);
+
+    const res = await request(app)
+      .post(`/api/orders/${order.id}/payments`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ amount: 40.0, personId: person.id, paymentType: 'DINHEIRO' });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('updates and clears the paymentType', async () => {
+    const person = await prisma.person.create({
+      data: { name: 'Cliente PayType Edit', userId },
+    });
+    createdPersonIds.push(person.id);
+    const order = await makeOrder(person.id);
+
+    const created = await request(app)
+      .post(`/api/orders/${order.id}/payments`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        amount: 100.0,
+        personId: person.id,
+        paymentType: 'INFINITE_PAY',
+      });
+
+    const updated = await request(app)
+      .put(`/api/orders/payments/${created.body.payment.id}`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ amount: 100.0, paymentType: 'BOLETO' });
+    expect(updated.status).toBe(200);
+    expect(updated.body.payment.paymentType).toBe('BOLETO');
+
+    const cleared = await request(app)
+      .put(`/api/orders/payments/${created.body.payment.id}`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ amount: 100.0, paymentType: null });
+    expect(cleared.status).toBe(200);
+    expect(cleared.body.payment.paymentType).toBeNull();
+  });
+
+  it('rejects an invalid paymentType on update', async () => {
+    const person = await prisma.person.create({
+      data: { name: 'Cliente PayType Edit Bad', userId },
+    });
+    createdPersonIds.push(person.id);
+    const order = await makeOrder(person.id);
+
+    const created = await request(app)
+      .post(`/api/orders/${order.id}/payments`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ amount: 100.0, personId: person.id });
+
+    const res = await request(app)
+      .put(`/api/orders/payments/${created.body.payment.id}`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ amount: 100.0, paymentType: 'CHEQUE' });
+
+    expect(res.status).toBe(400);
+  });
+});

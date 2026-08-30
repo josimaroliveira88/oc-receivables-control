@@ -511,7 +511,7 @@ describe('Orders <-> Stock integration', () => {
           ],
         });
       expect(res.status).toBe(400);
-      expect(res.body.error).toContain('stock negative');
+      expect(res.body.error).toContain('Estoque insuficiente');
     });
   });
 
@@ -556,7 +556,7 @@ describe('Orders <-> Stock integration', () => {
         .delete(`/api/orders/items/${itemId}`)
         .set('Authorization', `Bearer ${user.token}`);
       expect(res.status).toBe(400);
-      expect(res.body.error).toContain('stock negative');
+      expect(res.body.error).toContain('Estoque insuficiente');
     });
 
     it('deducts stock when deleting the whole order', async () => {

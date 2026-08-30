@@ -538,3 +538,134 @@ describe('Dashboard team order exclusion', () => {
     expect(balance).toBeUndefined();
   });
 });
+
+describe('Dashboard sale orders inclusion', () => {
+  let authToken;
+  let userId;
+  let createdOrderIds = [];
+  let createdPersonIds = [];
+  let product;
+
+  beforeAll(async () => {
+    await prisma.$connect();
+    const username = `dashboard_sale_${Date.now()}`;
+    const regRes = await request(app)
+      .post('/api/auth/register')
+      .send({ username, password: 'testpass123' });
+    userId = regRes.body.id;
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ username, password: 'testpass123' });
+    authToken = loginRes.body.token;
+
+    product = await prisma.product.create({
+      data: {
+        code: `DASHSALE${Math.floor(Math.random() * 100000)}`,
+        name: 'Produto Dashboard Venda',
+        size: '30 ml',
+        status: 'ATIVO',
+        prices: { create: { regularPrice: 100, memberPrice: 75, pv: 10 } },
+      },
+    });
+    await prisma.inventory.upsert({
+      where: { userId_productId: { userId, productId: product.id } },
+      create: { userId, productId: product.id, quantity: 1000 },
+      update: { quantity: 1000 },
+    });
+  });
+
+  afterAll(async () => {
+    if (userId) {
+      await prisma.user.delete({ where: { id: userId } }).catch(() => {});
+    }
+    if (product) {
+      await prisma.product
+        .delete({ where: { id: product.id } })
+        .catch(() => {});
+    }
+    await prisma.$disconnect();
+  });
+
+  afterEach(async () => {
+    for (const id of createdOrderIds) {
+      await prisma.order.delete({ where: { id } }).catch(() => {});
+    }
+    createdOrderIds = [];
+    for (const id of createdPersonIds) {
+      await prisma.person.delete({ where: { id } }).catch(() => {});
+    }
+    createdPersonIds = [];
+    await prisma.stockMovement
+      .deleteMany({ where: { userId } })
+      .catch(() => {});
+    await prisma.inventory.deleteMany({ where: { userId } }).catch(() => {});
+    await prisma.inventory.upsert({
+      where: { userId_productId: { userId, productId: product.id } },
+      create: { userId, productId: product.id, quantity: 1000 },
+      update: { quantity: 1000 },
+    });
+  });
+
+  const makeSale = async (chargedValue, extra = {}) => {
+    const person = await prisma.person.create({
+      data: { name: 'Cliente Venda Dashboard', userId },
+    });
+    createdPersonIds.push(person.id);
+    const res = await request(app)
+      .post('/api/sales')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        clientPersonId: person.id,
+        items: [{ productId: product.id, chargedValue, quantity: 1 }],
+        ...extra,
+      });
+    createdOrderIds.push(res.body.id);
+    return res.body;
+  };
+
+  it('includes pending sale orders in totalPending', async () => {
+    await makeSale(200);
+    const response = await request(app)
+      .get('/api/dashboard')
+      .set('Authorization', `Bearer ${authToken}`);
+    expect(response.status).toBe(200);
+    expect(parseFloat(response.body.totalPending)).toBe(200);
+  });
+
+  it('includes QUITADO sale orders in totalPaid', async () => {
+    const sale = await makeSale(150);
+    await request(app)
+      .post(`/api/orders/${sale.id}/payments`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ amount: 150, personId: sale.items[0].personId });
+    const response = await request(app)
+      .get('/api/dashboard')
+      .set('Authorization', `Bearer ${authToken}`);
+    expect(parseFloat(response.body.totalPaid)).toBe(150);
+  });
+
+  it('includes sale payments in currentMonthReceipts', async () => {
+    const sale = await makeSale(80);
+    await request(app)
+      .post(`/api/orders/${sale.id}/payments`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ amount: 80, personId: sale.items[0].personId });
+    const response = await request(app)
+      .get('/api/dashboard')
+      .set('Authorization', `Bearer ${authToken}`);
+    expect(parseFloat(response.body.currentMonthReceipts)).toBe(80);
+  });
+
+  it('includes sale items in personBalances', async () => {
+    const sale = await makeSale(120);
+    const response = await request(app)
+      .get('/api/dashboard')
+      .set('Authorization', `Bearer ${authToken}`);
+    const balance = response.body.personBalances.find(
+      (b) => b.personId === sale.items[0].personId,
+    );
+    expect(balance).toBeDefined();
+    expect(balance.itemTotal).toBe(120);
+    expect(balance.pending).toBe(120);
+  });
+});

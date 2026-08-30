@@ -217,7 +217,7 @@ describe('Stock API', () => {
         .send({ productId: product.id, type: 'SAIDA', quantity: 1 });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toMatch(/negative/i);
+      expect(response.body.error).toContain('Estoque insuficiente');
 
       const inventory = await prisma.inventory.findUnique({
         where: {
