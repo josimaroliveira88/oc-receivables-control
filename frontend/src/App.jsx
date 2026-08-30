@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import DashboardPage from './pages/DashboardPage';
 import PeoplePage from './pages/PeoplePage';
 import OrdersPage from './pages/OrdersPage';
+import SalesPage from './pages/SalesPage';
 import ProductsPage from './pages/ProductsPage';
 import StockPage from './pages/StockPage';
 import ToastProvider from './components/Toast';
@@ -42,6 +43,7 @@ const App = () => {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/people" element={<PeoplePage />} />
           <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/sales" element={<SalesPage />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/stock" element={<StockPage />} />
         </Route>
