@@ -12,6 +12,17 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // FormData payloads (multipart uploads such as order attachments) must not
+  // carry the JSON Content-Type: axios would otherwise serialize the FormData
+  // to JSON instead of letting the browser build a multipart body with the
+  // proper boundary, so the backend (multer) would receive no file.
+  if (config.data instanceof FormData) {
+    if (typeof config.headers.delete === 'function') {
+      config.headers.delete('Content-Type');
+    } else {
+      delete config.headers['Content-Type'];
+    }
+  }
   return config;
 });
 
