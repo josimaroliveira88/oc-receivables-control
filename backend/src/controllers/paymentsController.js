@@ -4,6 +4,7 @@ const prisma = new PrismaClient();
 const { toCents, fromCents, lineValueCents } = require('../utils/money');
 const { computeOrderStatus } = require('../utils/receivables');
 const { parseLocalDate } = require('../utils/date');
+const { paymentTypeSchema } = require('../utils/paymentTypes');
 
 class NotFoundError extends Error {}
 
@@ -13,6 +14,7 @@ const paymentSchema = z.object({
     .nonnegative('Amount must be greater than or equal to zero'),
   personId: z.string().uuid('Person ID must be a valid UUID'),
   paidAt: z.string().optional(),
+  paymentType: paymentTypeSchema.optional().nullable(),
   notes: z.string().optional(),
 });
 
@@ -21,6 +23,7 @@ const updatePaymentSchema = z.object({
     .number()
     .nonnegative('Amount must be greater than or equal to zero'),
   paidAt: z.string().optional(),
+  paymentType: paymentTypeSchema.optional().nullable(),
   notes: z.string().nullable().optional(),
 });
 
@@ -80,6 +83,7 @@ const createPayment = async (req, res) => {
           paidAt: validatedData.paidAt
             ? parseLocalDate(validatedData.paidAt)
             : undefined,
+          paymentType: validatedData.paymentType ?? null,
           notes: validatedData.notes,
         },
       });
@@ -188,6 +192,10 @@ const updatePayment = async (req, res) => {
           paidAt: validatedData.paidAt
             ? parseLocalDate(validatedData.paidAt)
             : undefined,
+          paymentType:
+            validatedData.paymentType !== undefined
+              ? validatedData.paymentType
+              : undefined,
           notes:
             validatedData.notes !== undefined ? validatedData.notes : undefined,
         },

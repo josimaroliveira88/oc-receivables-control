@@ -31,6 +31,11 @@ const findOwnedOrder = async (req, res) => {
     res.status(404).json({ error: 'Order not found' });
     return null;
   }
+  // Sale orders have no dōTERRA screenshot attachment; treat them as absent.
+  if (order.orderType !== 'COMPRA') {
+    res.status(404).json({ error: 'Order not found' });
+    return null;
+  }
   return order;
 };
 

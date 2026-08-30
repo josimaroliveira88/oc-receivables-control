@@ -47,6 +47,10 @@ app.use('/api/people', peopleRoutes);
 const ordersRoutes = require('./routes/ordersRoutes');
 app.use('/api/orders', ordersRoutes);
 
+// Sales routes (sale orders)
+const salesRoutes = require('./routes/salesRoutes');
+app.use('/api/sales', salesRoutes);
+
 // Dashboard routes
 const dashboardRoutes = require('./routes/dashboardRoutes');
 app.use('/api/dashboard', dashboardRoutes);

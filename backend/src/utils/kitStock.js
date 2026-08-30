@@ -26,7 +26,16 @@ const resolveKitSnapshot = async (client, productId) => {
 const expandItemToStockProducts = (item) => {
   if (!item.forStock) return [];
   if (!item.productId) return [];
+  return expandStockProduct(item);
+};
 
+// Expansion used by sale orders. Sale items always affect stock regardless of
+// the `forStock` flag (a purchase-order concept), so it is forced on while
+// keeping `expandItemToStockProducts` as the single kit-expansion point.
+const expandSaleItemToStockProducts = (item) =>
+  expandStockProduct({ ...item, forStock: true });
+
+const expandStockProduct = (item) => {
   const qty = Math.max(1, Number(item.quantity) || 1);
   if (
     item.kitStockMode === 'COMPONENTS' &&
@@ -41,4 +50,8 @@ const expandItemToStockProducts = (item) => {
   return [{ productId: item.productId, quantity: qty }];
 };
 
-module.exports = { resolveKitSnapshot, expandItemToStockProducts };
+module.exports = {
+  resolveKitSnapshot,
+  expandItemToStockProducts,
+  expandSaleItemToStockProducts,
+};

@@ -44,7 +44,9 @@ const applyMovement = async (
     newQuantity = currentQuantity - quantity;
     if (newQuantity < 0) {
       const error = new Error(
-        'Insufficient stock: movement would make stock negative',
+        `Estoque insuficiente para ${
+          product.name || product.code
+        }: disponível ${currentQuantity}, necessário ${quantity}`,
       );
       error.status = 400;
       throw error;

@@ -23,17 +23,19 @@ const personPendingCents = ({ itemCents, paymentCents, isSelf }) => {
 // - items: [{ personId, chargedValue, person?: { isSelf } }]
 // - payments: [{ personId, amount }]
 // - shippingCents: order-level shipping cost (defaults to 0)
+// - additionalCents: order-level additional charges (defaults to 0)
 // - isTeamOrder: when true the order is only recorded for reference (a team
 //   member placed it and paid for it), so it is always EQUIPE and never
 //   participates in receivables/pending computation.
 // Items without a person are ignored (existing behavior).
-// Shipping is an order-level cost: when the order has chargeable non-self
-// items, the total of payments must also cover the shipping for QUITADO.
-// Overpayments on non-self persons can absorb the shipping.
+// Shipping and additional values are order-level costs: when the order has
+// chargeable non-self items, the total of payments must also cover them for
+// QUITADO. Overpayments on non-self persons can absorb those costs.
 const computeOrderStatus = ({
   items,
   payments = [],
   shippingCents = 0,
+  additionalCents = 0,
   isTeamOrder = false,
 }) => {
   if (isTeamOrder) return 'EQUIPE';
@@ -81,9 +83,12 @@ const computeOrderStatus = ({
 
   if (allPaid && nonSelfItemsCents > 0) {
     // Global check: the sum of payments must cover the chargeable items plus
-    // the order shipping. Orders without chargeable non-self items (gift-only
-    // or self-only) are not blocked by shipping.
-    if (paymentsTotalCents < nonSelfItemsCents + shippingCents) {
+    // the order shipping and additional values. Orders without chargeable
+    // non-self items (gift-only or self-only) are not blocked by these costs.
+    if (
+      paymentsTotalCents <
+      nonSelfItemsCents + shippingCents + additionalCents
+    ) {
       allPaid = false;
     }
   }
@@ -104,6 +109,7 @@ const syncOrderStatuses = async (db, orderIds) => {
       items: order.items,
       payments: order.payments,
       shippingCents: toCents(order.shippingValue ?? 0),
+      additionalCents: toCents(order.additionalValue ?? 0),
       isTeamOrder: order.isTeamOrder,
     });
     if (nextStatus !== order.status) {

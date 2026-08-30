@@ -1,4 +1,7 @@
-const { expandItemToStockProducts } = require('./kitStock');
+const {
+  expandItemToStockProducts,
+  expandSaleItemToStockProducts,
+} = require('./kitStock');
 
 // Computes the net per-product stock delta (in whole units) between two item
 // lists, considering only items that belong to the self person AND are flagged
@@ -35,4 +38,34 @@ const computeStockDiff = (oldItems, newItems, selfPersonIds) => {
   return result;
 };
 
-module.exports = { computeStockDiff };
+// Computes the net per-product stock delta between two item lists for SALE
+// orders, where every item affects stock: there is no self-person/forStock
+// filter. A positive delta means the new list sells more units (SAIDA), a
+// negative delta restores stock (ENTRADA). Kit items keep expanding through
+// the same `expandSaleItemToStockProducts` path as create/delete.
+const computeSaleStockDiff = (oldItems, newItems) => {
+  const stockByProduct = (items) => {
+    const map = new Map();
+    for (const item of items) {
+      for (const { productId, quantity } of expandSaleItemToStockProducts(
+        item,
+      )) {
+        map.set(productId, (map.get(productId) || 0) + quantity);
+      }
+    }
+    return map;
+  };
+
+  const oldMap = stockByProduct(oldItems);
+  const newMap = stockByProduct(newItems);
+
+  const productIds = new Set([...oldMap.keys(), ...newMap.keys()]);
+  const result = [];
+  for (const productId of productIds) {
+    const delta = (newMap.get(productId) || 0) - (oldMap.get(productId) || 0);
+    if (delta !== 0) result.push({ productId, delta });
+  }
+  return result;
+};
+
+module.exports = { computeStockDiff, computeSaleStockDiff };

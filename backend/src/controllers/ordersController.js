@@ -15,6 +15,7 @@ const {
 const { findIdsByTextSearch } = require('../utils/search');
 const { parseLocalDate } = require('../utils/date');
 const { removeAttachmentFile } = require('./orderAttachmentsController');
+const { paymentTypeSchema } = require('../utils/paymentTypes');
 
 const itemSchema = z.object({
   id: z.string().optional().nullable(),
@@ -48,13 +49,6 @@ const itemSchema = z.object({
   chargedValueMode: z.enum(['UNIT', 'TOTAL']).default('UNIT'),
   kitStockMode: z.enum(['KIT', 'COMPONENTS']).optional().nullable(),
 });
-
-const paymentTypeSchema = z.enum([
-  'PIX',
-  'BOLETO',
-  'CARTAO_CREDITO',
-  'INFINITE_PAY',
-]);
 
 const orderDescriptiveSchema = {
   isTeamOrder: z.boolean().optional(),
@@ -151,6 +145,18 @@ const validateStockItemRules = (items, selfPersonIds) => {
 
 const selfPersonIdSet = (persons) =>
   new Set(persons.filter((p) => p.isSelf).map((p) => p.id));
+
+// Purchase-order endpoints must reject sale orders so their inverted stock
+// semantics are never accidentally triggered through the /api/orders routes.
+const assertNotSaleOrder = (order) => {
+  if (order.orderType === 'VENDA') {
+    const error = new Error(
+      'Este é um pedido de venda; use os endpoints de vendas (/api/sales)',
+    );
+    error.status = 400;
+    throw error;
+  }
+};
 
 const itemCreateData = (item) => ({
   description: item.description || null,
@@ -380,7 +386,7 @@ const getOrders = async (req, res) => {
   try {
     const { q, searchField, status, paymentType, sortBy, sortDir } = req.query;
 
-    const where = { userId: req.user.userId };
+    const where = { userId: req.user.userId, orderType: 'COMPRA' };
 
     if (q && q.trim()) {
       let columns;
@@ -626,6 +632,8 @@ const updateOrder = async (req, res) => {
         error.status = 404;
         throw error;
       }
+
+      assertNotSaleOrder(existingOrder);
 
       if (!validatedData.items) {
         const order = await tx.order.update({
@@ -921,6 +929,8 @@ const deleteOrder = async (req, res) => {
         throw error;
       }
 
+      assertNotSaleOrder(existingOrder);
+
       attachmentFilename = existingOrder.attachmentFilename;
 
       // Reverse stock for every self + forStock item before deleting, expanding
@@ -987,6 +997,8 @@ const addItemToOrder = async (req, res) => {
         error.status = 404;
         throw error;
       }
+
+      assertNotSaleOrder(order);
 
       if (!order.orderDate) {
         const error = new Error(
@@ -1131,6 +1143,8 @@ const updateItem = async (req, res) => {
         error.status = 404;
         throw error;
       }
+
+      assertNotSaleOrder(existingItem.order);
 
       const newData = { ...existingItem, ...validatedData };
 
@@ -1301,6 +1315,8 @@ const deleteItem = async (req, res) => {
         error.status = 404;
         throw error;
       }
+
+      assertNotSaleOrder(existingItem.order);
 
       // Reverse stock if the item belonged to the self person, expanding kit
       // items into their effective stock products. Team orders never affected

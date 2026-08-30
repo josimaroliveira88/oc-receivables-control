@@ -87,7 +87,9 @@ const getProductHistory = async (req, res) => {
     const movements = await prisma.stockMovement.findMany({
       where: { userId: req.user.userId, productId },
       orderBy: { createdAt: 'desc' },
-      include: { order: { select: { id: true, orderNumber: true } } },
+      include: {
+        order: { select: { id: true, orderNumber: true, orderType: true } },
+      },
     });
 
     if (movements.length === 0) {
@@ -169,12 +171,12 @@ const undoLastMovement = async (req, res) => {
       if (movement.orderId) {
         const order = await tx.order.findUnique({
           where: { id: movement.orderId },
-          select: { orderNumber: true },
+          select: { orderNumber: true, orderType: true },
         });
+        const label = order && order.orderType === 'VENDA' ? 'Venda' : 'Pedido';
+        const reference = order ? order.orderNumber : movement.orderId;
         const error = new Error(
-          `Esta movimentação está vinculada ao Pedido ${
-            order ? order.orderNumber : movement.orderId
-          } e só pode ser desfeita editando ou removendo o item correspondente no pedido.`,
+          `Esta movimentação está vinculada ao ${label} ${reference} e só pode ser desfeita editando ou removendo o item correspondente no pedido.`,
         );
         error.status = 400;
         error.orderNumber = order ? order.orderNumber : undefined;
