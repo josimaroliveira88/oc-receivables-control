@@ -1,6 +1,7 @@
 import React from 'react';
 import { Plus } from 'lucide-react';
 import { formatBRL, fromCents } from '../../../utils/money';
+import CurrencyInput from '../../../components/CurrencyInput';
 import ProductCombobox from '../../../components/ProductCombobox';
 import {
   SELF_PERSON_ID,
@@ -118,14 +119,11 @@ const OrderItemFields = ({
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
             Valor Cobrado (R$)
           </label>
-          <input
-            type="number"
-            step="0.01"
-            min="0"
+          <CurrencyInput
             value={item.chargedValue}
             onChange={(e) => onUpdateField('chargedValue', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-sm"
-            placeholder="0.00"
+            className="text-sm"
+            placeholder="0,00"
           />
         </div>
         <div>

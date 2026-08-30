@@ -196,7 +196,7 @@ export function useSalePayments({ refreshSales }) {
   };
 
   const openEditPaymentModal = (payment) => {
-    const paymentAmount = payment.amount;
+    const paymentAmount = String(parseFloat(payment.amount));
     const paymentNotes = payment.notes || '';
     const paymentDate = toLocalDateInput(payment.paidAt);
     const paymentType = payment.paymentType || '';

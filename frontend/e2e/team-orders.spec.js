@@ -91,7 +91,7 @@ test.describe('Pedidos da equipe (status EQUIPE) - e2e', () => {
       .getByLabel('Descrição do Pedido')
       .fill('Pedido da equipe - registro');
 
-    await form.getByPlaceholder('0.00').fill(String(teamOrderCharged));
+    await form.getByPlaceholder('0,00').fill(String(teamOrderCharged) + '00');
     await form
       .getByTestId('order-item-0')
       .locator('select')

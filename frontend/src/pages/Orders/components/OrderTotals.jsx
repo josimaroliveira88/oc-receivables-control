@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatBRL, fromCents } from '../../../utils/money';
+import CurrencyInput from '../../../components/CurrencyInput';
 
 // Bottom summary block placed after the items list and before the submit
 // buttons. Shows the read-only products sum together with the editable order
@@ -20,15 +21,12 @@ const OrderTotals = ({
           >
             Frete (R$)
           </label>
-          <input
+          <CurrencyInput
             id="shippingValue"
-            type="number"
-            step="0.01"
-            min="0"
             data-testid="order-freight"
             value={shippingValue}
             onChange={(e) => onChangeField('shippingValue', e.target.value)}
-            className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-sm"
+            className="mt-1 text-sm"
           />
           {shippingValueError && (
             <div

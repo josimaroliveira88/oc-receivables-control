@@ -1,6 +1,7 @@
 import React from 'react';
 import { Plus } from 'lucide-react';
 import { inputClass, emptyComponent } from '../utils/productHelpers';
+import CurrencyInput from '../../../components/CurrencyInput';
 import ProductCombobox from '../../../components/ProductCombobox';
 
 const ProductForm = ({
@@ -149,14 +150,11 @@ const ProductForm = ({
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Preço Regular (R$)
           </label>
-          <input
-            type="number"
-            step="0.01"
-            min="0"
+          <CurrencyInput
             value={values.regularPrice}
             onChange={(e) => onChangeField('regularPrice', e.target.value)}
             required
-            className={inputClass}
+            className="disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:text-gray-500 dark:disabled:text-gray-400 disabled:cursor-not-allowed"
             placeholder="Digite o preço regular"
           />
         </div>
@@ -164,14 +162,11 @@ const ProductForm = ({
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Preço de Membro (R$)
           </label>
-          <input
-            type="number"
-            step="0.01"
-            min="0"
+          <CurrencyInput
             value={values.memberPrice}
             onChange={(e) => onChangeField('memberPrice', e.target.value)}
             required
-            className={inputClass}
+            className="disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:text-gray-500 dark:disabled:text-gray-400 disabled:cursor-not-allowed"
             placeholder="Digite o preço de membro"
           />
         </div>

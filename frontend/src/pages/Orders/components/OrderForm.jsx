@@ -2,6 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import { ExternalLink, Image as ImageIcon, Plus, X } from 'lucide-react';
 import { formatBRL } from '../../../utils/money';
 import { fromCents } from '../../../utils/money';
+import CurrencyInput from '../../../components/CurrencyInput';
 import { trackingUrl, lineValueCents } from '../utils/orderHelpers';
 import OrderItemFields from './OrderItemFields';
 import OrderTotals from './OrderTotals';
@@ -219,15 +220,11 @@ const OrderForm = ({
             >
               Valor doTERRA (R$)
             </label>
-            <input
+            <CurrencyInput
               id="doterraValue"
-              type="number"
-              step="0.01"
-              min="0"
               value={doterraValue}
               onChange={(e) => onChangeField('doterraValue', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-              placeholder="Ex.: 250.00"
+              placeholder="Ex.: 250,00"
             />
             {doterraValueError && (
               <div
