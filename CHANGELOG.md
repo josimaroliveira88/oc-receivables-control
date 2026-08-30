@@ -10,6 +10,29 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 69 — Campos doTERRA, InfinitePay e anexo de pedidos (2026-08-30)
+
+### Added
+- **Tipo de pagamento InfinitePay**: novo valor `INFINITE_PAY` no enum Prisma `PaymentType`, no Zod `paymentTypeSchema` de `ordersController.js`, no seletor do formulário ("InfinitePay"), no filtro de pagamento da listagem e no badge (rosa) — sincronizado entre os dois lados conforme a regra do `AGENTS.md`.
+- **PV doTERRA e Valor doTERRA no pedido**: novos campos `Order.doterraPv` e `Order.doterraValue` (`Decimal(10,2)`, anuláveis, migração `20260830100000_add_doterra_fields_and_infinite_pay`), inicializados vazios e preenchidos pelo usuário no formulário, com validação de valor negativo. O **Valor doTERRA é apenas informativo**: não entra em `totalValue`, saldo pendente nem status. Ambos viram colunas ordenáveis na listagem.
+- **Anexo do pedido (print doTERRA)**: upload de imagem por pedido armazenado em `backend/uploads/orders/` (gitignored, persistido no host via bind-mount do compose; `ATTACHMENTS_DIR` como override usado nos testes). Upload validado via `multer` (`backend/src/middlewares/upload.js`) — somente PNG/JPEG/WebP, nome de arquivo sempre UUID + extensão de whitelist (sem entrada do cliente em `path.join`), tamanho limitado por requisição (`ATTACHMENT_MAX_BYTES`, default 10 MB). Endpoints autenticados: `POST /api/orders/:id/attachment` (enviar/substituir), `GET /api/orders/:id/attachment` (streaming só após checagem de ownership) e `DELETE /api/orders/:id/attachment`; excluir o pedido também remove o arquivo.
+- **UI de anexo**: no formulário, input de arquivo com pré-visualização; na edição, indicação de "Anexo existente" com opção de remover ou substituir. Na listagem, ação "Visualizar Anexo" no menu da linha (somente quando há anexo) abre modal somente-leitura (`AttachmentPreviewModal.jsx`) que busca a imagem como blob via instância autenticada e exibe via object URL.
+
+### Changed
+- **PV por item removido**: o campo PV saiu do item (formulário, payload, helpers) e a coluna `Item.pv` foi dropada na migração. A coluna "PV Total" (soma de itens), os resumos "Soma dos PV" e o sort computado `totalPv` foram substituídos pelo `Order.doterraPv` (sort direto na coluna). `effectivePvCents` removido de `backend/src/utils/money.js` e `frontend/src/pages/Orders/utils/orderHelpers.js` (`effectivePv.test.js` removido). O PV do catálogo de produtos (`ProductPrice.pv`) permanece intacto.
+- **Listagem reorganizada**: colunas agora `Número | Data | Conta ID | Pagamento | PV doTERRA | Valor doTERRA | Valor (R$) | Valor Pendente | Descrição | Status | Ações`, com larguras rebalanceadas e `data-label` mobile atualizados.
+- **Descrição com mais espaço**: largura da coluna aumentada para ~16% e exibição em até 2 linhas (`line-clamp-2`) mantendo o `title` com o texto completo.
+- **"Responsável" → "Conta ID"**: renomeado no cabeçalho da lista, no formulário ("Conta ID (ID dōTERRA ou nome)"), na opção do seletor de busca e nos modais de pagamento/detalhes; cabeçalho "Tipo Pgto" → "Pagamento".
+
+### Fixed
+- **Anexo falhando com "No file provided"**: a instância do axios (`frontend/src/services/api.js`) definia `Content-Type: application/json` como padrão, e o axios 1.16 serializa `FormData` para JSON nesse caso (nenhum arquivo chega ao multer). O interceptor de request agora remove o `Content-Type` quando o payload é `FormData`, deixando o navegador montar o body multipart com o boundary correto — anexo funciona na inclusão e na edição.
+
+### Tests
+- Backend: `tests/orders.test.js` atualizado (loop de tipos com `INFINITE_PAY`, campos doTERRA com create/update/clear/null e sort por `doterraPv`, remoção do `pv` de item), novo `tests/ordersAttachments.test.js` (14 casos: upload, substituição com limpeza do arquivo antigo, get com bytes/content-type, delete, 404 por ownership/inexistente, tipo inválido, tamanho excedido, limpeza ao excluir pedido). **419 backend passing** (was 403).
+- Frontend: `OrdersPage.test.jsx` e `OrdersPayments.test.jsx` atualizados (colunas novas, InfinitePay, campos doTERRA, remoção do PV de item, fluxo de anexo, "Conta ID"); `api.test.js` +3 (regressão do interceptor FormData); polyfill de `URL.createObjectURL` em `tests/setup.js`. **540 frontend passing** (was 523).
+- Verified: `npm run format:check` clean, `cd frontend && npm run build` clean.
+
+
 ## Phase 68 — Ajustes visuais no fluxo de pedidos da equipe (2026-08-24)
 
 ### Changed
