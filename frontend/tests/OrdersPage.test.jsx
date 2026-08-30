@@ -777,8 +777,8 @@ describe('OrdersPage', () => {
         target: { value: '2026-03-10' },
       });
 
-      const valueInput = screen.getByPlaceholderText('0.00');
-      fireEvent.change(valueInput, { target: { value: '150' } });
+      const valueInput = screen.getByPlaceholderText('0,00');
+      fireEvent.change(valueInput, { target: { value: '15000' } });
       const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
       fireEvent.change(personSelect, { target: { value: 'p1' } });
 
@@ -1020,8 +1020,8 @@ describe('OrdersPage', () => {
       fireEvent.change(combobox, { target: { value: 'Lavanda' } });
       fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
 
-      const valueInput = screen.getByPlaceholderText('0.00');
-      fireEvent.change(valueInput, { target: { value: '175' } });
+      const valueInput = screen.getByPlaceholderText('0,00');
+      fireEvent.change(valueInput, { target: { value: '17500' } });
 
       await waitFor(() => {
         expect(screen.getAllByText(/R\$\s*175,00/).length).toBeGreaterThan(0);
@@ -1063,11 +1063,11 @@ describe('OrdersPage', () => {
         target: { value: '35.5' },
       });
       fireEvent.change(screen.getByLabelText('Valor doTERRA (R$)'), {
-        target: { value: '250.75' },
+        target: { value: '25075' },
       });
 
-      const valueInput = screen.getByPlaceholderText('0.00');
-      fireEvent.change(valueInput, { target: { value: '150' } });
+      const valueInput = screen.getByPlaceholderText('0,00');
+      fireEvent.change(valueInput, { target: { value: '15000' } });
       const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
       fireEvent.change(personSelect, { target: { value: 'p1' } });
 
@@ -1119,8 +1119,8 @@ describe('OrdersPage', () => {
 
       expect(screen.getByTestId('order-team-notice')).toBeInTheDocument();
 
-      const valueInput = screen.getByPlaceholderText('0.00');
-      fireEvent.change(valueInput, { target: { value: '150' } });
+      const valueInput = screen.getByPlaceholderText('0,00');
+      fireEvent.change(valueInput, { target: { value: '15000' } });
       const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
       fireEvent.change(personSelect, { target: { value: 'p1' } });
 
@@ -1184,8 +1184,8 @@ describe('OrdersPage', () => {
         { target: { value: 'ORD-EMPTY' } },
       );
 
-      const valueInput = screen.getByPlaceholderText('0.00');
-      fireEvent.change(valueInput, { target: { value: '50' } });
+      const valueInput = screen.getByPlaceholderText('0,00');
+      fireEvent.change(valueInput, { target: { value: '5000' } });
       const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
       fireEvent.change(personSelect, { target: { value: 'p1' } });
 
@@ -1315,8 +1315,8 @@ describe('OrdersPage', () => {
       fireEvent.change(combobox, { target: { value: 'Lavanda' } });
       fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
 
-      const valueInput = screen.getByPlaceholderText('0.00');
-      fireEvent.change(valueInput, { target: { value: '175' } });
+      const valueInput = screen.getByPlaceholderText('0,00');
+      fireEvent.change(valueInput, { target: { value: '17500' } });
 
       const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
       fireEvent.change(personSelect, { target: { value: 'p1' } });
@@ -1359,8 +1359,8 @@ describe('OrdersPage', () => {
         { target: { value: 'ORD-STANDALONE' } },
       );
 
-      const valueInput = screen.getByPlaceholderText('0.00');
-      fireEvent.change(valueInput, { target: { value: '50' } });
+      const valueInput = screen.getByPlaceholderText('0,00');
+      fireEvent.change(valueInput, { target: { value: '5000' } });
       const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
       fireEvent.change(personSelect, { target: { value: 'p1' } });
 
@@ -1435,7 +1435,7 @@ describe('OrdersPage', () => {
       });
     });
 
-    it('should reject negative charged value', async () => {
+    it('should strip the minus sign from the item charged value instead of allowing negatives', async () => {
       await openModal();
       fireEvent.change(
         screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
@@ -1443,21 +1443,17 @@ describe('OrdersPage', () => {
       );
       const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
       fireEvent.change(personSelect, { target: { value: 'p1' } });
-      const valueInput = screen.getByPlaceholderText('0.00');
+      const valueInput = screen.getByPlaceholderText('0,00');
       fireEvent.change(valueInput, { target: { value: '-5' } });
 
-      const form = screen
-        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
-        .closest('form');
-      fireEvent.submit(form);
-
       await waitFor(() => {
-        expect(
-          within(screen.getByTestId('order-item-0')).getByText(
-            'Valor não pode ser negativo',
-          ),
-        ).toBeInTheDocument();
+        expect(valueInput.value).toBe('0,05');
       });
+      expect(
+        within(screen.getByTestId('order-item-0')).queryByText(
+          'Valor não pode ser negativo',
+        ),
+      ).not.toBeInTheDocument();
     });
 
     it('should include shippingValue in the create payload when a freight is entered', async () => {
@@ -1471,7 +1467,7 @@ describe('OrdersPage', () => {
       const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
       fireEvent.change(personSelect, { target: { value: 'p1' } });
       fireEvent.change(screen.getByTestId('order-freight'), {
-        target: { value: '25.5' },
+        target: { value: '2550' },
       });
 
       const form = screen
@@ -1513,7 +1509,7 @@ describe('OrdersPage', () => {
       });
     });
 
-    it('should reject negative shipping value and block submit', async () => {
+    it('should strip the minus sign from the freight field instead of allowing negatives', async () => {
       await openModal();
       fireEvent.change(
         screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
@@ -1525,17 +1521,12 @@ describe('OrdersPage', () => {
         target: { value: '-10' },
       });
 
-      const form = screen
-        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
-        .closest('form');
-      fireEvent.submit(form);
-
       await waitFor(() => {
-        expect(screen.getByTestId('order-freight-error')).toHaveTextContent(
-          'Frete não pode ser negativo',
-        );
+        expect(screen.getByTestId('order-freight')).toHaveValue('0,10');
       });
-      expect(mockPost).not.toHaveBeenCalled();
+      expect(
+        screen.queryByTestId('order-freight-error'),
+      ).not.toBeInTheDocument();
     });
 
     it('should render the per-item validation error inside the item card (not behind the modal)', async () => {
@@ -1613,8 +1604,8 @@ describe('OrdersPage', () => {
       );
       const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
       fireEvent.change(personSelect, { target: { value: 'p1' } });
-      const valueInput = screen.getByPlaceholderText('0.00');
-      fireEvent.change(valueInput, { target: { value: '100' } });
+      const valueInput = screen.getByPlaceholderText('0,00');
+      fireEvent.change(valueInput, { target: { value: '10000' } });
 
       const form = screen
         .getByPlaceholderText('Informe o número do pedido da dōTERRA')
@@ -1641,7 +1632,7 @@ describe('OrdersPage', () => {
         screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
         { target: { value: 'ORD-GIFT' } },
       );
-      const valueInput = screen.getByPlaceholderText('0.00');
+      const valueInput = screen.getByPlaceholderText('0,00');
       fireEvent.change(valueInput, { target: { value: '0' } });
       const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
       fireEvent.change(personSelect, { target: { value: 'p1' } });
@@ -1798,7 +1789,7 @@ describe('OrdersPage', () => {
         'Pedido de promoção de março',
       );
       expect(screen.getByLabelText('PV doTERRA').value).toBe('45');
-      expect(screen.getByLabelText('Valor doTERRA (R$)').value).toBe('350');
+      expect(screen.getByLabelText('Valor doTERRA (R$)').value).toBe('350,00');
     });
 
     it('should send descriptive fields when updating an order', async () => {
@@ -1854,8 +1845,8 @@ describe('OrdersPage', () => {
         expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
       });
 
-      const valueInputs = screen.getAllByPlaceholderText('0.00');
-      fireEvent.change(valueInputs[0], { target: { value: '95' } });
+      const valueInputs = screen.getAllByPlaceholderText('0,00');
+      fireEvent.change(valueInputs[0], { target: { value: '9500' } });
 
       const form = screen.getByDisplayValue('ORD-001').closest('form');
       fireEvent.submit(form);
@@ -1923,7 +1914,7 @@ describe('OrdersPage', () => {
       await waitFor(() => {
         expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
       });
-      expect(screen.getByTestId('order-freight').value).toBe('30');
+      expect(screen.getByTestId('order-freight').value).toBe('30,00');
     });
 
     it('should include shippingValue in the update payload', async () => {
@@ -1972,7 +1963,7 @@ describe('OrdersPage', () => {
         expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
       });
       fireEvent.change(screen.getByTestId('order-freight'), {
-        target: { value: '40' },
+        target: { value: '4000' },
       });
 
       const form = screen.getByDisplayValue('ORD-FRT-UPD').closest('form');
@@ -2175,8 +2166,8 @@ describe('OrdersPage', () => {
         screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
         { target: { value: 'ORD-SELF' } },
       );
-      fireEvent.change(screen.getByPlaceholderText('0.00'), {
-        target: { value: '150' },
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '15000' },
       });
 
       const form = screen
@@ -2215,8 +2206,8 @@ describe('OrdersPage', () => {
         screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
         { target: { value: 'ORD-SELF2' } },
       );
-      fireEvent.change(screen.getByPlaceholderText('0.00'), {
-        target: { value: '100' },
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '10000' },
       });
 
       const form = screen
@@ -2363,8 +2354,8 @@ describe('OrdersPage', () => {
         screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
         { target: { value: 'ORD-PAY' } },
       );
-      fireEvent.change(screen.getByPlaceholderText('0.00'), {
-        target: { value: '50' },
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '5000' },
       });
 
       const form = screen
@@ -2426,8 +2417,8 @@ describe('OrdersPage', () => {
       fireEvent.change(screen.getByTestId('order-item-quantity-0'), {
         target: { value: '3' },
       });
-      fireEvent.change(screen.getByPlaceholderText('0.00'), {
-        target: { value: '10.5' },
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '1050' },
       });
       expect(screen.getByTestId('order-totals-charged').textContent).toMatch(
         /31,50/,
@@ -2441,8 +2432,8 @@ describe('OrdersPage', () => {
       fireEvent.change(screen.getByTestId('order-item-quantity-0'), {
         target: { value: '3' },
       });
-      fireEvent.change(screen.getByPlaceholderText('0.00'), {
-        target: { value: '40' },
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '4000' },
       });
       fireEvent.change(screen.getByTestId('order-item-price-mode-0'), {
         target: { value: 'TOTAL' },
@@ -2536,8 +2527,8 @@ describe('OrdersPage', () => {
       fireEvent.change(screen.getByDisplayValue('Selecione uma pessoa'), {
         target: { value: 'p1' },
       });
-      fireEvent.change(screen.getByPlaceholderText('0.00'), {
-        target: { value: '50' },
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '5000' },
       });
 
       const form = screen
@@ -2553,35 +2544,19 @@ describe('OrdersPage', () => {
       expect(mockPost).not.toHaveBeenCalled();
     });
 
-    it('should block submit when Valor doTERRA is negative', async () => {
+    it('should strip the minus sign from the Valor doTERRA field instead of allowing negatives', async () => {
       mockGetImplementation([], mockPeople);
       renderPage();
       await openCreateModal();
       fireEvent.change(screen.getByLabelText('Valor doTERRA (R$)'), {
         target: { value: '-1' },
       });
-      fireEvent.change(
-        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
-        { target: { value: 'ORD-NEGVAL' } },
-      );
-      fireEvent.change(screen.getByDisplayValue('Selecione uma pessoa'), {
-        target: { value: 'p1' },
-      });
-      fireEvent.change(screen.getByPlaceholderText('0.00'), {
-        target: { value: '50' },
-      });
-
-      const form = screen
-        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
-        .closest('form');
-      fireEvent.submit(form);
-
       await waitFor(() => {
-        expect(
-          screen.getByTestId('order-doterra-value-error'),
-        ).toHaveTextContent('Valor doTERRA não pode ser negativo');
+        expect(screen.getByLabelText('Valor doTERRA (R$)')).toHaveValue('0,01');
       });
-      expect(mockPost).not.toHaveBeenCalled();
+      expect(
+        screen.queryByTestId('order-doterra-value-error'),
+      ).not.toBeInTheDocument();
     });
 
     it('should upload the attachment after creating the order', async () => {
@@ -2604,8 +2579,8 @@ describe('OrdersPage', () => {
         screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
         { target: { value: 'ORD-A' } },
       );
-      fireEvent.change(screen.getByPlaceholderText('0.00'), {
-        target: { value: '100' },
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '10000' },
       });
       fireEvent.change(screen.getByDisplayValue('Selecione uma pessoa'), {
         target: { value: 'p1' },
@@ -2901,8 +2876,8 @@ describe('OrdersPage', () => {
         screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
         { target: { value: 'ORD-KIT-MODE' } },
       );
-      fireEvent.change(screen.getByPlaceholderText('0.00'), {
-        target: { value: '120' },
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '12000' },
       });
 
       const form = screen
@@ -2931,8 +2906,8 @@ describe('OrdersPage', () => {
         screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
         { target: { value: 'ORD-KIT-COMP' } },
       );
-      fireEvent.change(screen.getByPlaceholderText('0.00'), {
-        target: { value: '120' },
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '12000' },
       });
 
       const form = screen

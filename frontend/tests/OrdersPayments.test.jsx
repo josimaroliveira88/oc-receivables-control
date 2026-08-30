@@ -888,7 +888,7 @@ describe('OrdersPayments', () => {
       ).toBeInTheDocument();
       expect(screen.getByText('Dar baixa')).toBeInTheDocument();
 
-      const amountInput = screen.getByPlaceholderText('0.00');
+      const amountInput = screen.getByPlaceholderText('0,00');
       const form = amountInput.closest('form');
       fireEvent.submit(form);
 
@@ -1237,7 +1237,7 @@ describe('OrdersPayments', () => {
         editModal.getByText('Editar Pagamento — ORD-DETAIL'),
       ).toBeInTheDocument();
       expect(editModal.getByText('João Silva')).toBeInTheDocument();
-      expect(editModal.getByDisplayValue('100.00')).toBeInTheDocument();
+      expect(editModal.getByDisplayValue('100,00')).toBeInTheDocument();
       expect(editModal.getByDisplayValue('2026-08-06')).toBeInTheDocument();
       expect(editModal.getByDisplayValue('Pix recebido')).toBeInTheDocument();
     });
@@ -1245,8 +1245,8 @@ describe('OrdersPayments', () => {
     it('should update amount, date and notes of a payment', async () => {
       const editModal = await openEditModal();
 
-      fireEvent.change(editModal.getByDisplayValue('100.00'), {
-        target: { value: '120.00' },
+      fireEvent.change(editModal.getByDisplayValue('100,00'), {
+        target: { value: '12000' },
       });
       fireEvent.change(editModal.getByDisplayValue('2026-08-06'), {
         target: { value: '2026-08-08' },
@@ -1293,8 +1293,8 @@ describe('OrdersPayments', () => {
     it('should require overpayment confirmation when the edited amount exceeds the pending balance', async () => {
       const editModal = await openEditModal();
 
-      fireEvent.change(editModal.getByDisplayValue('100.00'), {
-        target: { value: '300' },
+      fireEvent.change(editModal.getByDisplayValue('100,00'), {
+        target: { value: '30000' },
       });
 
       mockPut.mockResolvedValue({ data: {} });
@@ -1320,7 +1320,7 @@ describe('OrdersPayments', () => {
     it('should reject a zero amount edit for a person with chargeable items', async () => {
       const editModal = await openEditModal();
 
-      fireEvent.change(editModal.getByDisplayValue('100.00'), {
+      fireEvent.change(editModal.getByDisplayValue('100,00'), {
         target: { value: '0' },
       });
 
@@ -1336,30 +1336,25 @@ describe('OrdersPayments', () => {
       expect(mockPut).not.toHaveBeenCalled();
     });
 
-    it('should reject a negative amount edit', async () => {
+    it('should strip the minus sign from the edited amount instead of allowing negatives', async () => {
       const editModal = await openEditModal();
 
-      fireEvent.change(editModal.getByDisplayValue('100.00'), {
-        target: { value: '-5' },
+      const amountInput = editModal.getByDisplayValue('100,00');
+      fireEvent.change(amountInput, { target: { value: '-5' } });
+
+      await waitFor(() => {
+        expect(amountInput).toHaveValue('0,05');
       });
-
-      mockPut.mockResolvedValue({ data: {} });
-
-      fireEvent.submit(
-        screen.getByTestId('edit-payment-modal').querySelector('form'),
-      );
-
       expect(
-        editModal.getByText('Valor não pode ser negativo'),
-      ).toBeInTheDocument();
-      expect(mockPut).not.toHaveBeenCalled();
+        editModal.queryByText('Valor não pode ser negativo'),
+      ).not.toBeInTheDocument();
     });
 
     it('should map a backend "greater than zero" error to an inline message', async () => {
       const editModal = await openEditModal();
 
-      fireEvent.change(editModal.getByDisplayValue('100.00'), {
-        target: { value: '120' },
+      fireEvent.change(editModal.getByDisplayValue('100,00'), {
+        target: { value: '12000' },
       });
 
       mockPut.mockRejectedValue({
@@ -1385,8 +1380,8 @@ describe('OrdersPayments', () => {
     it('should show the updated payment value in the details panel after editing', async () => {
       const editModal = await openEditModal();
 
-      fireEvent.change(editModal.getByDisplayValue('100.00'), {
-        target: { value: '120.00' },
+      fireEvent.change(editModal.getByDisplayValue('100,00'), {
+        target: { value: '12000' },
       });
 
       mockPut.mockResolvedValue({
@@ -1424,7 +1419,7 @@ describe('OrdersPayments', () => {
       renderPage();
       await openPaymentAction('order-4', 'Dar baixa');
 
-      const amountInput = screen.getByPlaceholderText('0.00');
+      const amountInput = screen.getByPlaceholderText('0,00');
       fireEvent.change(amountInput, { target: { value: '0' } });
 
       const form = amountInput.closest('form');
@@ -1438,7 +1433,7 @@ describe('OrdersPayments', () => {
     it('should reject zero amount when the person has a pending balance', async () => {
       await openModalWithBalance();
 
-      const amountInput = screen.getByPlaceholderText('0.00');
+      const amountInput = screen.getByPlaceholderText('0,00');
       fireEvent.change(amountInput, { target: { value: '0' } });
 
       const form = amountInput.closest('form');
@@ -1452,28 +1447,25 @@ describe('OrdersPayments', () => {
       expect(mockPost).not.toHaveBeenCalled();
     });
 
-    it('should reject negative amount with "Valor não pode ser negativo"', async () => {
+    it('should strip the minus sign from the amount instead of allowing negatives', async () => {
       await openModalWithBalance();
 
-      const amountInput = screen.getByPlaceholderText('0.00');
+      const amountInput = screen.getByPlaceholderText('0,00');
       fireEvent.change(amountInput, { target: { value: '-10' } });
 
-      const form = amountInput.closest('form');
-      fireEvent.submit(form);
-
       await waitFor(() => {
-        expect(
-          screen.getByText('Valor não pode ser negativo'),
-        ).toBeInTheDocument();
+        expect(amountInput).toHaveValue('0,10');
       });
-      expect(mockPost).not.toHaveBeenCalled();
+      expect(
+        screen.queryByText('Valor não pode ser negativo'),
+      ).not.toBeInTheDocument();
     });
 
     it('should ask for confirmation on overpayment and submit when confirmed', async () => {
       await openModalWithBalance();
 
-      const amountInput = screen.getByPlaceholderText('0.00');
-      fireEvent.change(amountInput, { target: { value: '999' } });
+      const amountInput = screen.getByPlaceholderText('0,00');
+      fireEvent.change(amountInput, { target: { value: '99900' } });
 
       mockPost.mockResolvedValue({
         data: { id: 'pay-over', amount: '999.00' },
@@ -1506,8 +1498,8 @@ describe('OrdersPayments', () => {
     it('should not submit overpayment when confirmation is cancelled', async () => {
       await openModalWithBalance();
 
-      const amountInput = screen.getByPlaceholderText('0.00');
-      fireEvent.change(amountInput, { target: { value: '999' } });
+      const amountInput = screen.getByPlaceholderText('0,00');
+      fireEvent.change(amountInput, { target: { value: '99900' } });
 
       const form = amountInput.closest('form');
       fireEvent.submit(form);
@@ -1528,8 +1520,8 @@ describe('OrdersPayments', () => {
     it('should not show the overpayment confirmation when amount equals the pending balance', async () => {
       await openModalWithBalance();
 
-      const amountInput = screen.getByPlaceholderText('0.00');
-      fireEvent.change(amountInput, { target: { value: '300' } });
+      const amountInput = screen.getByPlaceholderText('0,00');
+      fireEvent.change(amountInput, { target: { value: '30000' } });
 
       mockPost.mockResolvedValue({
         data: { id: 'pay-full', amount: '300.00', personId: 'p1' },
@@ -1553,8 +1545,8 @@ describe('OrdersPayments', () => {
     it('should submit valid payment and call POST /orders/:id/payments', async () => {
       await openModalWithBalance();
 
-      const amountInput = screen.getByPlaceholderText('0.00');
-      fireEvent.change(amountInput, { target: { value: '100' } });
+      const amountInput = screen.getByPlaceholderText('0,00');
+      fireEvent.change(amountInput, { target: { value: '10000' } });
 
       mockPost.mockResolvedValue({
         data: { id: 'pay-1', amount: '100.00', personId: 'p1' },
@@ -1611,8 +1603,8 @@ describe('OrdersPayments', () => {
       renderPage();
       await openPaymentAction('order-fp');
 
-      const amountInput = screen.getByPlaceholderText('0.00');
-      fireEvent.change(amountInput, { target: { value: '1.56' } });
+      const amountInput = screen.getByPlaceholderText('0,00');
+      fireEvent.change(amountInput, { target: { value: '156' } });
 
       mockPost.mockResolvedValue({
         data: { id: 'pay-fp', amount: '1.56', personId: 'p1' },
@@ -1674,8 +1666,8 @@ describe('OrdersPayments', () => {
       const dateInput = screen.getByLabelText('Data do Pagamento');
       fireEvent.change(dateInput, { target: { value: '2025-06-15' } });
 
-      const amountInput = screen.getByPlaceholderText('0.00');
-      fireEvent.change(amountInput, { target: { value: '100' } });
+      const amountInput = screen.getByPlaceholderText('0,00');
+      fireEvent.change(amountInput, { target: { value: '10000' } });
 
       mockPost.mockResolvedValue({
         data: { id: 'pay-1', amount: '100.00', personId: 'p1' },
@@ -1735,8 +1727,8 @@ describe('OrdersPayments', () => {
       renderPage();
       await openPaymentAction('order-1');
 
-      const amountInput = screen.getByPlaceholderText('0.00');
-      fireEvent.change(amountInput, { target: { value: '50' } });
+      const amountInput = screen.getByPlaceholderText('0,00');
+      fireEvent.change(amountInput, { target: { value: '5000' } });
 
       mockPost.mockResolvedValue({
         data: { id: 'pay-1', amount: '50.00', personId: 'p1' },
@@ -1758,8 +1750,8 @@ describe('OrdersPayments', () => {
       renderPage();
       await openPaymentAction('order-1');
 
-      const amountInput = screen.getByPlaceholderText('0.00');
-      fireEvent.change(amountInput, { target: { value: '100' } });
+      const amountInput = screen.getByPlaceholderText('0,00');
+      fireEvent.change(amountInput, { target: { value: '10000' } });
 
       mockPost.mockRejectedValue({
         response: { data: { error: 'Amount exceeds pending balance' } },
@@ -1888,13 +1880,13 @@ describe('Payment type on order payments', () => {
     renderPage();
     await openPaymentAction('order-pt');
 
-    fireEvent.change(screen.getByPlaceholderText('0.00'), {
-      target: { value: '100' },
+    fireEvent.change(screen.getByPlaceholderText('0,00'), {
+      target: { value: '10000' },
     });
     fireEvent.change(screen.getByLabelText('Forma de Pagamento'), {
       target: { value: 'PIX' },
     });
-    const form = screen.getByPlaceholderText('0.00').closest('form');
+    const form = screen.getByPlaceholderText('0,00').closest('form');
     fireEvent.submit(form);
 
     await waitFor(() => {

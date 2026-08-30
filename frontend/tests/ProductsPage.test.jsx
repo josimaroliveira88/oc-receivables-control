@@ -1135,8 +1135,8 @@ describe('ProductsPage', () => {
         expect(
           screen.getByDisplayValue('Adaptiv® Pastilhas'),
         ).toBeInTheDocument();
-        expect(screen.getByDisplayValue('308')).toBeInTheDocument();
-        expect(screen.getByDisplayValue('231.25')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('308,00')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('231,25')).toBeInTheDocument();
         expect(screen.getByDisplayValue('31')).toBeInTheDocument();
       });
     });
@@ -1195,10 +1195,10 @@ describe('ProductsPage', () => {
 
       await clickProductAction('1', 'Editar');
 
-      const regularInput = await screen.findByDisplayValue('308');
-      fireEvent.change(regularInput, { target: { value: '320' } });
-      fireEvent.change(screen.getByDisplayValue('231.25'), {
-        target: { value: '240' },
+      const regularInput = await screen.findByDisplayValue('308,00');
+      fireEvent.change(regularInput, { target: { value: '32000' } });
+      fireEvent.change(screen.getByDisplayValue('231,25'), {
+        target: { value: '24000' },
       });
       fireEvent.change(screen.getByDisplayValue('31'), {
         target: { value: '33' },

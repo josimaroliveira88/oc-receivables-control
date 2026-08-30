@@ -321,13 +321,13 @@ describe('SalesPayments', () => {
       renderPage();
       await openPaymentAction('sale-1');
 
-      fireEvent.change(screen.getByPlaceholderText('0.00'), {
-        target: { value: '100' },
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '10000' },
       });
       fireEvent.change(screen.getByLabelText('Forma de Pagamento'), {
         target: { value: 'PIX' },
       });
-      const form = screen.getByPlaceholderText('0.00').closest('form');
+      const form = screen.getByPlaceholderText('0,00').closest('form');
       fireEvent.submit(form);
 
       await waitFor(() => {
@@ -349,10 +349,10 @@ describe('SalesPayments', () => {
       renderPage();
       await openPaymentAction('sale-1');
 
-      fireEvent.change(screen.getByPlaceholderText('0.00'), {
-        target: { value: '100' },
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '10000' },
       });
-      const form = screen.getByPlaceholderText('0.00').closest('form');
+      const form = screen.getByPlaceholderText('0,00').closest('form');
       fireEvent.submit(form);
 
       await waitFor(() => {
@@ -375,10 +375,10 @@ describe('SalesPayments', () => {
       renderPage();
       await openPaymentAction('sale-1');
 
-      fireEvent.change(screen.getByPlaceholderText('0.00'), {
-        target: { value: '999' },
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '99900' },
       });
-      const form = screen.getByPlaceholderText('0.00').closest('form');
+      const form = screen.getByPlaceholderText('0,00').closest('form');
       fireEvent.submit(form);
 
       const dialog = await screen.findByRole('dialog');
@@ -411,7 +411,7 @@ describe('SalesPayments', () => {
       });
       expect(screen.getByText('Dar baixa')).toBeInTheDocument();
 
-      const amountInput = screen.getByPlaceholderText('0.00');
+      const amountInput = screen.getByPlaceholderText('0,00');
       const form = amountInput.closest('form');
       fireEvent.submit(form);
 
@@ -425,23 +425,20 @@ describe('SalesPayments', () => {
       });
     });
 
-    it('should reject a negative amount', async () => {
+    it('should strip the minus sign from the amount instead of allowing negatives', async () => {
       mockGetImplementation([mockSale]);
       renderPage();
       await openPaymentAction('sale-1');
 
-      fireEvent.change(screen.getByPlaceholderText('0.00'), {
-        target: { value: '-10' },
-      });
-      const form = screen.getByPlaceholderText('0.00').closest('form');
-      fireEvent.submit(form);
+      const amountInput = screen.getByPlaceholderText('0,00');
+      fireEvent.change(amountInput, { target: { value: '-10' } });
 
       await waitFor(() => {
-        expect(
-          screen.getByText('Valor não pode ser negativo'),
-        ).toBeInTheDocument();
+        expect(amountInput).toHaveValue('0,10');
       });
-      expect(mockPost).not.toHaveBeenCalled();
+      expect(
+        screen.queryByText('Valor não pode ser negativo'),
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -500,7 +497,7 @@ describe('SalesPayments', () => {
       expect(
         editModal.getByText('Editar Pagamento — V-0002'),
       ).toBeInTheDocument();
-      expect(editModal.getByDisplayValue('100.00')).toBeInTheDocument();
+      expect(editModal.getByDisplayValue('100,00')).toBeInTheDocument();
       expect(editModal.getByDisplayValue('2026-08-06')).toBeInTheDocument();
       expect(editModal.getByDisplayValue('Pix recebido')).toBeInTheDocument();
       expect(editModal.getByLabelText('Forma de Pagamento').value).toBe('PIX');
@@ -508,8 +505,8 @@ describe('SalesPayments', () => {
 
     it('should update amount, date, notes and payment type', async () => {
       const editModal = await openEditModal();
-      fireEvent.change(editModal.getByDisplayValue('100.00'), {
-        target: { value: '120.00' },
+      fireEvent.change(editModal.getByDisplayValue('100,00'), {
+        target: { value: '12000' },
       });
       fireEvent.change(editModal.getByDisplayValue('2026-08-06'), {
         target: { value: '2026-08-08' },
@@ -563,8 +560,8 @@ describe('SalesPayments', () => {
 
     it('should require overpayment confirmation when the edited amount exceeds pending', async () => {
       const editModal = await openEditModal();
-      fireEvent.change(editModal.getByDisplayValue('100.00'), {
-        target: { value: '500' },
+      fireEvent.change(editModal.getByDisplayValue('100,00'), {
+        target: { value: '50000' },
       });
       mockPut.mockResolvedValue({ data: {} });
       fireEvent.submit(

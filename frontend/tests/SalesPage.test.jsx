@@ -413,8 +413,8 @@ describe('SalesPage', () => {
     it('should show validation error when submitting without a client', async () => {
       renderPage();
       await openCreateModal();
-      fireEvent.change(screen.getByPlaceholderText('0.00'), {
-        target: { value: '100' },
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '10000' },
       });
       const form = screen.getByTestId('sale-freight').closest('form');
       fireEvent.submit(form);
@@ -432,8 +432,8 @@ describe('SalesPage', () => {
       fireEvent.change(screen.getByLabelText('Cliente'), {
         target: { value: 'p1' },
       });
-      fireEvent.change(screen.getByPlaceholderText('0.00'), {
-        target: { value: '100' },
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '10000' },
       });
       const form = screen.getByTestId('sale-freight').closest('form');
       fireEvent.submit(form);
@@ -447,7 +447,7 @@ describe('SalesPage', () => {
       expect(mockPost).not.toHaveBeenCalled();
     });
 
-    it('should reject a negative freight and block submit', async () => {
+    it('should strip the minus sign from the freight field instead of allowing negative values', async () => {
       renderPage();
       await openCreateModal();
       fireEvent.change(screen.getByLabelText('Cliente'), {
@@ -456,20 +456,18 @@ describe('SalesPage', () => {
       fireEvent.change(screen.getByTestId('sale-freight'), {
         target: { value: '-5' },
       });
-      fireEvent.change(screen.getByPlaceholderText('0.00'), {
-        target: { value: '100' },
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '10000' },
       });
-      const form = screen.getByTestId('sale-freight').closest('form');
-      fireEvent.submit(form);
       await waitFor(() => {
-        expect(screen.getByTestId('sale-freight-error')).toHaveTextContent(
-          'Frete não pode ser negativo',
-        );
+        expect(screen.getByTestId('sale-freight')).toHaveValue('0,05');
       });
-      expect(mockPost).not.toHaveBeenCalled();
+      expect(
+        screen.queryByTestId('sale-freight-error'),
+      ).not.toBeInTheDocument();
     });
 
-    it('should reject a negative additional value and block submit', async () => {
+    it('should strip the minus sign from the additional value field instead of allowing negative values', async () => {
       renderPage();
       await openCreateModal();
       fireEvent.change(screen.getByLabelText('Cliente'), {
@@ -478,17 +476,15 @@ describe('SalesPage', () => {
       fireEvent.change(screen.getByTestId('sale-additional'), {
         target: { value: '-1' },
       });
-      fireEvent.change(screen.getByPlaceholderText('0.00'), {
-        target: { value: '100' },
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '10000' },
       });
-      const form = screen.getByTestId('sale-freight').closest('form');
-      fireEvent.submit(form);
       await waitFor(() => {
-        expect(screen.getByTestId('sale-additional-error')).toHaveTextContent(
-          'Valor adicional não pode ser negativo',
-        );
+        expect(screen.getByTestId('sale-additional')).toHaveValue('0,01');
       });
-      expect(mockPost).not.toHaveBeenCalled();
+      expect(
+        screen.queryByTestId('sale-additional-error'),
+      ).not.toBeInTheDocument();
     });
 
     it('should send the full create payload', async () => {
@@ -505,10 +501,10 @@ describe('SalesPage', () => {
         target: { value: '2026-03-10' },
       });
       fireEvent.change(screen.getByTestId('sale-freight'), {
-        target: { value: '25.5' },
+        target: { value: '2550' },
       });
       fireEvent.change(screen.getByTestId('sale-additional'), {
-        target: { value: '10' },
+        target: { value: '1000' },
       });
       fireEvent.change(screen.getByLabelText('Descrição da Venda'), {
         target: { value: 'Descrição da venda' },
@@ -520,8 +516,8 @@ describe('SalesPage', () => {
       const combobox = screen.getByPlaceholderText('Busque um produto...');
       fireEvent.change(combobox, { target: { value: 'Lavanda' } });
       fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
-      fireEvent.change(screen.getByPlaceholderText('0.00'), {
-        target: { value: '175' },
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '17500' },
       });
 
       const form = screen.getByTestId('sale-freight').closest('form');
@@ -564,8 +560,8 @@ describe('SalesPage', () => {
       const combobox = screen.getByPlaceholderText('Busque um produto...');
       fireEvent.change(combobox, { target: { value: 'Lavanda' } });
       fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
-      fireEvent.change(screen.getByPlaceholderText('0.00'), {
-        target: { value: '50' },
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '5000' },
       });
 
       const form = screen.getByTestId('sale-freight').closest('form');
@@ -605,8 +601,8 @@ describe('SalesPage', () => {
       fireEvent.change(screen.getByTestId('sale-item-quantity-0'), {
         target: { value: '3' },
       });
-      fireEvent.change(screen.getByPlaceholderText('0.00'), {
-        target: { value: '175' },
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '17500' },
       });
 
       const form = screen.getByTestId('sale-freight').closest('form');
@@ -655,14 +651,14 @@ describe('SalesPage', () => {
       const combobox = screen.getByPlaceholderText('Busque um produto...');
       fireEvent.change(combobox, { target: { value: 'Lavanda' } });
       fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
-      fireEvent.change(screen.getByPlaceholderText('0.00'), {
-        target: { value: '100' },
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '10000' },
       });
       fireEvent.change(screen.getByTestId('sale-freight'), {
-        target: { value: '10.5' },
+        target: { value: '1050' },
       });
       fireEvent.change(screen.getByTestId('sale-additional'), {
-        target: { value: '4.5' },
+        target: { value: '450' },
       });
       await waitFor(() => {
         expect(screen.getByTestId('sale-totals-total')).toHaveTextContent(
@@ -719,7 +715,7 @@ describe('SalesPage', () => {
         expect(screen.getByText('Editar Venda')).toBeInTheDocument();
       });
       fireEvent.change(screen.getByTestId('sale-freight'), {
-        target: { value: '12.5' },
+        target: { value: '1250' },
       });
       const form = screen.getByTestId('sale-freight').closest('form');
       fireEvent.submit(form);
