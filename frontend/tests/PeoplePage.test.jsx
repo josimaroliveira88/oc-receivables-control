@@ -581,6 +581,84 @@ describe('PeoplePage', () => {
     });
   });
 
+  describe('Dynamic self checkbox', () => {
+    it('should hide "Esta pessoa sou eu" in create modal when a self person already exists', async () => {
+      mockGet.mockResolvedValue({ data: [{ ...mockPeople[0], isSelf: true }] });
+      renderPage();
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByText('Novo'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Novo Cliente')).toBeInTheDocument();
+      });
+      expect(
+        screen.queryByLabelText('Esta pessoa sou eu'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should hide "Esta pessoa sou eu" when editing a non-self person while a self person exists', async () => {
+      mockGet.mockResolvedValue({
+        data: [
+          { ...mockPeople[0], id: '1', isSelf: true },
+          { ...mockPeople[1], id: '2', isSelf: false },
+        ],
+      });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Maria Santos')).toBeInTheDocument();
+      });
+
+      await clickClientAction('2', 'Editar');
+
+      await waitFor(() => {
+        expect(screen.getByText('Editar Cliente')).toBeInTheDocument();
+      });
+      expect(
+        screen.queryByLabelText('Esta pessoa sou eu'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should show checked "Esta pessoa sou eu" when editing the self person', async () => {
+      mockGet.mockResolvedValue({
+        data: [
+          { ...mockPeople[0], id: '1', name: 'Eu', isSelf: true },
+          { ...mockPeople[1], id: '2', isSelf: false },
+        ],
+      });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Eu')).toBeInTheDocument();
+      });
+
+      await clickClientAction('1', 'Editar');
+
+      await waitFor(() => {
+        expect(screen.getByText('Editar Cliente')).toBeInTheDocument();
+      });
+      expect(screen.getByLabelText('Esta pessoa sou eu')).toBeChecked();
+    });
+
+    it('should show unchecked "Esta pessoa sou eu" when editing a person and no self person exists', async () => {
+      mockGet.mockResolvedValue({ data: [mockPeople[0]] });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+
+      await clickClientAction('1', 'Editar');
+
+      await waitFor(() => {
+        expect(screen.getByText('Editar Cliente')).toBeInTheDocument();
+      });
+      expect(screen.getByLabelText('Esta pessoa sou eu')).not.toBeChecked();
+    });
+  });
+
   describe('Edit Client', () => {
     it('should open edit modal with pre-filled data', async () => {
       mockGet.mockResolvedValue({ data: [mockPeople[0]] });
