@@ -691,7 +691,6 @@ describe('Orders CRUD with Items', () => {
               personId: testPersonId,
               productId: testProductId,
               memberPrice: 231.25,
-              pv: 31,
               details: 'Cliente pediu 2 unid.',
             },
           ],
@@ -703,7 +702,7 @@ describe('Orders CRUD with Items', () => {
       expect(item.productId).toBe(testProductId);
       expect(parseFloat(item.chargedValue)).toBe(231.25);
       expect(parseFloat(item.memberPrice)).toBe(231.25);
-      expect(parseFloat(item.pv)).toBe(31);
+      expect(item.pv).toBeUndefined();
       expect(item.details).toBe('Cliente pediu 2 unid.');
       expect(parseFloat(response.body.totalValue)).toBe(231.25);
       createdOrderId = response.body.id;
@@ -851,14 +850,13 @@ describe('Orders CRUD with Items', () => {
         .send({
           productId: testProductId,
           memberPrice: 231.25,
-          pv: 31,
           details: 'Atualizado com produto',
         });
 
       expect(response.status).toBe(200);
       expect(response.body.productId).toBe(testProductId);
       expect(parseFloat(response.body.memberPrice)).toBe(231.25);
-      expect(parseFloat(response.body.pv)).toBe(31);
+      expect(response.body.pv).toBeUndefined();
       expect(response.body.details).toBe('Atualizado com produto');
     });
   });
@@ -917,7 +915,12 @@ describe('Orders CRUD with Items', () => {
     });
 
     it('should accept each valid payment type', async () => {
-      for (const paymentType of ['PIX', 'BOLETO', 'CARTAO_CREDITO']) {
+      for (const paymentType of [
+        'PIX',
+        'BOLETO',
+        'CARTAO_CREDITO',
+        'INFINITE_PAY',
+      ]) {
         const response = await request(app)
           .post('/api/orders')
           .set('Authorization', `Bearer ${authToken}`)
@@ -1100,6 +1103,218 @@ describe('Orders CRUD with Items', () => {
       expect(response.body.paymentType).toBe('CARTAO_CREDITO');
       expect(response.body.orderNotes).toBe('Original');
       expect(parseFloat(response.body.totalValue)).toBe(100.0);
+    });
+  });
+
+  describe('Order doTERRA fields (PV doTERRA and Valor doTERRA)', () => {
+    beforeEach(async () => {
+      const person = await prisma.person.create({
+        data: {
+          name: 'Test Person Doterra',
+          whatsapp: 'doterra@test.com',
+          userId,
+        },
+      });
+      testPersonId = person.id;
+    });
+
+    it('should create an order with doterraPv and doterraValue', async () => {
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-DOTERRA'),
+          doterraPv: 46.5,
+          doterraValue: 350.75,
+          items: [
+            {
+              description: 'Item',
+              chargedValue: 100.0,
+              personId: testPersonId,
+            },
+          ],
+        });
+
+      expect(response.status).toBe(201);
+      expect(parseFloat(response.body.doterraPv)).toBe(46.5);
+      expect(parseFloat(response.body.doterraValue)).toBe(350.75);
+      createdOrderId = response.body.id;
+    });
+
+    it('should initialize doterra fields as null when not provided', async () => {
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-DOTERRA-NULL'),
+          items: [
+            {
+              description: 'Item',
+              chargedValue: 100.0,
+              personId: testPersonId,
+            },
+          ],
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.doterraPv).toBeNull();
+      expect(response.body.doterraValue).toBeNull();
+      createdOrderId = response.body.id;
+    });
+
+    it('should reject negative doterraPv', async () => {
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-DOTERRA-NEGPV'),
+          doterraPv: -5,
+          items: [
+            {
+              description: 'Item',
+              chargedValue: 100.0,
+              personId: testPersonId,
+            },
+          ],
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error[0].path).toEqual(['doterraPv']);
+    });
+
+    it('should reject negative doterraValue', async () => {
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-DOTERRA-NEGVAL'),
+          doterraValue: -1,
+          items: [
+            {
+              description: 'Item',
+              chargedValue: 100.0,
+              personId: testPersonId,
+            },
+          ],
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error[0].path).toEqual(['doterraValue']);
+    });
+
+    it('should update doterra fields and clear them with explicit null', async () => {
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: uniqueOrderNumber('ORD-DOTERRA-UPD'),
+          totalValue: 100.0,
+          status: 'PENDENTE',
+          doterraPv: 30,
+          doterraValue: 220.5,
+          userId,
+          items: {
+            create: [
+              {
+                description: 'Item',
+                chargedValue: 100.0,
+                personId: testPersonId,
+              },
+            ],
+          },
+        },
+      });
+      createdOrderId = order.id;
+
+      const updateRes = await request(app)
+        .put(`/api/orders/${order.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ doterraPv: 55, doterraValue: 400.0 });
+
+      expect(updateRes.status).toBe(200);
+      expect(parseFloat(updateRes.body.doterraPv)).toBe(55);
+      expect(parseFloat(updateRes.body.doterraValue)).toBe(400.0);
+
+      const clearRes = await request(app)
+        .put(`/api/orders/${order.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ doterraPv: null, doterraValue: null });
+
+      expect(clearRes.status).toBe(200);
+      expect(clearRes.body.doterraPv).toBeNull();
+      expect(clearRes.body.doterraValue).toBeNull();
+    });
+
+    it('should update order items preserving doterra fields', async () => {
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: uniqueOrderNumber('ORD-DOTERRA-ITEMS'),
+          totalValue: 100.0,
+          status: 'PENDENTE',
+          doterraPv: 20,
+          doterraValue: 150.0,
+          userId,
+          items: {
+            create: [
+              {
+                description: 'Item 1',
+                chargedValue: 100.0,
+                personId: testPersonId,
+              },
+            ],
+          },
+        },
+      });
+      createdOrderId = order.id;
+
+      const response = await request(app)
+        .put(`/api/orders/${order.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          items: [
+            {
+              description: 'Item 1',
+              chargedValue: 60.0,
+              personId: testPersonId,
+            },
+          ],
+        });
+
+      expect(response.status).toBe(200);
+      expect(parseFloat(response.body.doterraPv)).toBe(20);
+      expect(parseFloat(response.body.doterraValue)).toBe(150.0);
+      expect(parseFloat(response.body.totalValue)).toBe(60.0);
+    });
+
+    it('should include doterra fields when listing orders', async () => {
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: uniqueOrderNumber('ORD-DOTERRA-LIST'),
+          totalValue: 100.0,
+          status: 'PENDENTE',
+          doterraPv: 12.5,
+          doterraValue: 99.9,
+          userId,
+          items: {
+            create: [
+              {
+                description: 'Item',
+                chargedValue: 100.0,
+                personId: testPersonId,
+              },
+            ],
+          },
+        },
+      });
+      createdOrderId = order.id;
+
+      const response = await request(app)
+        .get(`/api/orders`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const listed = response.body.find((o) => o.id === order.id);
+      expect(listed).toBeDefined();
+      expect(parseFloat(listed.doterraPv)).toBe(12.5);
+      expect(parseFloat(listed.doterraValue)).toBe(99.9);
     });
   });
 
@@ -1602,35 +1817,35 @@ describe('Orders CRUD with Items', () => {
       expect(ids[0]).toBe(betaOrderId);
     });
 
-    it('should sort by totalPv (computed) ignoring PV from zero-charged items', async () => {
-      const chargedId = (
+    it('should sort by doterraPv (order-level field) descending', async () => {
+      const highId = (
         await request(app)
           .post('/api/orders')
           .set('Authorization', `Bearer ${authToken}`)
           .send({
-            orderNumber: `PVPAID-${Date.now()}`,
+            orderNumber: `PVHIGH-${Date.now()}`,
+            doterraPv: 80,
             items: [
               {
-                description: 'Pago',
+                description: 'PV alto',
                 chargedValue: 100.0,
-                pv: 30,
                 personId: searchPersonId,
               },
             ],
           })
       ).body.id;
 
-      const giftId = (
+      const lowId = (
         await request(app)
           .post('/api/orders')
           .set('Authorization', `Bearer ${authToken}`)
           .send({
-            orderNumber: `PVGIFT-${Date.now()}`,
+            orderNumber: `PVLOW-${Date.now()}`,
+            doterraPv: 10,
             items: [
               {
-                description: 'Brinde',
-                chargedValue: 0,
-                pv: 999,
+                description: 'PV baixo',
+                chargedValue: 100.0,
                 personId: searchPersonId,
               },
             ],
@@ -1639,19 +1854,19 @@ describe('Orders CRUD with Items', () => {
 
       try {
         const response = await request(app)
-          .get(`/api/orders?sortBy=totalPv&sortDir=desc`)
+          .get(`/api/orders?sortBy=doterraPv&sortDir=desc`)
           .set('Authorization', `Bearer ${authToken}`);
 
         expect(response.status).toBe(200);
         const ids = response.body.map((o) => o.id);
-        const chargedIndex = ids.indexOf(chargedId);
-        const giftIndex = ids.indexOf(giftId);
-        expect(chargedIndex).toBeGreaterThan(-1);
-        expect(giftIndex).toBeGreaterThan(-1);
-        expect(chargedIndex).toBeLessThan(giftIndex);
+        const highIndex = ids.indexOf(highId);
+        const lowIndex = ids.indexOf(lowId);
+        expect(highIndex).toBeGreaterThan(-1);
+        expect(lowIndex).toBeGreaterThan(-1);
+        expect(highIndex).toBeLessThan(lowIndex);
       } finally {
         await prisma.order
-          .deleteMany({ where: { id: { in: [chargedId, giftId] } } })
+          .deleteMany({ where: { id: { in: [highId, lowId] } } })
           .catch(() => {});
       }
     });
