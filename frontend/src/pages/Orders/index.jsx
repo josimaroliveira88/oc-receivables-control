@@ -155,7 +155,7 @@ const OrdersPage = () => {
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border-t-4 border-primary-600 dark:border-primary-400">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4">
           <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
-            Gestão de Pedidos
+            Pedidos dōTERRA
           </h2>
           <button
             onClick={() => setShowCreateModal(true)}

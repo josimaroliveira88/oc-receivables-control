@@ -18,7 +18,7 @@ import {
 const navLinks = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/people', icon: Users, label: 'Clientes' },
-  { to: '/orders', icon: ClipboardList, label: 'Pedidos' },
+  { to: '/orders', icon: ClipboardList, label: 'Pedidos dōTERRA' },
   { to: '/sales', icon: ShoppingCart, label: 'Vendas' },
   { to: '/products', icon: Package, label: 'Produtos' },
   { to: '/stock', icon: Boxes, label: 'Estoque' },
