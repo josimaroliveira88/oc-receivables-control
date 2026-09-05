@@ -1,26 +1,13 @@
 const fs = require('fs');
-const path = require('path');
 const { PrismaClient } = require('@prisma/client');
 const { resolveAttachmentPath } = require('../middlewares/upload');
+const {
+  attachmentMaxBytes,
+  attachmentContentType,
+  removeAttachmentFile,
+} = require('../utils/attachmentStorage');
 
 const prisma = new PrismaClient();
-
-const DEFAULT_MAX_BYTES = 10 * 1024 * 1024; // 10 MB
-
-const attachmentMaxBytes = () =>
-  Number(process.env.ATTACHMENT_MAX_BYTES) || DEFAULT_MAX_BYTES;
-
-const removeAttachmentFile = (filename) => {
-  if (!filename) return;
-  try {
-    fs.unlinkSync(resolveAttachmentPath(filename));
-  } catch (error) {
-    // Ignore missing files (ENOENT); a stale DB reference must not break flows.
-    if (error.code !== 'ENOENT') {
-      console.error('Error removing attachment file:', error);
-    }
-  }
-};
 
 const findOwnedOrder = async (req, res) => {
   const { id } = req.params;
@@ -88,14 +75,10 @@ const getAttachment = async (req, res) => {
       return res.status(404).json({ error: 'Attachment not found' });
     }
 
-    const extension = path.extname(order.attachmentFilename);
-    const contentType =
-      extension === '.png'
-        ? 'image/png'
-        : extension === '.webp'
-          ? 'image/webp'
-          : 'image/jpeg';
-    res.setHeader('Content-Type', contentType);
+    res.setHeader(
+      'Content-Type',
+      attachmentContentType(order.attachmentFilename),
+    );
     res.sendFile(filePath);
   } catch (error) {
     if (error.status) {
