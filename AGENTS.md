@@ -2,11 +2,11 @@
 
 ## Current State
 
-MVP and Phases 1-64 are complete (see `CHANGELOG.md`). The application provides authenticated, user-isolated client, order, receivables, payment, dashboard, export, stock, and dōTERRA product-catalog workflows, including KIT products with per-component stock control.
+MVP and Phases 1-80 are complete (see `CHANGELOG.md`). The application provides authenticated, user-isolated client, order, receivables, payment, dashboard, export, stock, and dōTERRA product-catalog workflows, including KIT products with per-component stock control.
 
 - Internal documentation and code comments: English.
 - User-facing content: Brazilian Portuguese (PT-BR).
-- Last recorded test result: 390 backend + 475 frontend = 865 passing tests.
+- Last recorded test result: 621 backend + 714 frontend = 1335 passing tests.
 
 ## Stack and Ports
 
