@@ -1,6 +1,7 @@
 const {
   computeOrderStatus,
   personPendingCents,
+  personFinancialSummary,
 } = require('../src/utils/receivables');
 
 const toCents = (value) => Math.round(value * 100);
@@ -149,6 +150,89 @@ describe('receivables util', () => {
           isSelf: false,
         }),
       ).toBe(0);
+    });
+  });
+
+  describe('personFinancialSummary', () => {
+    it('returns zeroed totals for empty items and payments', () => {
+      expect(personFinancialSummary([], [], { isSelf: false })).toEqual({
+        ordersCount: 0,
+        totalItemsCents: 0,
+        totalPaidCents: 0,
+        totalOpenCents: 0,
+      });
+    });
+
+    it('sums item line values and counts distinct orders', () => {
+      const items = [
+        { chargedValue: 100.0, orderId: 'order-1' },
+        { chargedValue: 50.0, orderId: 'order-2' },
+        { chargedValue: 25.0, orderId: 'order-1' },
+      ];
+      expect(personFinancialSummary(items, [], { isSelf: false })).toEqual({
+        ordersCount: 2,
+        totalItemsCents: toCents(175),
+        totalPaidCents: 0,
+        totalOpenCents: toCents(175),
+      });
+    });
+
+    it('honors quantity and TOTAL mode when computing item totals', () => {
+      const items = [
+        {
+          chargedValue: 10.0,
+          quantity: 2,
+          chargedValueMode: 'UNIT',
+          orderId: 'o1',
+        },
+        {
+          chargedValue: 5.0,
+          quantity: 3,
+          chargedValueMode: 'TOTAL',
+          orderId: 'o1',
+        },
+      ];
+      const summary = personFinancialSummary(items, [], { isSelf: false });
+      expect(summary.totalItemsCents).toBe(toCents(25));
+    });
+
+    it('sums payment amounts', () => {
+      const payments = [{ amount: 40.0 }, { amount: 35.5 }, { amount: 24.5 }];
+      const summary = personFinancialSummary([], payments, { isSelf: false });
+      expect(summary.totalPaidCents).toBe(toCents(100));
+    });
+
+    it('returns open as items minus paid for a non-self person', () => {
+      const items = [{ chargedValue: 150.0, orderId: 'o1' }];
+      const payments = [{ amount: 40.0 }];
+      expect(
+        personFinancialSummary(items, payments, { isSelf: false }),
+      ).toEqual({
+        ordersCount: 1,
+        totalItemsCents: toCents(150),
+        totalPaidCents: toCents(40),
+        totalOpenCents: toCents(110),
+      });
+    });
+
+    it('clamps open at zero when paid exceeds the items total', () => {
+      const items = [{ chargedValue: 20.0, orderId: 'o1' }];
+      const payments = [{ amount: 25.0 }];
+      const summary = personFinancialSummary(items, payments, {
+        isSelf: false,
+      });
+      expect(summary.totalPaidCents).toBe(toCents(25));
+      expect(summary.totalOpenCents).toBe(0);
+    });
+
+    it('returns open zero for a self person even with chargeable items', () => {
+      const items = [{ chargedValue: 80.0, orderId: 'o1' }];
+      expect(personFinancialSummary(items, [], { isSelf: true })).toEqual({
+        ordersCount: 1,
+        totalItemsCents: toCents(80),
+        totalPaidCents: 0,
+        totalOpenCents: 0,
+      });
     });
   });
 });
