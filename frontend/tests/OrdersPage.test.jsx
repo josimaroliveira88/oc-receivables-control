@@ -161,11 +161,11 @@ describe('OrdersPage', () => {
   });
 
   describe('Rendering', () => {
-    it('should render the page title "Gestão de Pedidos"', async () => {
+    it('should render the page title "Pedidos dōTERRA"', async () => {
       mockGetImplementation([]);
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('Gestão de Pedidos')).toBeInTheDocument();
+        expect(screen.getByText('Pedidos dōTERRA')).toBeInTheDocument();
       });
     });
 

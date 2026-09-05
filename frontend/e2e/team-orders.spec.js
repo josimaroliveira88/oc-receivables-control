@@ -67,7 +67,7 @@ test.describe('Pedidos da equipe (status EQUIPE) - e2e', () => {
     page,
   }, testInfo) => {
     await page.goto('/orders');
-    await expect(page.getByText('Gestão de Pedidos')).toBeVisible({
+    await expect(page.getByText('Pedidos dōTERRA')).toBeVisible({
       timeout: 15_000,
     });
 
@@ -123,7 +123,7 @@ test.describe('Pedidos da equipe (status EQUIPE) - e2e', () => {
 
   test('CT2 - filtro "Somente da equipe"', async ({ page }) => {
     await page.goto('/orders');
-    await expect(page.getByText('Gestão de Pedidos')).toBeVisible({
+    await expect(page.getByText('Pedidos dōTERRA')).toBeVisible({
       timeout: 15_000,
     });
 
@@ -146,7 +146,7 @@ test.describe('Pedidos da equipe (status EQUIPE) - e2e', () => {
     page,
   }, testInfo) => {
     await page.goto('/orders');
-    await expect(page.getByText('Gestão de Pedidos')).toBeVisible({
+    await expect(page.getByText('Pedidos dōTERRA')).toBeVisible({
       timeout: 15_000,
     });
 
@@ -189,7 +189,7 @@ test.describe('Pedidos da equipe (status EQUIPE) - e2e', () => {
     page,
   }, testInfo) => {
     await page.goto('/orders');
-    await expect(page.getByText('Gestão de Pedidos')).toBeVisible({
+    await expect(page.getByText('Pedidos dōTERRA')).toBeVisible({
       timeout: 15_000,
     });
 

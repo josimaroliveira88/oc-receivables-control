@@ -60,7 +60,7 @@ describe('MobileDrawer', () => {
     fireEvent.click(screen.getByLabelText('Abrir menu'));
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Clientes')).toBeInTheDocument();
-    expect(screen.getByText('Pedidos')).toBeInTheDocument();
+    expect(screen.getByText('Pedidos dōTERRA')).toBeInTheDocument();
     expect(screen.getByText('Vendas')).toBeInTheDocument();
     expect(screen.getByText('Produtos')).toBeInTheDocument();
     expect(screen.getByText('Estoque')).toBeInTheDocument();
