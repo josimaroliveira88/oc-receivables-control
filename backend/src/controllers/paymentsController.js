@@ -1,8 +1,9 @@
 const { PrismaClient } = require('@prisma/client');
 const { z } = require('zod');
 const prisma = new PrismaClient();
-const { toCents, fromCents, lineValueCents } = require('../utils/money');
+const { toCents, lineValueCents } = require('../utils/money');
 const { computeOrderStatus } = require('../utils/receivables');
+const { buildOrderBalances } = require('../utils/orderBalances');
 const { parseLocalDate } = require('../utils/date');
 const { paymentTypeSchema } = require('../utils/paymentTypes');
 
@@ -269,67 +270,7 @@ const getOrderBalance = async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    const personMap = new Map();
-
-    order.items.forEach((item) => {
-      const personId = item.personId;
-      if (!personId) return;
-
-      if (!personMap.has(personId)) {
-        const person = item.person;
-        personMap.set(personId, {
-          personId,
-          personName: person ? person.name : 'Unknown',
-          isSelf: Boolean(person && person.isSelf),
-          itemTotalCents: 0,
-          paymentTotalCents: 0,
-        });
-      }
-
-      const current = personMap.get(personId);
-      personMap.set(personId, {
-        ...current,
-        itemTotalCents: current.itemTotalCents + lineValueCents(item),
-      });
-    });
-
-    order.payments.forEach((payment) => {
-      const personId = payment.personId;
-      if (!personId) return;
-
-      if (!personMap.has(personId)) {
-        const person = payment.person;
-        personMap.set(personId, {
-          personId,
-          personName: person ? person.name : 'Unknown',
-          isSelf: Boolean(person && person.isSelf),
-          itemTotalCents: 0,
-          paymentTotalCents: 0,
-        });
-      }
-
-      const current = personMap.get(personId);
-      personMap.set(personId, {
-        ...current,
-        paymentTotalCents: current.paymentTotalCents + toCents(payment.amount),
-      });
-    });
-
-    const balances = Array.from(personMap.values()).map((personData) => {
-      const pendingCents = personData.isSelf
-        ? 0
-        : personData.itemTotalCents - personData.paymentTotalCents;
-      return {
-        personId: personData.personId,
-        personName: personData.personName,
-        isSelf: personData.isSelf,
-        itemTotal: fromCents(personData.itemTotalCents),
-        paymentTotal: fromCents(personData.paymentTotalCents),
-        pending: fromCents(Math.max(0, pendingCents)),
-      };
-    });
-
-    balances.sort((a, b) => a.personName.localeCompare(b.personName));
+    const balances = buildOrderBalances(order);
 
     res.status(200).json({
       orderId: order.id,
