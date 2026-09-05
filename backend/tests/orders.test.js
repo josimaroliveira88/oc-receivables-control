@@ -1118,7 +1118,7 @@ describe('Orders CRUD with Items', () => {
       testPersonId = person.id;
     });
 
-    it('should create an order with doterraPv and doterraValue', async () => {
+    it('should create an order with doterraPv and derived doterraValue', async () => {
       const response = await request(app)
         .post('/api/orders')
         .set('Authorization', `Bearer ${authToken}`)
@@ -1137,11 +1137,14 @@ describe('Orders CRUD with Items', () => {
 
       expect(response.status).toBe(201);
       expect(parseFloat(response.body.doterraPv)).toBe(46.5);
-      expect(parseFloat(response.body.doterraValue)).toBe(350.75);
+      // doterraValue is no longer informed: it always equals the total
+      // (sum of products + shipping), and any payload value is ignored.
+      expect(parseFloat(response.body.doterraValue)).toBe(100.0);
+      expect(parseFloat(response.body.totalValue)).toBe(100.0);
       createdOrderId = response.body.id;
     });
 
-    it('should initialize doterra fields as null when not provided', async () => {
+    it('should derive doterraValue from the total when not provided', async () => {
       const response = await request(app)
         .post('/api/orders')
         .set('Authorization', `Bearer ${authToken}`)
@@ -1158,7 +1161,7 @@ describe('Orders CRUD with Items', () => {
 
       expect(response.status).toBe(201);
       expect(response.body.doterraPv).toBeNull();
-      expect(response.body.doterraValue).toBeNull();
+      expect(parseFloat(response.body.doterraValue)).toBe(100.0);
       createdOrderId = response.body.id;
     });
 
@@ -1182,12 +1185,12 @@ describe('Orders CRUD with Items', () => {
       expect(response.body.error[0].path).toEqual(['doterraPv']);
     });
 
-    it('should reject negative doterraValue', async () => {
+    it('should ignore doterraValue in the payload (derived from the total)', async () => {
       const response = await request(app)
         .post('/api/orders')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          orderNumber: uniqueOrderNumber('ORD-DOTERRA-NEGVAL'),
+          orderNumber: uniqueOrderNumber('ORD-DOTERRA-IGNVAL'),
           doterraValue: -1,
           items: [
             {
@@ -1198,11 +1201,12 @@ describe('Orders CRUD with Items', () => {
           ],
         });
 
-      expect(response.status).toBe(400);
-      expect(response.body.error[0].path).toEqual(['doterraValue']);
+      expect(response.status).toBe(201);
+      expect(parseFloat(response.body.doterraValue)).toBe(100.0);
+      createdOrderId = response.body.id;
     });
 
-    it('should update doterra fields and clear them with explicit null', async () => {
+    it('should update doterraPv and keep doterraValue derived on header-only update', async () => {
       const order = await prisma.order.create({
         data: {
           orderNumber: uniqueOrderNumber('ORD-DOTERRA-UPD'),
@@ -1231,7 +1235,8 @@ describe('Orders CRUD with Items', () => {
 
       expect(updateRes.status).toBe(200);
       expect(parseFloat(updateRes.body.doterraPv)).toBe(55);
-      expect(parseFloat(updateRes.body.doterraValue)).toBe(400.0);
+      // Payload doterraValue is ignored; the stored value follows the total.
+      expect(parseFloat(updateRes.body.doterraValue)).toBe(100.0);
 
       const clearRes = await request(app)
         .put(`/api/orders/${order.id}`)
@@ -1240,10 +1245,10 @@ describe('Orders CRUD with Items', () => {
 
       expect(clearRes.status).toBe(200);
       expect(clearRes.body.doterraPv).toBeNull();
-      expect(clearRes.body.doterraValue).toBeNull();
+      expect(parseFloat(clearRes.body.doterraValue)).toBe(100.0);
     });
 
-    it('should update order items preserving doterra fields', async () => {
+    it('should keep doterraValue in sync with the total when updating items', async () => {
       const order = await prisma.order.create({
         data: {
           orderNumber: uniqueOrderNumber('ORD-DOTERRA-ITEMS'),
@@ -1280,7 +1285,7 @@ describe('Orders CRUD with Items', () => {
 
       expect(response.status).toBe(200);
       expect(parseFloat(response.body.doterraPv)).toBe(20);
-      expect(parseFloat(response.body.doterraValue)).toBe(150.0);
+      expect(parseFloat(response.body.doterraValue)).toBe(60.0);
       expect(parseFloat(response.body.totalValue)).toBe(60.0);
     });
 
@@ -1315,6 +1320,217 @@ describe('Orders CRUD with Items', () => {
       expect(listed).toBeDefined();
       expect(parseFloat(listed.doterraPv)).toBe(12.5);
       expect(parseFloat(listed.doterraValue)).toBe(99.9);
+    });
+  });
+
+  describe('Item cashback, person binding and stock defaults', () => {
+    let cashProductId;
+    let cashOrderIds = [];
+    let cashPersonIds = [];
+
+    afterEach(async () => {
+      for (const oid of cashOrderIds) {
+        await prisma.order.delete({ where: { id: oid } }).catch(() => {});
+      }
+      cashOrderIds = [];
+      for (const pid of cashPersonIds) {
+        await prisma.person.delete({ where: { id: pid } }).catch(() => {});
+      }
+      cashPersonIds = [];
+    });
+
+    afterAll(async () => {
+      if (cashProductId) {
+        await prisma.stockMovement
+          .deleteMany({ where: { productId: cashProductId } })
+          .catch(() => {});
+        await prisma.inventory
+          .deleteMany({ where: { productId: cashProductId } })
+          .catch(() => {});
+        await prisma.product
+          .deleteMany({ where: { id: cashProductId } })
+          .catch(() => {});
+        cashProductId = null;
+      }
+    });
+
+    const makeProduct = async () => {
+      const product = await prisma.product.create({
+        data: {
+          code: `TESTCASH${Date.now()}-${Math.floor(Math.random() * 100000)}`,
+          name: 'Produto Cashback',
+          size: '15 ml',
+          status: 'ATIVO',
+          prices: { create: { regularPrice: 100, memberPrice: 75, pv: 10 } },
+        },
+      });
+      cashProductId = product.id;
+      return product.id;
+    };
+
+    const makeSelfPerson = async () => {
+      const p = await prisma.person.create({
+        data: { name: 'Eu Cashback', isSelf: true, userId },
+      });
+      cashPersonIds.push(p.id);
+      return p.id;
+    };
+
+    const makeRegularPerson = async () => {
+      const p = await prisma.person.create({
+        data: { name: 'Cliente Cashback', userId },
+      });
+      cashPersonIds.push(p.id);
+      return p.id;
+    };
+
+    it('binds items without a person to the self person on a non-team order', async () => {
+      const selfId = await makeSelfPerson();
+      const res = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-CASH-SELF'),
+          items: [{ description: 'Item meu', chargedValue: 50 }],
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.items[0].personId).toBe(selfId);
+      expect(res.body.items[0].person.isSelf).toBe(true);
+      expect(res.body.status).toBe('QUITADO');
+      cashOrderIds.push(res.body.id);
+    });
+
+    it('preserves an explicitly provided non-self person (legacy binding)', async () => {
+      const otherId = await makeRegularPerson();
+      const res = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-CASH-LEGACY'),
+          items: [{ description: 'Item', chargedValue: 30, personId: otherId }],
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.items[0].personId).toBe(otherId);
+      expect(res.body.status).toBe('PENDENTE');
+      cashOrderIds.push(res.body.id);
+    });
+
+    it('defaults useCashback to false when not provided', async () => {
+      const otherId = await makeRegularPerson();
+      const res = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-CASH-DEF'),
+          items: [{ description: 'Item', chargedValue: 10, personId: otherId }],
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.items[0].useCashback).toBe(false);
+      cashOrderIds.push(res.body.id);
+    });
+
+    it('persists useCashback true on an item', async () => {
+      const otherId = await makeRegularPerson();
+      const res = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-CASH-TRUE'),
+          items: [
+            {
+              description: 'Item',
+              chargedValue: 22.5,
+              personId: otherId,
+              useCashback: true,
+            },
+          ],
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.items[0].useCashback).toBe(true);
+      cashOrderIds.push(res.body.id);
+    });
+
+    it('defaults forStock to true for a self item with a product', async () => {
+      const selfId = await makeSelfPerson();
+      const productId = await makeProduct();
+      const res = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-CASH-STOCK'),
+          items: [
+            {
+              description: 'Item',
+              chargedValue: 75,
+              personId: selfId,
+              productId,
+            },
+          ],
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.items[0].forStock).toBe(true);
+      expect(res.body.status).toBe('QUITADO');
+      cashOrderIds.push(res.body.id);
+    });
+
+    it('defaults forStock to false for a self item without a product', async () => {
+      const selfId = await makeSelfPerson();
+      const res = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-CASH-NOSTOCK'),
+          items: [
+            { description: 'Item manual', chargedValue: 10, personId: selfId },
+          ],
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.items[0].forStock).toBe(false);
+      cashOrderIds.push(res.body.id);
+    });
+
+    it('keeps forStock false for a non-self legacy item with a product', async () => {
+      const otherId = await makeRegularPerson();
+      const productId = await makeProduct();
+      const res = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-CASH-LEGACYSTOCK'),
+          items: [
+            {
+              description: 'Item',
+              chargedValue: 75,
+              personId: otherId,
+              productId,
+            },
+          ],
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.items[0].personId).toBe(otherId);
+      expect(res.body.items[0].forStock).toBe(false);
+      cashOrderIds.push(res.body.id);
+    });
+
+    it('allows an item without a person when no self person exists', async () => {
+      const res = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-CASH-NOSELF'),
+          items: [{ description: 'Item', chargedValue: 10 }],
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.items[0].personId).toBeNull();
+      cashOrderIds.push(res.body.id);
     });
   });
 

@@ -409,14 +409,17 @@ describe('OrdersPage', () => {
       expect(pvCell).toHaveTextContent('—');
     });
 
-    it('should display Valor doTERRA per order', async () => {
+    it('should not display the Valor doTERRA column (value is derived)', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText(/R\$\s*350,00/)).toBeInTheDocument();
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
+      expect(
+        screen.queryByRole('columnheader', { name: 'Valor doTERRA' }),
+      ).not.toBeInTheDocument();
     });
 
-    it('should display "Conta ID", "Pagamento", "PV doTERRA" and "Valor doTERRA" column headers', async () => {
+    it('should display "Conta ID", "Pagamento" and "PV doTERRA" column headers', async () => {
       renderPage();
       await waitFor(() => {
         expect(
@@ -429,8 +432,8 @@ describe('OrdersPage', () => {
           screen.getByRole('columnheader', { name: 'PV doTERRA' }),
         ).toBeInTheDocument();
         expect(
-          screen.getByRole('columnheader', { name: 'Valor doTERRA' }),
-        ).toBeInTheDocument();
+          screen.queryByRole('columnheader', { name: 'Valor doTERRA' }),
+        ).not.toBeInTheDocument();
       });
     });
 
@@ -661,7 +664,7 @@ describe('OrdersPage', () => {
       });
     });
 
-    it('should display person dropdown in item row', async () => {
+    it('should show the read-only "Você" person field in item rows for non-team orders', async () => {
       renderPage();
 
       await waitFor(() => {
@@ -671,7 +674,7 @@ describe('OrdersPage', () => {
       fireEvent.click(screen.getByText('Novo Pedido'));
 
       await waitFor(() => {
-        expect(screen.getByText('Selecione uma pessoa')).toBeInTheDocument();
+        expect(screen.getAllByDisplayValue('Você').length).toBeGreaterThan(0);
       });
     });
 
@@ -779,8 +782,6 @@ describe('OrdersPage', () => {
 
       const valueInput = screen.getByPlaceholderText('0,00');
       fireEvent.change(valueInput, { target: { value: '15000' } });
-      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
-      fireEvent.change(personSelect, { target: { value: 'p1' } });
 
       const form = screen
         .getByPlaceholderText('Informe o número do pedido da dōTERRA')
@@ -838,7 +839,7 @@ describe('OrdersPage', () => {
       });
     });
 
-    it('should display PV doTERRA and Valor doTERRA fields initialized empty', async () => {
+    it('should display PV doTERRA field initialized empty and no Valor doTERRA input', async () => {
       renderPage();
 
       await waitFor(() => {
@@ -849,10 +850,11 @@ describe('OrdersPage', () => {
 
       await waitFor(() => {
         expect(screen.getByLabelText('PV doTERRA')).toBeInTheDocument();
-        expect(screen.getByLabelText('Valor doTERRA (R$)')).toBeInTheDocument();
       });
       expect(screen.getByLabelText('PV doTERRA').value).toBe('');
-      expect(screen.getByLabelText('Valor doTERRA (R$)').value).toBe('');
+      expect(
+        screen.queryByLabelText('Valor doTERRA (R$)'),
+      ).not.toBeInTheDocument();
     });
 
     it('should display the attachment file input in create modal', async () => {
@@ -983,7 +985,7 @@ describe('OrdersPage', () => {
 
       await waitFor(() => {
         expect(
-          screen.getAllByText('Soma dos Produtos (Valor Cobrado)').length,
+          screen.getAllByText('Soma dos Produtos (Valor Pago)').length,
         ).toBeGreaterThan(0);
       });
 
@@ -1062,14 +1064,9 @@ describe('OrdersPage', () => {
       fireEvent.change(screen.getByLabelText('PV doTERRA'), {
         target: { value: '35.5' },
       });
-      fireEvent.change(screen.getByLabelText('Valor doTERRA (R$)'), {
-        target: { value: '25075' },
-      });
 
       const valueInput = screen.getByPlaceholderText('0,00');
       fireEvent.change(valueInput, { target: { value: '15000' } });
-      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
-      fireEvent.change(personSelect, { target: { value: 'p1' } });
 
       const form = screen
         .getByPlaceholderText('Informe o número do pedido da dōTERRA')
@@ -1084,9 +1081,9 @@ describe('OrdersPage', () => {
             paymentType: 'PIX',
             orderNotes: 'Promoção de março',
             doterraPv: 35.5,
-            doterraValue: 250.75,
           }),
         );
+        expect(mockPost.mock.calls[0][1]).not.toHaveProperty('doterraValue');
       });
     });
 
@@ -1186,8 +1183,6 @@ describe('OrdersPage', () => {
 
       const valueInput = screen.getByPlaceholderText('0,00');
       fireEvent.change(valueInput, { target: { value: '5000' } });
-      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
-      fireEvent.change(personSelect, { target: { value: 'p1' } });
 
       const form = screen
         .getByPlaceholderText('Informe o número do pedido da dōTERRA')
@@ -1202,9 +1197,9 @@ describe('OrdersPage', () => {
             paymentType: null,
             orderNotes: null,
             doterraPv: null,
-            doterraValue: null,
           }),
         );
+        expect(mockPost.mock.calls[0][1]).not.toHaveProperty('doterraValue');
       });
     });
   });
@@ -1388,6 +1383,128 @@ describe('OrdersPage', () => {
       expect(screen.getByText('Limpar produto')).toBeInTheDocument();
     });
 
+    it('should prefill "Valor Pago" with the member price when a product is selected', async () => {
+      await openModal();
+      const combobox = screen.getByPlaceholderText('Busque um produto...');
+      fireEvent.change(combobox, { target: { value: 'Lavanda' } });
+      fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('0,00').value).toBe('180,00');
+      });
+    });
+
+    it('should prefill "Valor Pago" with 30% of the member price when cashback is used', async () => {
+      await openModal();
+      const combobox = screen.getByPlaceholderText('Busque um produto...');
+      fireEvent.change(combobox, { target: { value: 'Lavanda' } });
+      fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('0,00').value).toBe('180,00');
+      });
+
+      fireEvent.click(screen.getByTestId('order-item-cashback-0'));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('0,00').value).toBe('54,00');
+      });
+    });
+
+    it('should restore the member price when unchecking cashback', async () => {
+      await openModal();
+      const combobox = screen.getByPlaceholderText('Busque um produto...');
+      fireEvent.change(combobox, { target: { value: 'Lavanda' } });
+      fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('0,00').value).toBe('180,00');
+      });
+
+      fireEvent.click(screen.getByTestId('order-item-cashback-0'));
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('0,00').value).toBe('54,00');
+      });
+
+      fireEvent.click(screen.getByTestId('order-item-cashback-0'));
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('0,00').value).toBe('180,00');
+      });
+    });
+
+    it('should recalculate "Valor Pago" when the product changes with cashback still checked', async () => {
+      await openModal();
+      const combobox = screen.getByPlaceholderText('Busque um produto...');
+      fireEvent.change(combobox, { target: { value: 'Lavanda' } });
+      fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('0,00').value).toBe('180,00');
+      });
+
+      fireEvent.click(screen.getByTestId('order-item-cashback-0'));
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('0,00').value).toBe('54,00');
+      });
+
+      fireEvent.change(combobox, { target: { value: 'Adaptiv' } });
+      fireEvent.mouseDown(screen.getByText(/Adaptiv Pastilhas/));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('0,00').value).toBe('27,00');
+      });
+    });
+
+    it('should keep the manually edited "Valor Pago" until the product or cashback changes', async () => {
+      await openModal();
+      const combobox = screen.getByPlaceholderText('Busque um produto...');
+      fireEvent.change(combobox, { target: { value: 'Lavanda' } });
+      fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('0,00').value).toBe('180,00');
+      });
+
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '12345' },
+      });
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('0,00').value).toBe('123,45');
+      });
+    });
+
+    it('should send useCashback in the item payload when checked', async () => {
+      mockPost.mockResolvedValue({ data: { id: '3', orderNumber: 'ORD-CB' } });
+      await openModal();
+
+      fireEvent.change(
+        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        { target: { value: 'ORD-CB' } },
+      );
+      const combobox = screen.getByPlaceholderText('Busque um produto...');
+      fireEvent.change(combobox, { target: { value: 'Lavanda' } });
+      fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
+      fireEvent.click(screen.getByTestId('order-item-cashback-0'));
+
+      const form = screen
+        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
+        .closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith(
+          '/orders',
+          expect.objectContaining({
+            items: [
+              expect.objectContaining({
+                useCashback: true,
+                chargedValue: 54,
+                forStock: true,
+              }),
+            ],
+          }),
+        );
+      });
+    });
+
     it('should clear product and its snapshot fields when clicking "Limpar produto"', async () => {
       await openModal();
       const combobox = screen.getByPlaceholderText('Busque um produto...');
@@ -1424,8 +1541,6 @@ describe('OrdersPage', () => {
       const valueInput = screen.getByPlaceholderText('0,00');
       fireEvent.change(valueInput, { target: { value: '17500' } });
 
-      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
-      fireEvent.change(personSelect, { target: { value: 'p1' } });
       const detailsArea = screen.getByPlaceholderText(
         'Adicione detalhes do item (até 500 caracteres)',
       );
@@ -1446,7 +1561,8 @@ describe('OrdersPage', () => {
                 chargedValue: 175,
                 memberPrice: 180,
                 details: 'Pedido urgente',
-                personId: 'p1',
+                personId: '',
+                forStock: true,
               }),
             ],
           }),
@@ -1467,8 +1583,6 @@ describe('OrdersPage', () => {
 
       const valueInput = screen.getByPlaceholderText('0,00');
       fireEvent.change(valueInput, { target: { value: '5000' } });
-      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
-      fireEvent.change(personSelect, { target: { value: 'p1' } });
 
       const form = screen
         .getByPlaceholderText('Informe o número do pedido da dōTERRA')
@@ -1484,7 +1598,8 @@ describe('OrdersPage', () => {
                 productId: null,
                 memberPrice: null,
                 chargedValue: 50,
-                personId: 'p1',
+                personId: '',
+                forStock: false,
               }),
             ],
           }),
@@ -1518,8 +1633,6 @@ describe('OrdersPage', () => {
         screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
         { target: { value: 'ORD-EMPTY' } },
       );
-      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
-      fireEvent.change(personSelect, { target: { value: 'p1' } });
 
       const form = screen
         .getByPlaceholderText('Informe o número do pedido da dōTERRA')
@@ -1533,7 +1646,7 @@ describe('OrdersPage', () => {
             items: [
               expect.objectContaining({
                 chargedValue: 0,
-                personId: 'p1',
+                personId: '',
               }),
             ],
           }),
@@ -1547,8 +1660,6 @@ describe('OrdersPage', () => {
         screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
         { target: { value: 'ORD-NEG' } },
       );
-      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
-      fireEvent.change(personSelect, { target: { value: 'p1' } });
       const valueInput = screen.getByPlaceholderText('0,00');
       fireEvent.change(valueInput, { target: { value: '-5' } });
 
@@ -1570,8 +1681,6 @@ describe('OrdersPage', () => {
         screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
         { target: { value: 'ORD-FRT' } },
       );
-      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
-      fireEvent.change(personSelect, { target: { value: 'p1' } });
       fireEvent.change(screen.getByTestId('order-freight'), {
         target: { value: '2550' },
       });
@@ -1599,8 +1708,6 @@ describe('OrdersPage', () => {
         screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
         { target: { value: 'ORD-FRT0' } },
       );
-      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
-      fireEvent.change(personSelect, { target: { value: 'p1' } });
 
       const form = screen
         .getByPlaceholderText('Informe o número do pedido da dōTERRA')
@@ -1621,8 +1728,6 @@ describe('OrdersPage', () => {
         screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
         { target: { value: 'ORD-FRTNEG' } },
       );
-      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
-      fireEvent.change(personSelect, { target: { value: 'p1' } });
       fireEvent.change(screen.getByTestId('order-freight'), {
         target: { value: '-10' },
       });
@@ -1647,8 +1752,11 @@ describe('OrdersPage', () => {
 
       fireEvent.change(
         screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
-        { target: { value: 'ORD-NOPERSON' } },
+        { target: { value: 'ORD-BADQTY' } },
       );
+      fireEvent.change(screen.getByTestId('order-item-quantity-0'), {
+        target: { value: '0' },
+      });
       const form = screen
         .getByPlaceholderText('Informe o número do pedido da dōTERRA')
         .closest('form');
@@ -1657,7 +1765,7 @@ describe('OrdersPage', () => {
       await waitFor(() => {
         expect(
           within(screen.getByTestId('order-item-0')).getByText(
-            'Pessoa é obrigatória',
+            'Quantidade deve ser maior ou igual a 1',
           ),
         ).toBeInTheDocument();
       });
@@ -1665,7 +1773,7 @@ describe('OrdersPage', () => {
       const modal = document.querySelector('.fixed.inset-0.z-\\[60\\]');
       expect(modal).not.toBeNull();
       expect(
-        within(modal).getByText('Pessoa é obrigatória'),
+        within(modal).getByText('Quantidade deve ser maior ou igual a 1'),
       ).toBeInTheDocument();
     });
 
@@ -1675,6 +1783,9 @@ describe('OrdersPage', () => {
         screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
         { target: { value: 'ORD-FIXED' } },
       );
+      fireEvent.change(screen.getByTestId('order-item-quantity-0'), {
+        target: { value: '0' },
+      });
       const form = screen
         .getByPlaceholderText('Informe o número do pedido da dōTERRA')
         .closest('form');
@@ -1683,17 +1794,18 @@ describe('OrdersPage', () => {
       await waitFor(() => {
         expect(
           within(screen.getByTestId('order-item-0')).getByText(
-            'Pessoa é obrigatória',
+            'Quantidade deve ser maior ou igual a 1',
           ),
         ).toBeInTheDocument();
       });
 
-      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
-      fireEvent.change(personSelect, { target: { value: 'p1' } });
+      fireEvent.change(screen.getByTestId('order-item-quantity-0'), {
+        target: { value: '2' },
+      });
 
       expect(
         within(screen.getByTestId('order-item-0')).queryByText(
-          'Pessoa é obrigatória',
+          'Quantidade deve ser maior ou igual a 1',
         ),
       ).not.toBeInTheDocument();
     });
@@ -1708,8 +1820,6 @@ describe('OrdersPage', () => {
         screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
         { target: { value: 'ORD-FAIL' } },
       );
-      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
-      fireEvent.change(personSelect, { target: { value: 'p1' } });
       const valueInput = screen.getByPlaceholderText('0,00');
       fireEvent.change(valueInput, { target: { value: '10000' } });
 
@@ -1740,8 +1850,6 @@ describe('OrdersPage', () => {
       );
       const valueInput = screen.getByPlaceholderText('0,00');
       fireEvent.change(valueInput, { target: { value: '0' } });
-      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
-      fireEvent.change(personSelect, { target: { value: 'p1' } });
 
       const form = screen
         .getByPlaceholderText('Informe o número do pedido da dōTERRA')
@@ -1755,7 +1863,7 @@ describe('OrdersPage', () => {
             items: [
               expect.objectContaining({
                 chargedValue: 0,
-                personId: 'p1',
+                personId: '',
               }),
             ],
           }),
@@ -1895,7 +2003,9 @@ describe('OrdersPage', () => {
         'Pedido de promoção de março',
       );
       expect(screen.getByLabelText('PV doTERRA').value).toBe('45');
-      expect(screen.getByLabelText('Valor doTERRA (R$)').value).toBe('350,00');
+      expect(
+        screen.queryByLabelText('Valor doTERRA (R$)'),
+      ).not.toBeInTheDocument();
     });
 
     it('should send descriptive fields when updating an order', async () => {
@@ -2217,7 +2327,7 @@ describe('OrdersPage', () => {
     });
   });
 
-  describe('Self person selection in order form', () => {
+  describe('Person binding in order form', () => {
     const SELF_PERSON_ID = '__SELF__';
 
     const openCreateModal = async () => {
@@ -2232,19 +2342,27 @@ describe('OrdersPage', () => {
       });
     };
 
-    it('should show an "Eu (você)" option in the person select when no self person exists', async () => {
+    const enableTeamOrder = async () => {
+      const teamToggle = screen.getByTestId('order-is-team-order');
+      fireEvent.click(teamToggle);
+      await waitFor(() => {
+        expect(screen.getByText('Selecione uma pessoa')).toBeInTheDocument();
+      });
+    };
+
+    it('should show a read-only "Você" person field (no select) on non-team orders', async () => {
       mockGetImplementation([], mockPeople);
       renderPage();
 
       await openCreateModal();
 
-      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
-      const options = within(personSelect).getAllByRole('option');
-      const labels = options.map((o) => o.textContent);
-      expect(labels).toContain('Eu (você)');
+      expect(
+        screen.queryByText('Selecione uma pessoa'),
+      ).not.toBeInTheDocument();
+      expect(screen.getAllByDisplayValue('Você').length).toBeGreaterThan(0);
     });
 
-    it('should auto-create the self person and bind it to the item when "Eu (você)" is selected', async () => {
+    it('should auto-create the self person and bind it when a team order selects "Eu (você)"', async () => {
       mockGetImplementation([], mockPeople);
       mockPost.mockImplementation((url) => {
         if (url === '/people/self') {
@@ -2260,6 +2378,7 @@ describe('OrdersPage', () => {
       renderPage();
 
       await openCreateModal();
+      await enableTeamOrder();
 
       const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
       fireEvent.change(personSelect, { target: { value: SELF_PERSON_ID } });
@@ -2293,12 +2412,13 @@ describe('OrdersPage', () => {
       });
     });
 
-    it('should show the self person with "(Você)" and bind it directly without auto-creating', async () => {
+    it('should show the self person with "(Você)" in the team-order person select without auto-creating', async () => {
       const selfPerson = { id: 'p-self', name: 'João Silva', isSelf: true };
       mockGetImplementation([], [selfPerson, ...mockPeople]);
       renderPage();
 
       await openCreateModal();
+      await enableTeamOrder();
 
       const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
       const options = within(personSelect).getAllByRole('option');
@@ -2374,53 +2494,40 @@ describe('OrdersPage', () => {
       });
     });
 
-    it('should only show the stock toggle when the item person is self', async () => {
+    it('should show the stock toggle on non-team orders and hide it for team orders', async () => {
       const selfPerson = { id: 'p-self', name: 'Eu', isSelf: true };
       mockGetImplementation([], [selfPerson, ...mockPeople]);
       mockPost.mockResolvedValue({ data: { id: '1', orderNumber: 'ORD-S' } });
       renderPage();
       await openCreateModal();
 
-      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
-
-      // No person selected yet -> no toggle
-      expect(
-        screen.queryByTestId('order-item-stock-toggle-0'),
-      ).not.toBeInTheDocument();
-
-      // Switch to a non-self person -> still no toggle
-      fireEvent.change(personSelect, { target: { value: 'p1' } });
-      expect(
-        screen.queryByTestId('order-item-stock-toggle-0'),
-      ).not.toBeInTheDocument();
-
-      // Switch back to self -> toggle appears
-      fireEvent.change(personSelect, { target: { value: 'p-self' } });
+      // Non-team: the toggle is available (items are the user's own).
       expect(
         screen.getByTestId('order-item-stock-toggle-0'),
       ).toBeInTheDocument();
+
+      // Team order: no stock toggle.
+      const teamToggle = screen.getByTestId('order-is-team-order');
+      fireEvent.click(teamToggle);
+      expect(
+        screen.queryByTestId('order-item-stock-toggle-0'),
+      ).not.toBeInTheDocument();
     });
 
-    it('should reset forStock when switching from self to a non-self person', async () => {
+    it('should send forStock false for team order items', async () => {
       const selfPerson = { id: 'p-self', name: 'Eu', isSelf: true };
       mockGetImplementation([], [selfPerson, ...mockPeople]);
       mockPost.mockResolvedValue({ data: { id: '1', orderNumber: 'ORD-R' } });
       renderPage();
       await openCreateModal();
 
-      fireEvent.change(screen.getByDisplayValue('Selecione uma pessoa'), {
-        target: { value: 'p-self' },
-      });
-      const toggle = screen.getByTestId('order-item-stock-toggle-0');
-      fireEvent.click(toggle);
-      expect(toggle.checked).toBe(true);
-
-      fireEvent.change(screen.getByDisplayValue(/Eu \(Você\)/), {
-        target: { value: 'p1' },
-      });
-      expect(
-        screen.queryByTestId('order-item-stock-toggle-0'),
-      ).not.toBeInTheDocument();
+      // With the stock toggle on before switching to a team order, the saved
+      // item still never affects stock.
+      fireEvent.click(screen.getByTestId('order-item-stock-toggle-0'));
+      const teamToggle = screen.getByTestId('order-is-team-order');
+      fireEvent.click(teamToggle);
+      const personSelect = screen.getByDisplayValue('Selecione uma pessoa');
+      fireEvent.change(personSelect, { target: { value: 'p1' } });
 
       const form = screen
         .getByPlaceholderText('Informe o número do pedido da dōTERRA')
@@ -2443,15 +2550,10 @@ describe('OrdersPage', () => {
     });
 
     it('should send quantity, forStock and chargedValueMode in the create payload', async () => {
-      const selfPerson = { id: 'p-self', name: 'Eu', isSelf: true };
-      mockGetImplementation([], [selfPerson, ...mockPeople]);
       mockPost.mockResolvedValue({ data: { id: '1', orderNumber: 'ORD-P' } });
       renderPage();
       await openCreateModal();
 
-      fireEvent.change(screen.getByDisplayValue('Selecione uma pessoa'), {
-        target: { value: 'p-self' },
-      });
       fireEvent.change(screen.getByTestId('order-item-quantity-0'), {
         target: { value: '3' },
       });
@@ -2475,7 +2577,7 @@ describe('OrdersPage', () => {
           expect.objectContaining({
             items: expect.arrayContaining([
               expect.objectContaining({
-                personId: 'p-self',
+                personId: '',
                 quantity: 3,
                 forStock: true,
                 chargedValueMode: 'UNIT',
@@ -2487,15 +2589,10 @@ describe('OrdersPage', () => {
     });
 
     it('NOT should call /stock/movements from the frontend when creating an order', async () => {
-      const selfPerson = { id: 'p-self', name: 'Eu', isSelf: true };
-      mockGetImplementation([], [selfPerson, ...mockPeople]);
       mockPost.mockResolvedValue({ data: { id: '1', orderNumber: 'O' } });
       renderPage();
       await openCreateModal();
 
-      fireEvent.change(screen.getByDisplayValue('Selecione uma pessoa'), {
-        target: { value: 'p-self' },
-      });
       fireEvent.click(screen.getByTestId('order-item-stock-toggle-0'));
       fireEvent.change(
         screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
@@ -2630,9 +2727,6 @@ describe('OrdersPage', () => {
         screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
         { target: { value: 'ORD-NEGPV' } },
       );
-      fireEvent.change(screen.getByDisplayValue('Selecione uma pessoa'), {
-        target: { value: 'p1' },
-      });
       fireEvent.change(screen.getByPlaceholderText('0,00'), {
         target: { value: '5000' },
       });
@@ -2650,18 +2744,12 @@ describe('OrdersPage', () => {
       expect(mockPost).not.toHaveBeenCalled();
     });
 
-    it('should strip the minus sign from the Valor doTERRA field instead of allowing negatives', async () => {
+    it('should not render a Valor doTERRA input on the order form', async () => {
       mockGetImplementation([], mockPeople);
       renderPage();
       await openCreateModal();
-      fireEvent.change(screen.getByLabelText('Valor doTERRA (R$)'), {
-        target: { value: '-1' },
-      });
-      await waitFor(() => {
-        expect(screen.getByLabelText('Valor doTERRA (R$)')).toHaveValue('0,01');
-      });
       expect(
-        screen.queryByTestId('order-doterra-value-error'),
+        screen.queryByLabelText('Valor doTERRA (R$)'),
       ).not.toBeInTheDocument();
     });
 
@@ -2687,9 +2775,6 @@ describe('OrdersPage', () => {
       );
       fireEvent.change(screen.getByPlaceholderText('0,00'), {
         target: { value: '10000' },
-      });
-      fireEvent.change(screen.getByDisplayValue('Selecione uma pessoa'), {
-        target: { value: 'p1' },
       });
 
       const form = screen
@@ -2919,10 +3004,7 @@ describe('OrdersPage', () => {
       });
     };
 
-    const selectSelfAndKitProduct = async () => {
-      fireEvent.change(screen.getByDisplayValue('Selecione uma pessoa'), {
-        target: { value: 'p-self' },
-      });
+    const selectKitProduct = async () => {
       const combobox = screen.getByPlaceholderText('Busque um produto...');
       fireEvent.change(combobox, { target: { value: 'Kit Bem-estar' } });
       fireEvent.mouseDown(screen.getAllByText(/Kit Bem-estar/).at(-1));
@@ -2937,8 +3019,11 @@ describe('OrdersPage', () => {
       renderPage();
       await openCreateModal();
 
-      await selectSelfAndKitProduct();
-      fireEvent.click(screen.getByTestId('order-item-stock-toggle-0'));
+      // Selecting a product auto-checks the stock toggle on non-team orders.
+      await selectKitProduct();
+      expect(screen.getByTestId('order-item-stock-toggle-0').checked).toBe(
+        true,
+      );
 
       expect(
         screen.getByTestId('order-item-kit-mode-kit-0'),
@@ -2954,16 +3039,12 @@ describe('OrdersPage', () => {
       renderPage();
       await openCreateModal();
 
-      fireEvent.change(screen.getByDisplayValue('Selecione uma pessoa'), {
-        target: { value: 'p-self' },
-      });
       const combobox = screen.getByPlaceholderText('Busque um produto...');
       fireEvent.change(combobox, { target: { value: 'Óleo Simples' } });
       fireEvent.mouseDown(screen.getAllByText(/Óleo Simples/).at(-1));
       await waitFor(() => {
         expect(combobox.value).toContain('Óleo Simples');
       });
-      fireEvent.click(screen.getByTestId('order-item-stock-toggle-0'));
 
       expect(
         screen.queryByTestId('order-item-kit-mode-kit-0'),
@@ -2976,8 +3057,7 @@ describe('OrdersPage', () => {
       renderPage();
       await openCreateModal();
 
-      await selectSelfAndKitProduct();
-      fireEvent.click(screen.getByTestId('order-item-stock-toggle-0'));
+      await selectKitProduct();
       fireEvent.change(
         screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
         { target: { value: 'ORD-KIT-MODE' } },
@@ -3005,8 +3085,7 @@ describe('OrdersPage', () => {
       renderPage();
       await openCreateModal();
 
-      await selectSelfAndKitProduct();
-      fireEvent.click(screen.getByTestId('order-item-stock-toggle-0'));
+      await selectKitProduct();
       fireEvent.click(screen.getByTestId('order-item-kit-mode-components-0'));
       fireEvent.change(
         screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
@@ -3027,7 +3106,7 @@ describe('OrdersPage', () => {
           expect.objectContaining({
             items: expect.arrayContaining([
               expect.objectContaining({
-                personId: 'p-self',
+                personId: '',
                 forStock: true,
                 kitStockMode: 'COMPONENTS',
               }),

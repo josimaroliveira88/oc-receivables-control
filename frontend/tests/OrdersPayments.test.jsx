@@ -765,7 +765,7 @@ describe('OrdersPayments', () => {
       expect(pvCell).toHaveTextContent('—');
     });
 
-    it('should render Valor doTERRA formatted as BRL', async () => {
+    it('should not render the Valor doTERRA column (value is derived)', async () => {
       mockGetImplementation([mockOrders[0]]);
       renderPage();
 
@@ -774,21 +774,11 @@ describe('OrdersPayments', () => {
       });
 
       expect(
-        within(rowFor('ORD-001')).getByText(/R\$\s*310,00/),
-      ).toBeInTheDocument();
-    });
-
-    it('should render a dash when Valor doTERRA is absent', async () => {
-      mockGetImplementation([mockOrders[1]]);
-      renderPage();
-
-      await waitFor(() => {
-        expect(screen.getByText('ORD-002')).toBeInTheDocument();
-      });
-
-      const row = rowFor('ORD-002');
-      const valueCell = row.querySelector('td[data-label="Valor doTERRA"]');
-      expect(valueCell).toHaveTextContent('—');
+        within(rowFor('ORD-001')).queryByText(/R\$\s*310,00/),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('columnheader', { name: 'Valor doTERRA' }),
+      ).not.toBeInTheDocument();
     });
 
     it('should render description truncated with full text in title', async () => {
