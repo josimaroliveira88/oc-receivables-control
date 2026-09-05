@@ -65,6 +65,16 @@ cd backend && npm run load:products -- [csv-path] [--date YYYY-MM-DD] [--dry-run
 
 The loader deactivates active products absent from the CSV. Always use the complete catalog and run `--dry-run` first.
 
+## Commit Conventions
+
+- Use **Conventional Commits**: `type(scope): subject` in English, lowercase subject, imperative mood, no trailing period.
+- Types seen in this repo: `feat`, `fix`, `refactor`, `test`, `docs`, `style`, `config`.
+- Scope names the affected area, e.g. `orders`, `people`, `products`, `sales`, `stock`, `payments`, `currency`, `auth`, `ui`, `frontend`, `backend`, `export`, `config`.
+- Group work per phase in small, focused commits: a `test(...)` commit covering the tests, a `feat(...)`/`fix(...)` commit for the behavior, and a `docs:` commit for the `CHANGELOG.md` entry when the phase is promoted. See the feature-grouped history (e.g. Phase 71–74) as the reference.
+- `NOTES.md` stays tracked by git but is **never committed**: update it freely following the template at the top of the file, but never stage or include it in a commit, even when it has pending changes. Backend refactoring phases (see `backend/docs/backend-refactoring-plan.md`) therefore land as a single `refactor(<scope>): ...` commit that includes only the code change; the matching `NOTES.md` entry stays uncommitted in the working tree until it is consolidated into `CHANGELOG.md`.
+- Never commit secrets, build artifacts, `node_modules`, or generated uploads. Commit only intended, related files.
+- Only commit, amend, push, or create PRs when explicitly requested by the user.
+
 ## Documentation Rules
 
 The project no longer maintains a running `## [Unreleased]` section in `CHANGELOG.md`. After each completed adjustment:
