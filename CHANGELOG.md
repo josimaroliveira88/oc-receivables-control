@@ -9,6 +9,18 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 82 — Lista de produtos comprados no detalhamento do cliente (2026-09-05)
+
+### Added
+- **Lista "Produtos comprados" no modal de detalhes do cliente**: o card do resumo financeiro virou um toggle clicável (chevron giratório, `aria-expanded`, testid `client-summary-toggle`); ao expandir, o modal busca o novo endpoint `GET /api/people/:id/purchases` (busca lazy, cacheada por cliente e revalidada ao trocar de pessoa) e exibe uma linha por item comprado — colunas Data (dd/mm/aaaa), Produto, Qtd e Total (BRL em centavos via `lineValueCents`), sem número de venda. Itens de pedidos `COMPRA` e `VENDA` aparecem em grupos separados ("Compras" e "Vendas", nesta ordem) e o título do grupo só aparece quando o cliente tem itens daquele tipo; sem itens, exibe "Nenhum produto comprado."
+- **Endpoint `GET /api/people/:id/purchases`** (`backend/src/routes/peopleRoutes.js`, `backend/src/controllers/peopleController.js`): ownership check idêntico ao do summary (404 para pessoa inexistente ou de outro usuário), exclusão de pedidos de equipe (mesma regra do resumo), payload por linha com `orderId`, `orderType`, `orderDate`, `name` (`product.name` com fallback para a descrição do item), `quantity` e `totalCents`, ordenado por data do pedido desc e nome do produto asc em empates.
+- **Navegação a partir da lista**: clicar no nome do produto abre a origem da compra — pedidos `COMPRA` navegam para `/orders?detailsOrder=<id>` (novo deep-link que abre o modal "Detalhamento" do pedido) e vendas `VENDA` navegam para `/sales?editSale=<id>` (deep-link já existente do formulário de vendas).
+
+### Tests
+- Backend: novo bloco `GET /api/people/:id/purchases` (`backend/tests/people.test.js`) cobrindo uma linha por item nos dois tipos de pedido (com shape exato do payload), modo UNIT × quantidade e TOTAL como valor cheio, fallback de nome para itens sem produto, exclusão de pedidos de equipe, lista vazia, ordenação (data desc, nome asc) e 404 de ownership/inexistência. **631 backend tests passing**.
+- Frontend: novo bloco "purchased products" no describe do modal de detalhes (`frontend/tests/PeoplePage.test.jsx`) cobrindo toggle expande/recolhe sem refetch, grupos Compras/Vendas filtrados por tipo, estado vazio, erro de carregamento, reset do estado ao abrir outro cliente e navegação para `/orders?detailsOrder=` e `/sales?editSale=` (com probe de rota); deep-link `?detailsOrder` do Orders coberto em `OrdersPayments.test.jsx` (abre o detalhamento e não o formulário de edição). **734 frontend tests passing**; lint sem erros (5 warnings do padrão pré-existente), `npm run format:check` e `cd frontend && npm run build` limpos.
+
+
 ## Phase 81 — Cashback de 70% nos itens de venda e refinamentos da lista de vendas (2026-09-05)
 
 ### Added
