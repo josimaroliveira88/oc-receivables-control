@@ -23,6 +23,42 @@ describe('Toast', () => {
     expect(screen.getByText('Erro de teste')).toBeInTheDocument();
   });
 
+  it('renderiza erros Zod (array de issues) como mensagem legível sem quebrar a renderização', () => {
+    render(
+      <ToastProvider>
+        <ToastTrigger
+          message={[
+            {
+              validation: 'uuid',
+              code: 'invalid_string',
+              message: 'Person ID must be a valid UUID',
+              path: ['items', 0, 'personId'],
+            },
+          ]}
+          type="error"
+        />
+      </ToastProvider>,
+    );
+
+    fireEvent.click(screen.getByText('Disparar toast'));
+
+    expect(
+      screen.getByText('Person ID must be a valid UUID'),
+    ).toBeInTheDocument();
+  });
+
+  it('renderiza mensagem não-string (número) sem quebrar a renderização', () => {
+    render(
+      <ToastProvider>
+        <ToastTrigger message={42} type="error" />
+      </ToastProvider>,
+    );
+
+    fireEvent.click(screen.getByText('Disparar toast'));
+
+    expect(screen.getByText('42')).toBeInTheDocument();
+  });
+
   it('renderiza toast de sucesso ao disparar via contexto', () => {
     render(
       <ToastProvider>

@@ -1561,7 +1561,7 @@ describe('OrdersPage', () => {
                 chargedValue: 175,
                 memberPrice: 180,
                 details: 'Pedido urgente',
-                personId: '',
+                personId: null,
                 forStock: true,
               }),
             ],
@@ -1598,7 +1598,7 @@ describe('OrdersPage', () => {
                 productId: null,
                 memberPrice: null,
                 chargedValue: 50,
-                personId: '',
+                personId: null,
                 forStock: false,
               }),
             ],
@@ -1646,7 +1646,7 @@ describe('OrdersPage', () => {
             items: [
               expect.objectContaining({
                 chargedValue: 0,
-                personId: '',
+                personId: null,
               }),
             ],
           }),
@@ -1838,6 +1838,48 @@ describe('OrdersPage', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('should show Zod validation errors (array payload) as a readable toast without crashing', async () => {
+      mockPost.mockRejectedValue({
+        response: {
+          status: 400,
+          data: {
+            error: [
+              {
+                validation: 'uuid',
+                code: 'invalid_string',
+                message: 'Person ID must be a valid UUID',
+                path: ['items', 0, 'personId'],
+              },
+            ],
+          },
+        },
+      });
+      await openModal();
+
+      fireEvent.change(
+        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        { target: { value: 'ORD-FAIL-ZOD' } },
+      );
+      const valueInput = screen.getByPlaceholderText('0,00');
+      fireEvent.change(valueInput, { target: { value: '10000' } });
+
+      const form = screen
+        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
+        .closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Person ID must be a valid UUID'),
+        ).toBeInTheDocument();
+      });
+      // The page must remain interactive after the failed save (no blank
+      // screen), and the modal must stay open for the user to fix the data.
+      expect(
+        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+      ).toBeInTheDocument();
+    });
+
     it('should allow zero charged value (free item / gift)', async () => {
       mockPost.mockResolvedValue({
         data: { id: '3', orderNumber: 'ORD-GIFT' },
@@ -1863,7 +1905,7 @@ describe('OrdersPage', () => {
             items: [
               expect.objectContaining({
                 chargedValue: 0,
-                personId: '',
+                personId: null,
               }),
             ],
           }),
@@ -2577,7 +2619,7 @@ describe('OrdersPage', () => {
           expect.objectContaining({
             items: expect.arrayContaining([
               expect.objectContaining({
-                personId: '',
+                personId: null,
                 quantity: 3,
                 forStock: true,
                 chargedValueMode: 'UNIT',
@@ -3106,7 +3148,7 @@ describe('OrdersPage', () => {
           expect.objectContaining({
             items: expect.arrayContaining([
               expect.objectContaining({
-                personId: '',
+                personId: null,
                 forStock: true,
                 kitStockMode: 'COMPONENTS',
               }),

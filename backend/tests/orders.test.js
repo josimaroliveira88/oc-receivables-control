@@ -1401,6 +1401,54 @@ describe('Orders CRUD with Items', () => {
       cashOrderIds.push(res.body.id);
     });
 
+    it('accepts an empty personId string as "no person" and binds it to the self person', async () => {
+      const selfId = await makeSelfPerson();
+      const productId = await makeProduct();
+      const res = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-CASH-EMPTYPERSON'),
+          items: [
+            {
+              description: 'Lemongrass - Capim-limão',
+              chargedValue: 24.75,
+              personId: '',
+              productId,
+              memberPrice: 82.5,
+              quantity: 1,
+              forStock: true,
+              useCashback: true,
+              chargedValueMode: 'UNIT',
+            },
+          ],
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.items[0].personId).toBe(selfId);
+      expect(res.body.items[0].forStock).toBe(true);
+      cashOrderIds.push(res.body.id);
+    });
+
+    it('still rejects a personId that is not a valid UUID', async () => {
+      const res = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-CASH-BADUUID'),
+          items: [
+            { description: 'Item', chargedValue: 10, personId: 'not-a-uuid' },
+          ],
+        });
+
+      expect(res.status).toBe(400);
+      expect(
+        res.body.error.some(
+          (issue) => issue.message === 'Person ID must be a valid UUID',
+        ),
+      ).toBe(true);
+    });
+
     it('preserves an explicitly provided non-self person (legacy binding)', async () => {
       const otherId = await makeRegularPerson();
       const res = await request(app)
