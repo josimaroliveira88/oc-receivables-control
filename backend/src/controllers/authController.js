@@ -1,10 +1,9 @@
-const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET, JWT_EXPIRES_IN } = require('../config');
-const { z } = require('zod');
+const prisma = require('../config/database');
+const { handleError } = require('../middlewares/errorResponse');
 const { loginSchema, registerSchema } = require('../validators/authValidator');
-const prisma = new PrismaClient();
 
 const login = async (req, res) => {
   try {
@@ -40,11 +39,7 @@ const login = async (req, res) => {
       expiresIn: JWT_EXPIRES_IN,
     });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors });
-    }
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Login error' });
   }
 };
 
@@ -76,11 +71,7 @@ const register = async (req, res) => {
 
     res.status(201).json(user);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors });
-    }
-    console.error('Register error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Register error' });
   }
 };
 

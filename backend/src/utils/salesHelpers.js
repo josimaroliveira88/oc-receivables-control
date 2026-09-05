@@ -1,4 +1,5 @@
 const { toCents } = require('./money');
+const { badRequest } = require('./httpError');
 
 // DB-backed columns the user can sort by in the sales list.
 const SALES_SORTABLE_FIELDS = [
@@ -58,11 +59,7 @@ const validateSaleProducts = async (client, items) => {
   });
 
   if (products.length !== productIds.length) {
-    const error = new Error(
-      'One or more products are inactive or do not exist',
-    );
-    error.status = 400;
-    throw error;
+    throw badRequest('One or more products are inactive or do not exist');
   }
 };
 

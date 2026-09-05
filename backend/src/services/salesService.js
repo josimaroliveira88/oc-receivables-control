@@ -1,8 +1,8 @@
 // Sale (VENDA) order write/read operations, extracted from the sales
 // controller so the handlers stay thin. `client` is a Prisma client; each
 // write function owns its own `$transaction`. Business rejections are thrown
-// as plain Errors with `.status` (400/404) which the controller maps to the
-// HTTP response; R10 replaces these with the shared httpError helpers.
+// as HTTP-mapped errors (via utils/httpError.js) which the controller maps to
+// the HTTP response.
 const { computeOrderStatus } = require('../utils/receivables');
 const { lineValueCents, fromCents, toCents } = require('../utils/money');
 const { applyMovement } = require('./stockService');
@@ -18,12 +18,7 @@ const {
   SALES_SORTABLE_FIELDS,
   sortSalesInMemory,
 } = require('../utils/salesHelpers');
-
-const badRequest = (message) => {
-  const error = new Error(message);
-  error.status = 400;
-  throw error;
-};
+const { badRequest, notFound } = require('../utils/httpError');
 
 const saleLineTotalCents = (items) =>
   items.reduce((sum, item) => sum + lineValueCents(item), 0);
@@ -77,7 +72,7 @@ const nextSaleNumber = async (client, userId) => {
       throw error;
     }
   }
-  badRequest('Não foi possível gerar o número da venda');
+  throw badRequest('Não foi possível gerar o número da venda');
 };
 
 // Sale items always affect stock, so KIT products require a kitStockMode and
@@ -99,7 +94,7 @@ const resolveSaleKitFields = async (client, items) => {
     const type = item.productId ? typeById.get(item.productId) : null;
     if (type === 'KIT') {
       if (!item.kitStockMode) {
-        badRequest(
+        throw badRequest(
           'Itens de venda para produtos KIT exigem um kitStockMode (KIT ou COMPONENTS)',
         );
       }
@@ -136,7 +131,7 @@ const resolveSaleUpdateItems = async (client, existingItems, payloadItems) => {
       : null;
     if (type === 'KIT') {
       if (!item.kitStockMode && !existing.kitStockMode) {
-        badRequest(
+        throw badRequest(
           'Itens de venda para produtos KIT exigem um kitStockMode (KIT ou COMPONENTS)',
         );
       }
@@ -259,9 +254,7 @@ const getSaleById = async (client, { id, userId }) => {
   });
 
   if (!sale) {
-    const error = new Error('Sale order not found');
-    error.status = 404;
-    throw error;
+    throw notFound('Sale order not found');
   }
 
   return sale;
@@ -272,9 +265,11 @@ const createSale = async (client, { userId, payload }) => {
     const clientPerson = await tx.person.findFirst({
       where: { id: payload.clientPersonId, userId },
     });
-    if (!clientPerson) badRequest('Cliente não encontrado');
+    if (!clientPerson) throw badRequest('Cliente não encontrado');
     if (clientPerson.isSelf) {
-      badRequest('O cliente do pedido de venda não pode ser o próprio usuário');
+      throw badRequest(
+        'O cliente do pedido de venda não pode ser o próprio usuário',
+      );
     }
 
     const items = payload.items.map((item) => ({
@@ -334,7 +329,9 @@ const createSale = async (client, { userId, payload }) => {
     });
 
     if (!order.orderDate) {
-      badRequest('Data do pedido é obrigatória para movimentações de estoque');
+      throw badRequest(
+        'Data do pedido é obrigatória para movimentações de estoque',
+      );
     }
     // Every sale item deducts stock (SAIDA), expanding kit items into their
     // effective stock products.
@@ -367,16 +364,12 @@ const updateSale = async (client, { id, userId, payload }) => {
     });
 
     if (!existingOrder) {
-      const error = new Error('Sale order not found');
-      error.status = 404;
-      throw error;
+      throw notFound('Sale order not found');
     }
     if (existingOrder.orderType !== 'VENDA') {
-      const error = new Error(
+      throw badRequest(
         'Este é um pedido de compra; use os endpoints de pedidos (/api/orders)',
       );
-      error.status = 400;
-      throw error;
     }
 
     if (!payload.items) {
@@ -384,9 +377,9 @@ const updateSale = async (client, { id, userId, payload }) => {
         const candidate = await tx.person.findFirst({
           where: { id: payload.clientPersonId, userId },
         });
-        if (!candidate) badRequest('Cliente não encontrado');
+        if (!candidate) throw badRequest('Cliente não encontrado');
         if (candidate.isSelf) {
-          badRequest(
+          throw badRequest(
             'O cliente do pedido de venda não pode ser o próprio usuário',
           );
         }
@@ -460,9 +453,9 @@ const updateSale = async (client, { id, userId, payload }) => {
       clientPerson = await tx.person.findFirst({
         where: { id: payload.clientPersonId, userId },
       });
-      if (!clientPerson) badRequest('Cliente não encontrado');
+      if (!clientPerson) throw badRequest('Cliente não encontrado');
       if (clientPerson.isSelf) {
-        badRequest(
+        throw badRequest(
           'O cliente do pedido de venda não pode ser o próprio usuário',
         );
       }
@@ -492,7 +485,9 @@ const updateSale = async (client, { id, userId, payload }) => {
       ? parseLocalDate(payload.orderDate)
       : existingOrder.orderDate;
     if (!effectiveOrderDate) {
-      badRequest('Data do pedido é obrigatória para movimentações de estoque');
+      throw badRequest(
+        'Data do pedido é obrigatória para movimentações de estoque',
+      );
     }
 
     // Stock diff: increasing the sold quantity deducts more (SAIDA), reducing
@@ -592,20 +587,18 @@ const deleteSale = async (client, { id, userId }) => {
     });
 
     if (!existingOrder) {
-      const error = new Error('Sale order not found');
-      error.status = 404;
-      throw error;
+      throw notFound('Sale order not found');
     }
     if (existingOrder.orderType !== 'VENDA') {
-      const error = new Error(
+      throw badRequest(
         'Este é um pedido de compra; use os endpoints de pedidos (/api/orders)',
       );
-      error.status = 400;
-      throw error;
     }
 
     if (!existingOrder.orderDate) {
-      badRequest('Data do pedido é obrigatória para movimentações de estoque');
+      throw badRequest(
+        'Data do pedido é obrigatória para movimentações de estoque',
+      );
     }
 
     // Reverse the sale: restore stock (ENTRADA) for every item sold.

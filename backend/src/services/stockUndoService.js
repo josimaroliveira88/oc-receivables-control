@@ -1,14 +1,15 @@
 // Undo rules for the last manual stock movement, extracted from the Stock
 // controller so they can be unit-tested against a stubbed transaction client.
 // `client` is either the Prisma client or a transaction client (`tx`).
-// Throws errors with `.status` (plus `.orderNumber`/`.orderId` on the
-// order-lock rejection) which the controller translates into the HTTP response.
+// Throws HTTP-mapped errors (via utils/httpError.js), plus `.orderNumber`/
+// `.orderId` on the order-lock rejection, which the controller translates
+// into the HTTP response.
+const { notFound, badRequest } = require('../utils/httpError');
+
 const undoLastMovement = async (client, { id, userId }) => {
   const movement = await client.stockMovement.findUnique({ where: { id } });
   if (!movement || movement.userId !== userId) {
-    const error = new Error('Movement not found');
-    error.status = 404;
-    throw error;
+    throw notFound('Movement not found');
   }
 
   if (movement.orderId) {
@@ -18,10 +19,9 @@ const undoLastMovement = async (client, { id, userId }) => {
     });
     const label = order && order.orderType === 'VENDA' ? 'Venda' : 'Pedido';
     const reference = order ? order.orderNumber : movement.orderId;
-    const error = new Error(
+    const error = badRequest(
       `Esta movimentação está vinculada ao ${label} ${reference} e só pode ser desfeita editando ou removendo o item correspondente no pedido.`,
     );
-    error.status = 400;
     error.orderNumber = order ? order.orderNumber : undefined;
     error.orderId = movement.orderId;
     throw error;
@@ -35,9 +35,7 @@ const undoLastMovement = async (client, { id, userId }) => {
     },
   });
   if (newerCount > 0) {
-    const error = new Error('Apenas a última movimentação pode ser desfeita');
-    error.status = 400;
-    throw error;
+    throw badRequest('Apenas a última movimentação pode ser desfeita');
   }
 
   const inventory = await client.inventory.findUnique({
@@ -48,11 +46,7 @@ const undoLastMovement = async (client, { id, userId }) => {
 
   const newQuantity = (inventory ? inventory.quantity : 0) - movement.quantity;
   if (newQuantity < 0) {
-    const error = new Error(
-      'Não é possível desfazer: resultaria em estoque negativo',
-    );
-    error.status = 400;
-    throw error;
+    throw badRequest('Não é possível desfazer: resultaria em estoque negativo');
   }
 
   const totalForPair = await client.stockMovement.count({

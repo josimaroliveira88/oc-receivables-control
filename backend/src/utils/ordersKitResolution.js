@@ -3,6 +3,7 @@
 // item based on its product type, enforcing the "kit composition changes never
 // affect stock control of already-registered orders" rule (requirement 5).
 const { resolveKitSnapshot } = require('./kitStock');
+const { badRequest } = require('./httpError');
 
 // Attaches the frozen kit snapshot (and validates the stock mode) to each item
 // based on its product type. For KIT products the current composition is
@@ -26,11 +27,9 @@ const resolveKitFields = async (client, items) => {
     const type = item.productId ? typeById.get(item.productId) : null;
     if (type === 'KIT') {
       if (item.forStock && !item.kitStockMode) {
-        const error = new Error(
+        throw badRequest(
           'Stock items for KIT products require a kitStockMode (KIT or COMPONENTS)',
         );
-        error.status = 400;
-        throw error;
       }
       item.kitStockMode = item.kitStockMode ?? null;
       item.kitSnapshot = await resolveKitSnapshot(client, item.productId);
@@ -59,11 +58,9 @@ const resolveEditedKitFields = async (client, oldItem, newItem) => {
     : null;
   if (type === 'KIT') {
     if (newItem.forStock && !newItem.kitStockMode && !oldItem.kitStockMode) {
-      const error = new Error(
+      throw badRequest(
         'Stock items for KIT products require a kitStockMode (KIT or COMPONENTS)',
       );
-      error.status = 400;
-      throw error;
     }
     newItem.kitStockMode = newItem.kitStockMode ?? oldItem.kitStockMode ?? null;
     newItem.kitSnapshot = oldItem.kitSnapshot ?? null;
@@ -100,11 +97,9 @@ const resolveOrderUpdateItems = async (client, existingItems, payloadItems) => {
       : null;
     if (type === 'KIT') {
       if (item.forStock && !item.kitStockMode && !existing.kitStockMode) {
-        const error = new Error(
+        throw badRequest(
           'Stock items for KIT products require a kitStockMode (KIT or COMPONENTS)',
         );
-        error.status = 400;
-        throw error;
       }
       item.kitStockMode = item.kitStockMode ?? existing.kitStockMode ?? null;
       item.kitSnapshot = existing.kitSnapshot ?? null;

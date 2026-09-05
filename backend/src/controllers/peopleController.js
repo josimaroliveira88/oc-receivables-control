@@ -1,6 +1,6 @@
-const { PrismaClient } = require('@prisma/client');
-const { z } = require('zod');
-const prisma = new PrismaClient();
+const prisma = require('../config/database');
+const { handleError } = require('../middlewares/errorResponse');
+const { notFound } = require('../utils/httpError');
 const {
   syncOrderStatusesForPersons,
   personFinancialSummary,
@@ -45,8 +45,7 @@ const getPeople = async (req, res) => {
     });
     res.status(200).json(people);
   } catch (error) {
-    console.error('Error fetching people:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error fetching people' });
   }
 };
 
@@ -59,13 +58,12 @@ const getPersonById = async (req, res) => {
     });
 
     if (!person) {
-      return res.status(404).json({ error: 'Person not found' });
+      throw notFound('Person not found');
     }
 
     res.status(200).json(person);
   } catch (error) {
-    console.error('Error fetching person:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error fetching person' });
   }
 };
 
@@ -79,7 +77,7 @@ const getPersonSummary = async (req, res) => {
     });
 
     if (!person) {
-      return res.status(404).json({ error: 'Person not found' });
+      throw notFound('Person not found');
     }
 
     const [items, payments] = await Promise.all([
@@ -102,8 +100,7 @@ const getPersonSummary = async (req, res) => {
       .status(200)
       .json(personFinancialSummary(items, payments, { isSelf: person.isSelf }));
   } catch (error) {
-    console.error('Error fetching person summary:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error fetching person summary' });
   }
 };
 
@@ -128,11 +125,7 @@ const createPerson = async (req, res) => {
     });
     res.status(201).json(person);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors });
-    }
-    console.error('Error creating person:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error creating person' });
   }
 };
 
@@ -148,7 +141,7 @@ const updatePerson = async (req, res) => {
     });
 
     if (!existingPerson) {
-      return res.status(404).json({ error: 'Person not found' });
+      throw notFound('Person not found');
     }
 
     let displacedSelfId = null;
@@ -185,11 +178,7 @@ const updatePerson = async (req, res) => {
 
     res.status(200).json(person);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors });
-    }
-    console.error('Error updating person:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error updating person' });
   }
 };
 
@@ -218,8 +207,7 @@ const getOrCreateSelfPerson = async (req, res) => {
 
     res.status(201).json(person);
   } catch (error) {
-    console.error('Error getting or creating self person:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error getting or creating self person' });
   }
 };
 
@@ -234,7 +222,7 @@ const deletePerson = async (req, res) => {
     });
 
     if (!existingPerson) {
-      return res.status(404).json({ error: 'Person not found' });
+      throw notFound('Person not found');
     }
 
     await prisma.person.delete({
@@ -243,8 +231,7 @@ const deletePerson = async (req, res) => {
 
     res.status(200).json({ message: 'Person deleted successfully' });
   } catch (error) {
-    console.error('Error deleting person:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error deleting person' });
   }
 };
 

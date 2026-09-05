@@ -1,6 +1,5 @@
-const { PrismaClient } = require('@prisma/client');
-const { z } = require('zod');
-const prisma = new PrismaClient();
+const prisma = require('../config/database');
+const { handleError } = require('../middlewares/errorResponse');
 const ordersService = require('../services/ordersService');
 const { removeAttachmentFile } = require('../utils/attachmentStorage');
 const {
@@ -18,8 +17,7 @@ const getOrders = async (req, res) => {
     });
     res.status(200).json(result);
   } catch (error) {
-    console.error('Error fetching orders:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error fetching orders' });
   }
 };
 
@@ -33,11 +31,7 @@ const getOrderById = async (req, res) => {
     });
     res.status(200).json(result);
   } catch (error) {
-    if (error.status) {
-      return res.status(error.status).json({ error: error.message });
-    }
-    console.error('Error fetching order:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error fetching order' });
   }
 };
 
@@ -53,14 +47,7 @@ const createOrder = async (req, res) => {
 
     res.status(201).json(result);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors });
-    }
-    if (error.status) {
-      return res.status(error.status).json({ error: error.message });
-    }
-    console.error('Error creating order:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error creating order' });
   }
 };
 
@@ -78,14 +65,7 @@ const updateOrder = async (req, res) => {
 
     res.status(200).json(result);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors });
-    }
-    if (error.status) {
-      return res.status(error.status).json({ error: error.message });
-    }
-    console.error('Error updating order:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error updating order' });
   }
 };
 
@@ -105,11 +85,7 @@ const deleteOrder = async (req, res) => {
 
     res.status(200).json({ message });
   } catch (error) {
-    if (error.status) {
-      return res.status(error.status).json({ error: error.message });
-    }
-    console.error('Error deleting order:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error deleting order' });
   }
 };
 
@@ -127,14 +103,7 @@ const addItemToOrder = async (req, res) => {
 
     res.status(201).json(result);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors });
-    }
-    if (error.status) {
-      return res.status(error.status).json({ error: error.message });
-    }
-    console.error('Error adding item to order:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error adding item to order' });
   }
 };
 
@@ -152,14 +121,7 @@ const updateItem = async (req, res) => {
 
     res.status(200).json(result);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors });
-    }
-    if (error.status) {
-      return res.status(error.status).json({ error: error.message });
-    }
-    console.error('Error updating item:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error updating item' });
   }
 };
 
@@ -175,11 +137,7 @@ const deleteItem = async (req, res) => {
 
     res.status(200).json(result);
   } catch (error) {
-    if (error.status) {
-      return res.status(error.status).json({ error: error.message });
-    }
-    console.error('Error deleting item:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error deleting item' });
   }
 };
 

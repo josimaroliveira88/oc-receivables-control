@@ -1,6 +1,6 @@
-const { PrismaClient } = require('@prisma/client');
-const { z } = require('zod');
-const prisma = new PrismaClient();
+const prisma = require('../config/database');
+const { handleError } = require('../middlewares/errorResponse');
+const { notFound } = require('../utils/httpError');
 const { buildOrderBalances } = require('../utils/orderBalances');
 const {
   createPayment: createPaymentService,
@@ -28,11 +28,7 @@ const createPayment = async (req, res) => {
       order: result.order,
     });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors });
-    }
-    console.error('Error creating payment:', error);
-    res.status(error.status || 400).json({ error: error.message });
+    handleError(res, error, { label: 'Error creating payment', fallback: 400 });
   }
 };
 
@@ -53,11 +49,7 @@ const updatePayment = async (req, res) => {
       order: result.order,
     });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors });
-    }
-    console.error('Error updating payment:', error);
-    res.status(error.status || 400).json({ error: error.message });
+    handleError(res, error, { label: 'Error updating payment', fallback: 400 });
   }
 };
 
@@ -82,7 +74,7 @@ const getOrderBalance = async (req, res) => {
     });
 
     if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
+      throw notFound('Order not found');
     }
 
     const balances = buildOrderBalances(order);
@@ -94,8 +86,7 @@ const getOrderBalance = async (req, res) => {
       balances,
     });
   } catch (error) {
-    console.error('Error fetching order balance:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error fetching order balance' });
   }
 };
 

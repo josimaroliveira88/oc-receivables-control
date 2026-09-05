@@ -1,6 +1,5 @@
-const { PrismaClient } = require('@prisma/client');
-const { z } = require('zod');
-const prisma = new PrismaClient();
+const prisma = require('../config/database');
+const { handleError } = require('../middlewares/errorResponse');
 const {
   createSaleSchema,
   updateSaleSchema,
@@ -15,8 +14,7 @@ const getSales = async (req, res) => {
     });
     res.status(200).json(result);
   } catch (error) {
-    console.error('Error fetching sales:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error fetching sales' });
   }
 };
 
@@ -29,11 +27,7 @@ const getSaleById = async (req, res) => {
     });
     res.status(200).json(result);
   } catch (error) {
-    if (error.status) {
-      return res.status(error.status).json({ error: error.message });
-    }
-    console.error('Error fetching sale:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error fetching sale' });
   }
 };
 
@@ -48,14 +42,7 @@ const createSale = async (req, res) => {
 
     res.status(201).json(result);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors });
-    }
-    if (error.status) {
-      return res.status(error.status).json({ error: error.message });
-    }
-    console.error('Error creating sale:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error creating sale' });
   }
 };
 
@@ -72,14 +59,7 @@ const updateSale = async (req, res) => {
 
     res.status(200).json(result);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors });
-    }
-    if (error.status) {
-      return res.status(error.status).json({ error: error.message });
-    }
-    console.error('Error updating sale:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error updating sale' });
   }
 };
 
@@ -94,11 +74,7 @@ const deleteSale = async (req, res) => {
 
     res.status(200).json(result);
   } catch (error) {
-    if (error.status) {
-      return res.status(error.status).json({ error: error.message });
-    }
-    console.error('Error deleting sale:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error deleting sale' });
   }
 };
 

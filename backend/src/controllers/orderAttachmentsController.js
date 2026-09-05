@@ -1,27 +1,22 @@
 const fs = require('fs');
-const { PrismaClient } = require('@prisma/client');
 const { resolveAttachmentPath } = require('../middlewares/upload');
+const prisma = require('../config/database');
+const { handleError } = require('../middlewares/errorResponse');
 const {
   attachmentMaxBytes,
   attachmentContentType,
   removeAttachmentFile,
 } = require('../utils/attachmentStorage');
+const { badRequest, notFound } = require('../utils/httpError');
 
-const prisma = new PrismaClient();
-
-const findOwnedOrder = async (req, res) => {
+const findOwnedOrder = async (req) => {
   const { id } = req.params;
   const order = await prisma.order.findFirst({
     where: { id, userId: req.user.userId },
   });
-  if (!order) {
-    res.status(404).json({ error: 'Order not found' });
-    return null;
-  }
   // Sale orders have no dōTERRA screenshot attachment; treat them as absent.
-  if (order.orderType !== 'COMPRA') {
-    res.status(404).json({ error: 'Order not found' });
-    return null;
+  if (!order || order.orderType !== 'COMPRA') {
+    throw notFound('Order not found');
   }
   return order;
 };
@@ -29,16 +24,15 @@ const findOwnedOrder = async (req, res) => {
 // POST /api/orders/:id/attachment — upload or replace the order attachment.
 const uploadAttachment = async (req, res) => {
   try {
-    const order = await findOwnedOrder(req, res);
-    if (!order) return;
+    const order = await findOwnedOrder(req);
 
     if (!req.file) {
-      return res.status(400).json({ error: 'No file provided' });
+      throw badRequest('No file provided');
     }
 
     if (req.file.size > attachmentMaxBytes()) {
       removeAttachmentFile(req.file.filename);
-      return res.status(400).json({ error: 'File is too large' });
+      throw badRequest('File is too large');
     }
 
     if (order.attachmentFilename) {
@@ -52,27 +46,22 @@ const uploadAttachment = async (req, res) => {
 
     res.status(200).json({ attachmentFilename: updated.attachmentFilename });
   } catch (error) {
-    if (error.status) {
-      return res.status(error.status).json({ error: error.message });
-    }
-    console.error('Error uploading attachment:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error uploading attachment' });
   }
 };
 
 // GET /api/orders/:id/attachment — stream the stored image to the caller.
 const getAttachment = async (req, res) => {
   try {
-    const order = await findOwnedOrder(req, res);
-    if (!order) return;
+    const order = await findOwnedOrder(req);
 
     if (!order.attachmentFilename) {
-      return res.status(404).json({ error: 'Attachment not found' });
+      throw notFound('Attachment not found');
     }
 
     const filePath = resolveAttachmentPath(order.attachmentFilename);
     if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: 'Attachment not found' });
+      throw notFound('Attachment not found');
     }
 
     res.setHeader(
@@ -81,22 +70,17 @@ const getAttachment = async (req, res) => {
     );
     res.sendFile(filePath);
   } catch (error) {
-    if (error.status) {
-      return res.status(error.status).json({ error: error.message });
-    }
-    console.error('Error getting attachment:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error getting attachment' });
   }
 };
 
 // DELETE /api/orders/:id/attachment — remove the attachment and its file.
 const deleteAttachment = async (req, res) => {
   try {
-    const order = await findOwnedOrder(req, res);
-    if (!order) return;
+    const order = await findOwnedOrder(req);
 
     if (!order.attachmentFilename) {
-      return res.status(404).json({ error: 'Attachment not found' });
+      throw notFound('Attachment not found');
     }
 
     removeAttachmentFile(order.attachmentFilename);
@@ -107,11 +91,7 @@ const deleteAttachment = async (req, res) => {
 
     res.status(200).json({ message: 'Attachment deleted successfully' });
   } catch (error) {
-    if (error.status) {
-      return res.status(error.status).json({ error: error.message });
-    }
-    console.error('Error deleting attachment:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error deleting attachment' });
   }
 };
 

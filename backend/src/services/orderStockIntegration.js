@@ -13,15 +13,14 @@
 //
 // `client` is either the Prisma client or a transaction client (`tx`).
 const { expandItemToStockProducts } = require('../utils/kitStock');
+const { badRequest } = require('../utils/httpError');
 const { applyMovement } = require('./stockService');
 
 const itemStockMovements = (client, { order, items }) => {
   if (!order.orderDate) {
-    const error = new Error(
+    throw badRequest(
       'Data do pedido é obrigatória para movimentações de estoque',
     );
-    error.status = 400;
-    throw error;
   }
 
   const movements = [];

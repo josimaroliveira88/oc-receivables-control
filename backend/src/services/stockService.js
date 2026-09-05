@@ -2,6 +2,8 @@
 // the automatic order-to-stock integration. `client` is either the Prisma
 // client or a transaction client (`tx`), so callers can keep consistency
 // within their own transaction.
+const { notFound, badRequest } = require('../utils/httpError');
+
 const applyMovement = async (
   client,
   {
@@ -20,9 +22,7 @@ const applyMovement = async (
   });
 
   if (!product) {
-    const error = new Error('Product not found');
-    error.status = 404;
-    throw error;
+    throw notFound('Product not found');
   }
 
   const inventory = await client.inventory.findUnique({
@@ -43,13 +43,11 @@ const applyMovement = async (
     signedQuantity = -quantity;
     newQuantity = currentQuantity - quantity;
     if (newQuantity < 0) {
-      const error = new Error(
+      throw badRequest(
         `Estoque insuficiente para ${
           product.name || product.code
         }: disponível ${currentQuantity}, necessário ${quantity}`,
       );
-      error.status = 400;
-      throw error;
     }
   } else {
     signedQuantity = quantity;

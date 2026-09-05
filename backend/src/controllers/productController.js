@@ -1,6 +1,6 @@
-const { PrismaClient } = require('@prisma/client');
-const { z } = require('zod');
-const prisma = new PrismaClient();
+const prisma = require('../config/database');
+const { handleError } = require('../middlewares/errorResponse');
+const { notFound } = require('../utils/httpError');
 const {
   createProductSchema,
   updateProductSchema,
@@ -84,8 +84,7 @@ const getProducts = async (req, res) => {
 
     res.status(200).json({ data, pagination });
   } catch (error) {
-    console.error('Error fetching products:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error fetching products' });
   }
 };
 
@@ -105,13 +104,12 @@ const getProductById = async (req, res) => {
     });
 
     if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
+      throw notFound('Product not found');
     }
 
     res.status(200).json(projectCurrentPrice(product));
   } catch (error) {
-    console.error('Error fetching product:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error fetching product' });
   }
 };
 
@@ -173,14 +171,7 @@ const createProduct = async (req, res) => {
 
     res.status(201).json(projectCurrentPrice(product));
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors });
-    }
-    if (error.status) {
-      return res.status(error.status).json({ error: error.message });
-    }
-    console.error('Error creating product:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error creating product' });
   }
 };
 
@@ -202,7 +193,7 @@ const updateProduct = async (req, res) => {
     });
 
     if (!existingProduct) {
-      return res.status(404).json({ error: 'Product not found' });
+      throw notFound('Product not found');
     }
 
     const product = await prisma.$transaction(async (tx) => {
@@ -321,14 +312,7 @@ const updateProduct = async (req, res) => {
 
     res.status(200).json(projectCurrentPrice(product));
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors });
-    }
-    if (error.status) {
-      return res.status(error.status).json({ error: error.message });
-    }
-    console.error('Error updating product:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error updating product' });
   }
 };
 
@@ -341,7 +325,7 @@ const deleteProduct = async (req, res) => {
     });
 
     if (!existingProduct) {
-      return res.status(404).json({ error: 'Product not found' });
+      throw notFound('Product not found');
     }
 
     await prisma.product.update({
@@ -351,8 +335,7 @@ const deleteProduct = async (req, res) => {
 
     res.status(200).json({ message: 'Product deactivated successfully' });
   } catch (error) {
-    console.error('Error deactivating product:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error deactivating product' });
   }
 };
 

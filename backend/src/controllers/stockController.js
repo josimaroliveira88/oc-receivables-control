@@ -1,5 +1,6 @@
 const prisma = require('../config/database');
-const { z } = require('zod');
+const { handleError } = require('../middlewares/errorResponse');
+const { badRequest, notFound } = require('../utils/httpError');
 const { applyMovement } = require('../services/stockService');
 const stockUndoService = require('../services/stockUndoService');
 const { movementSchema } = require('../validators/stockValidator');
@@ -58,8 +59,7 @@ const listInventory = async (req, res) => {
 
     res.status(200).json(data);
   } catch (error) {
-    console.error('Error fetching inventory:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error fetching inventory' });
   }
 };
 
@@ -72,7 +72,7 @@ const getProductHistory = async (req, res) => {
     });
 
     if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
+      throw notFound('Product not found');
     }
 
     const movements = await prisma.stockMovement.findMany({
@@ -90,14 +90,13 @@ const getProductHistory = async (req, res) => {
         },
       });
       if (!inventory) {
-        return res.status(404).json({ error: 'Product not found' });
+        throw notFound('Product not found');
       }
     }
 
     res.status(200).json(movements);
   } catch (error) {
-    console.error('Error fetching stock history:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error fetching stock history' });
   }
 };
 
@@ -111,15 +110,15 @@ const registerMovement = async (req, res) => {
       : undefined;
 
     if ((type === 'ENTRADA' || type === 'SAIDA') && quantity <= 0) {
-      return res.status(400).json({
-        error: 'Quantity must be greater than zero for ENTRADA and SAIDA',
-      });
+      throw badRequest(
+        'Quantity must be greater than zero for ENTRADA and SAIDA',
+      );
     }
 
     if (type === 'AJUSTE' && quantity < 0) {
-      return res.status(400).json({
-        error: 'Quantity must be greater than or equal to zero for AJUSTE',
-      });
+      throw badRequest(
+        'Quantity must be greater than or equal to zero for AJUSTE',
+      );
     }
 
     const result = await prisma.$transaction(async (tx) => {
@@ -138,12 +137,10 @@ const registerMovement = async (req, res) => {
       inventory: result.inventory,
     });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors });
-    }
-    console.error('Error registering movement:', error);
-    const status = error.status || 400;
-    res.status(status).json({ error: error.message });
+    handleError(res, error, {
+      label: 'Error registering movement',
+      fallback: 400,
+    });
   }
 };
 
@@ -157,12 +154,10 @@ const undoLastMovement = async (req, res) => {
 
     res.status(200).json(result);
   } catch (error) {
-    console.error('Error undoing movement:', error);
-    const status = error.status || 400;
-    const body = { error: error.message };
-    if (error.orderNumber) body.orderNumber = error.orderNumber;
-    if (error.orderId) body.orderId = error.orderId;
-    res.status(status).json(body);
+    handleError(res, error, {
+      label: 'Error undoing movement',
+      fallback: 400,
+    });
   }
 };
 

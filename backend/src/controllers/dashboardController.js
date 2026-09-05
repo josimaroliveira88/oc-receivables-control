@@ -1,5 +1,5 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../config/database');
+const { handleError } = require('../middlewares/errorResponse');
 const { buildDashboardSummary } = require('../utils/dashboardProjection');
 
 const getDashboardData = async (req, res) => {
@@ -33,8 +33,7 @@ const getDashboardData = async (req, res) => {
 
     res.status(200).json(summary);
   } catch (error) {
-    console.error('Error fetching dashboard data:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    handleError(res, error, { label: 'Error fetching dashboard data' });
   }
 };
 

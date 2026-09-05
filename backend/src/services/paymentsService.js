@@ -1,12 +1,15 @@
 // Payment write operations, extracted from the payments controller so the
 // handlers stay thin. `client` is a Prisma client; each function owns its own
 // `$transaction` (payments are the outermost operation). Business rejections
-// are thrown as plain Errors with `.status` (400/404) which the controller
-// maps to the HTTP response; R10 replaces these with the shared httpError
-// helpers.
+// are thrown as HTTP-mapped errors (via utils/httpError.js) which the
+// controller maps to the HTTP response.
 const { toCents, lineValueCents } = require('../utils/money');
 const { computeOrderStatus } = require('../utils/receivables');
 const { parseLocalDate } = require('../utils/date');
+const { badRequest, notFound } = require('../utils/httpError');
+
+const TEAM_ORDER_MESSAGE =
+  'Pedidos da equipe não aceitam pagamentos (a equipe já realizou o pagamento)';
 
 const createPayment = async (client, { userId, orderId, payload }) => {
   const amountCents = Math.round(payload.amount * 100);
@@ -25,17 +28,11 @@ const createPayment = async (client, { userId, orderId, payload }) => {
     });
 
     if (!order) {
-      const error = new Error('Order not found');
-      error.status = 400;
-      throw error;
+      throw badRequest('Order not found');
     }
 
     if (order.isTeamOrder) {
-      const error = new Error(
-        'Pedidos da equipe não aceitam pagamentos (a equipe já realizou o pagamento)',
-      );
-      error.status = 400;
-      throw error;
+      throw badRequest(TEAM_ORDER_MESSAGE);
     }
 
     const person = await tx.person.findFirst({
@@ -43,9 +40,7 @@ const createPayment = async (client, { userId, orderId, payload }) => {
     });
 
     if (!person) {
-      const error = new Error('Person not found');
-      error.status = 400;
-      throw error;
+      throw badRequest('Person not found');
     }
 
     const itemSumCents = order.items
@@ -53,11 +48,9 @@ const createPayment = async (client, { userId, orderId, payload }) => {
       .reduce((sum, item) => sum + lineValueCents(item), 0);
 
     if (itemSumCents > 0 && amountCents === 0) {
-      const error = new Error(
+      throw badRequest(
         'Amount must be greater than zero for a person with chargeable items',
       );
-      error.status = 400;
-      throw error;
     }
 
     const payment = await tx.payment.create({
@@ -113,9 +106,7 @@ const updatePayment = async (client, { id, userId, payload }) => {
     });
 
     if (!existingPayment || existingPayment.order.userId !== userId) {
-      const error = new Error('Payment not found');
-      error.status = 404;
-      throw error;
+      throw notFound('Payment not found');
     }
 
     const order = await tx.order.findFirst({
@@ -131,17 +122,11 @@ const updatePayment = async (client, { id, userId, payload }) => {
     });
 
     if (!order) {
-      const error = new Error('Payment not found');
-      error.status = 404;
-      throw error;
+      throw notFound('Payment not found');
     }
 
     if (order.isTeamOrder) {
-      const error = new Error(
-        'Pedidos da equipe não aceitam pagamentos (a equipe já realizou o pagamento)',
-      );
-      error.status = 400;
-      throw error;
+      throw badRequest(TEAM_ORDER_MESSAGE);
     }
 
     const itemSumCents = order.items
@@ -149,11 +134,9 @@ const updatePayment = async (client, { id, userId, payload }) => {
       .reduce((sum, item) => sum + lineValueCents(item), 0);
 
     if (itemSumCents > 0 && amountCents === 0) {
-      const error = new Error(
+      throw badRequest(
         'Amount must be greater than zero for a person with chargeable items',
       );
-      error.status = 400;
-      throw error;
     }
 
     const payment = await tx.payment.update({

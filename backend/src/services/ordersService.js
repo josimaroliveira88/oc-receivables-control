@@ -1,9 +1,10 @@
 // Purchase-order (COMPRA) write/read operations, extracted from the orders
 // controller so the handlers stay thin. `client` is a Prisma client; each
 // write function owns its own `$transaction`. Business rejections are thrown
-// as plain Errors with `.status` (400/404) which the controller maps to the
-// HTTP response; R10 replaces these with the shared httpError helpers.
+// as HTTP-mapped errors (via utils/httpError.js) which the controller maps to
+// the HTTP response.
 const { fromCents, lineValueCents, toCents } = require('../utils/money');
+const { badRequest, notFound } = require('../utils/httpError');
 const { computeOrderStatus } = require('../utils/receivables');
 const { applyMovement } = require('./stockService');
 const { computeStockDiff } = require('../utils/stockDiff');
@@ -136,9 +137,7 @@ const getOrderById = async (client, { id, userId }) => {
   });
 
   if (!order) {
-    const error = new Error('Order not found');
-    error.status = 404;
-    throw error;
+    throw notFound('Order not found');
   }
 
   return order;
@@ -153,9 +152,7 @@ const createOrder = async (client, { userId, payload }) => {
     });
 
     if (persons.length !== personIds.length) {
-      const error = new Error('One or more persons not found');
-      error.status = 400;
-      throw error;
+      throw badRequest('One or more persons not found');
     }
 
     // Verify all products exist and are available (ATIVO or INDISPONIVEL)
@@ -249,9 +246,7 @@ const updateOrder = async (client, { id, userId, payload }) => {
     });
 
     if (!existingOrder) {
-      const error = new Error('Order not found');
-      error.status = 404;
-      throw error;
+      throw notFound('Order not found');
     }
 
     assertNotSaleOrder(existingOrder);
@@ -331,9 +326,7 @@ const updateOrder = async (client, { id, userId, payload }) => {
     });
 
     if (persons.length !== personIds.length) {
-      const error = new Error('One or more persons not found');
-      error.status = 400;
-      throw error;
+      throw badRequest('One or more persons not found');
     }
 
     // Verify all products exist and are available (ATIVO or INDISPONIVEL)
@@ -373,11 +366,9 @@ const updateOrder = async (client, { id, userId, payload }) => {
         ? parseLocalDate(payload.orderDate)
         : existingOrder.orderDate;
       if (!effectiveOrderDate) {
-        const error = new Error(
+        throw badRequest(
           'Data do pedido é obrigatória para movimentações de estoque',
         );
-        error.status = 400;
-        throw error;
       }
       for (const { productId, delta } of diff) {
         if (delta > 0) {
@@ -508,9 +499,7 @@ const deleteOrder = async (client, { id, userId }) => {
     });
 
     if (!existingOrder) {
-      const error = new Error('Order not found');
-      error.status = 404;
-      throw error;
+      throw notFound('Order not found');
     }
 
     assertNotSaleOrder(existingOrder);
@@ -522,11 +511,9 @@ const deleteOrder = async (client, { id, userId }) => {
     // affected the user's stock, so nothing is reversed.
     if (!existingOrder.isTeamOrder) {
       if (!existingOrder.orderDate) {
-        const error = new Error(
+        throw badRequest(
           'Data do pedido é obrigatória para movimentações de estoque',
         );
-        error.status = 400;
-        throw error;
       }
       await reverseOrderStock(tx, {
         order: existingOrder,
@@ -549,19 +536,15 @@ const addItemToOrder = async (client, { orderId, userId, payload }) => {
     });
 
     if (!order) {
-      const error = new Error('Order not found');
-      error.status = 404;
-      throw error;
+      throw notFound('Order not found');
     }
 
     assertNotSaleOrder(order);
 
     if (!order.orderDate) {
-      const error = new Error(
+      throw badRequest(
         'Data do pedido é obrigatória para movimentações de estoque',
       );
-      error.status = 400;
-      throw error;
     }
 
     // Check if person exists and belongs to user
@@ -570,9 +553,7 @@ const addItemToOrder = async (client, { orderId, userId, payload }) => {
     });
 
     if (!person) {
-      const error = new Error('Person not found');
-      error.status = 400;
-      throw error;
+      throw badRequest('Person not found');
     }
 
     // Verify product exists and is available (when provided)
@@ -657,15 +638,11 @@ const updateItem = async (client, { id: itemId, userId, payload }) => {
     });
 
     if (!existingItem) {
-      const error = new Error('Item not found');
-      error.status = 404;
-      throw error;
+      throw notFound('Item not found');
     }
 
     if (existingItem.order.userId !== userId) {
-      const error = new Error('Item not found');
-      error.status = 404;
-      throw error;
+      throw notFound('Item not found');
     }
 
     assertNotSaleOrder(existingItem.order);
@@ -679,9 +656,7 @@ const updateItem = async (client, { id: itemId, userId, payload }) => {
         where: { id: payload.personId, userId },
       });
       if (!person) {
-        const error = new Error('Person not found');
-        error.status = 400;
-        throw error;
+        throw badRequest('Person not found');
       }
       newPerson = person;
     }
@@ -804,15 +779,11 @@ const deleteItem = async (client, { id: itemId, userId }) => {
     });
 
     if (!existingItem) {
-      const error = new Error('Item not found');
-      error.status = 404;
-      throw error;
+      throw notFound('Item not found');
     }
 
     if (existingItem.order.userId !== userId) {
-      const error = new Error('Item not found');
-      error.status = 404;
-      throw error;
+      throw notFound('Item not found');
     }
 
     assertNotSaleOrder(existingItem.order);

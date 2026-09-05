@@ -1,6 +1,7 @@
-// Purchase-order validation helpers. Throws Errors with `.status` (400)
-// which the service/controller map to the HTTP response; R10 replaces these
-// with the shared httpError helpers.
+// Purchase-order validation helpers. Throws HTTP-mapped errors (via
+// utils/httpError.js) which the service/controller translate into the HTTP
+// response.
+const { badRequest } = require('./httpError');
 
 // Verify all products exist and are available (ATIVO or INDISPONIVEL; INATIVO is rejected)
 const validateProducts = async (client, items) => {
@@ -17,11 +18,7 @@ const validateProducts = async (client, items) => {
   });
 
   if (products.length !== productIds.length) {
-    const error = new Error(
-      'One or more products are inactive or do not exist',
-    );
-    error.status = 400;
-    throw error;
+    throw badRequest('One or more products are inactive or do not exist');
   }
 };
 
@@ -31,16 +28,10 @@ const validateStockItemRules = (items, selfPersonIds) => {
   for (const item of items) {
     if (!item.forStock) continue;
     if (!selfPersonIds.has(item.personId)) {
-      const error = new Error(
-        'Stock items are only allowed for the user themselves',
-      );
-      error.status = 400;
-      throw error;
+      throw badRequest('Stock items are only allowed for the user themselves');
     }
     if (!item.productId) {
-      const error = new Error('Stock items require a catalog product');
-      error.status = 400;
-      throw error;
+      throw badRequest('Stock items require a catalog product');
     }
   }
 };
@@ -52,11 +43,9 @@ const selfPersonIdSet = (persons) =>
 // semantics are never accidentally triggered through the /api/orders routes.
 const assertNotSaleOrder = (order) => {
   if (order.orderType === 'VENDA') {
-    const error = new Error(
+    throw badRequest(
       'Este é um pedido de venda; use os endpoints de vendas (/api/sales)',
     );
-    error.status = 400;
-    throw error;
   }
 };
 
