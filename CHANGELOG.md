@@ -9,6 +9,22 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 81 — Cashback de 70% nos itens de venda e refinamentos da lista de vendas (2026-09-05)
+
+### Added
+- **Checkbox "O produto teve origem no cashback de 70%"** nos itens do formulário de venda: ao marcar, aparece o campo somente leitura "Valor Membro c/ 70% de desconto (total)" (total de membro × 0,30, via `memberCashbackLineTotal`/`CASHBACK_DISCOUNT_RATE` em `saleHelpers.js`); o campo "Valor Membro (total)" permanece sempre visível e o "Valor Cobrado" continua editável, sem prefill automático. O flag é persistido no `Item.useCashback` já existente (sem migração): `saleItemSchema` (`backend/src/validators/salesValidator.js`) aceita o boolean e `saleItemCreateData`/`saleItemUpdateData` (`backend/src/services/salesService.js`) persistem com default `false`.
+- **Coluna "Recebido" na lista de vendas**: exibe o total pago com cor por situação — vermelho quando recebido < valor da venda, verde quando igual, azul quando recebido a mais (comparação em centavos via `getSaleFinancials` em `SalesTable.jsx`). Coluna não ordenável.
+
+### Changed
+- **Descrição da lista de vendas em uma linha**: a célula usa `truncate` (reticências) com o texto completo no `title` (hover), no padrão já usado na tabela de pedidos; a coluna foi alargada (18% → 23%) para maximizar o texto visível.
+- **Tooltip de itens na célula "Cliente"**: o hover exibe os produtos e valores cobrados no formato "Produto (Cobrei R$ X)", itens unidos por " / " e sem separador para venda de item único (`getSaleClientTooltip` em `saleHelpers.js`; o valor é o total da linha respeitando o modo UNIT/TOTAL).
+- **Colunas e busca da lista**: coluna "Nº Venda" removida (o número continua visível no modal de detalhamento e a busca "Todas as colunas" continua pesquisando pelo número no backend) e a opção "Número da venda" removida do seletor de busca (`SALE_SEARCH_FIELD_OPTIONS`).
+
+### Tests
+- Backend: `POST /api/sales` persiste `useCashback: true` e default `false` quando omitido; `PUT /api/sales/:id` alterna e reverte o flag de um item existente. **623 backend tests passing** (27 arquivos).
+- Frontend: novo bloco "Sale item cashback" (checkbox desmarcado por default, exibição/ocultação do campo de 70%, escala com a quantidade, payload true/false, valor cobrado intocado ao alternar, edição reflete o flag salvo); lista sem coluna "Nº Venda" e sem a opção "Número da venda"; cores da coluna "Recebido" (menor/igual/maior) com fixture de overpayment; descrição truncada com `title`; tooltip do cliente com um e dois itens; testes que ancoravam linhas em "V-0001"/"V-0002" reescritos para os nomes dos clientes. **725 frontend tests passing** (26 arquivos); lint sem erros novos (4 warnings preexistentes), `npm run format:check` e `cd frontend && npm run build` limpos.
+
+
 ## Phase 80 — Valor Total, frete do próprio usuário e campo Pessoa só em pedidos da equipe (2026-09-05)
 
 ### Changed
