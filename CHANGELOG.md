@@ -10,6 +10,26 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 78 — Pedidos do próprio usuário, cashback 70% e Valor doTERRA derivado (2026-09-05)
+
+### Added
+- **Checkbox de cashback por item**: novo `Item.useCashback` (migração `20260905120000_add_item_use_cashback`, `BOOLEAN NOT NULL DEFAULT false`). No formulário de pedido, o checkbox "Usei pontos de cashback e ganhei 70% de desconto" preenche o campo **Valor Pago** com 30% do preço de membro quando marcado, ou com o preço de membro quando desmarcado; o valor recalcula sempre que o produto ou o checkbox mudam (`prefilledChargedValue`/`CASHBACK_DISCOUNT_RATE` em `frontend/src/pages/Orders/utils/orderHelpers.js`) e continua editável.
+- **Vínculo automático dos itens ao usuário**: pedidos não-equipe deixam de exigir `personId` por item — o backend resolve o vínculo para a pessoa "Você" quando o campo é omitido (`resolveItemDefaults` em `backend/src/utils/ordersItemTransform.js`), preservando `personId`/`forStock` legados explicitamente informados para migração gradual. `forStock` passa a ter default `true` quando o item referencia um produto e está vinculado ao usuário; o checkbox continua disponível como override.
+- **`doterraValue` derivado do total**: em todo create/update/addItem/updateItem/deleteItem o campo `Order.doterraValue` é gravado em silêncio igual a `totalValue` (soma dos produtos + frete), e o payload `doterraValue` é ignorado.
+
+### Changed
+- **"Valor Cobrado" renomeado para "Valor Pago"** em toda a UI de pedidos (campo do item, total da linha e "Soma dos Produtos (Valor Pago)"), mantendo o campo editável.
+- **Seletor de pessoa por item só em pedidos da equipe**: pedidos normais exibem a pessoa como campo somente leitura ("Você" ou o nome legado), e o item nasce vinculado ao usuário; pedidos da equipe mantêm o seletor (quem do time fez o pedido).
+- **Selecionar um produto marca "para meu estoque" automaticamente**; limpar o produto desmarca (não há o que estocar).
+
+### Removed
+- **Input "Valor doTERRA (R$)"** do formulário e **coluna "Valor doTERRA"** da tabela de pedidos (o valor agora sempre corresponde ao total, tornando a coluna redundante). A coluna no banco e os registros antigos são preservados; o campo `doterraValue` não é mais aceito/validado no payload.
+
+### Tests
+- Backend: novo bloco "Item cashback, person binding and stock defaults" (8 testes: vínculo ao self, preservação de pessoa legada, `useCashback` default/true, defaults de `forStock`); bloco doTERRA atualizado para o valor derivado (payload ignorado, sync com o total). **618 backend tests passing** (27 arquivos).
+- Frontend: novos testes de prefill do Valor Pago (membro, 30% com cashback, recálculo ao trocar produto, edição manual, `useCashback` no payload), vínculo de pessoa (somente leitura em não-equipe; seletor e auto-criação do self em equipe), default de estoque ao selecionar produto; coluna/input "Valor doTERRA" removidos das expectativas. **707 frontend tests passing** (26 arquivos); lint sem erros novos (4 warnings preexistentes), `npm run format:check` e `cd frontend && npm run build` limpos.
+
+
 ## Phase 77 — Coluna "70% OFF" na tela de Produtos (2026-09-05)
 
 ### Added
