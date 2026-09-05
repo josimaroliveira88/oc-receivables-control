@@ -1209,6 +1209,112 @@ describe('OrdersPage', () => {
     });
   });
 
+  describe('Polite close on create', () => {
+    beforeEach(() => {
+      mockGetImplementation([]);
+    });
+
+    const openCreateModal = async () => {
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByText('Novo Pedido'));
+      await waitFor(() => {
+        expect(screen.getByText('Itens do Pedido')).toBeInTheDocument();
+      });
+    };
+
+    const typeOrderNumber = () => {
+      fireEvent.change(
+        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        { target: { value: 'ORD-TEST-1' } },
+      );
+    };
+
+    it('should close immediately on Escape when nothing was changed', async () => {
+      renderPage();
+      await openCreateModal();
+      fireEvent.keyDown(window, { key: 'Escape' });
+      await waitFor(() => {
+        expect(screen.queryByText('Itens do Pedido')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should close immediately via the form Cancel button when nothing was changed', async () => {
+      renderPage();
+      await openCreateModal();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+      await waitFor(() => {
+        expect(screen.queryByText('Itens do Pedido')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should ask for confirmation on Escape after a change was made', async () => {
+      renderPage();
+      await openCreateModal();
+      typeOrderNumber();
+      fireEvent.keyDown(window, { key: 'Escape' });
+      expect(screen.getByText('Descartar alterações?')).toBeInTheDocument();
+      expect(screen.getByText('Itens do Pedido')).toBeInTheDocument();
+    });
+
+    it('should ask for confirmation on backdrop click after a change was made', async () => {
+      renderPage();
+      await openCreateModal();
+      typeOrderNumber();
+      fireEvent.mouseDown(screen.getByTestId('modal-backdrop'));
+      expect(screen.getByText('Descartar alterações?')).toBeInTheDocument();
+      expect(screen.getByText('Itens do Pedido')).toBeInTheDocument();
+    });
+
+    it('should ask for confirmation on the close button after a change was made', async () => {
+      renderPage();
+      await openCreateModal();
+      typeOrderNumber();
+      fireEvent.click(screen.getByRole('button', { name: 'Fechar pedido' }));
+      expect(screen.getByText('Descartar alterações?')).toBeInTheDocument();
+      expect(screen.getByText('Itens do Pedido')).toBeInTheDocument();
+    });
+
+    it('should route the form Cancel button through the dirty check after a change', async () => {
+      renderPage();
+      await openCreateModal();
+      typeOrderNumber();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+      expect(screen.getByText('Descartar alterações?')).toBeInTheDocument();
+      expect(screen.getByText('Itens do Pedido')).toBeInTheDocument();
+    });
+
+    it('should close and lose the changes after confirming the discard', async () => {
+      renderPage();
+      await openCreateModal();
+      typeOrderNumber();
+      fireEvent.keyDown(window, { key: 'Escape' });
+      fireEvent.click(screen.getByRole('button', { name: 'Descartar' }));
+      await waitFor(() => {
+        expect(screen.queryByText('Itens do Pedido')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should keep the modal open and preserve the changes when cancelling the discard', async () => {
+      renderPage();
+      await openCreateModal();
+      typeOrderNumber();
+      fireEvent.keyDown(window, { key: 'Escape' });
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Continuar editando' }),
+      );
+      expect(
+        screen.queryByText('Descartar alterações?'),
+      ).not.toBeInTheDocument();
+      expect(screen.getByText('Itens do Pedido')).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA')
+          .value,
+      ).toBe('ORD-TEST-1');
+    });
+  });
+
   describe('Product combobox in item row', () => {
     beforeEach(() => {
       mockGetImplementation([]);
