@@ -62,7 +62,7 @@ const SalesPage = () => {
     handleDeleteSale,
     cancelDeleteSale,
     confirmDeleteSale,
-    setShowCreateModal,
+    openCreateSale,
   } = useSales();
 
   const {
@@ -147,7 +147,7 @@ const SalesPage = () => {
             Gestão de Vendas
           </h2>
           <button
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => openCreateSale()}
             className="mt-3 sm:mt-0 px-4 py-2 bg-gradient-to-r from-primary-700 to-primary-500 hover:from-primary-800 hover:to-primary-600 text-white font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
           >
             Nova Venda

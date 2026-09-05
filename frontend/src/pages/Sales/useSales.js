@@ -202,6 +202,20 @@ export function useSales() {
     setEditSaleId(null);
   };
 
+  const openCreateSale = () => {
+    setShowCreateModal(true);
+    setSaleFormInitial({
+      clientPersonId,
+      orderDate,
+      shippingValue,
+      additionalValue,
+      description,
+      deliveredAt,
+      items,
+    });
+    setError('');
+  };
+
   const setFormField = (field, value) => {
     switch (field) {
       case 'clientPersonId':
@@ -503,6 +517,6 @@ export function useSales() {
     handleDeleteSale,
     cancelDeleteSale,
     confirmDeleteSale,
-    setShowCreateModal,
+    openCreateSale,
   };
 }
