@@ -20,8 +20,6 @@ export function useProducts() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [loyaltyTier, setLoyaltyTier] = useState('');
-  const [showPointsColumn, setShowPointsColumn] = useState(false);
   const [sortBy, setSortBy] = useState('name');
   const [sortDir, setSortDir] = useState('asc');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -46,7 +44,7 @@ export function useProducts() {
       setAllProducts(response.data.data);
       setVisibleCount(PAGE_SIZE);
       setError('');
-    } catch (err) {
+    } catch (_err) {
       setError('Erro ao carregar produtos. Tente novamente.');
     } finally {
       setLoading(false);
@@ -90,10 +88,6 @@ export function useProducts() {
   const setCreateField = (field, value) => {
     setCreateForm((prev) => ({ ...prev, [field]: value }));
     setError('');
-  };
-
-  const togglePointsColumn = () => {
-    setShowPointsColumn((prev) => !prev);
   };
 
   const handleSort = (field, dir) => {
@@ -338,8 +332,6 @@ export function useProducts() {
     error,
     search,
     statusFilter,
-    loyaltyTier,
-    showPointsColumn,
     sortBy,
     sortDir,
     sentinelRef,
@@ -356,9 +348,6 @@ export function useProducts() {
     openCreateModal,
     setSearch,
     setStatusFilter,
-    setLoyaltyTier,
-    setShowPointsColumn,
-    togglePointsColumn,
     handleSort,
     setCreateField,
     setEditField,

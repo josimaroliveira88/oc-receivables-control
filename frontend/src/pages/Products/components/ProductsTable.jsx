@@ -1,13 +1,7 @@
 import React from 'react';
-import { Search, ExternalLink, Pencil, Copy, Eye, EyeOff } from 'lucide-react';
-import { formatBRL } from '../../../utils/money';
-import {
-  LOYALTY_TIERS,
-  calculatePoints,
-  formatPoints,
-  isBelowMinimumPv,
-  getLoyaltyTierDescription,
-} from '../utils/productHelpers';
+import { Search, ExternalLink, Pencil, Copy } from 'lucide-react';
+import { formatBRL, fromCents } from '../../../utils/money';
+import { calculateDiscountedPrice } from '../utils/productHelpers';
 import ProductsTableHeader from './ProductsTableHeader';
 import StatusBadgeDropdown from './StatusBadgeDropdown';
 import ActionMenu from '../../../components/ActionMenu';
@@ -19,15 +13,11 @@ const ProductsTable = ({
   totalCount,
   search,
   statusFilter,
-  loyaltyTier,
-  showPointsColumn,
   sortBy,
   sortDir,
   sentinelRef,
   onSearchChange,
   onStatusFilterChange,
-  onLoyaltyTierChange,
-  onTogglePointsColumn,
   onSort,
   onStatusChange,
   onEdit,
@@ -64,46 +54,6 @@ const ProductsTable = ({
                 <option value="INATIVO">Somente inativos</option>
               </select>
             </label>
-            {showPointsColumn && (
-              <div className="flex flex-col gap-1 sm:max-w-[220px]">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  <span className="sr-only">Regularidade</span>
-                  <select
-                    value={loyaltyTier}
-                    onChange={(e) => onLoyaltyTierChange(e.target.value)}
-                    className="w-full sm:w-auto px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-                    aria-label="Regularidade"
-                  >
-                    <option value="">Selecione…</option>
-                    {LOYALTY_TIERS.map((tier) => (
-                      <option key={tier.value} value={tier.value}>
-                        {tier.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <p className="text-xs leading-snug text-gray-500 dark:text-gray-400">
-                  {getLoyaltyTierDescription(loyaltyTier)}
-                </p>
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={onTogglePointsColumn}
-              aria-pressed={showPointsColumn}
-              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                showPointsColumn
-                  ? 'text-primary-700 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30'
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-            >
-              {showPointsColumn ? (
-                <EyeOff className="w-4 h-4" />
-              ) : (
-                <Eye className="w-4 h-4" />
-              )}
-              Pontos
-            </button>
           </div>
         </div>
         {totalCount > 0 && (
@@ -130,21 +80,10 @@ const ProductsTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  showPointsColumn={showPointsColumn}
                 />
               </thead>
               <tbody className="block lg:table-row-group bg-white dark:bg-gray-800 lg:divide-y divide-gray-200 dark:divide-gray-700">
                 {products.map((product) => {
-                  const points = calculatePoints(product.pv, loyaltyTier);
-                  const belowMinimum = isBelowMinimumPv(product.pv);
-                  const pointsCellClass =
-                    points !== null && belowMinimum
-                      ? 'text-amber-600 dark:text-amber-400'
-                      : 'text-gray-700 dark:text-gray-200';
-                  const pointsTitle =
-                    points !== null && belowMinimum
-                      ? 'PV abaixo de 50: isoladamente este produto não acumula pontos'
-                      : undefined;
                   return (
                     <tr
                       key={product.id}
@@ -250,15 +189,16 @@ const ProductsTable = ({
                           ? '—'
                           : formatBRL(product.pricePerPv)}
                       </td>
-                      {showPointsColumn && (
-                        <td
-                          data-label="Pontos"
-                          className={`block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-left lg:text-right text-sm ${pointsCellClass} before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden`}
-                          title={pointsTitle}
-                        >
-                          {formatPoints(points)}
-                        </td>
-                      )}
+                      <td
+                        data-label="70% OFF"
+                        className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-left lg:text-right text-sm text-gray-700 dark:text-gray-200 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                      >
+                        {formatBRL(
+                          fromCents(
+                            calculateDiscountedPrice(product.memberPrice),
+                          ),
+                        )}
+                      </td>
                       <td
                         data-label="Status"
                         className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 text-left lg:text-center before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"

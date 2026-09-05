@@ -1,7 +1,7 @@
 import React from 'react';
 import SortableHeader from '../../../components/SortableHeader';
 
-const ProductsTableHeader = ({ sortBy, sortDir, onSort, showPointsColumn }) => (
+const ProductsTableHeader = ({ sortBy, sortDir, onSort }) => (
   <tr>
     <SortableHeader
       label="Código"
@@ -76,14 +76,16 @@ const ProductsTableHeader = ({ sortBy, sortDir, onSort, showPointsColumn }) => (
       align="right"
       testIdPrefix="products"
     />
-    {showPointsColumn && (
-      <th
-        scope="col"
-        className="w-[8%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-      >
-        Pontos
-      </th>
-    )}
+    <SortableHeader
+      label="70% OFF"
+      field="memberDiscountPrice"
+      sortBy={sortBy}
+      sortDir={sortDir}
+      onSort={onSort}
+      width="w-[8%]"
+      align="right"
+      testIdPrefix="products"
+    />
     <th
       scope="col"
       className="w-[12%] px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
