@@ -1,89 +1,16 @@
 const { PrismaClient } = require('@prisma/client');
 const { z } = require('zod');
 const prisma = new PrismaClient();
-const { syncOrderStatusesForPersons } = require('../utils/receivables');
-const { toCents, lineValueCents } = require('../utils/money');
+const {
+  syncOrderStatusesForPersons,
+  personFinancialSummary,
+} = require('../utils/receivables');
+const { personSchema } = require('../validators/peopleValidator');
+const {
+  SORTABLE_PERSON_FIELDS,
+  classificationToFlags,
+} = require('../utils/classification');
 const { findIdsByTextSearch } = require('../utils/search');
-
-const MAX_DAYS_BY_MONTH = {
-  1: 31,
-  2: 29,
-  3: 31,
-  4: 30,
-  5: 31,
-  6: 30,
-  7: 31,
-  8: 31,
-  9: 30,
-  10: 31,
-  11: 30,
-  12: 31,
-};
-
-// Validates a "DD/MM" birthday (no year). February 29th is accepted because
-// the year is unknown.
-const isValidBirthday = (value) => {
-  const [day, month] = value.split('/').map(Number);
-  if (!Number.isInteger(day) || !Number.isInteger(month)) return false;
-  return (
-    month >= 1 && month <= 12 && day >= 1 && day <= MAX_DAYS_BY_MONTH[month]
-  );
-};
-
-// Zod schema for person validation
-const personSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  whatsapp: z.string().optional().nullable(),
-  commonGroups: z.string().max(255).optional().nullable(),
-  instagram: z.string().max(255).optional().nullable(),
-  address: z.string().max(500).optional().nullable(),
-  observacao: z
-    .string()
-    .max(2000, 'Observação deve ter no máximo 2000 caracteres')
-    .optional()
-    .nullable(),
-  birthday: z
-    .string()
-    .regex(/^\d{2}\/\d{2}$/, 'Aniversário deve estar no formato DD/MM')
-    .refine(isValidBirthday, 'Data de aniversário inválida')
-    .optional()
-    .nullable(),
-  isVip: z.boolean().optional(),
-  isDoterraMember: z.boolean().optional(),
-  isTeamMember: z.boolean().optional(),
-  isSelf: z.boolean().optional(),
-});
-
-const SORTABLE_FIELDS = [
-  'name',
-  'whatsapp',
-  'commonGroups',
-  'instagram',
-  'address',
-  'isVip',
-  'isDoterraMember',
-  'isTeamMember',
-  'createdAt',
-  'updatedAt',
-];
-
-// Maps the frontend classification filter onto the isVip/isDoterraMember flags.
-const classificationToFlags = (classification) => {
-  switch (classification) {
-    case 'vip':
-      return { isVip: true, isDoterraMember: false };
-    case 'member':
-      return { isVip: false, isDoterraMember: true };
-    case 'vip_member':
-      return { isVip: true, isDoterraMember: true };
-    case 'none':
-      return { isVip: false, isDoterraMember: false };
-    case 'team':
-      return { isTeamMember: true };
-    default:
-      return null;
-  }
-};
 
 // Get all people
 const getPeople = async (req, res) => {
@@ -109,7 +36,7 @@ const getPeople = async (req, res) => {
     const flags = classificationToFlags(classification);
     if (flags) Object.assign(where, flags);
 
-    const field = SORTABLE_FIELDS.includes(sortBy) ? sortBy : 'name';
+    const field = SORTABLE_PERSON_FIELDS.includes(sortBy) ? sortBy : 'name';
     const direction = sortDir === 'desc' ? 'desc' : 'asc';
 
     const people = await prisma.person.findMany({
@@ -171,26 +98,9 @@ const getPersonSummary = async (req, res) => {
       }),
     ]);
 
-    const orderIds = new Set();
-    let totalItemsCents = 0;
-    for (const item of items) {
-      totalItemsCents += lineValueCents(item);
-      orderIds.add(item.orderId);
-    }
-    const totalPaidCents = payments.reduce(
-      (sum, payment) => sum + toCents(payment.amount),
-      0,
-    );
-    const totalOpenCents = person.isSelf
-      ? 0
-      : Math.max(0, totalItemsCents - totalPaidCents);
-
-    res.status(200).json({
-      ordersCount: orderIds.size,
-      totalItemsCents,
-      totalPaidCents,
-      totalOpenCents,
-    });
+    res
+      .status(200)
+      .json(personFinancialSummary(items, payments, { isSelf: person.isSelf }));
   } catch (error) {
     console.error('Error fetching person summary:', error);
     res.status(500).json({ error: 'Internal server error' });

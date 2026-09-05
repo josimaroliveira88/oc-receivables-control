@@ -137,10 +137,41 @@ const syncOrderStatusesForPersons = async (db, userId, personIds) => {
   await syncOrderStatuses(db, orderIds);
 };
 
+// Financial totals for a single person across all their non-team orders.
+// - items: [{ chargedValue, chargedValueMode, quantity, orderId }] (team-order
+//   exclusion must already be applied by the caller's query)
+// - payments: [{ amount }]
+// - isSelf: self persons always have a zero open total.
+// Returns { ordersCount, totalItemsCents, totalPaidCents, totalOpenCents }.
+const personFinancialSummary = (items, payments, { isSelf = false } = {}) => {
+  const orderIds = new Set();
+  let totalItemsCents = 0;
+  for (const item of items) {
+    totalItemsCents += lineValueCents(item);
+    orderIds.add(item.orderId);
+  }
+  const totalPaidCents = payments.reduce(
+    (sum, payment) => sum + toCents(payment.amount),
+    0,
+  );
+  const totalOpenCents = personPendingCents({
+    itemCents: totalItemsCents,
+    paymentCents: totalPaidCents,
+    isSelf,
+  });
+  return {
+    ordersCount: orderIds.size,
+    totalItemsCents,
+    totalPaidCents,
+    totalOpenCents,
+  };
+};
+
 module.exports = {
   collectSelfPersonIds,
   personPendingCents,
   computeOrderStatus,
   syncOrderStatuses,
   syncOrderStatusesForPersons,
+  personFinancialSummary,
 };
