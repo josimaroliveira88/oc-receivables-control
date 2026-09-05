@@ -618,6 +618,104 @@ describe('SalesPage', () => {
     });
   });
 
+  describe('Polite close on create', () => {
+    const typeDescription = () => {
+      fireEvent.change(screen.getByLabelText('Descrição da Venda'), {
+        target: { value: 'venda com alteração' },
+      });
+    };
+
+    it('should close immediately on Escape when nothing was changed', async () => {
+      mockGetImplementation([]);
+      renderPage();
+      await openCreateModal();
+      fireEvent.keyDown(window, { key: 'Escape' });
+      await waitFor(() => {
+        expect(screen.queryByText('Itens da Venda')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should close immediately via the form Cancel button when nothing was changed', async () => {
+      mockGetImplementation([]);
+      renderPage();
+      await openCreateModal();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+      await waitFor(() => {
+        expect(screen.queryByText('Itens da Venda')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should ask for confirmation on Escape after a change was made', async () => {
+      mockGetImplementation([]);
+      renderPage();
+      await openCreateModal();
+      typeDescription();
+      fireEvent.keyDown(window, { key: 'Escape' });
+      expect(screen.getByText('Descartar alterações?')).toBeInTheDocument();
+      expect(screen.getByText('Itens da Venda')).toBeInTheDocument();
+    });
+
+    it('should ask for confirmation on backdrop click after a change was made', async () => {
+      mockGetImplementation([]);
+      renderPage();
+      await openCreateModal();
+      typeDescription();
+      fireEvent.mouseDown(screen.getByTestId('modal-backdrop'));
+      expect(screen.getByText('Descartar alterações?')).toBeInTheDocument();
+      expect(screen.getByText('Itens da Venda')).toBeInTheDocument();
+    });
+
+    it('should ask for confirmation on the close button after a change was made', async () => {
+      mockGetImplementation([]);
+      renderPage();
+      await openCreateModal();
+      typeDescription();
+      fireEvent.click(screen.getByRole('button', { name: 'Fechar venda' }));
+      expect(screen.getByText('Descartar alterações?')).toBeInTheDocument();
+      expect(screen.getByText('Itens da Venda')).toBeInTheDocument();
+    });
+
+    it('should route the form Cancel button through the dirty check after a change', async () => {
+      mockGetImplementation([]);
+      renderPage();
+      await openCreateModal();
+      typeDescription();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+      expect(screen.getByText('Descartar alterações?')).toBeInTheDocument();
+      expect(screen.getByText('Itens da Venda')).toBeInTheDocument();
+    });
+
+    it('should close and lose the changes after confirming the discard', async () => {
+      mockGetImplementation([]);
+      renderPage();
+      await openCreateModal();
+      typeDescription();
+      fireEvent.keyDown(window, { key: 'Escape' });
+      fireEvent.click(screen.getByRole('button', { name: 'Descartar' }));
+      await waitFor(() => {
+        expect(screen.queryByText('Itens da Venda')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should keep the modal open and preserve the changes when cancelling the discard', async () => {
+      mockGetImplementation([]);
+      renderPage();
+      await openCreateModal();
+      typeDescription();
+      fireEvent.keyDown(window, { key: 'Escape' });
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Continuar editando' }),
+      );
+      expect(
+        screen.queryByText('Descartar alterações?'),
+      ).not.toBeInTheDocument();
+      expect(screen.getByText('Itens da Venda')).toBeInTheDocument();
+      expect(screen.getByLabelText('Descrição da Venda').value).toBe(
+        'venda com alteração',
+      );
+    });
+  });
+
   describe('Sale items', () => {
     it('should add a new item row when clicking "Adicionar Item"', async () => {
       mockGetImplementation([]);
