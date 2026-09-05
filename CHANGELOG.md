@@ -9,17 +9,18 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
-## Phase 80 — Valor Total no formulário e frete do próprio usuário no Valor Pendente (2026-09-05)
+## Phase 80 — Valor Total, frete do próprio usuário e campo Pessoa só em pedidos da equipe (2026-09-05)
 
 ### Changed
 - **"Soma dos Produtos (Valor Pago)" → "Valor Total"**: o formulário de pedidos ficou com um único bloco de totais (inferior, ao lado do campo Frete), renomeado para **Valor Total** e exibindo a soma dos produtos + o frete (testid `order-totals-charged-footer`). O bloco de resumo superior que repetia a "Soma dos Produtos" foi removido (`OrderForm.jsx`), seguindo o padrão do formulário de vendas.
 - **Valor Pendente desconta o frete do próprio usuário**: a coluna "Valor Pendente" da lista (e os resumos dos modais de Pagamento/Detalhamento) trata o frete como custo do próprio usuário quando nenhum item do pedido está vinculado a outra pessoa — é o caso dos pedidos atuais (itens auto-vinculados ao "Você"), que passam a exibir R$ 0,00 e deixam de oferecer "Registrar Pagamento". Pedidos antigos com itens de outras pessoas mantêm o frete como pendente cobrável; nos registros legados o frete já foi rateado nos valores dos itens e `shippingValue` é 0, então nada muda para eles. A regra vive em `getOrderSelfShippingCents` (`frontend/src/pages/Orders/utils/receivablesHelpers.js`) e é espelhada na ordenação por pendente no backend (`backend/src/utils/ordersSort.js`).
+- **Campo "Pessoa" por item apenas em pedidos da equipe**: o formulário de pedidos não exibe mais o campo de pessoa em pedidos normais — nem o seletor, nem o antigo campo somente leitura "Você"/nome legado (`OrderItemFields.jsx`). Ele reaparece ao marcar o checkbox "Pedido da equipe (outra pessoa fez o pedido e pagou)" e some ao desmarcar. Pedidos normais continuam nascendo vinculados ao usuário no backend, e a edição de pedidos antigos preserva o `personId` legado no payload.
 
 ### Fixed
 - **Pedido all-self com frete exibia o frete como pendente**: p. ex. o pedido 123456789000 (total 35,74 = item 24,75 + frete 10,99, sem pagamentos) exibia "Valor Pendente R$ 10,99" embora já estivesse QUITADO; agora exibe R$ 0,00 (acinzentado, sem ação de pagamento). Nenhuma migração: os dados não mudam, apenas o cálculo de exibição/ordenação.
 
 ### Tests
-- Backend: novo teste de ordenação `sortBy=pendingValue` (pedido all-self com frete 80,00 ordena como pendente 0 contra pedido misto com pendente 15,00). Frontend: rótulo "Valor Total" com bloco superior removido, total = produtos + frete no footer, pendente R$ 0,00 estilizado e sem ação de pagamento para all-self + frete, e frete cobrável mantido em pedido misto (R$ 70,00). **621 backend + 714 frontend tests passing**; lint sem erros novos (4 warnings preexistentes), `npm run format:check` e `cd frontend && npm run build` limpos.
+- Backend: novo teste de ordenação `sortBy=pendingValue` (pedido all-self com frete 80,00 ordena como pendente 0 contra pedido misto com pendente 15,00). Frontend: rótulo "Valor Total" com bloco superior removido, total = produtos + frete no footer, pendente R$ 0,00 estilizado e sem ação de pagamento para all-self + frete, frete cobrável mantido em pedido misto (R$ 70,00), e campo "Pessoa" oculto em pedidos normais e exibido somente com o checkbox de equipe marcado (dois testes que garantiam o campo read-only foram reescritos). **621 backend + 714 frontend tests passing**; lint sem erros novos (4 warnings preexistentes), `npm run format:check` e `cd frontend && npm run build` limpos.
 
 
 ## Phase 79 — Correção do salvamento de pedido sem cliente e feedback de erro (2026-09-05)
