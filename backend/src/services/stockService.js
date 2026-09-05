@@ -2,7 +2,7 @@
 // the automatic order-to-stock integration. `client` is either the Prisma
 // client or a transaction client (`tx`), so callers can keep consistency
 // within their own transaction.
-const { notFound, badRequest } = require('../utils/httpError');
+import { notFound, badRequest } from '../utils/httpError.js';
 
 const applyMovement = async (
   client,
@@ -88,4 +88,4 @@ const applyMovement = async (
   };
 };
 
-module.exports = { applyMovement };
+export { applyMovement };

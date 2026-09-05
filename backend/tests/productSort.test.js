@@ -1,8 +1,8 @@
-const {
+import {
   sortProducts,
   SORTABLE_FIELDS,
   NUMERIC_SORT_FIELDS,
-} = require('../src/utils/productSort');
+} from '../src/utils/productSort.js';
 
 const product = (code, name, extra = {}) => ({
   code,

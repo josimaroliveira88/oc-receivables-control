@@ -53,6 +53,14 @@ Intl.NumberFormat(
   }
 )
 
+## Design Principles
+
+Apply SOLID pragmatically (see `AGENTS.md` — Design Principles). In the frontend:
+
+- **SRP** maps to the page-as-orchestrator pattern: `use{Nome}.js` owns state + API + mutation handlers, `index.jsx` only composes them, `components/` receive data/callbacks via props, `utils/` helpers are stateless.
+- **OCP** extends behavior through new helpers/components/options rather than editing well-tested core functions.
+- **ISP** keeps helper contracts and hook return shapes per-domain; consumers depend only on the fields they need.
+
 ## Lessons Learned
 
 1. **ProtectedRoute Pattern**: Avoid nesting `<Routes>` inside `<ProtectedRoute>` as it causes routing bugs in React Router v6. Use the `<Outlet />` pattern instead:

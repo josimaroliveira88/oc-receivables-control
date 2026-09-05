@@ -6,7 +6,7 @@
 // `client` is either the Prisma client or a transaction client (`tx`).
 // Throws HTTP-mapped errors (via utils/httpError.js) which the controller
 // translates into the HTTP response.
-const { badRequest } = require('../utils/httpError');
+import { badRequest } from '../utils/httpError.js';
 
 const validateKitComponents = async (
   client,
@@ -42,4 +42,4 @@ const validateKitComponents = async (
   }
 };
 
-module.exports = { validateKitComponents };
+export { validateKitComponents };

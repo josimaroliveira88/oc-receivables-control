@@ -77,7 +77,7 @@ export function useOrderPayments({ refreshOrders }) {
         paymentType: '',
       });
       setShowPaymentModal(true);
-    } catch (err) {
+    } catch (_err) {
       addToast('Erro ao carregar saldo do pedido.', 'error');
     }
   };
@@ -258,7 +258,7 @@ export function useOrderPayments({ refreshOrders }) {
     try {
       const response = await api.get(`/orders/${detailOrder.id}/balance`);
       setDetailBalances(response.data.balances || []);
-    } catch (err) {
+    } catch (_err) {
       addToast('Erro ao carregar detalhamento do pedido.', 'error');
     }
   };
@@ -363,7 +363,7 @@ export function useOrderPayments({ refreshOrders }) {
     try {
       const response = await api.get(`/orders/${order.id}/balance`);
       setDetailBalances(response.data.balances || []);
-    } catch (err) {
+    } catch (_err) {
       addToast('Erro ao carregar detalhamento do pedido.', 'error');
       closeDetailsModal();
     } finally {

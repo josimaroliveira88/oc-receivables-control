@@ -10,6 +10,20 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 76 — SOLID, ESLint e migração do backend para ES Modules (2026-09-05)
+
+### Added
+- **Orientação SOLID documentada**: nova seção **Design Principles (SOLID)** no `AGENTS.md` definindo a adoção pragmática dos cinco princípios (aplicar quando agrega clareza/coesão/testabilidade; pular quando não há ganho; refatorar em direção ao princípio no momento da manutenção, escopado à mudança). Refletida nas skills: `backend-node-express` (SRP na camada Routes→Controllers→Services, DIP), `frontend-react` (SRP no page-as-orchestrator), `project-structure` e `implementation-style`.
+- **ESLint 9 (flat config) nos dois workspaces**: `backend/eslint.config.js` (`@eslint/js` recommended + `globals.node`/`globals.vitest`) e `frontend/eslint.config.js` (React/react-hooks/jsx-a11y recommended + `globals.browser`/`globals.vitest`), ambos encerrando com `eslint-config-prettier` para não conflitar com o Prettier. Scripts `lint`/`lint:fix` por workspace e na raiz (`npm run lint`). `react-hooks/set-state-in-effect` desligada e `react-hooks/refs` como warning porque os hooks de página carregam dados em effects e mantêm um ref de callback mais recente (padrão existente); prefixo `^_` libera argumentos/variáveis/erros capturados intencionalmente não usados.
+
+### Changed
+- **Backend migrado de CommonJS para ES Modules**: `backend/package.json` ganhou `"type": "module"`; todos os `require()`/`module.exports` de `src/`, `tests/`, `scripts/loadProducts.js` e `prisma/seed.js` viraram `import`/`export`, com extensão `.js` explícita nos imports relativos e aliases de destructuring convertidos para `as` (ex. `createPayment as createPaymentService`). `src/config.js` agora exporta membros nomeados (`PORT`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `NODE_ENV`). `__dirname` substituído por `fileURLToPath(import.meta.url)` em `middlewares/upload.js` e `scripts/loadProducts.js`; `dotenv` continua condicional (`NODE_ENV !== 'test'`) em `app.js`/`config.js`. Imports de controllers/services agora usam `import * as` onde o call-site usa `controller.metodo`.
+- **Ajustes de lint (sem mudança de comportamento)**: parâmetros `err` não usados em catch renomeados para `_err`, variáveis não usadas removidas em testes (`os`, `authToken`, `testPersonId`, `order` órfão em `ordersAttachments.test.js`, `act`/`vi`/`React`/`api` não usados), `selectedBalance`/`editIsSelf` órfãos removidos de `useSalePayments.js`, directive `eslint-disable-next-line no-new` não usada removida de `productHelpers.js`, e `_api` mantido em `tests/api.test.js` (o import registra os interceptors via side-effect).
+
+### Tests
+- Suites intactas após a migração: **610 backend tests passing** (27 arquivos) e **701 frontend tests passing** (26 arquivos); `npm run lint` limpo (0 erros; 4 warnings preexistentes de `react-hooks`), `npm run format:check` limpo e `cd frontend && npm run build` ok.
+
+
 ## Phase 75 — Backend refactoring R1–R10 e ajustes de frontend (2026-09-05)
 
 Consolidação da arquitetura do backend (`backend/docs/backend-refactoring-plan.md`, fases R1–R10) e correções de frontend. Exports e comportamento HTTP preservados em todas as fases.

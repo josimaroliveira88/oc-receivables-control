@@ -1,10 +1,11 @@
-const express = require('express');
+import express from 'express';
+import * as ordersController from '../controllers/ordersController.js';
+import * as paymentsController from '../controllers/paymentsController.js';
+import * as attachmentsController from '../controllers/orderAttachmentsController.js';
+import { upload } from '../middlewares/upload.js';
+import { authenticateToken } from '../middlewares/auth.js';
+
 const router = express.Router();
-const ordersController = require('../controllers/ordersController');
-const paymentsController = require('../controllers/paymentsController');
-const attachmentsController = require('../controllers/orderAttachmentsController');
-const { upload } = require('../middlewares/upload');
-const { authenticateToken } = require('../middlewares/auth');
 
 // All routes require authentication
 router.use(authenticateToken);
@@ -65,4 +66,4 @@ router.get('/:id/attachment', attachmentsController.getAttachment);
 // DELETE /api/orders/:id/attachment
 router.delete('/:id/attachment', attachmentsController.deleteAttachment);
 
-module.exports = router;
+export default router;

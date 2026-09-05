@@ -43,7 +43,7 @@ export function useDashboard() {
         dashboard: dashboardRes.data,
       });
       addToast('Relatório exportado com sucesso!', 'success');
-    } catch (err) {
+    } catch (_err) {
       addToast('Erro ao exportar relatório.', 'error');
     } finally {
       setExporting(false);

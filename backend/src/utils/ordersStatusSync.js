@@ -2,7 +2,7 @@
 // mutation the order's status may need to flip (PENDENTE -> PARCIAL ->
 // QUITADO), and the helper below centralizes the "fetch payments, recompute,
 // persist when changed" sequence used by every handler that mutates items.
-const { computeOrderStatus } = require('./receivables');
+import { computeOrderStatus } from './receivables.js';
 
 // Recomputes the order's status from its current items + payments, persisting
 // the change when it differs from the stored status. The caller passes the
@@ -36,4 +36,4 @@ const syncOrderStatus = async (
   return { status: newStatus };
 };
 
-module.exports = { syncOrderStatus };
+export { syncOrderStatus };

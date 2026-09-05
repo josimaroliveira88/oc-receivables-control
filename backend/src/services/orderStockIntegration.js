@@ -12,9 +12,9 @@
 //   the item-delete path.
 //
 // `client` is either the Prisma client or a transaction client (`tx`).
-const { expandItemToStockProducts } = require('../utils/kitStock');
-const { badRequest } = require('../utils/httpError');
-const { applyMovement } = require('./stockService');
+import { expandItemToStockProducts } from '../utils/kitStock.js';
+import { badRequest } from '../utils/httpError.js';
+import { applyMovement } from './stockService.js';
 
 const itemStockMovements = (client, { order, items }) => {
   if (!order.orderDate) {
@@ -77,8 +77,4 @@ const reverseItemStock = async (client, { order, item }) => {
   }
 };
 
-module.exports = {
-  itemStockMovements,
-  reverseOrderStock,
-  reverseItemStock,
-};
+export { itemStockMovements, reverseOrderStock, reverseItemStock };

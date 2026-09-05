@@ -28,4 +28,4 @@ const sortProducts = (products, sortBy, sortDir) => {
   });
 };
 
-module.exports = { sortProducts, SORTABLE_FIELDS, NUMERIC_SORT_FIELDS };
+export { sortProducts, SORTABLE_FIELDS, NUMERIC_SORT_FIELDS };

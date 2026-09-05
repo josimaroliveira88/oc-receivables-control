@@ -1,7 +1,7 @@
-const {
+import {
   expandItemToStockProducts,
   expandSaleItemToStockProducts,
-} = require('./kitStock');
+} from './kitStock.js';
 
 // Computes the net per-product stock delta (in whole units) between two item
 // lists, considering only items that belong to the self person AND are flagged
@@ -68,4 +68,4 @@ const computeSaleStockDiff = (oldItems, newItems) => {
   return result;
 };
 
-module.exports = { computeStockDiff, computeSaleStockDiff };
+export { computeStockDiff, computeSaleStockDiff };

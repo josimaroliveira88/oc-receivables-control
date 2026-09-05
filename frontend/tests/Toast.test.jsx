@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { ToastProvider, useToast } from '../src/components/Toast';

@@ -1,4 +1,4 @@
-const { toCents } = require('./money');
+import { toCents } from './money.js';
 
 const DRY_RUN_ABORT = Symbol('dry-run-abort');
 
@@ -158,4 +158,4 @@ async function loadProductCatalog(prisma, rows, options = {}) {
   return summary;
 }
 
-module.exports = { loadProductCatalog };
+export { loadProductCatalog };

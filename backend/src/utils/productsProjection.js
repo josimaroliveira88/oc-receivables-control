@@ -1,4 +1,4 @@
-const { toCents, pricePerPv } = require('./money');
+import { toCents, pricePerPv } from './money.js';
 
 const priceFieldsPresent = (data) =>
   data.regularPrice !== undefined ||
@@ -39,4 +39,4 @@ const projectCurrentPrice = (product) => {
   };
 };
 
-module.exports = { projectCurrentPrice, priceFieldsPresent, priceFieldsEqual };
+export { projectCurrentPrice, priceFieldsPresent, priceFieldsEqual };

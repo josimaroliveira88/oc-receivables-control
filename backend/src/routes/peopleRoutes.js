@@ -1,7 +1,8 @@
-const express = require('express');
+import express from 'express';
+import * as peopleController from '../controllers/peopleController.js';
+import { authenticateToken } from '../middlewares/auth.js';
+
 const router = express.Router();
-const peopleController = require('../controllers/peopleController');
-const { authenticateToken } = require('../middlewares/auth');
 
 // All routes require authentication
 router.use(authenticateToken);
@@ -27,4 +28,4 @@ router.put('/:id', peopleController.updatePerson);
 // DELETE /api/people/:id
 router.delete('/:id', peopleController.deletePerson);
 
-module.exports = router;
+export default router;

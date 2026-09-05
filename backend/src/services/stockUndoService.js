@@ -4,7 +4,7 @@
 // Throws HTTP-mapped errors (via utils/httpError.js), plus `.orderNumber`/
 // `.orderId` on the order-lock rejection, which the controller translates
 // into the HTTP response.
-const { notFound, badRequest } = require('../utils/httpError');
+import { notFound, badRequest } from '../utils/httpError.js';
 
 const undoLastMovement = async (client, { id, userId }) => {
   const movement = await client.stockMovement.findUnique({ where: { id } });
@@ -91,4 +91,4 @@ const undoLastMovement = async (client, { id, userId }) => {
   };
 };
 
-module.exports = { undoLastMovement };
+export { undoLastMovement };

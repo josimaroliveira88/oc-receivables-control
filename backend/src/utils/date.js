@@ -5,4 +5,4 @@ const parseLocalDate = (dateStr) => {
   return new Date(year, month - 1, day);
 };
 
-module.exports = { parseLocalDate };
+export { parseLocalDate };

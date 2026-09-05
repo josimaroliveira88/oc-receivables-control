@@ -78,7 +78,7 @@ export function useSalePayments({ refreshSales }) {
         paymentType: '',
       });
       setShowPaymentModal(true);
-    } catch (err) {
+    } catch (_err) {
       addToast('Erro ao carregar saldo da venda.', 'error');
     }
   };
@@ -250,7 +250,7 @@ export function useSalePayments({ refreshSales }) {
     try {
       const response = await api.get(`/orders/${detailSale.id}/balance`);
       setDetailBalances(response.data.balances || []);
-    } catch (err) {
+    } catch (_err) {
       addToast('Erro ao carregar detalhamento da venda.', 'error');
     }
   };
@@ -356,7 +356,7 @@ export function useSalePayments({ refreshSales }) {
     try {
       const response = await api.get(`/orders/${sale.id}/balance`);
       setDetailBalances(response.data.balances || []);
-    } catch (err) {
+    } catch (_err) {
       addToast('Erro ao carregar detalhamento da venda.', 'error');
       closeDetailsModal();
     } finally {
@@ -389,7 +389,6 @@ export function useSalePayments({ refreshSales }) {
     selectedPersonId,
   );
   const selectedIsZeroItem = isSelectedZeroItem(balances, selectedPersonId);
-  const selectedBalance = getSelectedBalance(balances, selectedPersonId);
   const selectedPersonItems = getPersonItems(selectedSale, selectedPersonId);
   const clientName = selectedSale ? getSaleClientName(selectedSale) : '';
 
@@ -400,7 +399,6 @@ export function useSalePayments({ refreshSales }) {
   const editIsZeroItem = editBalance
     ? toCents(editBalance.itemTotal) === 0
     : false;
-  const editIsSelf = !!editBalance && !!editBalance.isSelf;
   const editPersonName = editBalance
     ? editBalance.personName
     : (editingPayment && editingPayment.person && editingPayment.person.name) ||

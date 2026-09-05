@@ -40,7 +40,7 @@ export function useStock() {
       const response = await api.get('/stock');
       setInventory(Array.isArray(response.data) ? response.data : []);
       setError('');
-    } catch (err) {
+    } catch (_err) {
       setError('Erro ao carregar estoque. Tente novamente.');
     } finally {
       setLoading(false);
@@ -66,7 +66,7 @@ export function useStock() {
       const response = await api.get('/products?pageSize=all');
       const list = response.data?.data;
       setProducts(Array.isArray(list) ? list : []);
-    } catch (err) {
+    } catch (_err) {
       setProducts([]);
     }
   }, []);
@@ -125,7 +125,7 @@ export function useStock() {
       addToast('Movimentação registrada com sucesso!', 'success');
       closeMovementDialog();
       loadInventory();
-    } catch (err) {
+    } catch (_err) {
       addToast('Erro ao registrar movimentação. Tente novamente.', 'error');
     } finally {
       setSubmittingMovement(false);
@@ -137,7 +137,7 @@ export function useStock() {
     try {
       const response = await api.get(`/stock/${productId}/history`);
       setHistory(Array.isArray(response.data) ? response.data : []);
-    } catch (err) {
+    } catch (_err) {
       setHistory([]);
     } finally {
       setHistoryLoading(false);
@@ -172,7 +172,7 @@ export function useStock() {
       }
       await loadInventory();
       return true;
-    } catch (err) {
+    } catch (_err) {
       addToast('Erro ao desfazer movimentação. Tente novamente.', 'error');
       return false;
     } finally {

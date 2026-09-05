@@ -1,6 +1,6 @@
-const fs = require('fs');
-const path = require('path');
-const { resolveAttachmentPath } = require('../middlewares/upload');
+import fs from 'fs';
+import path from 'path';
+import { resolveAttachmentPath } from '../middlewares/upload.js';
 
 const DEFAULT_MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
@@ -29,7 +29,7 @@ const removeAttachmentFile = (filename) => {
 const attachmentContentType = (filename) =>
   CONTENT_TYPE_BY_EXTENSION[path.extname(filename)] ?? 'image/jpeg';
 
-module.exports = {
+export {
   DEFAULT_MAX_BYTES,
   CONTENT_TYPE_BY_EXTENSION,
   attachmentMaxBytes,

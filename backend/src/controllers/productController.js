@@ -1,18 +1,18 @@
-const prisma = require('../config/database');
-const { handleError } = require('../middlewares/errorResponse');
-const { notFound } = require('../utils/httpError');
-const {
+import prisma from '../config/database.js';
+import { handleError } from '../middlewares/errorResponse.js';
+import { notFound } from '../utils/httpError.js';
+import {
   createProductSchema,
   updateProductSchema,
-} = require('../validators/productValidator');
-const { validateKitComponents } = require('../services/kitValidationService');
-const {
+} from '../validators/productValidator.js';
+import { validateKitComponents } from '../services/kitValidationService.js';
+import {
   projectCurrentPrice,
   priceFieldsPresent,
   priceFieldsEqual,
-} = require('../utils/productsProjection');
-const { sortProducts } = require('../utils/productSort');
-const { paginate } = require('../utils/pagination');
+} from '../utils/productsProjection.js';
+import { sortProducts } from '../utils/productSort.js';
+import { paginate } from '../utils/pagination.js';
 
 const getProducts = async (req, res) => {
   try {
@@ -339,7 +339,7 @@ const deleteProduct = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   getProducts,
   getProductById,
   createProduct,

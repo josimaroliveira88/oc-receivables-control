@@ -1,5 +1,5 @@
-const { toCents, fromCents } = require('./money');
-const { personBalanceFromTotals } = require('./orderBalances');
+import { toCents, fromCents } from './money.js';
+import { personBalanceFromTotals } from './orderBalances.js';
 
 // Pure projection of the dashboard summary. Receives the user's non-team
 // orders (with items+person and payments included) and the payments of those
@@ -132,4 +132,4 @@ const buildDashboardSummary = (
   };
 };
 
-module.exports = { buildDashboardSummary };
+export { buildDashboardSummary };

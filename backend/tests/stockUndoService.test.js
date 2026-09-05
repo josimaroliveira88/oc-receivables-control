@@ -1,4 +1,4 @@
-const { undoLastMovement } = require('../src/services/stockUndoService');
+import { undoLastMovement } from '../src/services/stockUndoService.js';
 
 const baseMovement = {
   id: 'mov-1',

@@ -1,10 +1,11 @@
-const express = require('express');
-const cors = require('cors');
-const morgan = require('morgan');
-const { ZodError } = require('zod');
+import express from 'express';
+import cors from 'cors';
+import morgan from 'morgan';
+import { ZodError } from 'zod';
+import dotenv from 'dotenv';
 
 if (process.env.NODE_ENV !== 'test') {
-  require('dotenv').config();
+  dotenv.config();
 }
 
 const app = express();
@@ -36,35 +37,35 @@ app.get('/health', (req, res) => {
 });
 
 // Auth routes
-const authRoutes = require('./routes/authRoutes');
+import authRoutes from './routes/authRoutes.js';
 app.use('/api/auth', authRoutes);
 
 // People routes
-const peopleRoutes = require('./routes/peopleRoutes');
+import peopleRoutes from './routes/peopleRoutes.js';
 app.use('/api/people', peopleRoutes);
 
 // Orders routes
-const ordersRoutes = require('./routes/ordersRoutes');
+import ordersRoutes from './routes/ordersRoutes.js';
 app.use('/api/orders', ordersRoutes);
 
 // Sales routes (sale orders)
-const salesRoutes = require('./routes/salesRoutes');
+import salesRoutes from './routes/salesRoutes.js';
 app.use('/api/sales', salesRoutes);
 
 // Dashboard routes
-const dashboardRoutes = require('./routes/dashboardRoutes');
+import dashboardRoutes from './routes/dashboardRoutes.js';
 app.use('/api/dashboard', dashboardRoutes);
 
 // Product routes
-const productRoutes = require('./routes/productRoutes');
+import productRoutes from './routes/productRoutes.js';
 app.use('/api/products', productRoutes);
 
 // Stock routes
-const stockRoutes = require('./routes/stockRoutes');
+import stockRoutes from './routes/stockRoutes.js';
 app.use('/api/stock', stockRoutes);
 
 // Centralized error handling middleware
-app.use((error, req, res, next) => {
+app.use((error, req, res, _next) => {
   console.error('Unhandled error:', {
     message: error.message,
     stack: error.stack,
@@ -82,4 +83,4 @@ app.use((error, req, res, next) => {
   res.status(status).json({ error: message });
 });
 
-module.exports = app;
+export default app;

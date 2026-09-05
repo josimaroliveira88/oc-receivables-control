@@ -1,5 +1,5 @@
-const { z } = require('zod');
-const { paymentTypeSchema } = require('../utils/paymentTypes');
+import { z } from 'zod';
+import { paymentTypeSchema } from '../utils/paymentTypes.js';
 
 const paymentSchema = z.object({
   amount: z
@@ -20,4 +20,4 @@ const updatePaymentSchema = z.object({
   notes: z.string().nullable().optional(),
 });
 
-module.exports = { paymentSchema, updatePaymentSchema };
+export { paymentSchema, updatePaymentSchema };

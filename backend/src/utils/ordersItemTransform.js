@@ -1,6 +1,6 @@
 // Item-level pure helpers for the purchase-order write paths: payload-to-DB
 // shaping and total-in-cents math.
-const { lineValueCents } = require('./money');
+import { lineValueCents } from './money.js';
 
 const itemCreateData = (item) => ({
   description: item.description || null,
@@ -21,7 +21,4 @@ const itemCreateData = (item) => ({
 const orderLineTotalCents = (items) =>
   items.reduce((sum, item) => sum + lineValueCents(item), 0);
 
-module.exports = {
-  itemCreateData,
-  orderLineTotalCents,
-};
+export { itemCreateData, orderLineTotalCents };

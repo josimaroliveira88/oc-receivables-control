@@ -1,9 +1,8 @@
-const request = require('supertest');
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
-const app = require('../src/app');
-const prisma = require('../src/config/database');
+import request from 'supertest';
+import fs from 'fs';
+import path from 'path';
+import app from '../src/app.js';
+import prisma from '../src/config/database.js';
 
 // 1x1 transparent PNG used as a valid image payload in the upload tests.
 const PNG_BUFFER = Buffer.from(
@@ -21,7 +20,6 @@ describe('Order attachments', () => {
   let otherToken;
   let otherUserId;
   let createdOrderId;
-  let testPersonId;
   let uploadsDir;
 
   beforeAll(async () => {
@@ -76,7 +74,6 @@ describe('Order attachments', () => {
     const person = await prisma.person.create({
       data: { name: 'Attachment Person', whatsapp: 'attach@test.com', userId },
     });
-    testPersonId = person.id;
     const res = await request(app)
       .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
@@ -268,7 +265,7 @@ describe('Order attachments', () => {
     });
 
     it('should return 404 for another user order', async () => {
-      const order = await createOrder();
+      await createOrder();
       const otherPerson = await prisma.person.create({
         data: { name: 'Other Person', userId: otherUserId },
       });
@@ -345,7 +342,7 @@ describe('Order attachments', () => {
     });
 
     it('should return 404 for another user order', async () => {
-      const order = await createOrder();
+      await createOrder();
       const otherPerson = await prisma.person.create({
         data: { name: 'Other Person', userId: otherUserId },
       });

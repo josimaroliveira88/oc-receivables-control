@@ -1,6 +1,4 @@
-const {
-  validateKitComponents,
-} = require('../src/services/kitValidationService');
+import { validateKitComponents } from '../src/services/kitValidationService.js';
 
 const component = (componentProductId, quantity = 1) => ({
   componentProductId,

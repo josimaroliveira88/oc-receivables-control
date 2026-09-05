@@ -1,6 +1,6 @@
-const prisma = require('../src/config/database');
-const { parseProductCsv } = require('../src/utils/csvParser');
-const { loadProductCatalog } = require('../src/utils/productLoader');
+import prisma from '../src/config/database.js';
+import { parseProductCsv } from '../src/utils/csvParser.js';
+import { loadProductCatalog } from '../src/utils/productLoader.js';
 
 const HEADER = 'codigo;produto;tamanho;preco_regular;preco_membros;pv';
 

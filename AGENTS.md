@@ -13,7 +13,7 @@ MVP and Phases 1-64 are complete (see `CHANGELOG.md`). The application provides 
 - Backend: Node.js, Express, Prisma, Zod, JWT, PostgreSQL 15.
 - Frontend: React 18, Vite, Tailwind CSS 3, Flowbite plugin, Recharts, SheetJS, lucide-react, react-icons (brand icons, e.g. WhatsApp/Instagram), react-number-format (ATM-style currency masks via `CurrencyInput`).
 - Infrastructure: Docker Compose; Adminer is included for database inspection.
-- Tooling: Prettier 3 for code formatting.
+- Tooling: Prettier 3 for code formatting, ESLint 9 for code quality (per-workspace flat configs).
 - Frontend: `http://localhost:3000`.
 - Backend: `http://localhost:4000`, API prefix `/api`.
 - Database: `localhost:5432`.
@@ -41,6 +41,16 @@ MVP and Phases 1-64 are complete (see `CHANGELOG.md`). The application provides 
 - Cover validation, financial edge cases, authorization, status transitions, and transactional behavior.
 - Run the relevant suite and the full suite before declaring work complete. Do not add untestable business logic.
 
+## Design Principles (SOLID)
+
+Apply SOLID pragmatically. The goal is a market-standard, maintainable design — not rule-following for its own sake. Adopt a principle when it adds clarity, cohesion, or testability; skip it when it brings no real gain. Maintenance is also the moment to correct past shortcuts: when a change touches code where a principle was previously not applied, refactor toward it right there, keeping the refactor scoped to the change being made.
+
+- **Single Responsibility** — one reason to change per module: thin controllers handle HTTP, services hold business rules, pure `utils/` helpers derive values, hooks orchestrate state and API calls.
+- **Open/Closed** — extend behavior through new modules or options (filters, sorters, validators) instead of editing well-tested core functions.
+- **Liskov Substitution** — keep statuses/enums and shape-like contracts substitutable: any function that accepts a given shape must work with every variant the codebase can produce.
+- **Interface Segregation** — keep Zod schemas and helper contracts per-domain/per-endpoint; consumers depend only on the fields they need.
+- **Dependency Inversion** — services and helpers depend on stable contracts (Prisma models, plain data shapes, exported factories/helpers), never on Express/HTTP details or a concrete caller's internals.
+
 ## Commands
 
 Run from the indicated directory unless stated otherwise:
@@ -53,9 +63,20 @@ cd backend && npm run test      # Backend Vitest suite (serial DB files)
 cd frontend && npm run test     # Frontend Vitest/RTL suite
 cd backend && npm run test:watch
 cd frontend && npm run test:watch
+npm run lint                        # ESLint on backend and frontend
+npm run lint:fix                    # ESLint --fix on backend and frontend
 npm run format                      # Prettier --write the whole repo
 npm run format:check                # Prettier --check (CI-style verification)
 ```
+
+Per-workspace lint (faster when working in one side):
+
+```text
+cd backend && npm run lint          # Backend ESLint
+cd frontend && npm run lint         # Frontend ESLint (JS/JSX)
+```
+
+ESLint owns code-quality rules (unused vars, undef globals, React hooks rules); Prettier owns formatting. The two are disjoint by design: the ESLint configs end with `eslint-config-prettier` so no formatting rule ever conflicts with Prettier. Run both before declaring work complete.
 
 Catalog loader:
 
@@ -111,7 +132,7 @@ The project no longer maintains a running `## [Unreleased]` section in `CHANGELO
 
 1. Define acceptance criteria and test cases first; keep money in integer cents and preserve user data isolation.
 2. Write tests first, then implement the smallest correct change using existing patterns.
-3. Run backend and frontend tests (`npm run test` in both `backend/` and `frontend/`); run `npm run build` for frontend changes; run `npm run format:check`.
+3. Run backend and frontend tests (`npm run test` in both `backend/` and `frontend/`); run `npm run lint`; run `npm run build` for frontend changes; run `npm run format:check`.
 4. Before declaring the adjustment finished in `CHANGELOG.md`, **stop and ask the user**:
 
    > Você tem mais algum ajuste a adicionar nesta versão?

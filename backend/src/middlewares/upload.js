@@ -1,7 +1,10 @@
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-const multer = require('multer');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import crypto from 'crypto';
+import multer from 'multer';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Allowed image formats for order attachments (screenshots of the dōTERRA
 // order). The extension is derived from the whitelisted mimetype, never from
@@ -47,4 +50,4 @@ const upload = multer({
 const resolveAttachmentPath = (filename) =>
   path.join(resolveUploadsDir(), filename);
 
-module.exports = { upload, resolveAttachmentPath };
+export { upload, resolveAttachmentPath };

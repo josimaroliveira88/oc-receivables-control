@@ -29,4 +29,4 @@ const classificationToFlags = (classification) => {
   }
 };
 
-module.exports = { SORTABLE_PERSON_FIELDS, classificationToFlags };
+export { SORTABLE_PERSON_FIELDS, classificationToFlags };

@@ -1,7 +1,7 @@
-const request = require('supertest');
-const app = require('../src/app');
-const prisma = require('../src/config/database');
-const bcrypt = require('bcryptjs');
+import request from 'supertest';
+import app from '../src/app.js';
+import prisma from '../src/config/database.js';
+import bcrypt from 'bcryptjs';
 
 describe('User Registration', () => {
   let createdUserId;

@@ -1,7 +1,8 @@
-const express = require('express');
+import express from 'express';
+import * as productController from '../controllers/productController.js';
+import { authenticateToken } from '../middlewares/auth.js';
+
 const router = express.Router();
-const productController = require('../controllers/productController');
-const { authenticateToken } = require('../middlewares/auth');
 
 // All routes require authentication
 router.use(authenticateToken);
@@ -21,4 +22,4 @@ router.put('/:id', productController.updateProduct);
 // DELETE /api/products/:id
 router.delete('/:id', productController.deleteProduct);
 
-module.exports = router;
+export default router;

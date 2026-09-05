@@ -1,9 +1,9 @@
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { JWT_SECRET, JWT_EXPIRES_IN } = require('../config');
-const prisma = require('../config/database');
-const { handleError } = require('../middlewares/errorResponse');
-const { loginSchema, registerSchema } = require('../validators/authValidator');
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { JWT_SECRET, JWT_EXPIRES_IN } from '../config.js';
+import prisma from '../config/database.js';
+import { handleError } from '../middlewares/errorResponse.js';
+import { loginSchema, registerSchema } from '../validators/authValidator.js';
 
 const login = async (req, res) => {
   try {
@@ -75,7 +75,4 @@ const register = async (req, res) => {
   }
 };
 
-module.exports = {
-  login,
-  register,
-};
+export { login, register };

@@ -1,4 +1,4 @@
-const { paginate } = require('../src/utils/pagination');
+import { paginate } from '../src/utils/pagination.js';
 
 const items = (n) => Array.from({ length: n }, (_, i) => ({ id: i + 1 }));
 

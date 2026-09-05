@@ -3,38 +3,38 @@
 // write function owns its own `$transaction`. Business rejections are thrown
 // as HTTP-mapped errors (via utils/httpError.js) which the controller maps to
 // the HTTP response.
-const { fromCents, lineValueCents, toCents } = require('../utils/money');
-const { badRequest, notFound } = require('../utils/httpError');
-const { computeOrderStatus } = require('../utils/receivables');
-const { applyMovement } = require('./stockService');
-const { computeStockDiff } = require('../utils/stockDiff');
-const { findIdsByTextSearch } = require('../utils/search');
-const { parseLocalDate } = require('../utils/date');
-const {
+import { fromCents, lineValueCents, toCents } from '../utils/money.js';
+import { badRequest, notFound } from '../utils/httpError.js';
+import { computeOrderStatus } from '../utils/receivables.js';
+import { applyMovement } from './stockService.js';
+import { computeStockDiff } from '../utils/stockDiff.js';
+import { findIdsByTextSearch } from '../utils/search.js';
+import { parseLocalDate } from '../utils/date.js';
+import {
   itemStockMovements,
   reverseOrderStock,
   reverseItemStock,
-} = require('./orderStockIntegration');
-const {
+} from './orderStockIntegration.js';
+import {
   validateProducts,
   validateStockItemRules,
   selfPersonIdSet,
   assertNotSaleOrder,
-} = require('../utils/ordersValidation');
-const {
+} from '../utils/ordersValidation.js';
+import {
   itemCreateData,
   orderLineTotalCents,
-} = require('../utils/ordersItemTransform');
-const {
+} from '../utils/ordersItemTransform.js';
+import {
   resolveKitFields,
   resolveEditedKitFields,
   resolveOrderUpdateItems,
-} = require('../utils/ordersKitResolution');
-const { syncOrderStatus } = require('../utils/ordersStatusSync');
-const {
+} from '../utils/ordersKitResolution.js';
+import { syncOrderStatus } from '../utils/ordersStatusSync.js';
+import {
   ORDER_SORTABLE_FIELDS,
   sortOrdersInMemory,
-} = require('../utils/ordersSort');
+} from '../utils/ordersSort.js';
 
 const getOrders = async (client, { userId, query }) => {
   const { q, searchField, status, paymentType, sortBy, sortDir } = query;
@@ -712,7 +712,7 @@ const updateItem = async (client, { id: itemId, userId, payload }) => {
     }
 
     // Update item (drop helper fields)
-    const { person, order, ...itemData } = newData;
+    const { person: _person, order: _order, ...itemData } = newData;
     const item = await tx.item.update({
       where: { id: itemId },
       data: {
@@ -833,7 +833,7 @@ const deleteItem = async (client, { id: itemId, userId }) => {
   });
 };
 
-module.exports = {
+export {
   getOrders,
   getOrderById,
   createOrder,

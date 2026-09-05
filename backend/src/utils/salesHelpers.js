@@ -1,5 +1,5 @@
-const { toCents } = require('./money');
-const { badRequest } = require('./httpError');
+import { toCents } from './money.js';
+import { badRequest } from './httpError.js';
 
 // DB-backed columns the user can sort by in the sales list.
 const SALES_SORTABLE_FIELDS = [
@@ -63,8 +63,4 @@ const validateSaleProducts = async (client, items) => {
   }
 };
 
-module.exports = {
-  SALES_SORTABLE_FIELDS,
-  sortSalesInMemory,
-  validateSaleProducts,
-};
+export { SALES_SORTABLE_FIELDS, sortSalesInMemory, validateSaleProducts };

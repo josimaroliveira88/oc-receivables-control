@@ -1,4 +1,4 @@
-const { z } = require('zod');
+import { z } from 'zod';
 
 // Must stay in sync with the Prisma `PaymentType` enum. Used both for the
 // order-level "how the user paid dōTERRA" field and for per-payment records
@@ -10,4 +10,4 @@ const paymentTypeSchema = z.enum([
   'INFINITE_PAY',
 ]);
 
-module.exports = { paymentTypeSchema };
+export { paymentTypeSchema };

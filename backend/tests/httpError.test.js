@@ -1,4 +1,4 @@
-const { badRequest, notFound, forbidden } = require('../src/utils/httpError');
+import { badRequest, notFound, forbidden } from '../src/utils/httpError.js';
 
 describe('httpError util', () => {
   describe('badRequest', () => {

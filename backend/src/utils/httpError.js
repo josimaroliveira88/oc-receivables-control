@@ -20,4 +20,4 @@ const forbidden = (message) => {
   return error;
 };
 
-module.exports = { badRequest, notFound, forbidden };
+export { badRequest, notFound, forbidden };

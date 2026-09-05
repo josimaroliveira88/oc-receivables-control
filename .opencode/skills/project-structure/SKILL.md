@@ -132,3 +132,5 @@ Avoid large files with mixed concerns.
 Favor readability over clever implementations.
 
 Business rules must remain easy to locate and test.
+
+Apply SOLID pragmatically (see `AGENTS.md` — Design Principles): keep one responsibility per module, extend via new modules/options, and let services/helpers depend on stable contracts rather than callers' internals.

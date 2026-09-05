@@ -1,5 +1,5 @@
-const path = require('path');
-const os = require('os');
+import path from 'path';
+import os from 'os';
 
 process.env.JWT_SECRET = 'test-secret-key';
 process.env.PORT = '4001';

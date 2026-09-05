@@ -1,15 +1,15 @@
-const prisma = require('../config/database');
-const { handleError } = require('../middlewares/errorResponse');
-const { notFound } = require('../utils/httpError');
-const { buildOrderBalances } = require('../utils/orderBalances');
-const {
-  createPayment: createPaymentService,
-  updatePayment: updatePaymentService,
-} = require('../services/paymentsService');
-const {
+import prisma from '../config/database.js';
+import { handleError } from '../middlewares/errorResponse.js';
+import { notFound } from '../utils/httpError.js';
+import { buildOrderBalances } from '../utils/orderBalances.js';
+import {
+  createPayment as createPaymentService,
+  updatePayment as updatePaymentService,
+} from '../services/paymentsService.js';
+import {
   paymentSchema,
   updatePaymentSchema,
-} = require('../validators/paymentsValidator');
+} from '../validators/paymentsValidator.js';
 
 const createPayment = async (req, res) => {
   try {
@@ -90,8 +90,4 @@ const getOrderBalance = async (req, res) => {
   }
 };
 
-module.exports = {
-  createPayment,
-  updatePayment,
-  getOrderBalance,
-};
+export { createPayment, updatePayment, getOrderBalance };

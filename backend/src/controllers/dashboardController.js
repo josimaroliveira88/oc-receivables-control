@@ -1,6 +1,6 @@
-const prisma = require('../config/database');
-const { handleError } = require('../middlewares/errorResponse');
-const { buildDashboardSummary } = require('../utils/dashboardProjection');
+import prisma from '../config/database.js';
+import { handleError } from '../middlewares/errorResponse.js';
+import { buildDashboardSummary } from '../utils/dashboardProjection.js';
 
 const getDashboardData = async (req, res) => {
   try {
@@ -37,4 +37,4 @@ const getDashboardData = async (req, res) => {
   }
 };
 
-module.exports = { getDashboardData };
+export { getDashboardData };

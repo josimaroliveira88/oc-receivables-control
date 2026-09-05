@@ -1,10 +1,10 @@
-const request = require('supertest');
-const app = require('../src/app');
-const prisma = require('../src/config/database');
-const {
+import request from 'supertest';
+import app from '../src/app.js';
+import prisma from '../src/config/database.js';
+import {
   resolveKitSnapshot,
   expandItemToStockProducts,
-} = require('../src/utils/kitStock');
+} from '../src/utils/kitStock.js';
 
 const selfPersonId = 'self-person';
 
@@ -80,7 +80,6 @@ describe('expandItemToStockProducts', () => {
 });
 
 describe('resolveKitSnapshot', () => {
-  let authToken;
   let userId;
   let compA;
   let compB;
@@ -93,10 +92,9 @@ describe('resolveKitSnapshot', () => {
       .send({ username, password: 'testpass123' });
     userId = regRes.body.id;
 
-    const loginRes = await request(app)
+    await request(app)
       .post('/api/auth/login')
       .send({ username, password: 'testpass123' });
-    authToken = loginRes.body.token;
   });
 
   afterAll(async () => {

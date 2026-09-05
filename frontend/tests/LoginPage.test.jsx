@@ -21,7 +21,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-const renderPage = (initialEntries = ['/login'], routeState = undefined) => {
+const renderPage = (_initialEntries = ['/login'], routeState = undefined) => {
   const entry = routeState
     ? { pathname: '/login', state: routeState }
     : '/login';

@@ -1,8 +1,8 @@
-const {
+import {
   projectCurrentPrice,
   priceFieldsPresent,
   priceFieldsEqual,
-} = require('../src/utils/productsProjection');
+} from '../src/utils/productsProjection.js';
 
 const baseProduct = (overrides = {}) => ({
   id: 'product-1',

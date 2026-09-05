@@ -1,4 +1,4 @@
-const { z } = require('zod');
+import { z } from 'zod';
 
 const saleItemSchema = z.object({
   id: z.string().optional().nullable(),
@@ -76,8 +76,4 @@ const updateSaleSchema = z.object({
     .optional(),
 });
 
-module.exports = {
-  saleItemSchema,
-  createSaleSchema,
-  updateSaleSchema,
-};
+export { saleItemSchema, createSaleSchema, updateSaleSchema };

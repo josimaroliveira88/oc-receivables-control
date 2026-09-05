@@ -1,4 +1,4 @@
-const { computeStockDiff } = require('../src/utils/stockDiff');
+import { computeStockDiff } from '../src/utils/stockDiff.js';
 
 const selfId = 'self-person';
 const otherId = 'other-person';

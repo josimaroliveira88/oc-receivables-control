@@ -2,7 +2,7 @@
 // Controllers keep a thin try/catch and delegate here, so error mapping
 // (Zod validation, `.status` business rejections, unexpected failures) lives
 // in a single place. Error factories live in utils/httpError.js.
-const { ZodError } = require('zod');
+import { ZodError } from 'zod';
 
 const GENERIC_ERROR_MESSAGE = 'Internal server error';
 
@@ -24,4 +24,4 @@ const handleError = (res, error, { fallback = 500, label = 'Error' } = {}) => {
   res.status(fallback).json({ error: GENERIC_ERROR_MESSAGE });
 };
 
-module.exports = { handleError };
+export { handleError };

@@ -1,5 +1,5 @@
-const { Prisma } = require('@prisma/client');
-const prisma = require('../config/database');
+import { Prisma } from '@prisma/client';
+import prisma from '../config/database.js';
 
 // Escape LIKE wildcards so user input is treated literally.
 // `%` and `_` in the search term must not act as wildcards.
@@ -29,4 +29,4 @@ const findIdsByTextSearch = async ({ table, idColumn = 'id', columns, q }) => {
   `);
   return rows.map((r) => r.id);
 };
-module.exports = { escapeLikePattern, findIdsByTextSearch };
+export { escapeLikePattern, findIdsByTextSearch };

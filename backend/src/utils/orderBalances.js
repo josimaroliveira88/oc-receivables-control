@@ -1,5 +1,5 @@
-const { toCents, fromCents, lineValueCents } = require('./money');
-const { personPendingCents } = require('./receivables');
+import { toCents, fromCents, lineValueCents } from './money.js';
+import { personPendingCents } from './receivables.js';
 
 // Projects a person's accumulated cents into the balance shape shared by the
 // order-balance endpoint and the dashboard. Self persons always have a
@@ -80,7 +80,4 @@ const buildOrderBalances = (order) => {
     .sort((a, b) => a.personName.localeCompare(b.personName));
 };
 
-module.exports = {
-  personBalanceFromTotals,
-  buildOrderBalances,
-};
+export { personBalanceFromTotals, buildOrderBalances };

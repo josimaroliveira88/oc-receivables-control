@@ -3,22 +3,22 @@
 // write function owns its own `$transaction`. Business rejections are thrown
 // as HTTP-mapped errors (via utils/httpError.js) which the controller maps to
 // the HTTP response.
-const { computeOrderStatus } = require('../utils/receivables');
-const { lineValueCents, fromCents, toCents } = require('../utils/money');
-const { applyMovement } = require('./stockService');
-const { computeSaleStockDiff } = require('../utils/stockDiff');
-const {
+import { computeOrderStatus } from '../utils/receivables.js';
+import { lineValueCents, fromCents, toCents } from '../utils/money.js';
+import { applyMovement } from './stockService.js';
+import { computeSaleStockDiff } from '../utils/stockDiff.js';
+import {
   resolveKitSnapshot,
   expandSaleItemToStockProducts,
-} = require('../utils/kitStock');
-const { findIdsByTextSearch } = require('../utils/search');
-const { parseLocalDate } = require('../utils/date');
-const {
+} from '../utils/kitStock.js';
+import { findIdsByTextSearch } from '../utils/search.js';
+import { parseLocalDate } from '../utils/date.js';
+import {
   validateSaleProducts,
   SALES_SORTABLE_FIELDS,
   sortSalesInMemory,
-} = require('../utils/salesHelpers');
-const { badRequest, notFound } = require('../utils/httpError');
+} from '../utils/salesHelpers.js';
+import { badRequest, notFound } from '../utils/httpError.js';
 
 const saleLineTotalCents = (items) =>
   items.reduce((sum, item) => sum + lineValueCents(item), 0);
@@ -623,7 +623,7 @@ const deleteSale = async (client, { id, userId }) => {
   });
 };
 
-module.exports = {
+export {
   nextSaleNumber,
   resolveSaleKitFields,
   resolveSaleUpdateItems,

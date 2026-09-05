@@ -2,8 +2,8 @@
 // attaches (or preserves) the frozen `kitSnapshot` and `kitStockMode` on each
 // item based on its product type, enforcing the "kit composition changes never
 // affect stock control of already-registered orders" rule (requirement 5).
-const { resolveKitSnapshot } = require('./kitStock');
-const { badRequest } = require('./httpError');
+import { resolveKitSnapshot } from './kitStock.js';
+import { badRequest } from './httpError.js';
 
 // Attaches the frozen kit snapshot (and validates the stock mode) to each item
 // based on its product type. For KIT products the current composition is
@@ -112,8 +112,4 @@ const resolveOrderUpdateItems = async (client, existingItems, payloadItems) => {
   return resolved;
 };
 
-module.exports = {
-  resolveKitFields,
-  resolveEditedKitFields,
-  resolveOrderUpdateItems,
-};
+export { resolveKitFields, resolveEditedKitFields, resolveOrderUpdateItems };

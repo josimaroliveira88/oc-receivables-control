@@ -17,6 +17,7 @@ When generating code:
 - Implement only the requested phase.
 - Do not anticipate future phases.
 - Respect incremental delivery.
+- Apply SOLID pragmatically (see `AGENTS.md` — Design Principles): refactor toward a principle only when it adds clarity/testability and is scoped to the change being made — never refactor wholesale just to "be SOLID".
 
 ## Response Format
 

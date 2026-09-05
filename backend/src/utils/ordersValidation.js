@@ -1,7 +1,7 @@
 // Purchase-order validation helpers. Throws HTTP-mapped errors (via
 // utils/httpError.js) which the service/controller translate into the HTTP
 // response.
-const { badRequest } = require('./httpError');
+import { badRequest } from './httpError.js';
 
 // Verify all products exist and are available (ATIVO or INDISPONIVEL; INATIVO is rejected)
 const validateProducts = async (client, items) => {
@@ -49,7 +49,7 @@ const assertNotSaleOrder = (order) => {
   }
 };
 
-module.exports = {
+export {
   validateProducts,
   validateStockItemRules,
   selfPersonIdSet,

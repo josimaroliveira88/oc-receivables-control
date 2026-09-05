@@ -1,4 +1,4 @@
-const fs = require('fs');
+import fs from 'fs';
 
 function parseProductCsv(csvText) {
   const lines = csvText.split(/\r?\n/).filter((line) => line.trim() !== '');
@@ -33,4 +33,4 @@ function parseProductCsvFile(filePath) {
   return parseProductCsv(content);
 }
 
-module.exports = { parseProductCsv, parseProductCsvFile };
+export { parseProductCsv, parseProductCsvFile };

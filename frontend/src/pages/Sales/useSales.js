@@ -105,7 +105,7 @@ export function useSales() {
         params: buildSaleParams(),
       });
       setSales(response.data);
-    } catch (err) {
+    } catch (_err) {
       setError('Erro ao carregar vendas. Tente novamente.');
     }
   }, [buildSaleParams]);
@@ -389,7 +389,7 @@ export function useSales() {
         'success',
       );
       refreshSales();
-    } catch (err) {
+    } catch (_err) {
       addToast('Erro ao atualizar a entrega. Tente novamente.', 'error');
     }
   };
@@ -408,7 +408,7 @@ export function useSales() {
       await api.delete(`/sales/${confirmDeleteId}`);
       addToast('Venda excluída com sucesso!', 'success');
       fetchData();
-    } catch (err) {
+    } catch (_err) {
       addToast('Erro ao excluir venda. Tente novamente.', 'error');
     } finally {
       setDeleting(false);
@@ -424,7 +424,7 @@ export function useSales() {
       ]);
       setPeople(peopleRes.data);
       setProducts(productsRes.data.data);
-    } catch (err) {
+    } catch (_err) {
       setError('Erro ao carregar dados. Tente novamente.');
     }
   }, []);

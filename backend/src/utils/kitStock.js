@@ -50,7 +50,7 @@ const expandStockProduct = (item) => {
   return [{ productId: item.productId, quantity: qty }];
 };
 
-module.exports = {
+export {
   resolveKitSnapshot,
   expandItemToStockProducts,
   expandSaleItemToStockProducts,

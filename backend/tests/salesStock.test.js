@@ -1,6 +1,6 @@
-const request = require('supertest');
-const app = require('../src/app');
-const prisma = require('../src/config/database');
+import request from 'supertest';
+import app from '../src/app.js';
+import prisma from '../src/config/database.js';
 
 const registerUser = async (prefix) => {
   const username = `${prefix}_${Date.now()}_${Math.floor(Math.random() * 100000)}`;

@@ -3,10 +3,10 @@
 // `$transaction` (payments are the outermost operation). Business rejections
 // are thrown as HTTP-mapped errors (via utils/httpError.js) which the
 // controller maps to the HTTP response.
-const { toCents, lineValueCents } = require('../utils/money');
-const { computeOrderStatus } = require('../utils/receivables');
-const { parseLocalDate } = require('../utils/date');
-const { badRequest, notFound } = require('../utils/httpError');
+import { toCents, lineValueCents } from '../utils/money.js';
+import { computeOrderStatus } from '../utils/receivables.js';
+import { parseLocalDate } from '../utils/date.js';
+import { badRequest, notFound } from '../utils/httpError.js';
 
 const TEAM_ORDER_MESSAGE =
   'Pedidos da equipe não aceitam pagamentos (a equipe já realizou o pagamento)';
@@ -178,4 +178,4 @@ const updatePayment = async (client, { id, userId, payload }) => {
   });
 };
 
-module.exports = { createPayment, updatePayment };
+export { createPayment, updatePayment };

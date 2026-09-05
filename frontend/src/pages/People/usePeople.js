@@ -35,7 +35,7 @@ export function usePeople() {
       setLoading(true);
       const response = await api.get('/people');
       setPeople(response.data);
-    } catch (err) {
+    } catch (_err) {
       setError('Erro ao carregar clientes. Tente novamente.');
     } finally {
       setLoading(false);
@@ -203,7 +203,7 @@ export function usePeople() {
       await api.delete(`/people/${confirmDeleteId}`);
       addToast('Cliente excluído com sucesso!', 'success');
       fetchPeople();
-    } catch (err) {
+    } catch (_err) {
       addToast('Erro ao excluir cliente. Tente novamente.', 'error');
     } finally {
       setDeleting(false);

@@ -1,6 +1,6 @@
-const { ZodError } = require('zod');
-const { handleError } = require('../src/middlewares/errorResponse');
-const { badRequest, notFound } = require('../src/utils/httpError');
+import { ZodError } from 'zod';
+import { handleError } from '../src/middlewares/errorResponse.js';
+import { badRequest, notFound } from '../src/utils/httpError.js';
 
 const stubRes = () => {
   const res = {

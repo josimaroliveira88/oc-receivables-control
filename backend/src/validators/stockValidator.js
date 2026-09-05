@@ -1,4 +1,4 @@
-const { z } = require('zod');
+import { z } from 'zod';
 
 const movementSchema = z.object({
   productId: z.string().uuid(),
@@ -11,4 +11,4 @@ const movementSchema = z.object({
     .optional(),
 });
 
-module.exports = { movementSchema };
+export { movementSchema };

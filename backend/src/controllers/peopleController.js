@@ -1,16 +1,16 @@
-const prisma = require('../config/database');
-const { handleError } = require('../middlewares/errorResponse');
-const { notFound } = require('../utils/httpError');
-const {
+import prisma from '../config/database.js';
+import { handleError } from '../middlewares/errorResponse.js';
+import { notFound } from '../utils/httpError.js';
+import {
   syncOrderStatusesForPersons,
   personFinancialSummary,
-} = require('../utils/receivables');
-const { personSchema } = require('../validators/peopleValidator');
-const {
+} from '../utils/receivables.js';
+import { personSchema } from '../validators/peopleValidator.js';
+import {
   SORTABLE_PERSON_FIELDS,
   classificationToFlags,
-} = require('../utils/classification');
-const { findIdsByTextSearch } = require('../utils/search');
+} from '../utils/classification.js';
+import { findIdsByTextSearch } from '../utils/search.js';
 
 // Get all people
 const getPeople = async (req, res) => {
@@ -235,7 +235,7 @@ const deletePerson = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   getPeople,
   getPersonById,
   getPersonSummary,

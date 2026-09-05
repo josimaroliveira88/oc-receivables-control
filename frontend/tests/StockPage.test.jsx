@@ -3,7 +3,6 @@ import {
   screen,
   fireEvent,
   waitFor,
-  act,
   within,
 } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';

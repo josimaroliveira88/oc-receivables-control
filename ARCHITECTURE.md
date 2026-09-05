@@ -6,10 +6,11 @@ Full-stack financial tracking application for clients, dōTERRA orders, receivab
 
 ## Technology
 
-- Backend: Node.js, Express, Prisma ORM, Zod, JWT, bcryptjs, morgan, multer.
+- Backend: Node.js, Express, Prisma ORM, Zod, JWT, bcryptjs, morgan, multer (ES Modules, `"type": "module"`).
 - Frontend: React 18, React Router 6, Vite, Tailwind CSS 3, Flowbite plugin, Recharts, SheetJS, lucide-react, react-icons (brand icons, e.g. WhatsApp/Instagram), react-number-format (ATM-style currency masks via `CurrencyInput`).
 - Database: PostgreSQL 15.
 - Tests: Vitest, Supertest, React Testing Library, jsdom.
+- Code quality: Prettier 3 for formatting; ESLint 9 (flat config, per workspace) for code quality — the two are disjoint by design via `eslint-config-prettier`.
 - Local infrastructure: Docker Compose with PostgreSQL and Adminer.
 
 ## Runtime and Configuration
@@ -109,6 +110,8 @@ For a database with existing data, apply migrations with `npx prisma migrate dep
 
 ## Important Design Decisions
 
+- The backend runs on native ES Modules (`"type": "module"`): source, tests, scripts and seed use `import`/`export`, and relative imports carry the `.js` extension. `__dirname` is derived from `import.meta.url` where needed (`middlewares/upload.js`, `scripts/loadProducts.js`). `dotenv` is loaded conditionally (`NODE_ENV !== 'test'`) in `config.js`/`app.js` so test env vars are not overwritten.
+- Code quality is split between **Prettier** (formatting only) and **ESLint 9** (rules only), with per-workspace flat configs (`backend/eslint.config.js`, `frontend/eslint.config.js`) that end with `eslint-config-prettier` so the two never conflict. Backend uses `@eslint/js` recommended + `globals.node`/`globals.vitest`; frontend adds the React/react-hooks/jsx-a11y recommended presets with `globals.browser`/`globals.vitest`. The `react-hooks/set-state-in-effect` rule is off and `react-hooks/refs` is a warning because the existing page-hook effects intentionally load data and keep a latest-callback ref; the `^_` prefix opts unused args/vars/caught-errors out of `no-unused-vars`.
 - Financial calculations use integer cents in application code; database monetary fields remain `Decimal(10,2)`.
 - HTTP error handling is centralized: services/utils throw errors created by the `backend/src/utils/httpError.js` factories (`badRequest`, `notFound`, `forbidden` — plain `Error`s carrying `.status`; `stockUndoService` attaches `orderNumber`/`orderId` extras to the order-lock rejection), and every controller catch delegates to `backend/src/middlewares/errorResponse.js#handleError`, which maps `ZodError` → 400 `{error: errors}`, `.status` errors → that status with `{error: message}` (+ extras), and anything else → the fallback (500, or 400 for payments/stock) with a generic message. The Prisma client is a single instance exported from `backend/src/config/database.js`, reused by every controller and service.
 - Product `pricePerPv` is calculated at API projection time using integer/`BigInt` arithmetic and half-up rounding; it is not persisted. Products can be sorted by this derived value.

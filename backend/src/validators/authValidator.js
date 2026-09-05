@@ -1,4 +1,4 @@
-const { z } = require('zod');
+import { z } from 'zod';
 
 // Zod schema for login validation
 const loginSchema = z.object({
@@ -12,7 +12,4 @@ const registerSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
-module.exports = {
-  loginSchema,
-  registerSchema,
-};
+export { loginSchema, registerSchema };

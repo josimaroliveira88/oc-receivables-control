@@ -1,4 +1,4 @@
-const { buildOrderBalances } = require('../src/utils/orderBalances');
+import { buildOrderBalances } from '../src/utils/orderBalances.js';
 
 const item = (personId, chargedValue, extra = {}) => ({
   personId,

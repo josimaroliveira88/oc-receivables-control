@@ -1,4 +1,4 @@
-const { lineValueCents, toCents } = require('./money');
+import { lineValueCents, toCents } from './money.js';
 
 // DB-backed columns the user can sort by in the orders list.
 const ORDER_SORTABLE_FIELDS = [
@@ -54,8 +54,4 @@ const sortOrdersInMemory = (orders, sortBy, sortDir) => {
   });
 };
 
-module.exports = {
-  ORDER_SORTABLE_FIELDS,
-  orderSortValue,
-  sortOrdersInMemory,
-};
+export { ORDER_SORTABLE_FIELDS, orderSortValue, sortOrdersInMemory };

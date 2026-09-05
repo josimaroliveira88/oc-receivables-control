@@ -1,5 +1,5 @@
-const jwt = require('jsonwebtoken');
-const { JWT_SECRET } = require('../config');
+import jwt from 'jsonwebtoken';
+import { JWT_SECRET } from '../config.js';
 
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -18,6 +18,4 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-module.exports = {
-  authenticateToken,
-};
+export { authenticateToken };

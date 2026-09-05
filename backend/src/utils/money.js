@@ -49,10 +49,4 @@ function formatBRL(cents) {
   });
 }
 
-module.exports = {
-  toCents,
-  fromCents,
-  formatBRL,
-  lineValueCents,
-  pricePerPv,
-};
+export { toCents, fromCents, formatBRL, lineValueCents, pricePerPv };

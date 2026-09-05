@@ -20,7 +20,7 @@ vi.mock('axios', () => ({
   },
 }));
 
-import api from '../src/services/api';
+import _api from '../src/services/api';
 
 describe('API Interceptors', () => {
   let onRequest;

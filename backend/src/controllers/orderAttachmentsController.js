@@ -1,13 +1,13 @@
-const fs = require('fs');
-const { resolveAttachmentPath } = require('../middlewares/upload');
-const prisma = require('../config/database');
-const { handleError } = require('../middlewares/errorResponse');
-const {
+import fs from 'fs';
+import { resolveAttachmentPath } from '../middlewares/upload.js';
+import prisma from '../config/database.js';
+import { handleError } from '../middlewares/errorResponse.js';
+import {
   attachmentMaxBytes,
   attachmentContentType,
   removeAttachmentFile,
-} = require('../utils/attachmentStorage');
-const { badRequest, notFound } = require('../utils/httpError');
+} from '../utils/attachmentStorage.js';
+import { badRequest, notFound } from '../utils/httpError.js';
 
 const findOwnedOrder = async (req) => {
   const { id } = req.params;
@@ -95,8 +95,4 @@ const deleteAttachment = async (req, res) => {
   }
 };
 
-module.exports = {
-  uploadAttachment,
-  getAttachment,
-  deleteAttachment,
-};
+export { uploadAttachment, getAttachment, deleteAttachment };

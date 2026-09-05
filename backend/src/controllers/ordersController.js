@@ -1,12 +1,12 @@
-const prisma = require('../config/database');
-const { handleError } = require('../middlewares/errorResponse');
-const ordersService = require('../services/ordersService');
-const { removeAttachmentFile } = require('../utils/attachmentStorage');
-const {
+import prisma from '../config/database.js';
+import { handleError } from '../middlewares/errorResponse.js';
+import * as ordersService from '../services/ordersService.js';
+import { removeAttachmentFile } from '../utils/attachmentStorage.js';
+import {
   itemSchema,
   createOrderSchema,
   updateOrderSchema,
-} = require('../validators/ordersValidator');
+} from '../validators/ordersValidator.js';
 
 // Get all orders with items
 const getOrders = async (req, res) => {
@@ -141,7 +141,7 @@ const deleteItem = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   getOrders,
   getOrderById,
   createOrder,

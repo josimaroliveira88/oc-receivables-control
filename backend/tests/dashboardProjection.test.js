@@ -1,4 +1,4 @@
-const { buildDashboardSummary } = require('../src/utils/dashboardProjection');
+import { buildDashboardSummary } from '../src/utils/dashboardProjection.js';
 
 const person = (id, name, isSelf = false) => ({
   id,

@@ -1,8 +1,8 @@
-const {
+import {
   computeOrderStatus,
   personPendingCents,
   personFinancialSummary,
-} = require('../src/utils/receivables');
+} from '../src/utils/receivables.js';
 
 const toCents = (value) => Math.round(value * 100);
 

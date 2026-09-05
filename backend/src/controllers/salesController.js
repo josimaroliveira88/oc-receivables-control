@@ -1,10 +1,10 @@
-const prisma = require('../config/database');
-const { handleError } = require('../middlewares/errorResponse');
-const {
+import prisma from '../config/database.js';
+import { handleError } from '../middlewares/errorResponse.js';
+import {
   createSaleSchema,
   updateSaleSchema,
-} = require('../validators/salesValidator');
-const salesService = require('../services/salesService');
+} from '../validators/salesValidator.js';
+import * as salesService from '../services/salesService.js';
 
 const getSales = async (req, res) => {
   try {
@@ -78,10 +78,4 @@ const deleteSale = async (req, res) => {
   }
 };
 
-module.exports = {
-  getSales,
-  getSaleById,
-  createSale,
-  updateSale,
-  deleteSale,
-};
+export { getSales, getSaleById, createSale, updateSale, deleteSale };

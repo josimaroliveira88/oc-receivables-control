@@ -1,4 +1,4 @@
-const { z } = require('zod');
+import { z } from 'zod';
 
 const MAX_DAYS_BY_MONTH = {
   1: 31,
@@ -49,4 +49,4 @@ const personSchema = z.object({
   isSelf: z.boolean().optional(),
 });
 
-module.exports = { personSchema, MAX_DAYS_BY_MONTH, isValidBirthday };
+export { personSchema, MAX_DAYS_BY_MONTH, isValidBirthday };

@@ -1,11 +1,11 @@
-const prisma = require('../config/database');
-const { handleError } = require('../middlewares/errorResponse');
-const { badRequest, notFound } = require('../utils/httpError');
-const { applyMovement } = require('../services/stockService');
-const stockUndoService = require('../services/stockUndoService');
-const { movementSchema } = require('../validators/stockValidator');
-const { findIdsByTextSearch } = require('../utils/search');
-const { parseLocalDate } = require('../utils/date');
+import prisma from '../config/database.js';
+import { handleError } from '../middlewares/errorResponse.js';
+import { badRequest, notFound } from '../utils/httpError.js';
+import { applyMovement } from '../services/stockService.js';
+import * as stockUndoService from '../services/stockUndoService.js';
+import { movementSchema } from '../validators/stockValidator.js';
+import { findIdsByTextSearch } from '../utils/search.js';
+import { parseLocalDate } from '../utils/date.js';
 
 const listInventory = async (req, res) => {
   try {
@@ -161,9 +161,4 @@ const undoLastMovement = async (req, res) => {
   }
 };
 
-module.exports = {
-  listInventory,
-  getProductHistory,
-  registerMovement,
-  undoLastMovement,
-};
+export { listInventory, getProductHistory, registerMovement, undoLastMovement };

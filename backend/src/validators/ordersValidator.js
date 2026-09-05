@@ -1,5 +1,5 @@
-const { z } = require('zod');
-const { paymentTypeSchema } = require('../utils/paymentTypes');
+import { z } from 'zod';
+import { paymentTypeSchema } from '../utils/paymentTypes.js';
 
 const itemSchema = z.object({
   id: z.string().optional().nullable(),
@@ -84,8 +84,4 @@ const updateOrderSchema = z.object({
   items: z.array(itemSchema).min(1, 'At least one item is required').optional(),
 });
 
-module.exports = {
-  itemSchema,
-  createOrderSchema,
-  updateOrderSchema,
-};
+export { itemSchema, createOrderSchema, updateOrderSchema };

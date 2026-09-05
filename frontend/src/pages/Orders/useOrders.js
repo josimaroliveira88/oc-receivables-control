@@ -113,7 +113,7 @@ export function useOrders() {
         params: buildOrderParams(),
       });
       setOrders(response.data);
-    } catch (err) {
+    } catch (_err) {
       setError('Erro ao carregar pedidos. Tente novamente.');
     }
   }, [buildOrderParams]);
@@ -243,7 +243,7 @@ export function useOrders() {
 
       const person = await selfPersonRequestRef.current;
       updateItemField(index, 'personId', person.id);
-    } catch (err) {
+    } catch (_err) {
       addToast('Não foi possível vincular você a este item.', 'error');
     }
   };
@@ -528,7 +528,7 @@ export function useOrders() {
       await api.delete(`/orders/${confirmDeleteId}`);
       addToast('Pedido excluído com sucesso!', 'success');
       fetchData();
-    } catch (err) {
+    } catch (_err) {
       addToast('Erro ao excluir pedido. Tente novamente.', 'error');
     } finally {
       setDeleting(false);
@@ -544,7 +544,7 @@ export function useOrders() {
       ]);
       setPeople(peopleRes.data);
       setProducts(productsRes.data.data);
-    } catch (err) {
+    } catch (_err) {
       setError('Erro ao carregar dados. Tente novamente.');
     }
   }, []);

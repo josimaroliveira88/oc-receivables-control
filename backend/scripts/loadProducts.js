@@ -1,9 +1,13 @@
-const path = require('path');
-const { PrismaClient } = require('@prisma/client');
-const { parseProductCsvFile } = require('../src/utils/csvParser');
-const { loadProductCatalog } = require('../src/utils/productLoader');
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { PrismaClient } from '@prisma/client';
+import { parseProductCsvFile } from '../src/utils/csvParser.js';
+import { loadProductCatalog } from '../src/utils/productLoader.js';
+import dotenv from 'dotenv';
 
-require('dotenv').config();
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+dotenv.config();
 
 const prisma = new PrismaClient();
 

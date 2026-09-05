@@ -1,4 +1,4 @@
-const { toCents, lineValueCents } = require('./money');
+import { toCents, lineValueCents } from './money.js';
 
 // A person flagged with `isSelf` represents the logged-in user themselves.
 // Items owned by the self person are considered already received, so they
@@ -167,7 +167,7 @@ const personFinancialSummary = (items, payments, { isSelf = false } = {}) => {
   };
 };
 
-module.exports = {
+export {
   collectSelfPersonIds,
   personPendingCents,
   computeOrderStatus,
