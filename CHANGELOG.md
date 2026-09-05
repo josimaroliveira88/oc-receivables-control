@@ -10,6 +10,35 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 75 — Backend refactoring R1–R10 e ajustes de frontend (2026-09-05)
+
+Consolidação da arquitetura do backend (`backend/docs/backend-refactoring-plan.md`, fases R1–R10) e correções de frontend. Exports e comportamento HTTP preservados em todas as fases.
+
+### Added
+- **Árvore backend alinhada ao guia de arquitetura**: controllers viraram thin handlers e a lógica migrou para novos módulos —
+  - `validators/`: `authValidator` (R1), `stockValidator` (R4), `peopleValidator` (R5), `paymentsValidator` (R6), `productValidator` (R7), `salesValidator` (R8), `ordersValidator` (R9); schemas movidos verbatim (mensagens Zod inalteradas).
+  - `services/`: `stockUndoService` (R4, regras de desfazer última movimentação + lock por pedido), `paymentsService` (R6), `kitValidationService` (R7), `salesService` (R8, com `nextSaleNumber` e retry P2002), `ordersService` + `orderStockIntegration` (R9, movimentações por item + reversões SAIDA).
+  - `utils/`: `attachmentStorage` (R2), `orderBalances#buildOrderBalances` e `dashboardProjection#buildDashboardSummary` (R3), `classification` e `receivables.personFinancialSummary` (R5), `productsProjection`/`productSort`/`pagination` (R7), `salesHelpers` (R8), `ordersSort`, `ordersValidation`, `ordersItemTransform`, `ordersKitResolution`, `ordersStatusSync` (R9), `httpError` (R10).
+- **Erros HTTP centralizados (R10)**: novo `backend/src/utils/httpError.js` (`badRequest`, `notFound`, `forbidden` — factories puras de `Error` com `.status`) e `backend/src/middlewares/errorResponse.js` (`handleError(res, error, { fallback, label })`): ZodError → 400 `{error: errors}`, erros com `.status` → status + `{error: message}` (inclui os extras `orderNumber`/`orderId` do bloqueio de undo), inesperado → `console.error` + fallback (500; 400 em payments/stock). Catches dos controllers viraram uma linha; guards inline (`not found`, checagens de quantidade do estoque, anexos) agora lançam pelos mesmos helpers.
+- **Singleton do Prisma (R10)**: os 8 controllers que instanciavam `new PrismaClient()` passaram a reutilizar `backend/src/config/database.js` — um único pool de conexões.
+- **Fechamento educado na criação (frontend)**: "Nova Venda" e "Novo Pedido" capturam snapshot do formulário ao abrir o modal, então Escape/backdrop/×/Cancelar com alterações mostram o ConfirmDialog "Descartar alterações?" em vez de descartar silenciosamente o que foi digitado.
+
+### Changed
+- Renome `StockController.js` → `stockController.js` (R4). Controllers encolheram: `peopleController` 349→259, `paymentsController` 291→134, `productController` 542→365, `salesController` 839→111, `ordersController` 1403→~195, `stockController` 288→174 linhas.
+- `salesService` abandonou o `badRequest` privado (que lançava internamente) em favor do helper compartilhado, com `throw` explícito nos 12 call sites (R10).
+- `ARCHITECTURE.md`: árvore de repositório e decisões de design atualizadas (services/validators, `httpError`/`errorResponse`, `ordersService`/`salesService` como consumidores de `applyMovement`).
+
+### Removed
+- `ordersHelpers.js` dividido em três módulos de responsabilidade única (`ordersValidation`, `ordersItemTransform`, `ordersKitResolution`); código morto removido (`statusItemFromItem`, export `orderDescriptiveSchema`) e o re-export `removeAttachmentFile` de `orderAttachmentsController` retirado (R9 follow-up).
+
+### Fixed
+- 4 testes frontend quebrados pelo renome "Gestão de Pedidos" → "Pedidos dōTERRA" (commit 8d42924): asserções em `OrdersPage.test.jsx`, `OrdersPayments.test.jsx`, `Header.test.jsx`, `MobileDrawer.test.jsx` e esperas no spec e2e `team-orders.spec.js`.
+
+### Tests
+- Novos arquivos (TDD): `orderBalances.test.js` (10), `dashboardProjection.test.js` (10), `stockUndoService.test.js` (9), `pagination.test.js` (14), `productSort.test.js` (9), `productsProjection.test.js` (11), `kitValidationService.test.js` (10), `httpError.test.js` (4), `errorResponse.test.js` (8) e o bloco `personFinancialSummary` em `receivables.test.js` (7); +16 testes de polite close no frontend (`SalesPage.test.jsx`/`OrdersPage.test.jsx`).
+- **610 backend tests passing** (27 arquivos) e **701 frontend tests passing** (26 arquivos); `npm run format:check` e `cd frontend && npm run build` limpos.
+
+
 ## Phase 74 — Checkbox "Esta pessoa sou eu" dinâmico (2026-08-30)
 
 ### Changed
