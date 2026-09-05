@@ -133,6 +133,64 @@ const richOrder = {
   payments: [],
 };
 
+const selfOrderWithFreight = {
+  id: 'order-self-freight',
+  orderNumber: 'ORD-SELF-FRT',
+  orderDate: '2026-08-07',
+  accountOwner: null,
+  orderNotes: null,
+  totalValue: '35.74',
+  shippingValue: '10.99',
+  status: 'QUITADO',
+  doterraPv: null,
+  doterraValue: null,
+  attachmentFilename: null,
+  items: [
+    {
+      id: 'item-self-frt',
+      personId: 'p-self',
+      person: { id: 'p-self', name: 'Eu Mesmo', isSelf: true },
+      description: 'Item próprio',
+      chargedValue: '24.75',
+      pv: '0.00',
+    },
+  ],
+  payments: [],
+};
+
+const mixedOrderWithFreight = {
+  id: 'order-mixed-freight',
+  orderNumber: 'ORD-MIXED-FRT',
+  orderDate: '2026-08-08',
+  accountOwner: 'Cliente X',
+  orderNotes: null,
+  totalValue: '110.00',
+  shippingValue: '10.00',
+  status: 'PENDENTE',
+  doterraPv: null,
+  doterraValue: null,
+  attachmentFilename: null,
+  items: [
+    {
+      id: 'item-mixed-self',
+      personId: 'p-self',
+      person: { id: 'p-self', name: 'Eu Mesmo', isSelf: true },
+      description: 'Item próprio',
+      chargedValue: '40.00',
+      pv: '0.00',
+    },
+    {
+      id: 'item-mixed-other',
+      personId: 'p-other',
+      person: { id: 'p-other', name: 'Cliente', isSelf: false },
+      description: 'Item cliente',
+      chargedValue: '60.00',
+      pv: '0.00',
+    },
+  ],
+  payments: [],
+};
+
 const detailRichOrder = {
   id: 'order-detail-rich',
   orderNumber: 'ORD-DETAIL',
@@ -656,6 +714,55 @@ describe('OrdersPayments', () => {
       const pendingCell = rowForOrder('ORD-001').querySelector(
         'td[data-label="Valor Pendente"]',
       );
+      expect(pendingCell).toHaveClass('text-gray-900');
+      expect(pendingCell).toHaveClass('dark:text-gray-100');
+    });
+
+    it('should render R$ 0,00 pending for an all-self order with freight', async () => {
+      mockGetImplementation([selfOrderWithFreight]);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('ORD-SELF-FRT')).toBeInTheDocument();
+      });
+      const pendingCell = rowForOrder('ORD-SELF-FRT').querySelector(
+        'td[data-label="Valor Pendente"]',
+      );
+      expect(pendingCell).toHaveTextContent('R$ 0,00');
+      expect(pendingCell).toHaveClass('text-gray-400');
+      expect(pendingCell).toHaveClass('dark:text-gray-500');
+    });
+
+    it('should not offer the payment action for an all-self order with freight', async () => {
+      mockGetImplementation([selfOrderWithFreight]);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('ORD-SELF-FRT')).toBeInTheDocument();
+      });
+      fireEvent.click(
+        screen.getByTestId('order-actions-order-self-freight-trigger'),
+      );
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('order-actions-order-self-freight-menu'),
+        ).toBeInTheDocument();
+      });
+      expect(
+        screen.queryByTestId(
+          'order-actions-order-self-freight-item-Registrar-Pagamento',
+        ),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should keep freight collectable in pending for orders with other-person items', async () => {
+      mockGetImplementation([mixedOrderWithFreight]);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('ORD-MIXED-FRT')).toBeInTheDocument();
+      });
+      const pendingCell = rowForOrder('ORD-MIXED-FRT').querySelector(
+        'td[data-label="Valor Pendente"]',
+      );
+      expect(pendingCell).toHaveTextContent('R$ 70,00');
       expect(pendingCell).toHaveClass('text-gray-900');
       expect(pendingCell).toHaveClass('dark:text-gray-100');
     });

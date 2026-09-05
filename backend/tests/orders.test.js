@@ -2487,5 +2487,62 @@ describe('Orders CRUD with Items', () => {
       expect(parseFloat(order.shippingValue)).toBe(15);
       expect(parseFloat(order.totalValue)).toBe(65.0);
     });
+
+    it('should sort all-self orders with shipping as zero pending value', async () => {
+      const selfPerson = await prisma.person.create({
+        data: { name: 'Shipping Self Person', isSelf: true, userId },
+      });
+
+      // Mixed order: pending 15.00 (item 10.00 for another person + frete 5.00).
+      const mixedOrderId = (
+        await request(app)
+          .post('/api/orders')
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            orderNumber: uniqueOrderNumber('FRT'),
+            shippingValue: 5,
+            items: [
+              {
+                description: 'Item',
+                chargedValue: 10.0,
+                personId: testPersonId,
+              },
+            ],
+          })
+      ).body.id;
+
+      // All-self order: old pending formula would yield 80.00 (total 180.00 -
+      // self item 100.00), but the frete belongs to the user, so pending is 0.
+      const selfOrderId = (
+        await request(app)
+          .post('/api/orders')
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            orderNumber: uniqueOrderNumber('FRT'),
+            shippingValue: 80,
+            items: [
+              {
+                description: 'Item',
+                chargedValue: 100.0,
+                personId: selfPerson.id,
+              },
+            ],
+          })
+      ).body.id;
+
+      const response = await request(app)
+        .get(`/api/orders?sortBy=pendingValue&sortDir=desc`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      const ids = response.body.map((o) => o.id);
+      expect(ids.indexOf(mixedOrderId)).toBeLessThan(ids.indexOf(selfOrderId));
+
+      await prisma.order
+        .deleteMany({ where: { id: { in: [mixedOrderId, selfOrderId] } } })
+        .catch(() => {});
+      await prisma.person
+        .delete({ where: { id: selfPerson.id } })
+        .catch(() => {});
+    });
   });
 });

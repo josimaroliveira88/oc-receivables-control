@@ -974,7 +974,7 @@ describe('OrdersPage', () => {
       });
     });
 
-    it('should display "Soma dos Produtos" summary without PV blocks', async () => {
+    it('should display "Valor Total" summary without PV blocks', async () => {
       renderPage();
 
       await waitFor(() => {
@@ -984,19 +984,20 @@ describe('OrdersPage', () => {
       fireEvent.click(screen.getByText('Novo Pedido'));
 
       await waitFor(() => {
-        expect(
-          screen.getAllByText('Soma dos Produtos (Valor Pago)').length,
-        ).toBeGreaterThan(0);
+        expect(screen.getByText('Valor Total')).toBeInTheDocument();
       });
 
+      expect(
+        screen.queryByText('Soma dos Produtos (Valor Pago)'),
+      ).not.toBeInTheDocument();
       expect(screen.queryByText('Soma dos PV')).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('order-totals-charged'),
+      ).not.toBeInTheDocument();
       expect(screen.queryByTestId('order-totals-pv')).not.toBeInTheDocument();
       expect(
         screen.queryByTestId('order-totals-pv-footer'),
       ).not.toBeInTheDocument();
-      expect(screen.getByTestId('order-totals-charged')).toHaveTextContent(
-        'R$ 0,00',
-      );
       expect(
         screen.getByTestId('order-totals-charged-footer'),
       ).toHaveTextContent('R$ 0,00');
@@ -2655,7 +2656,7 @@ describe('OrdersPage', () => {
       );
     });
 
-    it('should compute Soma dos Produtos reflecting UNIT mode (chargedValue * quantity)', async () => {
+    it('should compute Valor Total reflecting UNIT mode (chargedValue * quantity)', async () => {
       mockGetImplementation([], mockPeople);
       renderPage();
       await openCreateModal();
@@ -2665,12 +2666,12 @@ describe('OrdersPage', () => {
       fireEvent.change(screen.getByPlaceholderText('0,00'), {
         target: { value: '1050' },
       });
-      expect(screen.getByTestId('order-totals-charged').textContent).toMatch(
-        /31,50/,
-      );
+      expect(
+        screen.getByTestId('order-totals-charged-footer').textContent,
+      ).toMatch(/31,50/);
     });
 
-    it('should compute Soma dos Produtos reflecting TOTAL mode (just chargedValue)', async () => {
+    it('should compute Valor Total reflecting TOTAL mode (just chargedValue)', async () => {
       mockGetImplementation([], mockPeople);
       renderPage();
       await openCreateModal();
@@ -2683,9 +2684,27 @@ describe('OrdersPage', () => {
       fireEvent.change(screen.getByTestId('order-item-price-mode-0'), {
         target: { value: 'TOTAL' },
       });
-      expect(screen.getByTestId('order-totals-charged').textContent).toMatch(
-        /40,00/,
-      );
+      expect(
+        screen.getByTestId('order-totals-charged-footer').textContent,
+      ).toMatch(/40,00/);
+    });
+
+    it('should compute Valor Total as the products sum plus the freight', async () => {
+      mockGetImplementation([], mockPeople);
+      renderPage();
+      await openCreateModal();
+      fireEvent.change(screen.getByTestId('order-item-quantity-0'), {
+        target: { value: '3' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '1050' },
+      });
+      fireEvent.change(screen.getByTestId('order-freight'), {
+        target: { value: '1099' },
+      });
+      expect(
+        screen.getByTestId('order-totals-charged-footer').textContent,
+      ).toMatch(/42,49/);
     });
 
     it('should display Valor Membro (total) as memberPrice * quantity', async () => {
