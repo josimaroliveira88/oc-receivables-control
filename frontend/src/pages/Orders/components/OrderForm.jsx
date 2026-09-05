@@ -1,7 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
 import { ExternalLink, Image as ImageIcon, Plus, X } from 'lucide-react';
-import { formatBRL } from '../../../utils/money';
-import { fromCents } from '../../../utils/money';
 import { trackingUrl, lineValueCents } from '../utils/orderHelpers';
 import OrderItemFields from './OrderItemFields';
 import OrderTotals from './OrderTotals';
@@ -283,20 +281,6 @@ const OrderForm = ({
         />
         <div className="mt-1 text-right text-xs text-gray-400 dark:text-gray-500">
           {orderNotes.length}/500
-        </div>
-      </div>
-
-      <div className="mb-4">
-        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-md p-3">
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            Soma dos Produtos (Valor Pago)
-          </div>
-          <div
-            data-testid="order-totals-charged"
-            className="text-lg font-medium text-gray-900 dark:text-gray-100"
-          >
-            {formatBRL(fromCents(totalChargedCents))}
-          </div>
         </div>
       </div>
 
