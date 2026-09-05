@@ -88,7 +88,9 @@ export const itemPayload = (item) => ({
     item.chargedValue === '' || item.chargedValue == null
       ? 0
       : parseFloat(item.chargedValue),
-  personId: item.personId,
+  // Empty means "no person" (backend binds the item to the self person), so
+  // never send '' where the API expects a UUID or null.
+  personId: item.personId || null,
   productId: item.productId || null,
   memberPrice:
     item.memberPrice !== '' && item.memberPrice != null

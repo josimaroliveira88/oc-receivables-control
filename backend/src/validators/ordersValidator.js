@@ -8,11 +8,13 @@ const itemSchema = z.object({
     .number()
     .min(0, 'Charged value must not be negative')
     .default(0),
-  personId: z
-    .string()
-    .uuid('Person ID must be a valid UUID')
-    .optional()
-    .nullable(),
+  // An empty string means "no person" (the UI sends '' for unassigned items):
+  // normalize it to null so service-level binding can resolve it to the self
+  // person instead of failing UUID validation.
+  personId: z.preprocess(
+    (value) => (value === '' ? null : value),
+    z.string().uuid('Person ID must be a valid UUID').optional().nullable(),
+  ),
   productId: z
     .string()
     .uuid('Product ID must be a valid UUID')
