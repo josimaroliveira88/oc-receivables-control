@@ -3,25 +3,33 @@
 // write function owns its own `$transaction`. Business rejections are thrown
 // as plain Errors with `.status` (400/404) which the controller maps to the
 // HTTP response; R10 replaces these with the shared httpError helpers.
+const { fromCents, lineValueCents, toCents } = require('../utils/money');
 const { computeOrderStatus } = require('../utils/receivables');
-const { lineValueCents, fromCents, toCents } = require('../utils/money');
 const { applyMovement } = require('./stockService');
 const { computeStockDiff } = require('../utils/stockDiff');
-const { expandItemToStockProducts } = require('../utils/kitStock');
 const { findIdsByTextSearch } = require('../utils/search');
 const { parseLocalDate } = require('../utils/date');
-const { itemStockMovements } = require('./orderStockIntegration');
+const {
+  itemStockMovements,
+  reverseOrderStock,
+  reverseItemStock,
+} = require('./orderStockIntegration');
 const {
   validateProducts,
   validateStockItemRules,
   selfPersonIdSet,
   assertNotSaleOrder,
+} = require('../utils/ordersValidation');
+const {
   itemCreateData,
+  orderLineTotalCents,
+} = require('../utils/ordersItemTransform');
+const {
   resolveKitFields,
   resolveEditedKitFields,
   resolveOrderUpdateItems,
-  orderLineTotalCents,
-} = require('../utils/ordersHelpers');
+} = require('../utils/ordersKitResolution');
+const { syncOrderStatus } = require('../utils/ordersStatusSync');
 const {
   ORDER_SORTABLE_FIELDS,
   sortOrdersInMemory,
@@ -305,22 +313,13 @@ const updateOrder = async (client, { id, userId, payload }) => {
         payload.shippingValue !== undefined ||
         payload.isTeamOrder !== undefined
       ) {
-        const payments = await tx.payment.findMany({
-          where: { orderId: id },
-        });
-        const newStatus = computeOrderStatus({
+        const { status } = await syncOrderStatus(tx, {
+          orderId: id,
           items: order.items,
-          payments,
           shippingCents: toCents(payload.shippingValue ?? 0),
           isTeamOrder: order.isTeamOrder,
         });
-        if (newStatus !== order.status) {
-          await tx.order.update({
-            where: { id },
-            data: { status: newStatus },
-          });
-          order.status = newStatus;
-        }
+        order.status = status;
       }
 
       return order;
@@ -487,22 +486,13 @@ const updateOrder = async (client, { id, userId, payload }) => {
     });
 
     // Recompute status considering the replaced items and existing payments
-    const payments = await tx.payment.findMany({
-      where: { orderId: id },
-    });
-    const newStatus = computeOrderStatus({
+    const { status } = await syncOrderStatus(tx, {
+      orderId: id,
       items: order.items,
-      payments,
       shippingCents,
       isTeamOrder,
     });
-    if (newStatus !== order.status) {
-      const updated = await tx.order.update({
-        where: { id },
-        data: { status: newStatus },
-      });
-      order.status = updated.status;
-    }
+    order.status = status;
 
     return order;
   });
@@ -538,20 +528,10 @@ const deleteOrder = async (client, { id, userId }) => {
         error.status = 400;
         throw error;
       }
-      for (const item of existingOrder.items) {
-        if (!item.person || !item.person.isSelf) continue;
-        for (const { productId, quantity } of expandItemToStockProducts(item)) {
-          await applyMovement(tx, {
-            userId,
-            productId,
-            type: 'SAIDA',
-            quantity,
-            reason: `Pedido ${existingOrder.orderNumber}`,
-            orderId: existingOrder.id,
-            effectiveDate: existingOrder.orderDate,
-          });
-        }
-      }
+      await reverseOrderStock(tx, {
+        order: existingOrder,
+        items: existingOrder.items,
+      });
     }
 
     await tx.order.delete({ where: { id } });
@@ -606,7 +586,6 @@ const addItemToOrder = async (client, { orderId, userId, payload }) => {
     // Attach the frozen kit snapshot and validate the stock mode for kit items.
     await resolveKitFields(tx, [payload]);
 
-    const lineCents = lineValueCents(payload);
     const newTotalCents =
       orderLineTotalCents([
         ...(await tx.item.findMany({ where: { orderId } })),
@@ -654,21 +633,13 @@ const addItemToOrder = async (client, { orderId, userId, payload }) => {
     }
 
     // Recompute order status after adding the item
-    const payments = await tx.payment.findMany({
-      where: { orderId },
-    });
-    const newStatus = computeOrderStatus({
+    const { status } = await syncOrderStatus(tx, {
+      orderId,
       items: updatedOrder.items,
-      payments,
       shippingCents: toCents(order.shippingValue ?? 0),
       isTeamOrder: order.isTeamOrder,
     });
-    if (newStatus !== updatedOrder.status) {
-      await tx.order.update({
-        where: { id: orderId },
-        data: { status: newStatus },
-      });
-    }
+    updatedOrder.status = status;
 
     return item;
   });
@@ -810,21 +781,12 @@ const updateItem = async (client, { id: itemId, userId, payload }) => {
       where: { orderId: existingItem.orderId },
       include: { person: true },
     });
-    const payments = await tx.payment.findMany({
-      where: { orderId: existingItem.orderId },
-    });
-    const newStatus = computeOrderStatus({
+    await syncOrderStatus(tx, {
+      orderId: existingItem.orderId,
       items: orderItems,
-      payments,
       shippingCents: toCents(existingItem.order.shippingValue ?? 0),
       isTeamOrder: existingItem.order.isTeamOrder,
     });
-    if (newStatus !== existingItem.order.status) {
-      await tx.order.update({
-        where: { id: existingItem.orderId },
-        data: { status: newStatus },
-      });
-    }
 
     return item;
   });
@@ -863,20 +825,10 @@ const deleteItem = async (client, { id: itemId, userId }) => {
       existingItem.person.isSelf &&
       !existingItem.order.isTeamOrder
     ) {
-      for (const { productId, quantity } of expandItemToStockProducts(
-        existingItem,
-      )) {
-        await applyMovement(tx, {
-          userId,
-          productId,
-          type: 'SAIDA',
-          quantity,
-          reason: `Pedido ${existingItem.order.orderNumber}`,
-          orderId: existingItem.orderId,
-          itemId,
-          effectiveDate: existingItem.order.orderDate,
-        });
-      }
+      await reverseItemStock(tx, {
+        order: existingItem.order,
+        item: existingItem,
+      });
     }
 
     // Delete item
@@ -899,21 +851,12 @@ const deleteItem = async (client, { id: itemId, userId }) => {
       where: { orderId: existingItem.orderId },
       include: { person: true },
     });
-    const payments = await tx.payment.findMany({
-      where: { orderId: existingItem.orderId },
-    });
-    const newStatus = computeOrderStatus({
+    await syncOrderStatus(tx, {
+      orderId: existingItem.orderId,
       items: orderItems,
-      payments,
       shippingCents: toCents(existingItem.order.shippingValue ?? 0),
       isTeamOrder: existingItem.order.isTeamOrder,
     });
-    if (newStatus !== existingItem.order.status) {
-      await tx.order.update({
-        where: { id: existingItem.orderId },
-        data: { status: newStatus },
-      });
-    }
 
     return { message: 'Item deleted successfully' };
   });

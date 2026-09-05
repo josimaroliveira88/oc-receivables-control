@@ -86,7 +86,6 @@ const updateOrderSchema = z.object({
 
 module.exports = {
   itemSchema,
-  orderDescriptiveSchema,
   createOrderSchema,
   updateOrderSchema,
 };
