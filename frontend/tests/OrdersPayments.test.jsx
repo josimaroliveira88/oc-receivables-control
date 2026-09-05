@@ -1298,6 +1298,26 @@ describe('OrdersPayments', () => {
         expect(screen.queryByTestId('details-modal')).not.toBeInTheDocument(),
       );
     });
+
+    it('should open the details modal via the ?detailsOrder deep-link', async () => {
+      mockGetImplementation([detailRichOrder]);
+      render(
+        <MemoryRouter
+          initialEntries={['/orders?detailsOrder=order-detail-rich']}
+        >
+          <ToastProvider>
+            <OrdersPage />
+          </ToastProvider>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('details-modal')).toBeInTheDocument();
+      });
+      const modal = within(screen.getByTestId('details-modal'));
+      expect(modal.getByText('Detalhamento — ORD-DETAIL')).toBeInTheDocument();
+      expect(screen.queryByText('Editar Pedido')).not.toBeInTheDocument();
+    });
   });
 
   describe('Edit Payment', () => {

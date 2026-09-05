@@ -632,6 +632,287 @@ describe('People CRUD', () => {
     });
   });
 
+  describe('GET /api/people/:id/purchases', () => {
+    let purchasesPersonId;
+    let createdOrderIds = [];
+    let createdProductIds = [];
+
+    const createTestProduct = async (name) => {
+      const product = await prisma.product.create({
+        data: {
+          code: `PURCH-${Date.now()}-${Math.floor(Math.random() * 100000)}-${name
+            .replace(/\s+/g, '')
+            .slice(0, 12)}`,
+          name,
+          size: '60 ml',
+          status: 'ATIVO',
+        },
+      });
+      createdProductIds.push(product.id);
+      return product;
+    };
+
+    const createOrderWithItems = async ({
+      orderType = 'COMPRA',
+      orderDate,
+      isTeamOrder = false,
+      items,
+    }) => {
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: `ORD-PURCH-${Date.now()}-${Math.floor(
+            Math.random() * 100000,
+          )}`,
+          totalValue: 0,
+          orderType,
+          isTeamOrder,
+          ...(orderDate ? { orderDate } : {}),
+          userId,
+          items: { create: items },
+        },
+      });
+      createdOrderIds.push(order.id);
+      return order;
+    };
+
+    beforeEach(async () => {
+      purchasesPersonId = (
+        await prisma.person.create({
+          data: { name: 'Purchases Person', whatsapp: '5511999996666', userId },
+        })
+      ).id;
+      createdOrderIds = [];
+      createdProductIds = [];
+    });
+
+    afterEach(async () => {
+      await prisma.order
+        .deleteMany({ where: { id: { in: createdOrderIds } } })
+        .catch(() => {});
+      await prisma.person
+        .delete({ where: { id: purchasesPersonId } })
+        .catch(() => {});
+      await prisma.product
+        .deleteMany({ where: { id: { in: createdProductIds } } })
+        .catch(() => {});
+      purchasesPersonId = null;
+      createdOrderIds = [];
+      createdProductIds = [];
+    });
+
+    it('should return one row per item across both order types', async () => {
+      const productA = await createTestProduct('Óleo A');
+      const productB = await createTestProduct('Óleo B');
+      const productC = await createTestProduct('Óleo C');
+
+      await createOrderWithItems({
+        orderType: 'COMPRA',
+        orderDate: new Date('2026-01-15T12:00:00.000Z'),
+        items: [
+          {
+            productId: productA.id,
+            chargedValue: 25.0,
+            quantity: 2,
+            personId: purchasesPersonId,
+          },
+        ],
+      });
+      await createOrderWithItems({
+        orderType: 'VENDA',
+        orderDate: new Date('2026-02-10T12:00:00.000Z'),
+        items: [
+          {
+            productId: productB.id,
+            chargedValue: 30.0,
+            personId: purchasesPersonId,
+          },
+          {
+            productId: productC.id,
+            chargedValue: 40.0,
+            personId: purchasesPersonId,
+          },
+        ],
+      });
+
+      const response = await request(app)
+        .get(`/api/people/${purchasesPersonId}/purchases`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveLength(3);
+      for (const row of response.body) {
+        expect(Object.keys(row).sort()).toEqual([
+          'name',
+          'orderDate',
+          'orderId',
+          'orderType',
+          'quantity',
+          'totalCents',
+        ]);
+      }
+      const compra = response.body.find((r) => r.orderType === 'COMPRA');
+      const vendas = response.body.filter((r) => r.orderType === 'VENDA');
+      expect(compra).toMatchObject({
+        name: 'Óleo A',
+        quantity: 2,
+        totalCents: 5000,
+      });
+      expect(compra.orderDate).toContain('2026-01-15');
+      expect(vendas.map((r) => r.name)).toEqual(['Óleo B', 'Óleo C']);
+      expect(vendas.map((r) => r.totalCents)).toEqual([3000, 4000]);
+    });
+
+    it('should honor quantity and TOTAL mode when computing line totals', async () => {
+      await createOrderWithItems({
+        orderDate: new Date('2026-03-01T12:00:00.000Z'),
+        items: [
+          {
+            description: '3x de 10',
+            chargedValue: 10.0,
+            quantity: 3,
+            personId: purchasesPersonId,
+          },
+          {
+            description: 'Total mode',
+            chargedValue: 25.0,
+            chargedValueMode: 'TOTAL',
+            personId: purchasesPersonId,
+          },
+        ],
+      });
+
+      const response = await request(app)
+        .get(`/api/people/${purchasesPersonId}/purchases`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      // Both rows share the same order date and have no product, so their
+      // relative order is undefined; assert on the multiset of values.
+      expect(
+        response.body.map((r) => r.totalCents).sort((a, b) => a - b),
+      ).toEqual([2500, 3000]);
+      expect(
+        response.body.map((r) => r.quantity).sort((a, b) => b - a),
+      ).toEqual([3, 1]);
+    });
+
+    it('should fall back to the item description when there is no product', async () => {
+      await createOrderWithItems({
+        orderDate: new Date('2026-04-01T12:00:00.000Z'),
+        items: [
+          {
+            description: 'Item avulso',
+            chargedValue: 12.0,
+            personId: purchasesPersonId,
+          },
+        ],
+      });
+
+      const response = await request(app)
+        .get(`/api/people/${purchasesPersonId}/purchases`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveLength(1);
+      expect(response.body[0].name).toBe('Item avulso');
+      expect(response.body[0].totalCents).toBe(1200);
+    });
+
+    it('should exclude team orders', async () => {
+      await createOrderWithItems({
+        isTeamOrder: true,
+        orderDate: new Date('2026-05-01T12:00:00.000Z'),
+        items: [
+          {
+            description: 'Item de equipe',
+            chargedValue: 500.0,
+            personId: purchasesPersonId,
+          },
+        ],
+      });
+
+      const response = await request(app)
+        .get(`/api/people/${purchasesPersonId}/purchases`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual([]);
+    });
+
+    it('should return an empty list for a person without items', async () => {
+      const response = await request(app)
+        .get(`/api/people/${purchasesPersonId}/purchases`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual([]);
+    });
+
+    it('should sort by order date desc and product name asc on ties', async () => {
+      const zeta = await createTestProduct('Zeta');
+      const alfa = await createTestProduct('Alfa');
+      const mid = await createTestProduct('Mid');
+
+      await createOrderWithItems({
+        orderDate: new Date('2026-01-15T12:00:00.000Z'),
+        items: [
+          {
+            productId: zeta.id,
+            chargedValue: 10.0,
+            personId: purchasesPersonId,
+          },
+          {
+            productId: alfa.id,
+            chargedValue: 11.0,
+            personId: purchasesPersonId,
+          },
+        ],
+      });
+      await createOrderWithItems({
+        orderDate: new Date('2026-02-10T12:00:00.000Z'),
+        items: [
+          { productId: mid.id, chargedValue: 5.0, personId: purchasesPersonId },
+        ],
+      });
+
+      const response = await request(app)
+        .get(`/api/people/${purchasesPersonId}/purchases`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.map((r) => r.name)).toEqual(['Mid', 'Alfa', 'Zeta']);
+    });
+
+    it('should return 404 for a person of another user', async () => {
+      const other = await request(app)
+        .post('/api/auth/register')
+        .send({ username: `other_purch_${Date.now()}`, password: 'x123456' });
+      const otherPersonId = (
+        await prisma.person.create({
+          data: { name: 'Outro User Purchases', userId: other.body.id },
+        })
+      ).id;
+
+      const response = await request(app)
+        .get(`/api/people/${otherPersonId}/purchases`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(404);
+
+      await prisma.person
+        .delete({ where: { id: otherPersonId } })
+        .catch(() => {});
+    });
+
+    it('should return 404 for a non-existent person', async () => {
+      const response = await request(app)
+        .get('/api/people/00000000-0000-0000-0000-000000000000/purchases')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(404);
+    });
+  });
+
   describe('GET /api/people — search, classification and sorting', () => {
     let vipPersonId;
     let memberPersonId;

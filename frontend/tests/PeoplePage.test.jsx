@@ -5,7 +5,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import PeoplePage from '../src/pages/PeoplePage';
 import { ToastProvider } from '../src/components/Toast';
@@ -83,6 +83,20 @@ const mockPeople = [
     isTeamMember: false,
   },
 ];
+
+const OrdersRouteProbe = () => {
+  const location = useLocation();
+  return (
+    <div data-testid="orders-route">{location.pathname + location.search}</div>
+  );
+};
+
+const SalesRouteProbe = () => {
+  const location = useLocation();
+  return (
+    <div data-testid="sales-route">{location.pathname + location.search}</div>
+  );
+};
 
 describe('PeoplePage', () => {
   beforeEach(() => {
@@ -804,14 +818,56 @@ describe('PeoplePage', () => {
       totalPaidCents: 0,
       totalOpenCents: 0,
     };
+    const purchasesBoth = [
+      {
+        orderId: 'ord-1',
+        orderType: 'COMPRA',
+        orderDate: '2026-02-10T12:00:00.000Z',
+        name: 'Óleo Essencial',
+        quantity: 2,
+        totalCents: 5000,
+      },
+      {
+        orderId: 'ord-2',
+        orderType: 'VENDA',
+        orderDate: '2026-01-15T12:00:00.000Z',
+        name: 'Deep Blue Rub',
+        quantity: 1,
+        totalCents: 3000,
+      },
+    ];
 
-    const mockWithSummary = (summary) =>
+    const renderPageWithRoutes = () =>
+      render(
+        <MemoryRouter>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <ToastProvider>
+                  <PeoplePage />
+                </ToastProvider>
+              }
+            />
+            <Route path="/orders" element={<OrdersRouteProbe />} />
+            <Route path="/sales" element={<SalesRouteProbe />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+    const mockWithSummary = (summary, purchases = null) =>
       mockGet.mockImplementation((url) => {
         if (url.includes('/summary')) {
           return Promise.resolve({ data: summary });
         }
+        if (url.includes('/purchases')) {
+          return Promise.resolve({ data: purchases ?? [] });
+        }
         return Promise.resolve({ data: [mockPeople[0]] });
       });
+
+    const purchasesCalls = () =>
+      mockGet.mock.calls.filter(([url]) => url.includes('/purchases'));
 
     it('should open the details modal with client data and financial summary', async () => {
       mockWithSummary(summaryData);
@@ -876,6 +932,255 @@ describe('PeoplePage', () => {
           screen.queryByText('Detalhes do Cliente'),
         ).not.toBeInTheDocument();
       });
+    });
+
+    it('should toggle the purchased products list when clicking the financial summary', async () => {
+      mockWithSummary(summaryData, purchasesBoth);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+      await clickClientAction('1', 'Detalhes');
+
+      const toggle = await waitFor(() =>
+        screen.getByTestId('client-summary-toggle'),
+      );
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.queryByText('Compras')).not.toBeInTheDocument();
+
+      fireEvent.click(toggle);
+
+      await waitFor(() => {
+        expect(screen.getByText('Compras')).toBeInTheDocument();
+      });
+      expect(screen.getByText('Vendas')).toBeInTheDocument();
+      expect(mockGet).toHaveBeenCalledWith('/people/1/purchases');
+      expect(screen.getByText('10/02/2026')).toBeInTheDocument();
+      expect(screen.getByText('Óleo Essencial')).toBeInTheDocument();
+      expect(screen.getByText('15/01/2026')).toBeInTheDocument();
+      expect(screen.getByText('Deep Blue Rub')).toBeInTheDocument();
+
+      const compraTable = within(screen.getByTestId('client-purchases-compra'));
+      expect(compraTable.getByText('2')).toBeInTheDocument();
+      expect(compraTable.getByText('R$ 50,00')).toBeInTheDocument();
+      const vendaTable = within(screen.getByTestId('client-purchases-venda'));
+      expect(vendaTable.getByText('R$ 30,00')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('client-summary-toggle'));
+
+      await waitFor(() => {
+        expect(screen.queryByText('Compras')).not.toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('client-summary-toggle'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Compras')).toBeInTheDocument();
+      });
+      expect(purchasesCalls()).toHaveLength(1);
+    });
+
+    it('should show only the Compras group when the client has no sale items', async () => {
+      mockWithSummary(zeroSummary, [purchasesBoth[0]]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+      await clickClientAction('1', 'Detalhes');
+
+      fireEvent.click(
+        await waitFor(() => screen.getByTestId('client-summary-toggle')),
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Compras')).toBeInTheDocument();
+      });
+      expect(screen.queryByText('Vendas')).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('client-purchases-venda'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should show only the Vendas group when the client has no purchase items', async () => {
+      mockWithSummary(zeroSummary, [purchasesBoth[1]]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+      await clickClientAction('1', 'Detalhes');
+
+      fireEvent.click(
+        await waitFor(() => screen.getByTestId('client-summary-toggle')),
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Vendas')).toBeInTheDocument();
+      });
+      expect(screen.queryByText('Compras')).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('client-purchases-compra'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should show an empty state when the client has no purchases', async () => {
+      mockWithSummary(zeroSummary, []);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+      await clickClientAction('1', 'Detalhes');
+
+      fireEvent.click(
+        await waitFor(() => screen.getByTestId('client-summary-toggle')),
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Nenhum produto comprado.'),
+        ).toBeInTheDocument();
+      });
+      expect(screen.queryByText('Compras')).not.toBeInTheDocument();
+      expect(screen.queryByText('Vendas')).not.toBeInTheDocument();
+    });
+
+    it('should navigate to the order details when clicking a purchase product', async () => {
+      mockWithSummary(summaryData, purchasesBoth);
+      renderPageWithRoutes();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+      await clickClientAction('1', 'Detalhes');
+
+      fireEvent.click(
+        await waitFor(() => screen.getByTestId('client-summary-toggle')),
+      );
+
+      const compraTable = await waitFor(() =>
+        screen.getByTestId('client-purchases-compra'),
+      );
+      fireEvent.click(
+        within(compraTable).getByTestId('client-purchase-product'),
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('orders-route')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('orders-route')).toHaveTextContent(
+        '/orders?detailsOrder=ord-1',
+      );
+    });
+
+    it('should navigate to the sale form when clicking a sale product', async () => {
+      mockWithSummary(summaryData, purchasesBoth);
+      renderPageWithRoutes();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+      await clickClientAction('1', 'Detalhes');
+
+      fireEvent.click(
+        await waitFor(() => screen.getByTestId('client-summary-toggle')),
+      );
+
+      const vendaTable = await waitFor(() =>
+        screen.getByTestId('client-purchases-venda'),
+      );
+      fireEvent.click(
+        within(vendaTable).getByTestId('client-purchase-product'),
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('sales-route')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('sales-route')).toHaveTextContent(
+        '/sales?editSale=ord-2',
+      );
+    });
+
+    it('should show an error message when the purchases fail to load', async () => {
+      mockGet.mockImplementation((url) => {
+        if (url.includes('/summary')) {
+          return Promise.resolve({ data: zeroSummary });
+        }
+        if (url.includes('/purchases')) {
+          return Promise.reject(new Error('network error'));
+        }
+        return Promise.resolve({ data: [mockPeople[0]] });
+      });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+      await clickClientAction('1', 'Detalhes');
+
+      fireEvent.click(
+        await waitFor(() => screen.getByTestId('client-summary-toggle')),
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Erro ao carregar os produtos comprados.'),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('should reset the purchases state when opening another client', async () => {
+      mockGet.mockImplementation((url) => {
+        if (url.includes('/summary')) {
+          return Promise.resolve({ data: zeroSummary });
+        }
+        if (url.includes('/people/1/purchases')) {
+          return Promise.resolve({ data: purchasesBoth });
+        }
+        if (url.includes('/people/2/purchases')) {
+          return Promise.resolve({ data: [] });
+        }
+        return Promise.resolve({ data: mockPeople });
+      });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+      await clickClientAction('1', 'Detalhes');
+
+      fireEvent.click(
+        await waitFor(() => screen.getByTestId('client-summary-toggle')),
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Óleo Essencial')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Fechar'));
+      await waitFor(() => {
+        expect(
+          screen.queryByText('Detalhes do Cliente'),
+        ).not.toBeInTheDocument();
+      });
+
+      await clickClientAction('2', 'Detalhes');
+
+      const toggle = await waitFor(() =>
+        screen.getByTestId('client-summary-toggle'),
+      );
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.queryByText('Óleo Essencial')).not.toBeInTheDocument();
+
+      fireEvent.click(toggle);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Nenhum produto comprado.'),
+        ).toBeInTheDocument();
+      });
+      expect(screen.queryByText('Óleo Essencial')).not.toBeInTheDocument();
     });
   });
 
