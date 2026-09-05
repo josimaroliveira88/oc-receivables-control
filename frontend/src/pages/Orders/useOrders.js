@@ -274,6 +274,23 @@ export function useOrders() {
     setEditOrderId(null);
   };
 
+  const openCreateOrder = () => {
+    setShowCreateModal(true);
+    setOrderFormInitial({
+      orderNumber,
+      orderDate,
+      isTeamOrder,
+      accountOwner,
+      paymentType,
+      orderNotes,
+      doterraPv,
+      doterraValue,
+      shippingValue,
+      items,
+    });
+    setError('');
+  };
+
   const setFormField = (field, value) => {
     switch (field) {
       case 'orderNumber':
@@ -633,6 +650,6 @@ export function useOrders() {
     handleDeleteOrder,
     cancelDeleteOrder,
     confirmDeleteOrder,
-    setShowCreateModal,
+    openCreateOrder,
   };
 }
