@@ -25,6 +25,7 @@ const saleItemSchema = z.object({
     .default(1),
   chargedValueMode: z.enum(['UNIT', 'TOTAL']).default('UNIT'),
   kitStockMode: z.enum(['KIT', 'COMPONENTS']).optional().nullable(),
+  useCashback: z.boolean().optional(),
 });
 
 const createSaleSchema = z.object({

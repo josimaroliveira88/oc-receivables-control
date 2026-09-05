@@ -32,6 +32,7 @@ const saleItemCreateData = (item) => ({
   details: item.details || null,
   quantity: item.quantity ?? 1,
   forStock: false,
+  useCashback: item.useCashback ?? false,
   chargedValueMode: item.chargedValueMode ?? 'UNIT',
   kitStockMode: item.kitStockMode ?? null,
   ...(item.kitSnapshot !== undefined
@@ -48,6 +49,7 @@ const saleItemUpdateData = (item) => ({
   details: item.details || null,
   quantity: item.quantity ?? 1,
   forStock: false,
+  useCashback: item.useCashback ?? false,
   chargedValueMode: item.chargedValueMode ?? 'UNIT',
   kitStockMode: item.kitStockMode ?? null,
   ...(item.kitSnapshot !== undefined
