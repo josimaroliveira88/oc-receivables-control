@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   formatProductRowForCopy,
   filterAndSortProducts,
+  calculateDiscountedPrice,
 } from '../src/pages/Products/utils/productHelpers';
 
 describe('formatProductRowForCopy', () => {
@@ -110,6 +111,29 @@ describe('formatProductRowForCopy', () => {
   });
 });
 
+describe('calculateDiscountedPrice', () => {
+  it('returns 30% of the member price in integer cents', () => {
+    expect(calculateDiscountedPrice(100)).toBe(3000);
+    expect(calculateDiscountedPrice(100.0)).toBe(3000);
+  });
+
+  it('handles string member prices', () => {
+    expect(calculateDiscountedPrice('231.25')).toBe(6938);
+    expect(calculateDiscountedPrice('77.50')).toBe(2325);
+  });
+
+  it('rounds the cent result correctly', () => {
+    expect(calculateDiscountedPrice(231.25)).toBe(6938);
+    expect(calculateDiscountedPrice(112.5)).toBe(3375);
+    expect(calculateDiscountedPrice(187.5)).toBe(5625);
+  });
+
+  it('returns zero for an undefined or empty member price', () => {
+    expect(calculateDiscountedPrice(undefined)).toBe(0);
+    expect(calculateDiscountedPrice('')).toBe(0);
+  });
+});
+
 describe('filterAndSortProducts', () => {
   const products = [
     {
@@ -215,5 +239,35 @@ describe('filterAndSortProducts', () => {
   it('should keep the status filter applied when sorting', () => {
     const result = filterAndSortProducts(products, '', 'ATIVO', 'pv', 'desc');
     expect(result.map((p) => p.name)).toEqual(['Adaptiv® Pastilhas']);
+  });
+
+  it('should sort by the 70% OFF discounted price numerically', () => {
+    const result = filterAndSortProducts(
+      products,
+      '',
+      '',
+      'memberDiscountPrice',
+      'asc',
+    );
+    expect(result.map((p) => p.name)).toEqual([
+      'Basil',
+      'Deep Blue',
+      'Adaptiv® Pastilhas',
+    ]);
+  });
+
+  it('should sort by the 70% OFF discounted price descending', () => {
+    const result = filterAndSortProducts(
+      products,
+      '',
+      '',
+      'memberDiscountPrice',
+      'desc',
+    );
+    expect(result.map((p) => p.name)).toEqual([
+      'Adaptiv® Pastilhas',
+      'Deep Blue',
+      'Basil',
+    ]);
   });
 });
