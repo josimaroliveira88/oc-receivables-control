@@ -273,6 +273,35 @@ describe('Sales orders CRUD', () => {
       createdSaleIds.push(withoutDelivery.body.id);
     });
 
+    it('persists item cashback origin and defaults it to false', async () => {
+      const withCashback = await request(app)
+        .post('/api/sales')
+        .set('Authorization', `Bearer ${user.token}`)
+        .send(
+          salePayload({
+            items: [
+              {
+                productId: product.id,
+                chargedValue: 100,
+                quantity: 2,
+                useCashback: true,
+              },
+            ],
+          }),
+        );
+      expect(withCashback.status).toBe(201);
+      expect(withCashback.body.items[0].useCashback).toBe(true);
+      createdSaleIds.push(withCashback.body.id);
+
+      const withoutCashback = await request(app)
+        .post('/api/sales')
+        .set('Authorization', `Bearer ${user.token}`)
+        .send(salePayload());
+      expect(withoutCashback.status).toBe(201);
+      expect(withoutCashback.body.items[0].useCashback).toBe(false);
+      createdSaleIds.push(withoutCashback.body.id);
+    });
+
     it('honors UNIT and TOTAL chargedValueMode in the total', async () => {
       const res = await request(app)
         .post('/api/sales')
@@ -495,6 +524,46 @@ describe('Sales orders CRUD', () => {
       expect(parseFloat(res.body.totalValue)).toBe(150);
       expect(res.body.items).toHaveLength(1);
       expect(res.body.items[0].quantity).toBe(3);
+      createdSaleIds.push(created.body.id);
+    });
+
+    it('persists the item cashback flag on update', async () => {
+      const created = await request(app)
+        .post('/api/sales')
+        .set('Authorization', `Bearer ${user.token}`)
+        .send(salePayload());
+      const itemId = created.body.items[0].id;
+      const res = await request(app)
+        .put(`/api/sales/${created.body.id}`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({
+          items: [
+            {
+              id: itemId,
+              productId: product.id,
+              chargedValue: 100,
+              quantity: 2,
+              useCashback: true,
+            },
+          ],
+        });
+      expect(res.status).toBe(200);
+      expect(res.body.items[0].useCashback).toBe(true);
+
+      const reverted = await request(app)
+        .put(`/api/sales/${created.body.id}`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({
+          items: [
+            {
+              id: itemId,
+              productId: product.id,
+              chargedValue: 100,
+              quantity: 2,
+            },
+          ],
+        });
+      expect(reverted.body.items[0].useCashback).toBe(false);
       createdSaleIds.push(created.body.id);
     });
 
