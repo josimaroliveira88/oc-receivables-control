@@ -5,6 +5,7 @@ import ProductCombobox from '../../../components/ProductCombobox';
 import {
   isKitItem,
   memberLineTotal,
+  memberCashbackLineTotal,
   lineValueCents,
 } from '../utils/saleHelpers';
 
@@ -137,6 +138,27 @@ const SaleItemFields = ({
           />
         </div>
 
+        {item.useCashback && (
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              Valor Membro c/ 70% de desconto (total)
+            </label>
+            <input
+              type="text"
+              data-testid={`sale-item-cashback-total-${index}`}
+              value={
+                item.memberPrice !== ''
+                  ? formatBRL(memberCashbackLineTotal(item))
+                  : ''
+              }
+              readOnly
+              tabIndex={-1}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md shadow-sm cursor-not-allowed text-sm"
+              placeholder="—"
+            />
+          </div>
+        )}
+
         <div className="md:col-span-3">
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
             O valor cobrado é
@@ -150,6 +172,25 @@ const SaleItemFields = ({
             <option value="UNIT">Preço por unidade</option>
             <option value="TOTAL">Valor total da linha</option>
           </select>
+        </div>
+
+        <div className="md:col-span-3">
+          <label className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+            <input
+              type="checkbox"
+              data-testid={`sale-item-cashback-${index}`}
+              checked={item.useCashback}
+              onChange={(e) => onUpdateField('useCashback', e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+            <span>
+              O produto teve origem no cashback de 70%
+              <span className="block text-xs text-gray-500 dark:text-gray-400">
+                Marca: exibe o valor de membro com 70% de desconto. O valor
+                cobrado continua editável.
+              </span>
+            </span>
+          </label>
         </div>
 
         {isKit && (

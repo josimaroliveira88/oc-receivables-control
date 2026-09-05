@@ -1,5 +1,9 @@
 import { toCents, fromCents, formatBRL } from '../../../utils/money';
 
+// Cashback points grant a 70% discount, so the discounted member amount is
+// 30% of the member price (same constant as the orders form).
+export const CASHBACK_DISCOUNT_RATE = 0.3;
+
 // Default empty sale item row for the form.
 export const emptySaleItem = () => ({
   id: Date.now(),
@@ -13,6 +17,7 @@ export const emptySaleItem = () => ({
   quantity: 1,
   chargedValueMode: 'UNIT',
   kitStockMode: '',
+  useCashback: false,
 });
 
 export const getTodayString = () => {
@@ -42,6 +47,7 @@ export const saleItemPayload = (item) => ({
   quantity: Number(item.quantity) || 1,
   chargedValueMode: item.chargedValueMode || 'UNIT',
   kitStockMode: item.kitStockMode || null,
+  useCashback: !!item.useCashback,
 });
 
 export const editSaleItemFromApi = (item) => ({
@@ -58,6 +64,7 @@ export const editSaleItemFromApi = (item) => ({
   quantity: item.quantity != null ? Number(item.quantity) : 1,
   chargedValueMode: item.chargedValueMode || 'UNIT',
   kitStockMode: item.kitStockMode || '',
+  useCashback: !!item.useCashback,
 });
 
 // Whether a sale item references a KIT product from the loaded catalog.
@@ -81,6 +88,10 @@ export const memberLineTotal = (item) => {
   return member * Math.max(1, Number(item.quantity) || 1);
 };
 
+// Member price total with the cashback 70% discount applied.
+export const memberCashbackLineTotal = (item) =>
+  memberLineTotal(item) * CASHBACK_DISCOUNT_RATE;
+
 // Display the line total (chargedValue respecting mode) as a BRL string.
 export const lineTotalBRL = (item) =>
   formatBRL(fromCents(lineValueCents(item)));
@@ -88,6 +99,21 @@ export const lineTotalBRL = (item) =>
 // The client of a sale is injected into every item by the backend, so the
 // first item's person is the sale client.
 export const getSaleClientName = (sale) => sale.items?.[0]?.person?.name || '';
+
+// Hover text for the client cell: one entry per item with the charged line
+// total, e.g. "Produto A (Cobrei R$ 100,00) / Produto B (Cobrei R$ 200,00)".
+export const getSaleClientTooltip = (sale) =>
+  (sale.items || [])
+    .map((item) => {
+      const name = item.product?.name || item.description || '—';
+      const unitCents = toCents(parseFloat(item.chargedValue) || 0);
+      const lineCents =
+        item.chargedValueMode === 'TOTAL'
+          ? unitCents
+          : unitCents * Math.max(1, Number(item.quantity) || 1);
+      return `${name} (Cobrei ${formatBRL(fromCents(lineCents))})`;
+    })
+    .join(' / ');
 
 export const getSalePaidCents = (sale) =>
   (sale.payments || []).reduce(
@@ -118,7 +144,6 @@ export const getSalePaymentActionLabel = (sale) =>
 // Options for the column selector next to the sales search input.
 export const SALE_SEARCH_FIELD_OPTIONS = [
   { value: 'all', label: 'Todas as colunas' },
-  { value: 'orderNumber', label: 'Número da venda' },
   { value: 'client', label: 'Cliente' },
   { value: 'description', label: 'Descrição' },
 ];

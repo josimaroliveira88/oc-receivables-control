@@ -4,6 +4,7 @@ import { formatBRL } from '../../../utils/money';
 import { formatDateBR } from '../../../utils/dates';
 import {
   getSaleClientName,
+  getSaleClientTooltip,
   getSaleFinancials,
   getSalePaymentActionLabel,
   shouldShowSalePaymentAction,
@@ -62,22 +63,12 @@ const SalesTable = ({
             <thead className="hidden lg:table-header-group bg-gray-50 dark:bg-gray-700">
               <tr>
                 <SortableHeader
-                  label="Nº Venda"
-                  field="orderNumber"
-                  sortBy={sortBy}
-                  sortDir={sortDir}
-                  onSort={onSort}
-                  width="w-[9%]"
-                  align="right"
-                  testIdPrefix="sales"
-                />
-                <SortableHeader
                   label="Data"
                   field="orderDate"
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[7%]"
+                  width="w-[8%]"
                 />
                 <SortableHeader
                   label="Cliente"
@@ -85,7 +76,7 @@ const SalesTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[12%]"
+                  width="w-[13%]"
                 />
                 <SortableHeader
                   label="Valor (R$)"
@@ -93,7 +84,7 @@ const SalesTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[7%]"
+                  width="w-[8%]"
                   testIdPrefix="sales"
                 />
                 <SortableHeader
@@ -104,13 +95,19 @@ const SalesTable = ({
                   onSort={onSort}
                   width="w-[8%]"
                 />
+                <th
+                  scope="col"
+                  className="w-[10%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                >
+                  Recebido
+                </th>
                 <SortableHeader
                   label="Entrega"
                   field="deliveredAt"
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[12%]"
+                  width="w-[11%]"
                 />
                 <SortableHeader
                   label="Descrição"
@@ -118,7 +115,7 @@ const SalesTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[18%]"
+                  width="w-[23%]"
                 />
                 <SortableHeader
                   label="Status"
@@ -138,7 +135,14 @@ const SalesTable = ({
             </thead>
             <tbody className="block lg:table-row-group bg-white dark:bg-gray-800 lg:divide-y divide-gray-200 dark:divide-gray-700">
               {sales.map((sale) => {
-                const { pendingCents } = getSaleFinancials(sale);
+                const { totalCents, paidCents, pendingCents } =
+                  getSaleFinancials(sale);
+                const receivedColorClass =
+                  paidCents < totalCents
+                    ? 'text-red-600 dark:text-red-400'
+                    : paidCents === totalCents
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-blue-600 dark:text-blue-400';
                 const showPaymentAction = shouldShowSalePaymentAction(sale);
                 const paymentActionLabel = getSalePaymentActionLabel(sale);
                 return (
@@ -147,14 +151,6 @@ const SalesTable = ({
                     className="block lg:table-row border border-gray-200 dark:border-gray-700 lg:border-0 rounded-lg lg:rounded-none shadow-sm lg:shadow-none mb-3 lg:mb-0 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     <td
-                      data-label="Nº Venda"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 lg:text-right before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
-                    >
-                      <span className="inline-block lg:w-full lg:text-right font-medium">
-                        {sale.orderNumber}
-                      </span>
-                    </td>
-                    <td
                       data-label="Data"
                       className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
                     >
@@ -162,6 +158,7 @@ const SalesTable = ({
                     </td>
                     <td
                       data-label="Cliente"
+                      title={getSaleClientTooltip(sale)}
                       className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 break-words text-sm text-gray-900 dark:text-gray-100 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
                     >
                       {getSaleClientName(sale) || '—'}
@@ -179,6 +176,12 @@ const SalesTable = ({
                       {formatBRL(pendingCents / 100)}
                     </td>
                     <td
+                      data-label="Recebido"
+                      className={`block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm ${receivedColorClass} before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden`}
+                    >
+                      {formatBRL(paidCents / 100)}
+                    </td>
+                    <td
                       data-label="Entrega"
                       className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
                     >
@@ -191,7 +194,7 @@ const SalesTable = ({
                       {sale.orderNotes ? (
                         <span
                           title={sale.orderNotes}
-                          className="block text-sm text-gray-900 dark:text-gray-100 line-clamp-2"
+                          className="block text-sm text-gray-900 dark:text-gray-100 truncate"
                         >
                           {sale.orderNotes}
                         </span>
