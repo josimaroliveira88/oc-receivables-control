@@ -119,5 +119,4 @@ module.exports = {
   uploadAttachment,
   getAttachment,
   deleteAttachment,
-  removeAttachmentFile,
 };

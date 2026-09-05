@@ -1,0 +1,39 @@
+// Order-to-stock integration: translates purchase-order items into the
+// per-product stock movements they generate. `itemStockMovements` returns the
+// movement descriptors (with reason and effective date) for every self +
+// forStock item, expanding kit items into their effective stock products (the
+// kit itself or its frozen components, depending on the chosen mode); the
+// caller applies each one through `stockService.applyMovement` inside its own
+// transaction. `client` is either the Prisma client or a transaction client
+// (`tx`).
+const { expandItemToStockProducts } = require('../utils/kitStock');
+
+const itemStockMovements = (client, { order, items }) => {
+  if (!order.orderDate) {
+    const error = new Error(
+      'Data do pedido é obrigatória para movimentações de estoque',
+    );
+    error.status = 400;
+    throw error;
+  }
+
+  const movements = [];
+  for (const item of items) {
+    if (!item.person || !item.person.isSelf) continue;
+    for (const { productId, quantity } of expandItemToStockProducts(item)) {
+      movements.push({
+        userId: order.userId,
+        productId,
+        type: 'ENTRADA',
+        quantity,
+        reason: `Pedido ${order.orderNumber}`,
+        orderId: order.id,
+        itemId: item.id,
+        effectiveDate: order.orderDate,
+      });
+    }
+  }
+  return movements;
+};
+
+module.exports = { itemStockMovements };
