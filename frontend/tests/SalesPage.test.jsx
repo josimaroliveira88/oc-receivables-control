@@ -59,6 +59,7 @@ const mockSales = [
         productId: 'prod-2',
         product: { id: 'prod-2', name: 'Óleo de Lavanda', code: '60226007' },
         memberPrice: '180.00',
+        useCashback: true,
       },
     ],
     payments: [],
@@ -88,6 +89,32 @@ const mockSales = [
       },
     ],
     payments: [{ amount: '500.00' }],
+  },
+  {
+    id: '3',
+    orderNumber: 'V-0003',
+    orderDate: '2026-07-01T00:00:00.000Z',
+    totalValue: '500.00',
+    shippingValue: '0',
+    additionalValue: '0',
+    deliveredAt: null,
+    status: 'QUITADO',
+    orderNotes: 'Venda com excedente',
+    items: [
+      {
+        id: 'i4',
+        description: 'Menta Verde',
+        chargedValue: '485.00',
+        quantity: 1,
+        chargedValueMode: 'UNIT',
+        personId: 'p2',
+        person: { name: 'Maria Santos' },
+        productId: 'prod-3',
+        product: { id: 'prod-3', name: 'Menta Verde', code: '60226008' },
+        memberPrice: '50.00',
+      },
+    ],
+    payments: [{ amount: '600.00' }],
   },
 ];
 
@@ -224,12 +251,14 @@ describe('SalesPage', () => {
       mockGetImplementation(mockSales);
     });
 
-    it('should display sales in a table with V-numbering', async () => {
+    it('should not render the "Nº Venda" column', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('V-0001')).toBeInTheDocument();
-        expect(screen.getByText('V-0002')).toBeInTheDocument();
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
       });
+      expect(screen.queryByText('Nº Venda')).not.toBeInTheDocument();
+      expect(screen.queryByText('V-0001')).not.toBeInTheDocument();
+      expect(screen.queryByText('V-0002')).not.toBeInTheDocument();
     });
 
     it('should display sale total values', async () => {
@@ -240,13 +269,48 @@ describe('SalesPage', () => {
       });
     });
 
+    it('should display the received amount with the due color', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+        expect(screen.getAllByText('Maria Santos')).toHaveLength(2);
+      });
+      const findRowByClient = (name) => {
+        const rows = screen.getAllByText(name).map((el) => el.closest('tr'));
+        return rows.find(
+          (row) => row.querySelector('td[data-label="Recebido"]') !== null,
+        );
+      };
+      const getReceivedCell = (row) =>
+        row.querySelector('td[data-label="Recebido"]');
+
+      const underpaidCell = getReceivedCell(findRowByClient('João Silva'));
+      expect(underpaidCell).toHaveTextContent(/R\$\s*0,00/);
+      expect(underpaidCell.className).toContain('text-red-600');
+
+      const settledCell = getReceivedCell(findRowByClient('Maria Santos'));
+      expect(settledCell).toHaveTextContent(/R\$\s*500,00/);
+      expect(settledCell.className).toContain('text-green-600');
+      expect(settledCell.className).not.toContain('text-red-600');
+
+      const overpaidRow = screen
+        .getAllByText('Venda com excedente')
+        .map((el) => el.closest('tr'))
+        .find((row) => row.querySelector('td[data-label="Recebido"]') !== null);
+      const overpaidCell = overpaidRow.querySelector(
+        'td[data-label="Recebido"]',
+      );
+      expect(overpaidCell).toHaveTextContent(/R\$\s*600,00/);
+      expect(overpaidCell.className).toContain('text-blue-600');
+    });
+
     it('should display status badges', async () => {
       renderPage();
       await waitFor(() => {
-        const v0001Row = screen.getByText('V-0001').closest('tr');
-        expect(within(v0001Row).getByText('Pendente')).toBeInTheDocument();
-        const v0002Row = screen.getByText('V-0002').closest('tr');
-        expect(within(v0002Row).getByText('Quitado')).toBeInTheDocument();
+        const joaoRow = screen.getByText('João Silva').closest('tr');
+        expect(within(joaoRow).getByText('Pendente')).toBeInTheDocument();
+        const mariaRow = screen.getAllByText('Maria Santos')[0].closest('tr');
+        expect(within(mariaRow).getByText('Quitado')).toBeInTheDocument();
       });
     });
 
@@ -254,14 +318,16 @@ describe('SalesPage', () => {
       renderPage();
       await waitFor(() => {
         expect(screen.getByText('João Silva')).toBeInTheDocument();
-        expect(screen.getByText('Maria Santos')).toBeInTheDocument();
+        expect(screen.getAllByText('Maria Santos')).toHaveLength(2);
       });
     });
 
     it('should show "Pendente de entrega" badge for undelivered sales', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('Pendente de entrega')).toBeInTheDocument();
+        expect(
+          screen.getAllByText('Pendente de entrega').length,
+        ).toBeGreaterThan(0);
       });
     });
 
@@ -280,11 +346,62 @@ describe('SalesPage', () => {
       });
     });
 
+    it('should truncate the description to a single line with the full text on hover', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('Venda de teste')).toBeInTheDocument();
+      });
+      const descriptionCell = screen
+        .getByText('Venda de teste')
+        .closest('td[data-label="Descrição"]');
+      const span = within(descriptionCell).getByText('Venda de teste');
+      expect(span).toHaveAttribute('title', 'Venda de teste');
+      expect(span.className).toContain('truncate');
+      expect(span.className).not.toContain('line-clamp-2');
+    });
+
+    it('should show the items charged values on the client cell tooltip', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+      const joaoCell = screen
+        .getByText('João Silva')
+        .closest('td[data-label="Cliente"]');
+      expect(joaoCell).toHaveAttribute(
+        'title',
+        'Adaptiv Pastilhas (Cobrei R$\u00a0100,00) / Óleo de Lavanda (Cobrei R$\u00a0200,00)',
+      );
+
+      const mariaCell = screen
+        .getAllByText('Maria Santos')[0]
+        .closest('td[data-label="Cliente"]');
+      expect(mariaCell).toHaveAttribute(
+        'title',
+        'Menta Verde (Cobrei R$\u00a0485,00)',
+      );
+    });
+
+    it('should not offer "Número da venda" in the search field options', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByLabelText('Coluna de busca')).toBeInTheDocument();
+      });
+      const select = screen.getByLabelText('Coluna de busca');
+      const labels = within(select)
+        .getAllByRole('option')
+        .map((o) => o.textContent);
+      expect(labels).not.toContain('Número da venda');
+      expect(labels).toContain('Todas as colunas');
+      expect(labels).toContain('Cliente');
+      expect(labels).toContain('Descrição');
+    });
+
     it('should render an actions kebab trigger per sale', async () => {
       renderPage();
       await waitFor(() => {
         const triggers = screen.getAllByTestId(/^sale-actions-\d+-trigger$/);
-        expect(triggers).toHaveLength(2);
+        expect(triggers).toHaveLength(3);
       });
     });
 
@@ -766,6 +883,119 @@ describe('SalesPage', () => {
     });
   });
 
+  describe('Sale item cashback', () => {
+    const setupItem = async () => {
+      mockGetImplementation([]);
+      renderPage();
+      await openCreateModal();
+      fireEvent.change(screen.getByLabelText('Cliente'), {
+        target: { value: 'p1' },
+      });
+      const combobox = screen.getByPlaceholderText('Busque um produto...');
+      fireEvent.change(combobox, { target: { value: 'Lavanda' } });
+      fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
+    };
+
+    it('should render the cashback checkbox unchecked by default', async () => {
+      await setupItem();
+      expect(screen.getByTestId('sale-item-cashback-0')).not.toBeChecked();
+      expect(screen.queryByDisplayValue('R$ 54,00')).not.toBeInTheDocument();
+    });
+
+    it('should show the 70%-off member total when checked and hide it when unchecked', async () => {
+      await setupItem();
+      fireEvent.click(screen.getByTestId('sale-item-cashback-0'));
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('R$ 54,00')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByTestId('sale-item-cashback-0'));
+      await waitFor(() => {
+        expect(screen.queryByDisplayValue('R$ 54,00')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should scale the 70%-off member total with the quantity', async () => {
+      await setupItem();
+      fireEvent.click(screen.getByTestId('sale-item-cashback-0'));
+      fireEvent.change(screen.getByTestId('sale-item-quantity-0'), {
+        target: { value: '2' },
+      });
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('R$ 108,00')).toBeInTheDocument();
+      });
+    });
+
+    it('should send useCashback true in the item payload when checked', async () => {
+      mockPost.mockResolvedValue({
+        data: { id: '3', orderNumber: 'V-0003' },
+      });
+      await setupItem();
+      fireEvent.click(screen.getByTestId('sale-item-cashback-0'));
+      const form = screen.getByTestId('sale-freight').closest('form');
+      fireEvent.submit(form);
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith(
+          '/sales',
+          expect.objectContaining({
+            items: [
+              expect.objectContaining({
+                productId: 'prod-2',
+                useCashback: true,
+              }),
+            ],
+          }),
+        );
+      });
+    });
+
+    it('should send useCashback false in the item payload when unchecked', async () => {
+      mockPost.mockResolvedValue({
+        data: { id: '4', orderNumber: 'V-0004' },
+      });
+      await setupItem();
+      const form = screen.getByTestId('sale-freight').closest('form');
+      fireEvent.submit(form);
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith(
+          '/sales',
+          expect.objectContaining({
+            items: [
+              expect.objectContaining({
+                productId: 'prod-2',
+                useCashback: false,
+              }),
+            ],
+          }),
+        );
+      });
+    });
+
+    it('should keep the charged value untouched when toggling the checkbox', async () => {
+      await setupItem();
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '10000' },
+      });
+      expect(screen.getByPlaceholderText('0,00')).toHaveValue('100,00');
+      fireEvent.click(screen.getByTestId('sale-item-cashback-0'));
+      expect(screen.getByPlaceholderText('0,00')).toHaveValue('100,00');
+    });
+
+    it('should reflect the stored cashback flag when editing a sale', async () => {
+      mockGetImplementation(mockSales);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+      await clickSaleAction('1', 'Editar');
+      await waitFor(() => {
+        expect(screen.getByText('Editar Venda')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('sale-item-cashback-0')).not.toBeChecked();
+      expect(screen.getByTestId('sale-item-cashback-1')).toBeChecked();
+      expect(screen.getByDisplayValue('R$ 54,00')).toBeInTheDocument();
+    });
+  });
+
   describe('Edit Sale', () => {
     beforeEach(() => {
       mockGetImplementation(mockSales);
@@ -774,7 +1004,7 @@ describe('SalesPage', () => {
     it('should open the edit modal pre-filled with sale data', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('V-0001')).toBeInTheDocument();
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
       });
       await clickSaleAction('1', 'Editar');
       await waitFor(() => {
@@ -793,7 +1023,7 @@ describe('SalesPage', () => {
     it('should pre-fill the delivery date when editing a delivered sale', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('V-0002')).toBeInTheDocument();
+        expect(screen.getAllByText('Maria Santos').length).toBeGreaterThan(0);
       });
       await clickSaleAction('2', 'Editar');
       await waitFor(() => {
@@ -806,7 +1036,7 @@ describe('SalesPage', () => {
       mockPut.mockResolvedValue({ data: { id: '1', orderNumber: 'V-0001' } });
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('V-0001')).toBeInTheDocument();
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
       });
       await clickSaleAction('1', 'Editar');
       await waitFor(() => {
@@ -843,7 +1073,7 @@ describe('SalesPage', () => {
       });
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('V-0001')).toBeInTheDocument();
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
       });
       await clickSaleAction('1', 'Excluir');
       expect(await screen.findByRole('dialog')).toBeInTheDocument();
@@ -856,7 +1086,7 @@ describe('SalesPage', () => {
     it('should not delete when the user cancels', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('V-0001')).toBeInTheDocument();
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
       });
       await clickSaleAction('1', 'Excluir');
       expect(await screen.findByRole('dialog')).toBeInTheDocument();
@@ -871,7 +1101,7 @@ describe('SalesPage', () => {
       mockGetImplementation(mockSales);
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('V-0001')).toBeInTheDocument();
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
       });
       await clickSaleAction('1', 'Marcar-como-entregue');
       await waitFor(() => {
@@ -886,7 +1116,7 @@ describe('SalesPage', () => {
       mockGetImplementation(mockSales);
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('V-0002')).toBeInTheDocument();
+        expect(screen.getAllByText('Maria Santos').length).toBeGreaterThan(0);
       });
       await clickSaleAction('2', 'Desmarcar-entrega');
       await waitFor(() => {
@@ -917,7 +1147,7 @@ describe('SalesPage', () => {
       mockGetImplementation(mockSales);
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('V-0001')).toBeInTheDocument();
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
       });
       const initialCalls = mockGet.mock.calls.filter(
         ([url]) => url === '/sales',
@@ -944,7 +1174,7 @@ describe('SalesPage', () => {
       mockGetImplementation(mockSales);
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('V-0001')).toBeInTheDocument();
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
       });
       fireEvent.change(screen.getByLabelText('Status'), {
         target: { value: 'QUITADO' },
@@ -961,7 +1191,7 @@ describe('SalesPage', () => {
       mockGetImplementation(mockSales);
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('V-0001')).toBeInTheDocument();
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
       });
       fireEvent.change(screen.getByLabelText('Entrega'), {
         target: { value: 'false' },
@@ -978,7 +1208,7 @@ describe('SalesPage', () => {
       mockGetImplementation(mockSales);
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('V-0001')).toBeInTheDocument();
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
       });
       fireEvent.change(screen.getByLabelText('Status'), {
         target: { value: 'QUITADO' },
