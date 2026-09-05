@@ -134,7 +134,7 @@ const OrdersPage = () => {
     handleEditSubmit,
     confirmEditOverpay,
     cancelEditOverpay,
-  } = useOrderPayments({ refreshOrders });
+  } = useOrderPayments({ refreshOrders, orders, loading });
 
   const editOrder = orders.find((o) => o.id === editOrderId);
 

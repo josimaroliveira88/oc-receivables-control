@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { useDirtyForm } from '../../hooks/useDirtyForm';
@@ -16,7 +17,9 @@ import {
   editPaymentPayload,
 } from './utils/receivablesHelpers';
 
-export function useOrderPayments({ refreshOrders }) {
+export function useOrderPayments({ refreshOrders, orders, loading }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const detailsDeepLinkRef = useRef(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [balances, setBalances] = useState([]);
@@ -387,6 +390,19 @@ export function useOrderPayments({ refreshOrders }) {
 
   const getDetailPersonPayments = (personId) =>
     getPersonPayments(detailOrder, personId);
+
+  // Support deep-linking from the client details ("produtos comprados") via
+  // ?detailsOrder=. Opens the details modal for the referenced order once
+  // data loads.
+  useEffect(() => {
+    const detailsOrderParam = searchParams.get('detailsOrder');
+    if (!detailsOrderParam || detailsDeepLinkRef.current || loading) return;
+    const order = orders.find((o) => o.id === detailsOrderParam);
+    if (!order) return;
+    detailsDeepLinkRef.current = true;
+    setSearchParams({}, { replace: true });
+    openDetailsModal(order);
+  }, [searchParams, loading, orders, openDetailsModal, setSearchParams]);
 
   const orderPendingCents = getOrderPendingCents(selectedOrder);
   const selectedPendingCents = getSelectedPendingCents(
