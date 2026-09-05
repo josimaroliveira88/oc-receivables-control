@@ -1,121 +1,25 @@
 const { PrismaClient } = require('@prisma/client');
 const { z } = require('zod');
 const prisma = new PrismaClient();
-const { toCents, lineValueCents } = require('../utils/money');
-const { computeOrderStatus } = require('../utils/receivables');
 const { buildOrderBalances } = require('../utils/orderBalances');
-const { parseLocalDate } = require('../utils/date');
-const { paymentTypeSchema } = require('../utils/paymentTypes');
-
-class NotFoundError extends Error {}
-
-const paymentSchema = z.object({
-  amount: z
-    .number()
-    .nonnegative('Amount must be greater than or equal to zero'),
-  personId: z.string().uuid('Person ID must be a valid UUID'),
-  paidAt: z.string().optional(),
-  paymentType: paymentTypeSchema.optional().nullable(),
-  notes: z.string().optional(),
-});
-
-const updatePaymentSchema = z.object({
-  amount: z
-    .number()
-    .nonnegative('Amount must be greater than or equal to zero'),
-  paidAt: z.string().optional(),
-  paymentType: paymentTypeSchema.optional().nullable(),
-  notes: z.string().nullable().optional(),
-});
+const {
+  createPayment: createPaymentService,
+  updatePayment: updatePaymentService,
+} = require('../services/paymentsService');
+const {
+  paymentSchema,
+  updatePaymentSchema,
+} = require('../validators/paymentsValidator');
 
 const createPayment = async (req, res) => {
   try {
     const { orderId } = req.params;
     const validatedData = paymentSchema.parse(req.body);
 
-    const amountCents = Math.round(validatedData.amount * 100);
-
-    const result = await prisma.$transaction(async (tx) => {
-      const order = await tx.order.findFirst({
-        where: { id: orderId, userId: req.user.userId },
-        include: {
-          items: {
-            include: {
-              person: true,
-            },
-          },
-          payments: true,
-        },
-      });
-
-      if (!order) {
-        throw new Error('Order not found');
-      }
-
-      if (order.isTeamOrder) {
-        throw new Error(
-          'Pedidos da equipe não aceitam pagamentos (a equipe já realizou o pagamento)',
-        );
-      }
-
-      const person = await tx.person.findFirst({
-        where: { id: validatedData.personId, userId: req.user.userId },
-      });
-
-      if (!person) {
-        throw new Error('Person not found');
-      }
-
-      const itemSumCents = order.items
-        .filter((item) => item.personId === validatedData.personId)
-        .reduce((sum, item) => sum + lineValueCents(item), 0);
-
-      if (itemSumCents > 0 && amountCents === 0) {
-        throw new Error(
-          'Amount must be greater than zero for a person with chargeable items',
-        );
-      }
-
-      const payment = await tx.payment.create({
-        data: {
-          amount: validatedData.amount,
-          orderId: orderId,
-          personId: validatedData.personId,
-          paidAt: validatedData.paidAt
-            ? parseLocalDate(validatedData.paidAt)
-            : undefined,
-          paymentType: validatedData.paymentType ?? null,
-          notes: validatedData.notes,
-        },
-      });
-
-      // Recompute the order status considering self persons as already
-      // received. The transaction's order.payments read is stale after the
-      // create, so the new payment is added explicitly.
-      const newStatus = computeOrderStatus({
-        items: order.items,
-        payments: [
-          ...order.payments,
-          { personId: validatedData.personId, amount: validatedData.amount },
-        ],
-        shippingCents: toCents(order.shippingValue ?? 0),
-      });
-
-      if (newStatus !== order.status) {
-        await tx.order.update({
-          where: { id: orderId },
-          data: { status: newStatus },
-        });
-      }
-
-      return {
-        payment,
-        order: {
-          id: order.id,
-          orderNumber: order.orderNumber,
-          status: newStatus,
-        },
-      };
+    const result = await createPaymentService(prisma, {
+      userId: req.user.userId,
+      orderId,
+      payload: validatedData,
     });
 
     res.status(201).json({
@@ -128,7 +32,7 @@ const createPayment = async (req, res) => {
       return res.status(400).json({ error: error.errors });
     }
     console.error('Error creating payment:', error);
-    res.status(400).json({ error: error.message });
+    res.status(error.status || 400).json({ error: error.message });
   }
 };
 
@@ -137,96 +41,10 @@ const updatePayment = async (req, res) => {
     const { id } = req.params;
     const validatedData = updatePaymentSchema.parse(req.body);
 
-    const amountCents = Math.round(validatedData.amount * 100);
-
-    const result = await prisma.$transaction(async (tx) => {
-      const existingPayment = await tx.payment.findFirst({
-        where: { id },
-        include: {
-          order: true,
-        },
-      });
-
-      if (
-        !existingPayment ||
-        existingPayment.order.userId !== req.user.userId
-      ) {
-        throw new NotFoundError('Payment not found');
-      }
-
-      const order = await tx.order.findFirst({
-        where: { id: existingPayment.orderId, userId: req.user.userId },
-        include: {
-          items: {
-            include: {
-              person: true,
-            },
-          },
-          payments: true,
-        },
-      });
-
-      if (!order) {
-        throw new NotFoundError('Payment not found');
-      }
-
-      if (order.isTeamOrder) {
-        throw new Error(
-          'Pedidos da equipe não aceitam pagamentos (a equipe já realizou o pagamento)',
-        );
-      }
-
-      const itemSumCents = order.items
-        .filter((item) => item.personId === existingPayment.personId)
-        .reduce((sum, item) => sum + lineValueCents(item), 0);
-
-      if (itemSumCents > 0 && amountCents === 0) {
-        throw new Error(
-          'Amount must be greater than zero for a person with chargeable items',
-        );
-      }
-
-      const payment = await tx.payment.update({
-        where: { id },
-        data: {
-          amount: validatedData.amount,
-          paidAt: validatedData.paidAt
-            ? parseLocalDate(validatedData.paidAt)
-            : undefined,
-          paymentType:
-            validatedData.paymentType !== undefined
-              ? validatedData.paymentType
-              : undefined,
-          notes:
-            validatedData.notes !== undefined ? validatedData.notes : undefined,
-        },
-      });
-
-      // Recompute the order status with the edited payment substituted into
-      // the transaction snapshot, which is stale after the update.
-      const newStatus = computeOrderStatus({
-        items: order.items,
-        payments: order.payments.map((p) =>
-          p.id === id ? { personId: p.personId, amount: payment.amount } : p,
-        ),
-        shippingCents: toCents(order.shippingValue ?? 0),
-      });
-
-      if (newStatus !== order.status) {
-        await tx.order.update({
-          where: { id: order.id },
-          data: { status: newStatus },
-        });
-      }
-
-      return {
-        payment,
-        order: {
-          id: order.id,
-          orderNumber: order.orderNumber,
-          status: newStatus,
-        },
-      };
+    const result = await updatePaymentService(prisma, {
+      id,
+      userId: req.user.userId,
+      payload: validatedData,
     });
 
     res.status(200).json({
@@ -238,11 +56,8 @@ const updatePayment = async (req, res) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors });
     }
-    if (error instanceof NotFoundError) {
-      return res.status(404).json({ error: error.message });
-    }
     console.error('Error updating payment:', error);
-    res.status(400).json({ error: error.message });
+    res.status(error.status || 400).json({ error: error.message });
   }
 };
 
