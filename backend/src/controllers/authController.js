@@ -3,19 +3,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET, JWT_EXPIRES_IN } = require('../config');
 const { z } = require('zod');
+const { loginSchema, registerSchema } = require('../validators/authValidator');
 const prisma = new PrismaClient();
-
-// Zod schema for login validation
-const loginSchema = z.object({
-  username: z.string().min(3, 'Username must be at least 3 characters'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-});
-
-// Zod schema for registration validation
-const registerSchema = z.object({
-  username: z.string().min(3, 'Username must be at least 3 characters'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-});
 
 const login = async (req, res) => {
   try {
