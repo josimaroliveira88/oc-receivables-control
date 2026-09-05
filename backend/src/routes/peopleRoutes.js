@@ -16,6 +16,9 @@ router.get('/:id', peopleController.getPersonById);
 // GET /api/people/:id/summary
 router.get('/:id/summary', peopleController.getPersonSummary);
 
+// GET /api/people/:id/purchases
+router.get('/:id/purchases', peopleController.getPersonPurchases);
+
 // POST /api/people
 router.post('/', peopleController.createPerson);
 

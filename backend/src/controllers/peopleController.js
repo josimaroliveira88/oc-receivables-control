@@ -1,6 +1,7 @@
 import prisma from '../config/database.js';
 import { handleError } from '../middlewares/errorResponse.js';
 import { notFound } from '../utils/httpError.js';
+import { lineValueCents } from '../utils/money.js';
 import {
   syncOrderStatusesForPersons,
   personFinancialSummary,
@@ -101,6 +102,50 @@ const getPersonSummary = async (req, res) => {
       .json(personFinancialSummary(items, payments, { isSelf: person.isSelf }));
   } catch (error) {
     handleError(res, error, { label: 'Error fetching person summary' });
+  }
+};
+
+// Purchased-product rows for a single person, one row per order item. Team
+// orders are excluded (same rule as the financial summary), so the list stays
+// consistent with the totals shown next to it. Money is returned in integer
+// cents via lineValueCents (UNIT × quantity or TOTAL as-is).
+const getPersonPurchases = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const person = await prisma.person.findFirst({
+      where: { id, userId: req.user.userId },
+    });
+
+    if (!person) {
+      throw notFound('Person not found');
+    }
+
+    const items = await prisma.item.findMany({
+      where: { personId: id, order: { isTeamOrder: false } },
+      select: {
+        chargedValue: true,
+        chargedValueMode: true,
+        quantity: true,
+        description: true,
+        orderId: true,
+        order: { select: { orderType: true, orderDate: true } },
+        product: { select: { name: true } },
+      },
+      orderBy: [{ order: { orderDate: 'desc' } }, { product: { name: 'asc' } }],
+    });
+
+    res.status(200).json(
+      items.map((item) => ({
+        orderId: item.orderId,
+        orderType: item.order.orderType,
+        orderDate: item.order.orderDate,
+        name: item.product?.name ?? item.description ?? '',
+        quantity: item.quantity,
+        totalCents: lineValueCents(item),
+      })),
+    );
+  } catch (error) {
+    handleError(res, error, { label: 'Error fetching person purchases' });
   }
 };
 
@@ -239,6 +284,7 @@ export {
   getPeople,
   getPersonById,
   getPersonSummary,
+  getPersonPurchases,
   createPerson,
   updatePerson,
   deletePerson,
