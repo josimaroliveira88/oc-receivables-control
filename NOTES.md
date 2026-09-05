@@ -2,6 +2,8 @@
 
 This file holds short notes about completed adjustments that have **not yet** been promoted to a dated section in `CHANGELOG.md`.
 
+**This file stays tracked by git but is never committed.** Update it freely following the template below, but never stage or include it in a commit — even when it has pending changes. Its entries are consolidated into `CHANGELOG.md` and then deleted from here (see the **New Feature Workflow** in `AGENTS.md`).
+
 It exists so the agent can stop and check with the user after each adjustment without leaving work dangling in `CHANGELOG.md` (the project no longer keeps a running `## [Unreleased]` section). See the **New Feature Workflow** in `AGENTS.md` for the full protocol.
 
 ## When to add an entry
