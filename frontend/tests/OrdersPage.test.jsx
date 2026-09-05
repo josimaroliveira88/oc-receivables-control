@@ -664,7 +664,7 @@ describe('OrdersPage', () => {
       });
     });
 
-    it('should show the read-only "Você" person field in item rows for non-team orders', async () => {
+    it('should hide the person field in item rows for non-team orders', async () => {
       renderPage();
 
       await waitFor(() => {
@@ -674,8 +674,13 @@ describe('OrdersPage', () => {
       fireEvent.click(screen.getByText('Novo Pedido'));
 
       await waitFor(() => {
-        expect(screen.getAllByDisplayValue('Você').length).toBeGreaterThan(0);
+        expect(screen.getByTestId('order-item-quantity-0')).toBeInTheDocument();
       });
+      expect(screen.queryByText('Pessoa')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('Selecione uma pessoa'),
+      ).not.toBeInTheDocument();
+      expect(screen.queryAllByDisplayValue('Você')).toHaveLength(0);
     });
 
     it('should show validation error when submitting incomplete form', async () => {
@@ -2393,16 +2398,30 @@ describe('OrdersPage', () => {
       });
     };
 
-    it('should show a read-only "Você" person field (no select) on non-team orders', async () => {
+    it('should show the person field only when the team checkbox is checked', async () => {
       mockGetImplementation([], mockPeople);
       renderPage();
 
       await openCreateModal();
 
+      expect(screen.queryByText('Pessoa')).not.toBeInTheDocument();
       expect(
         screen.queryByText('Selecione uma pessoa'),
       ).not.toBeInTheDocument();
-      expect(screen.getAllByDisplayValue('Você').length).toBeGreaterThan(0);
+
+      const teamToggle = screen.getByTestId('order-is-team-order');
+      fireEvent.click(teamToggle);
+      await waitFor(() => {
+        expect(screen.getByText('Selecione uma pessoa')).toBeInTheDocument();
+      });
+
+      fireEvent.click(teamToggle);
+      await waitFor(() => {
+        expect(
+          screen.queryByText('Selecione uma pessoa'),
+        ).not.toBeInTheDocument();
+      });
+      expect(screen.queryByText('Pessoa')).not.toBeInTheDocument();
     });
 
     it('should auto-create the self person and bind it when a team order selects "Eu (você)"', async () => {
