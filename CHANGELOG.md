@@ -9,6 +9,15 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 79 — Correção do salvamento de pedido sem cliente e feedback de erro (2026-09-05)
+
+### Fixed
+- **Erro 400 "Person ID must be a valid UUID" ao salvar pedido**: itens criados pela tela de pedidos nascem com `personId: ''` (para pedidos normais a pessoa é o campo somente leitura "Você") e o schema Zod rejeitava a string vazia antes do vínculo automático com a pessoa do usuário. O `itemSchema` (`backend/src/validators/ordersValidator.js`) agora normaliza `personId: ''` para `null` — UUIDs genuinamente inválidos continuam rejeitados com 400 — e `itemPayload` (`frontend/src/pages/Orders/utils/orderHelpers.js`) envia `personId: null` em vez de string vazia. O item passa a ser vinculado à pessoa "Você" com `forStock`/`useCashback` preservados.
+- **Tela em branco sem feedback quando o salvamento falha**: o `catch` do formulário passava `err.response.data.error` direto ao toast; para erros de validação Zod o backend devolve um **array de issues** (não string), que quebrava a renderização do React (sem ErrorBoundary o app inteiro desmontava). `formatToastMessage` (`frontend/src/components/Toast.jsx`) normaliza a mensagem antes de renderizar (string, array de issues Zod ou não-string), beneficiando todas as telas que usam `addToast`; a modal permanece aberta e o toast exibe a mensagem do backend.
+
+### Tests
+- Backend: novos testes em "Item cashback, person binding and stock defaults" (payload real da tela com `personId: ''`, `forStock` e `useCashback` vinculado ao self; UUID inválido continua rejeitado). Frontend: toast renderiza array de issues Zod e mensagem não-string sem quebrar a renderização (`Toast.test.jsx`); falha de salvamento em pedidos com erro Zod exibe toast legível com a modal aberta e a página interativa (`OrdersPage.test.jsx`); asserções de payload atualizadas para `personId: null`. **620 backend + 710 frontend tests passing**; lint sem erros novos (4 warnings preexistentes), `npm run format:check` e `cd frontend && npm run build` limpos.
+
 
 ## Phase 78 — Pedidos do próprio usuário, cashback 70% e Valor doTERRA derivado (2026-09-05)
 
