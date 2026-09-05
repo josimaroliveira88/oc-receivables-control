@@ -8,297 +8,30 @@ const {
 const { lineValueCents, fromCents, toCents } = require('../utils/money');
 const { applyMovement } = require('../services/stockService');
 const { computeStockDiff } = require('../utils/stockDiff');
-const {
-  resolveKitSnapshot,
-  expandItemToStockProducts,
-} = require('../utils/kitStock');
+const { expandItemToStockProducts } = require('../utils/kitStock');
 const { findIdsByTextSearch } = require('../utils/search');
 const { parseLocalDate } = require('../utils/date');
 const { removeAttachmentFile } = require('./orderAttachmentsController');
-const { paymentTypeSchema } = require('../utils/paymentTypes');
-
-const itemSchema = z.object({
-  id: z.string().optional().nullable(),
-  description: z.string().max(500).optional().nullable(),
-  chargedValue: z
-    .number()
-    .min(0, 'Charged value must not be negative')
-    .default(0),
-  personId: z.string().uuid('Person ID must be a valid UUID'),
-  productId: z
-    .string()
-    .uuid('Product ID must be a valid UUID')
-    .optional()
-    .nullable(),
-  memberPrice: z
-    .number()
-    .nonnegative('Member price must not be negative')
-    .optional()
-    .nullable(),
-  details: z
-    .string()
-    .max(500, 'Details must be at most 500 characters')
-    .optional()
-    .nullable(),
-  quantity: z
-    .number()
-    .int('Quantity must be an integer')
-    .positive('Quantity must be greater than zero')
-    .default(1),
-  forStock: z.boolean().default(false),
-  chargedValueMode: z.enum(['UNIT', 'TOTAL']).default('UNIT'),
-  kitStockMode: z.enum(['KIT', 'COMPONENTS']).optional().nullable(),
-});
-
-const orderDescriptiveSchema = {
-  isTeamOrder: z.boolean().optional(),
-  accountOwner: z
-    .string()
-    .max(120, 'Account owner must be at most 120 characters')
-    .optional()
-    .nullable(),
-  paymentType: paymentTypeSchema.optional().nullable(),
-  orderNotes: z
-    .string()
-    .max(500, 'Order notes must be at most 500 characters')
-    .optional()
-    .nullable(),
-  doterraPv: z
-    .number()
-    .nonnegative('PV doTERRA must not be negative')
-    .optional()
-    .nullable(),
-  doterraValue: z
-    .number()
-    .nonnegative('Valor doTERRA must not be negative')
-    .optional()
-    .nullable(),
-};
-
-const createOrderSchema = z.object({
-  orderNumber: z.string().min(1, 'Order number is required'),
-  orderDate: z.string().optional(),
-  shippingValue: z
-    .number()
-    .min(0, 'Shipping value must not be negative')
-    .optional()
-    .nullable()
-    .default(0),
-  ...orderDescriptiveSchema,
-  items: z.array(itemSchema).min(1, 'At least one item is required'),
-});
-
-const updateOrderSchema = z.object({
-  orderNumber: z.string().min(1, 'Order number is required').optional(),
-  orderDate: z.string().optional(),
-  shippingValue: z
-    .number()
-    .min(0, 'Shipping value must not be negative')
-    .optional()
-    .nullable(),
-  ...orderDescriptiveSchema,
-  items: z.array(itemSchema).min(1, 'At least one item is required').optional(),
-});
-
-// Verify all products exist and are available (ATIVO or INDISPONIVEL; INATIVO is rejected)
-const validateProducts = async (client, items) => {
-  const productIds = [
-    ...new Set(items.map((item) => item.productId).filter(Boolean)),
-  ];
-  if (productIds.length === 0) return;
-
-  const products = await client.product.findMany({
-    where: {
-      id: { in: productIds },
-      status: { in: ['ATIVO', 'INDISPONIVEL'] },
-    },
-  });
-
-  if (products.length !== productIds.length) {
-    const error = new Error(
-      'One or more products are inactive or do not exist',
-    );
-    error.status = 400;
-    throw error;
-  }
-};
-
-// Items flagged `forStock` are only meaningful for the self person and must
-// reference a catalog product (stock is tracked per product).
-const validateStockItemRules = (items, selfPersonIds) => {
-  for (const item of items) {
-    if (!item.forStock) continue;
-    if (!selfPersonIds.has(item.personId)) {
-      const error = new Error(
-        'Stock items are only allowed for the user themselves',
-      );
-      error.status = 400;
-      throw error;
-    }
-    if (!item.productId) {
-      const error = new Error('Stock items require a catalog product');
-      error.status = 400;
-      throw error;
-    }
-  }
-};
-
-const selfPersonIdSet = (persons) =>
-  new Set(persons.filter((p) => p.isSelf).map((p) => p.id));
-
-// Purchase-order endpoints must reject sale orders so their inverted stock
-// semantics are never accidentally triggered through the /api/orders routes.
-const assertNotSaleOrder = (order) => {
-  if (order.orderType === 'VENDA') {
-    const error = new Error(
-      'Este é um pedido de venda; use os endpoints de vendas (/api/sales)',
-    );
-    error.status = 400;
-    throw error;
-  }
-};
-
-const itemCreateData = (item) => ({
-  description: item.description || null,
-  chargedValue: item.chargedValue,
-  personId: item.personId,
-  productId: item.productId || null,
-  memberPrice: item.memberPrice ?? null,
-  details: item.details || null,
-  quantity: item.quantity ?? 1,
-  forStock: item.forStock ?? false,
-  chargedValueMode: item.chargedValueMode ?? 'UNIT',
-  kitStockMode: item.kitStockMode ?? null,
-  ...(item.kitSnapshot !== undefined
-    ? { kitSnapshot: item.kitSnapshot ?? null }
-    : {}),
-});
-
-// Attaches the frozen kit snapshot (and validates the stock mode) to each item
-// based on its product type. For KIT products the current composition is
-// snapshotted into `kitSnapshot`; for non-kit products the kit fields are
-// cleared. A forStock item referencing a KIT product must provide a
-// `kitStockMode` (KIT or COMPONENTS).
-const resolveKitFields = async (client, items) => {
-  const productIds = [
-    ...new Set(items.map((item) => item.productId).filter(Boolean)),
-  ];
-  const products =
-    productIds.length === 0
-      ? []
-      : await client.product.findMany({
-          where: { id: { in: productIds } },
-          select: { id: true, productType: true },
-        });
-  const typeById = new Map(products.map((p) => [p.id, p.productType]));
-
-  for (const item of items) {
-    const type = item.productId ? typeById.get(item.productId) : null;
-    if (type === 'KIT') {
-      if (item.forStock && !item.kitStockMode) {
-        const error = new Error(
-          'Stock items for KIT products require a kitStockMode (KIT or COMPONENTS)',
-        );
-        error.status = 400;
-        throw error;
-      }
-      item.kitStockMode = item.kitStockMode ?? null;
-      item.kitSnapshot = await resolveKitSnapshot(client, item.productId);
-    } else {
-      item.kitStockMode = null;
-      item.kitSnapshot = null;
-    }
-  }
-};
-
-// Resolves the kit fields of a single edited item, preserving the frozen
-// snapshot whenever the product (kit) is unchanged so kit composition changes
-// never affect stock control of already-registered orders (requirement 5).
-const resolveEditedKitFields = async (client, oldItem, newItem) => {
-  if (newItem.productId !== oldItem.productId) {
-    await resolveKitFields(client, [newItem]);
-    return;
-  }
-  const type = newItem.productId
-    ? (
-        await client.product.findUnique({
-          where: { id: newItem.productId },
-          select: { productType: true },
-        })
-      )?.productType
-    : null;
-  if (type === 'KIT') {
-    if (newItem.forStock && !newItem.kitStockMode && !oldItem.kitStockMode) {
-      const error = new Error(
-        'Stock items for KIT products require a kitStockMode (KIT or COMPONENTS)',
-      );
-      error.status = 400;
-      throw error;
-    }
-    newItem.kitStockMode = newItem.kitStockMode ?? oldItem.kitStockMode ?? null;
-    newItem.kitSnapshot = oldItem.kitSnapshot ?? null;
-  } else {
-    newItem.kitStockMode = null;
-    newItem.kitSnapshot = null;
-  }
-};
-
-// Resolves the frozen kit snapshot per payload item during a bulk order update,
-// preserving the snapshot of unchanged kit items (matched by id) so kit
-// composition changes never affect stock control of already-registered orders.
-// Items without a matching id are created fresh (current composition snapshot).
-const resolveOrderUpdateItems = async (client, existingItems, payloadItems) => {
-  const oldById = new Map(existingItems.map((it) => [it.id, it]));
-  const resolved = [];
-  for (const item of payloadItems) {
-    const existing = item.id ? oldById.get(item.id) : null;
-    const productChanged =
-      !existing || existing.productId !== (item.productId ?? null);
-    if (productChanged) {
-      await resolveKitFields(client, [item]);
-      resolved.push({ ...item, __existingId: existing ? existing.id : null });
-      continue;
-    }
-    // Same product: preserve the frozen snapshot.
-    const type = item.productId
-      ? (
-          await client.product.findUnique({
-            where: { id: item.productId },
-            select: { productType: true },
-          })
-        )?.productType
-      : null;
-    if (type === 'KIT') {
-      if (item.forStock && !item.kitStockMode && !existing.kitStockMode) {
-        const error = new Error(
-          'Stock items for KIT products require a kitStockMode (KIT or COMPONENTS)',
-        );
-        error.status = 400;
-        throw error;
-      }
-      item.kitStockMode = item.kitStockMode ?? existing.kitStockMode ?? null;
-      item.kitSnapshot = existing.kitSnapshot ?? null;
-    } else {
-      item.kitStockMode = null;
-      item.kitSnapshot = null;
-    }
-    resolved.push({ ...item, __existingId: existing.id });
-  }
-  return resolved;
-};
-
-const orderLineTotalCents = (items) =>
-  items.reduce((sum, item) => sum + lineValueCents(item), 0);
-
-// Shape used by computeOrderStatus (which needs quantity/chargedValueMode for
-// line-value math in addition to personId/chargedValue/person).
-const statusItemFromItem = (item) => ({
-  personId: item.personId,
-  chargedValue: item.chargedValue,
-  quantity: item.quantity,
-  chargedValueMode: item.chargedValueMode,
-  person: item.person,
-});
+const {
+  itemSchema,
+  createOrderSchema,
+  updateOrderSchema,
+} = require('../validators/ordersValidator');
+const {
+  validateProducts,
+  validateStockItemRules,
+  selfPersonIdSet,
+  assertNotSaleOrder,
+  itemCreateData,
+  resolveKitFields,
+  resolveEditedKitFields,
+  resolveOrderUpdateItems,
+  orderLineTotalCents,
+} = require('../utils/ordersHelpers');
+const {
+  ORDER_SORTABLE_FIELDS,
+  sortOrdersInMemory,
+} = require('../utils/ordersSort');
 
 const itemStockMovements = async (client, order, orderNumber, items) => {
   if (!order.orderDate) {
@@ -326,59 +59,6 @@ const itemStockMovements = async (client, order, orderNumber, items) => {
       });
     }
   }
-};
-
-const ORDER_SORTABLE_FIELDS = [
-  'orderNumber',
-  'orderDate',
-  'totalValue',
-  'status',
-  'paymentType',
-  'accountOwner',
-  'orderNotes',
-  'doterraPv',
-  'doterraValue',
-  'createdAt',
-];
-
-// Computed value used to sort orders that have no direct DB column:
-// - pendingCents: totalValue - (self person items) - (payments)
-const orderSortValue = (order, field) => {
-  if (field === 'pendingCents') {
-    if (order.isTeamOrder) return 0;
-    const selfCents = (order.items || [])
-      .filter((item) => item.person && item.person.isSelf)
-      .reduce((sum, item) => sum + lineValueCents(item), 0);
-    const paidCents = (order.payments || []).reduce(
-      (sum, p) => sum + toCents(parseFloat(p.amount)),
-      0,
-    );
-    return Math.max(
-      0,
-      toCents(parseFloat(order.totalValue)) - selfCents - paidCents,
-    );
-  }
-  return undefined;
-};
-
-const sortOrdersInMemory = (orders, sortBy, sortDir) => {
-  const direction = sortDir === 'desc' ? -1 : 1;
-  const numericFields = ['pendingCents', 'totalValue'];
-  return [...orders].sort((a, b) => {
-    if (numericFields.includes(sortBy)) {
-      const aComputed = orderSortValue(a, sortBy);
-      const bComputed = orderSortValue(b, sortBy);
-      const aValue =
-        aComputed !== undefined ? aComputed : Number(a[sortBy]) || 0;
-      const bValue =
-        bComputed !== undefined ? bComputed : Number(b[sortBy]) || 0;
-      return (aValue - bValue) * direction;
-    }
-    return (
-      String(a[sortBy] ?? '').localeCompare(String(b[sortBy] ?? ''), 'pt-BR') *
-      direction
-    );
-  });
 };
 
 // Get all orders with items
