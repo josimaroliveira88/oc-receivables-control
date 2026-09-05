@@ -10,6 +10,18 @@ Guidance for maintainers:
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
 
+## Phase 77 — Coluna "70% OFF" na tela de Produtos (2026-09-05)
+
+### Added
+- **Nova coluna "70% OFF" sempre ativa e ordenável** na tela de Produtos: exibe o valor resultante de um desconto de 70% sobre o preço de membro (ou seja, 30% do preço de membro). O cálculo é feito em centavos inteiros via `calculateDiscountedPrice` em `frontend/src/pages/Products/utils/productHelpers.js` (constante `MEMBER_DISCOUNT_PERCENT`) e a ordenação é suportada pelo campo computado `memberDiscountPrice`, tratado no sort de `filterAndSortProducts`.
+
+### Removed
+- **Coluna "PONTOS" e o botão de ligar/desligar coluna** removidos da tela de Produtos, junto com o seletor "Regularidade" e o texto explicativo de fidelidade. Código morto de fidelidade retirado de `productHelpers.js` (`LOYALTY_TIERS`, `LOYALTY_MINIMUM_PV`, `getLoyaltyTier`, `calculatePoints`, `formatPoints`, `isBelowMinimumPv`, `getLoyaltyTierDescription`). Estado/props `loyaltyTier`, `showPointsColumn` e `togglePointsColumn` removidos de `useProducts.js`, `index.jsx`, `ProductsTable.jsx` e `ProductsTableHeader.jsx`.
+
+### Tests
+- Novos testes para `calculateDiscountedPrice` (centavos, strings, arredondamento, valores nulos) e para a ordenação por `memberDiscountPrice` em `productHelpers.test.js`; novos testes da coluna "70% OFF" (sempre visível, valor correto, ordenação sem nova chamada de API) em `ProductsPage.test.jsx`; blocos de loyalty points removidos. **702 frontend tests passing**, lint sem erros novos (4 warnings preexistentes), `npm run format:check` e `cd frontend && npm run build` limpos.
+
+
 ## Phase 76 — SOLID, ESLint e migração do backend para ES Modules (2026-09-05)
 
 ### Added
