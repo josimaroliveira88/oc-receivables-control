@@ -2,6 +2,20 @@ import React, { useState, useCallback, createContext, useContext } from 'react';
 
 const ToastContext = createContext(null);
 
+// Accepts plain strings as well as non-string payloads (e.g. an array of Zod
+// validation issues coming straight from the API) and renders them as text.
+const formatToastMessage = (message) => {
+  if (typeof message === 'string') return message;
+  if (Array.isArray(message)) {
+    return message
+      .map((issue) => (typeof issue === 'string' ? issue : issue?.message))
+      .filter(Boolean)
+      .join(' ');
+  }
+  if (message == null) return '';
+  return String(message);
+};
+
 export const useToast = () => {
   const context = useContext(ToastContext);
   if (!context) {
@@ -38,7 +52,7 @@ export const ToastProvider = ({ children }) => {
                 : 'bg-red-600 text-white'
             }`}
           >
-            <span className="flex-1">{toast.message}</span>
+            <span className="flex-1">{formatToastMessage(toast.message)}</span>
             <button
               onClick={() => removeToast(toast.id)}
               className="ml-3 text-white hover:text-gray-200 text-lg leading-none"
