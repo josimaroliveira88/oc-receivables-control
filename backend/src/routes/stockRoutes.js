@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const stockController = require('../controllers/StockController');
+const stockController = require('../controllers/stockController');
 const { authenticateToken } = require('../middlewares/auth');
 
 router.use(authenticateToken);

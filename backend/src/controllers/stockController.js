@@ -1,19 +1,10 @@
 const prisma = require('../config/database');
 const { z } = require('zod');
 const { applyMovement } = require('../services/stockService');
+const stockUndoService = require('../services/stockUndoService');
+const { movementSchema } = require('../validators/stockValidator');
 const { findIdsByTextSearch } = require('../utils/search');
 const { parseLocalDate } = require('../utils/date');
-
-const movementSchema = z.object({
-  productId: z.string().uuid(),
-  type: z.enum(['ENTRADA', 'SAIDA', 'AJUSTE']),
-  quantity: z.number().int(),
-  reason: z.string().max(255).optional(),
-  effectiveDate: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Effective date must be YYYY-MM-DD')
-    .optional(),
-});
 
 const listInventory = async (req, res) => {
   try {
@@ -160,117 +151,12 @@ const undoLastMovement = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const result = await prisma.$transaction(async (tx) => {
-      const movement = await tx.stockMovement.findUnique({ where: { id } });
-      if (!movement || movement.userId !== req.user.userId) {
-        const error = new Error('Movement not found');
-        error.status = 404;
-        throw error;
-      }
-
-      if (movement.orderId) {
-        const order = await tx.order.findUnique({
-          where: { id: movement.orderId },
-          select: { orderNumber: true, orderType: true },
-        });
-        const label = order && order.orderType === 'VENDA' ? 'Venda' : 'Pedido';
-        const reference = order ? order.orderNumber : movement.orderId;
-        const error = new Error(
-          `Esta movimentação está vinculada ao ${label} ${reference} e só pode ser desfeita editando ou removendo o item correspondente no pedido.`,
-        );
-        error.status = 400;
-        error.orderNumber = order ? order.orderNumber : undefined;
-        error.orderId = movement.orderId;
-        throw error;
-      }
-
-      const newerCount = await tx.stockMovement.count({
-        where: {
-          userId: req.user.userId,
-          productId: movement.productId,
-          createdAt: { gt: movement.createdAt },
-        },
-      });
-      if (newerCount > 0) {
-        const error = new Error(
-          'Apenas a última movimentação pode ser desfeita',
-        );
-        error.status = 400;
-        throw error;
-      }
-
-      const inventory = await tx.inventory.findUnique({
-        where: {
-          userId_productId: {
-            userId: req.user.userId,
-            productId: movement.productId,
-          },
-        },
-      });
-
-      const newQuantity =
-        (inventory ? inventory.quantity : 0) - movement.quantity;
-      if (newQuantity < 0) {
-        const error = new Error(
-          'Não é possível desfazer: resultaria em estoque negativo',
-        );
-        error.status = 400;
-        throw error;
-      }
-
-      const totalForPair = await tx.stockMovement.count({
-        where: {
-          userId: req.user.userId,
-          productId: movement.productId,
-        },
-      });
-      const isOnlyMovement = totalForPair === 1;
-
-      const deletedMovement = await tx.stockMovement.delete({
-        where: { id },
-      });
-
-      if (isOnlyMovement) {
-        if (inventory) {
-          await tx.inventory.delete({
-            where: {
-              userId_productId: {
-                userId: req.user.userId,
-                productId: movement.productId,
-              },
-            },
-          });
-        }
-        return {
-          movement: deletedMovement,
-          inventory: null,
-        };
-      }
-
-      const updatedInventory = await tx.inventory.update({
-        where: {
-          userId_productId: {
-            userId: req.user.userId,
-            productId: movement.productId,
-          },
-        },
-        data: { quantity: newQuantity },
-      });
-
-      return {
-        movement: deletedMovement,
-        inventory: {
-          productId: updatedInventory.productId,
-          quantity: updatedInventory.quantity,
-        },
-      };
-    });
+    const result = await prisma.$transaction(async (tx) =>
+      stockUndoService.undoLastMovement(tx, { id, userId: req.user.userId }),
+    );
 
     res.status(200).json(result);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors });
-    }
     console.error('Error undoing movement:', error);
     const status = error.status || 400;
     const body = { error: error.message };
