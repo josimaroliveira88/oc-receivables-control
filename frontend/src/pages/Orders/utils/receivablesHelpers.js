@@ -47,12 +47,26 @@ export const getOrderSelfCents = (order) => {
     .reduce((sum, item) => sum + lineValueCents(item), 0);
 };
 
+// The order shipping (frete) is the user's own cost when no item is bound to
+// another person: current-version orders are all-self, and legacy orders that
+// linked people to items keep the frete collectable (it was prorated into
+// their item values at creation time).
+export const getOrderSelfShippingCents = (order) => {
+  if (!order || order.isTeamOrder) return 0;
+  const hasOtherPersonItems = (order.items || []).some(
+    (item) => item.person && !item.person.isSelf,
+  );
+  if (hasOtherPersonItems) return 0;
+  return toCents(parseFloat(order.shippingValue ?? 0));
+};
+
 export const getOrderPendingCents = (order) => {
   if (!order || order.isTeamOrder) return 0;
   return Math.max(
     0,
     toCents(parseFloat(order.totalValue)) -
       getOrderSelfCents(order) -
+      getOrderSelfShippingCents(order) -
       getOrderPaidCents(order),
   );
 };
@@ -75,7 +89,10 @@ export const getOrderFinancials = (order) => {
   const selfCents = getOrderSelfCents(order);
   const pendingCents = order.isTeamOrder
     ? 0
-    : Math.max(0, totalCents - selfCents - paidCents);
+    : Math.max(
+        0,
+        totalCents - selfCents - getOrderSelfShippingCents(order) - paidCents,
+      );
   return { totalCents, paidCents, selfCents, pendingCents };
 };
 

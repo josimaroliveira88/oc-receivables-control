@@ -15,20 +15,31 @@ const ORDER_SORTABLE_FIELDS = [
 ];
 
 // Computed value used to sort orders that have no direct DB column:
-// - pendingCents: totalValue - (self person items) - (payments)
+// - pendingCents: totalValue - (self person items) - (payments), minus the
+//   order shipping when no item is bound to another person (the frete is the
+//   user's own cost in that case, mirroring computeOrderStatus semantics).
 const orderSortValue = (order, field) => {
   if (field === 'pendingCents') {
     if (order.isTeamOrder) return 0;
+    const hasOtherPersonItems = (order.items || []).some(
+      (item) => item.person && !item.person.isSelf,
+    );
     const selfCents = (order.items || [])
       .filter((item) => item.person && item.person.isSelf)
       .reduce((sum, item) => sum + lineValueCents(item), 0);
+    const shippingCents = hasOtherPersonItems
+      ? 0
+      : toCents(parseFloat(order.shippingValue ?? 0));
     const paidCents = (order.payments || []).reduce(
       (sum, p) => sum + toCents(parseFloat(p.amount)),
       0,
     );
     return Math.max(
       0,
-      toCents(parseFloat(order.totalValue)) - selfCents - paidCents,
+      toCents(parseFloat(order.totalValue)) -
+        selfCents -
+        shippingCents -
+        paidCents,
     );
   }
   return undefined;
