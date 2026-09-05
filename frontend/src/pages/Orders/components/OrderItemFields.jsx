@@ -1,5 +1,4 @@
 import React from 'react';
-import { Plus } from 'lucide-react';
 import { formatBRL, fromCents } from '../../../utils/money';
 import CurrencyInput from '../../../components/CurrencyInput';
 import ProductCombobox from '../../../components/ProductCombobox';
@@ -23,12 +22,17 @@ const OrderItemFields = ({
   onUpdateField,
   onPersonSelect,
   onProductSelect,
+  onCashbackToggle,
   onRemove,
   isTeamOrder = false,
 }) => {
   const selfPerson = findSelfPerson(people);
   const isSelfItem = isItemForSelf(item, people);
   const isKit = isKitItem(item, products);
+  // For non-team orders every item is conceptually the user's own: the stock
+  // override is available for new (unbound) items and self items, but hidden
+  // for legacy items still linked to another person.
+  const canManageStock = (isSelfItem || !item.personId) && !isTeamOrder;
 
   return (
     <div
@@ -66,23 +70,33 @@ const OrderItemFields = ({
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
             Pessoa
           </label>
-          <select
-            value={item.personId}
-            onChange={(e) => onPersonSelect(index, e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-sm"
-          >
-            <option value="">Selecione uma pessoa</option>
-            <option value={selfPerson ? selfPerson.id : SELF_PERSON_ID}>
-              {selfPerson ? personSelectLabel(selfPerson) : 'Eu (você)'}
-            </option>
-            {people
-              .filter((person) => !person.isSelf)
-              .map((person) => (
-                <option key={person.id} value={person.id}>
-                  {personSelectLabel(person)}
-                </option>
-              ))}
-          </select>
+          {isTeamOrder ? (
+            <select
+              value={item.personId}
+              onChange={(e) => onPersonSelect(index, e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-sm"
+            >
+              <option value="">Selecione uma pessoa</option>
+              <option value={selfPerson ? selfPerson.id : SELF_PERSON_ID}>
+                {selfPerson ? personSelectLabel(selfPerson) : 'Eu (você)'}
+              </option>
+              {people
+                .filter((person) => !person.isSelf)
+                .map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {personSelectLabel(person)}
+                  </option>
+                ))}
+            </select>
+          ) : (
+            <input
+              type="text"
+              value={item.personName || 'Você'}
+              readOnly
+              tabIndex={-1}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md shadow-sm cursor-not-allowed text-sm"
+            />
+          )}
         </div>
 
         <div className="md:col-span-3">
@@ -117,7 +131,7 @@ const OrderItemFields = ({
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-            Valor Cobrado (R$)
+            Valor Pago (R$)
           </label>
           <CurrencyInput
             value={item.chargedValue}
@@ -143,7 +157,7 @@ const OrderItemFields = ({
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-            Valor Cobrado (total)
+            Valor Pago (total)
           </label>
           <input
             type="text"
@@ -185,7 +199,27 @@ const OrderItemFields = ({
           </select>
         </div>
 
-        {isSelfItem && !isTeamOrder && (
+        <div className="md:col-span-3">
+          <label className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+            <input
+              type="checkbox"
+              data-testid={`order-item-cashback-${index}`}
+              checked={item.useCashback}
+              onChange={(e) => onCashbackToggle(index, e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+            <span>
+              Usei pontos de cashback e ganhei 70% de desconto
+              <span className="block text-xs text-gray-500 dark:text-gray-400">
+                Marca: preenche o valor pago com 30% do preço de membro.
+                Desmarca: preenche com o preço de membro. Você ainda pode
+                editar.
+              </span>
+            </span>
+          </label>
+        </div>
+
+        {canManageStock && (
           <div className="md:col-span-3">
             <label className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
               <input
@@ -208,7 +242,7 @@ const OrderItemFields = ({
           </div>
         )}
 
-        {isSelfItem && !isTeamOrder && item.forStock && isKit && (
+        {canManageStock && item.forStock && isKit && (
           <div className="md:col-span-3">
             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
               Como enviar para o estoque?

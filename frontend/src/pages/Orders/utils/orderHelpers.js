@@ -1,10 +1,15 @@
 import { toCents, fromCents, formatBRL } from '../../../utils/money';
 
+// Cashback points grant a 70% discount, so the payable amount is 30% of the
+// member price.
+export const CASHBACK_DISCOUNT_RATE = 0.3;
+
 export const emptyItem = () => ({
   id: Date.now(),
   description: '',
   chargedValue: '',
   personId: '',
+  personName: '',
   productId: '',
   productName: '',
   productCode: '',
@@ -12,6 +17,7 @@ export const emptyItem = () => ({
   details: '',
   quantity: 1,
   forStock: false,
+  useCashback: false,
   chargedValueMode: 'UNIT',
   kitStockMode: '',
 });
@@ -91,6 +97,7 @@ export const itemPayload = (item) => ({
   details: item.details.trim() || null,
   quantity: Number(item.quantity) || 1,
   forStock: !!item.forStock,
+  useCashback: !!item.useCashback,
   chargedValueMode: item.chargedValueMode || 'UNIT',
   kitStockMode: item.kitStockMode || null,
 });
@@ -101,6 +108,7 @@ export const editItemFromApi = (item) => ({
   chargedValue:
     item.chargedValue != null ? parseFloat(item.chargedValue).toString() : '',
   personId: item.personId || '',
+  personName: item.person ? personSelectLabel(item.person) : '',
   productId: item.productId || '',
   productName: item.product ? item.product.name : '',
   productCode: item.product ? item.product.code : '',
@@ -109,6 +117,7 @@ export const editItemFromApi = (item) => ({
   details: item.details || '',
   quantity: item.quantity != null ? Number(item.quantity) : 1,
   forStock: !!item.forStock,
+  useCashback: !!item.useCashback,
   chargedValueMode: item.chargedValueMode || 'UNIT',
   kitStockMode: item.kitStockMode || '',
 });
@@ -140,6 +149,16 @@ export const lineValueCents = (item) => {
 export const memberLineTotal = (item) => {
   const member = parseFloat(item.memberPrice) || 0;
   return member * Math.max(1, Number(item.quantity) || 1);
+};
+
+// Prefilled "Valor Pago" for an item: the member price by default, or 30% of
+// it when the item was paid with cashback points (70% discount). Returns ''
+// when there is no member price so the user can type a value freely.
+export const prefilledChargedValue = (item) => {
+  const member = parseFloat(item.memberPrice);
+  if (!Number.isFinite(member) || member <= 0) return '';
+  const base = item.useCashback ? member * CASHBACK_DISCOUNT_RATE : member;
+  return base.toFixed(2);
 };
 
 // Display the line total (chargedValue respecting mode) as a BRL string.

@@ -84,7 +84,7 @@ test.describe('Pedidos da equipe (status EQUIPE) - e2e', () => {
 
     await orderNumberInput(page).fill(teamOrderNumber);
     await form
-      .getByLabel('Responsável pela conta (ID dōTERRA ou nome)')
+      .getByLabel('Conta ID (ID dōTERRA ou nome)')
       .fill('Membro Equipe E2E');
     await form.getByLabel('Tipo de Pagamento').selectOption('PIX');
     await form

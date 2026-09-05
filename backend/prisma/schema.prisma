@@ -112,6 +112,7 @@ model Item {
   personId     String?
   quantity          Int               @default(1)
   forStock          Boolean           @default(false)
+  useCashback       Boolean           @default(false)
   chargedValueMode  ChargedValueMode  @default(UNIT)
   kitStockMode      KitStockMode?
   kitSnapshot       Json?

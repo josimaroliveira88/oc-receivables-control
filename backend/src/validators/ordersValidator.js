@@ -8,7 +8,11 @@ const itemSchema = z.object({
     .number()
     .min(0, 'Charged value must not be negative')
     .default(0),
-  personId: z.string().uuid('Person ID must be a valid UUID'),
+  personId: z
+    .string()
+    .uuid('Person ID must be a valid UUID')
+    .optional()
+    .nullable(),
   productId: z
     .string()
     .uuid('Product ID must be a valid UUID')
@@ -29,7 +33,8 @@ const itemSchema = z.object({
     .int('Quantity must be an integer')
     .positive('Quantity must be greater than zero')
     .default(1),
-  forStock: z.boolean().default(false),
+  forStock: z.boolean().optional(),
+  useCashback: z.boolean().optional(),
   chargedValueMode: z.enum(['UNIT', 'TOTAL']).default('UNIT'),
   kitStockMode: z.enum(['KIT', 'COMPONENTS']).optional().nullable(),
 });
@@ -50,11 +55,6 @@ const orderDescriptiveSchema = {
   doterraPv: z
     .number()
     .nonnegative('PV doTERRA must not be negative')
-    .optional()
-    .nullable(),
-  doterraValue: z
-    .number()
-    .nonnegative('Valor doTERRA must not be negative')
     .optional()
     .nullable(),
 };

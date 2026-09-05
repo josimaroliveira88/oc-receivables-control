@@ -2,7 +2,6 @@ import React, { useEffect, useMemo } from 'react';
 import { ExternalLink, Image as ImageIcon, Plus, X } from 'lucide-react';
 import { formatBRL } from '../../../utils/money';
 import { fromCents } from '../../../utils/money';
-import CurrencyInput from '../../../components/CurrencyInput';
 import { trackingUrl, lineValueCents } from '../utils/orderHelpers';
 import OrderItemFields from './OrderItemFields';
 import OrderTotals from './OrderTotals';
@@ -16,9 +15,7 @@ const OrderForm = ({
   paymentType,
   orderNotes,
   doterraPv,
-  doterraValue,
   doterraPvError,
-  doterraValueError,
   attachmentFile,
   attachmentRemoved,
   hasExistingAttachment,
@@ -34,6 +31,7 @@ const OrderForm = ({
   onItemUpdate,
   onItemPersonSelect,
   onItemProductSelect,
+  onItemCashbackToggle,
   onAddItem,
   onRemoveItem,
   addItemBtnRef,
@@ -184,60 +182,32 @@ const OrderForm = ({
       </div>
 
       <div className="mb-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label
-              htmlFor="doterraPv"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
-              PV doTERRA
-            </label>
-            <input
-              id="doterraPv"
-              type="number"
-              step="0.01"
-              min="0"
-              value={doterraPv}
-              onChange={(e) => onChangeField('doterraPv', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-              placeholder="Ex.: 46.5"
-            />
-            {doterraPvError && (
-              <div
-                data-testid="order-doterra-pv-error"
-                className="mt-1 p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md"
-              >
-                <p className="text-sm text-red-600 dark:text-red-400">
-                  {doterraPvError}
-                </p>
-              </div>
-            )}
+        <label
+          htmlFor="doterraPv"
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+        >
+          PV doTERRA
+        </label>
+        <input
+          id="doterraPv"
+          type="number"
+          step="0.01"
+          min="0"
+          value={doterraPv}
+          onChange={(e) => onChangeField('doterraPv', e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+          placeholder="Ex.: 46.5"
+        />
+        {doterraPvError && (
+          <div
+            data-testid="order-doterra-pv-error"
+            className="mt-1 p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md"
+          >
+            <p className="text-sm text-red-600 dark:text-red-400">
+              {doterraPvError}
+            </p>
           </div>
-          <div>
-            <label
-              htmlFor="doterraValue"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
-              Valor doTERRA (R$)
-            </label>
-            <CurrencyInput
-              id="doterraValue"
-              value={doterraValue}
-              onChange={(e) => onChangeField('doterraValue', e.target.value)}
-              placeholder="Ex.: 250,00"
-            />
-            {doterraValueError && (
-              <div
-                data-testid="order-doterra-value-error"
-                className="mt-1 p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md"
-              >
-                <p className="text-sm text-red-600 dark:text-red-400">
-                  {doterraValueError}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+        )}
       </div>
 
       <div className="mb-4">
@@ -319,7 +289,7 @@ const OrderForm = ({
       <div className="mb-4">
         <div className="bg-gray-50 dark:bg-gray-700/50 rounded-md p-3">
           <div className="text-xs text-gray-500 dark:text-gray-400">
-            Soma dos Produtos (Valor Cobrado)
+            Soma dos Produtos (Valor Pago)
           </div>
           <div
             data-testid="order-totals-charged"
@@ -352,6 +322,7 @@ const OrderForm = ({
             onProductSelect={(productId) =>
               onItemProductSelect(index, productId)
             }
+            onCashbackToggle={onItemCashbackToggle}
             onRemove={() => onRemoveItem(index)}
           />
         ))}

@@ -10,6 +10,7 @@ import {
   itemPayload,
   editItemFromApi,
   isKitItem,
+  prefilledChargedValue,
   SELF_PERSON_ID,
   findSelfPerson,
 } from './utils/orderHelpers';
@@ -47,13 +48,11 @@ export function useOrders() {
   const [paymentType, setPaymentType] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
   const [doterraPv, setDoterraPv] = useState('');
-  const [doterraValue, setDoterraValue] = useState('');
   const [attachmentFile, setAttachmentFile] = useState(null);
   const [attachmentRemoved, setAttachmentRemoved] = useState(false);
   const [shippingValue, setShippingValue] = useState('');
   const [shippingValueError, setShippingValueError] = useState('');
   const [doterraPvError, setDoterraPvError] = useState('');
-  const [doterraValueError, setDoterraValueError] = useState('');
   const [items, setItems] = useState([emptyItem()]);
   const [orderNumberError, setOrderNumberError] = useState('');
   const [itemErrors, setItemErrors] = useState({});
@@ -171,23 +170,43 @@ export function useOrders() {
         return next;
       });
     }
+    const memberPrice =
+      product && product.memberPrice != null
+        ? parseFloat(product.memberPrice).toString()
+        : '';
     setItems(
-      items.map((item, i) =>
-        i === index
-          ? {
-              ...item,
-              productId,
-              productName: product ? product.name : '',
-              productCode: product ? product.code : '',
-              description: product ? product.name : '',
-              memberPrice:
-                product && product.memberPrice != null
-                  ? parseFloat(product.memberPrice).toString()
-                  : '',
-              kitStockMode: '',
-            }
-          : item,
-      ),
+      items.map((item, i) => {
+        if (i !== index) return item;
+        const next = {
+          ...item,
+          productId,
+          productName: product ? product.name : '',
+          productCode: product ? product.code : '',
+          description: product ? product.name : '',
+          memberPrice,
+          kitStockMode: '',
+        };
+        // Clearing the product means there is nothing to stock.
+        if (!productId) next.forStock = false;
+        else next.forStock = true;
+        // Prefill "Valor Pago" from the member price, honoring the cashback
+        // checkbox. The user can still edit it afterwards.
+        next.chargedValue = prefilledChargedValue(next);
+        return next;
+      }),
+    );
+  };
+
+  const onCashbackToggle = (index, checked) => {
+    const target = items[index];
+    if (!target) return;
+    setItems(
+      items.map((item, i) => {
+        if (i !== index) return item;
+        const next = { ...item, useCashback: checked };
+        next.chargedValue = prefilledChargedValue(next);
+        return next;
+      }),
     );
   };
 
@@ -257,13 +276,11 @@ export function useOrders() {
     setPaymentType('');
     setOrderNotes('');
     setDoterraPv('');
-    setDoterraValue('');
     setAttachmentFile(null);
     setAttachmentRemoved(false);
     setShippingValue('');
     setShippingValueError('');
     setDoterraPvError('');
-    setDoterraValueError('');
     setItems([emptyItem()]);
     setOrderNumberError('');
     setItemErrors({});
@@ -284,7 +301,6 @@ export function useOrders() {
       paymentType,
       orderNotes,
       doterraPv,
-      doterraValue,
       shippingValue,
       items,
     });
@@ -317,9 +333,6 @@ export function useOrders() {
         break;
       case 'doterraPv':
         setDoterraPv(value);
-        break;
-      case 'doterraValue':
-        setDoterraValue(value);
         break;
       case 'attachmentFile':
         setAttachmentFile(value);
@@ -358,14 +371,6 @@ export function useOrders() {
         : '';
     setDoterraPvError(newDoterraPvError);
 
-    const newDoterraValueError =
-      doterraValue !== '' &&
-      doterraValue != null &&
-      parseFloat(doterraValue) < 0
-        ? 'Valor doTERRA não pode ser negativo'
-        : '';
-    setDoterraValueError(newDoterraValueError);
-
     const newItemErrors = {};
     items.forEach((item) => {
       if (
@@ -380,7 +385,7 @@ export function useOrders() {
         (!Number.isInteger(Number(item.quantity)) || Number(item.quantity) < 1)
       ) {
         newItemErrors[item.id] = 'Quantidade deve ser maior ou igual a 1';
-      } else if (!item.personId) {
+      } else if (isTeamOrder && !item.personId) {
         newItemErrors[item.id] = 'Pessoa é obrigatória';
       } else if (
         item.forStock &&
@@ -395,7 +400,6 @@ export function useOrders() {
     if (newOrderNumberError) return false;
     if (newShippingValueError) return false;
     if (newDoterraPvError) return false;
-    if (newDoterraValueError) return false;
     return Object.keys(newItemErrors).length === 0;
   };
 
@@ -408,10 +412,6 @@ export function useOrders() {
     orderNotes: orderNotes.trim() || null,
     doterraPv:
       doterraPv === '' || doterraPv == null ? null : parseFloat(doterraPv),
-    doterraValue:
-      doterraValue === '' || doterraValue == null
-        ? null
-        : parseFloat(doterraValue),
     shippingValue:
       shippingValue === '' || shippingValue == null
         ? 0
@@ -458,9 +458,6 @@ export function useOrders() {
     setDoterraPv(
       order.doterraPv != null ? String(parseFloat(order.doterraPv)) : '',
     );
-    setDoterraValue(
-      order.doterraValue != null ? String(parseFloat(order.doterraValue)) : '',
-    );
     setAttachmentFile(null);
     setAttachmentRemoved(false);
     const shippingValue =
@@ -480,10 +477,6 @@ export function useOrders() {
       orderNotes: order.orderNotes || '',
       doterraPv:
         order.doterraPv != null ? String(parseFloat(order.doterraPv)) : '',
-      doterraValue:
-        order.doterraValue != null
-          ? String(parseFloat(order.doterraValue))
-          : '',
       shippingValue,
       items,
     });
@@ -564,7 +557,6 @@ export function useOrders() {
     paymentType,
     orderNotes,
     doterraPv,
-    doterraValue,
     shippingValue,
     items,
   };
@@ -623,9 +615,7 @@ export function useOrders() {
     paymentType,
     orderNotes,
     doterraPv,
-    doterraValue,
     doterraPvError,
-    doterraValueError,
     attachmentFile,
     attachmentRemoved,
     shippingValue,
@@ -642,6 +632,7 @@ export function useOrders() {
     removeItem,
     updateItemField,
     onProductSelect,
+    onCashbackToggle,
     onPersonSelect,
     resetForm,
     handleCreateOrder,

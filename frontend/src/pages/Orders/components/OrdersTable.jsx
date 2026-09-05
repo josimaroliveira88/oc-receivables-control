@@ -108,12 +108,6 @@ const OrdersTable = ({
                 </th>
                 <th
                   scope="col"
-                  className="w-[8%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Valor doTERRA
-                </th>
-                <th
-                  scope="col"
                   className="w-[7%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                 >
                   Valor (R$)
@@ -199,14 +193,6 @@ const OrdersTable = ({
                     >
                       {order.doterraPv != null
                         ? parseFloat(order.doterraPv).toFixed(2)
-                        : '—'}
-                    </td>
-                    <td
-                      data-label="Valor doTERRA"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
-                    >
-                      {order.doterraValue != null
-                        ? formatBRL(parseFloat(order.doterraValue))
                         : '—'}
                     </td>
                     <td

@@ -44,9 +44,7 @@ const OrdersPage = () => {
     paymentType,
     orderNotes,
     doterraPv,
-    doterraValue,
     doterraPvError,
-    doterraValueError,
     attachmentFile,
     attachmentRemoved,
     shippingValue,
@@ -63,6 +61,7 @@ const OrdersPage = () => {
     removeItem,
     updateItemField,
     onProductSelect,
+    onCashbackToggle,
     onPersonSelect,
     resetForm,
     handleCreateOrder,
@@ -214,9 +213,7 @@ const OrdersPage = () => {
             paymentType={paymentType}
             orderNotes={orderNotes}
             doterraPv={doterraPv}
-            doterraValue={doterraValue}
             doterraPvError={doterraPvError}
-            doterraValueError={doterraValueError}
             attachmentFile={attachmentFile}
             attachmentRemoved={attachmentRemoved}
             hasExistingAttachment={!!editOrder?.attachmentFilename}
@@ -232,6 +229,7 @@ const OrdersPage = () => {
             onItemUpdate={updateItemField}
             onItemPersonSelect={onPersonSelect}
             onItemProductSelect={onProductSelect}
+            onItemCashbackToggle={onCashbackToggle}
             onAddItem={addItem}
             onRemoveItem={removeItem}
             addItemBtnRef={addItemBtnRef}

@@ -41,7 +41,7 @@ const OrderTotals = ({
         </div>
         <div className="bg-gray-50 dark:bg-gray-700/50 rounded-md p-3">
           <div className="text-xs text-gray-500 dark:text-gray-400">
-            Soma dos Produtos (Valor Cobrado)
+            Soma dos Produtos (Valor Pago)
           </div>
           <div
             data-testid="order-totals-charged-footer"

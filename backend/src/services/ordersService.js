@@ -18,11 +18,11 @@ import {
 import {
   validateProducts,
   validateStockItemRules,
-  selfPersonIdSet,
   assertNotSaleOrder,
 } from '../utils/ordersValidation.js';
 import {
   itemCreateData,
+  resolveItemDefaults,
   orderLineTotalCents,
 } from '../utils/ordersItemTransform.js';
 import {
@@ -145,41 +145,64 @@ const getOrderById = async (client, { id, userId }) => {
 
 const createOrder = async (client, { userId, payload }) => {
   return client.$transaction(async (tx) => {
-    // Verify all persons exist and belong to user
-    const personIds = [...new Set(payload.items.map((item) => item.personId))];
-    const persons = await tx.person.findMany({
-      where: { id: { in: personIds }, userId },
-    });
+    const isTeamOrder = payload.isTeamOrder ?? false;
 
-    if (persons.length !== personIds.length) {
-      throw badRequest('One or more persons not found');
+    // The self person (the logged-in user) owns every non-team order; items
+    // without an explicit person are bound to them when the self person
+    // exists. Explicitly-provided persons (legacy data) are preserved so
+    // records can be migrated gradually.
+    const selfPerson = await tx.person.findFirst({
+      where: { userId, isSelf: true },
+    });
+    const selfPersonId = selfPerson?.id ?? null;
+
+    // Verify explicitly-provided persons exist and belong to the user. Team
+    // orders and legacy non-team items reference real persons; new non-team
+    // items are bound to the self person below, so they need no validation.
+    const personIds = [
+      ...new Set(payload.items.map((item) => item.personId).filter(Boolean)),
+    ];
+    if (personIds.length > 0) {
+      const persons = await tx.person.findMany({
+        where: { id: { in: personIds }, userId },
+      });
+      if (persons.length !== personIds.length) {
+        throw badRequest('One or more persons not found');
+      }
     }
 
-    // Verify all products exist and are available (ATIVO or INDISPONIVEL)
-    await validateProducts(tx, payload.items);
+    const items = resolveItemDefaults({
+      items: payload.items,
+      isTeamOrder,
+      selfPersonId,
+    });
 
-    const selfIds = selfPersonIdSet(persons);
-    const isTeamOrder = payload.isTeamOrder ?? false;
+    // Verify all products exist and are available (ATIVO or INDISPONIVEL)
+    await validateProducts(tx, items);
+
+    const selfIds = new Set(selfPersonId ? [selfPersonId] : []);
     if (!isTeamOrder) {
-      validateStockItemRules(payload.items, selfIds);
+      validateStockItemRules(items, selfIds);
     }
 
     // Attach frozen kit snapshots and validate the stock mode for kit items.
-    await resolveKitFields(tx, payload.items);
+    await resolveKitFields(tx, items);
 
-    const personMap = new Map(persons.map((p) => [p.id, p]));
+    const personMap = new Map();
+    if (selfPerson) personMap.set(selfPerson.id, selfPerson);
 
     // Calculate total value in integer cents, honoring price mode × quantity
-    // plus the order-level shipping value.
+    // plus the order-level shipping value. The doTERRA value always equals the
+    // total (sum of products + shipping), so it is derived, not informed.
     const shippingCents = toCents(payload.shippingValue ?? 0);
-    const totalCents = orderLineTotalCents(payload.items) + shippingCents;
+    const totalCents = orderLineTotalCents(items) + shippingCents;
     const status = computeOrderStatus({
-      items: payload.items.map((item) => ({
+      items: items.map((item) => ({
         personId: item.personId,
         chargedValue: item.chargedValue,
         quantity: item.quantity,
         chargedValueMode: item.chargedValueMode,
-        person: personMap.get(item.personId),
+        person: item.personId ? personMap.get(item.personId) : undefined,
       })),
       payments: [],
       shippingCents,
@@ -203,14 +226,11 @@ const createOrder = async (client, { userId, payload }) => {
           payload.doterraPv != null
             ? fromCents(toCents(payload.doterraPv)).toFixed(2)
             : null,
-        doterraValue:
-          payload.doterraValue != null
-            ? fromCents(toCents(payload.doterraValue)).toFixed(2)
-            : null,
+        doterraValue: fromCents(totalCents).toFixed(2),
         status,
         userId,
         items: {
-          create: payload.items.map(itemCreateData),
+          create: items.map(itemCreateData),
         },
       },
       include: {
@@ -252,6 +272,15 @@ const updateOrder = async (client, { id, userId, payload }) => {
     assertNotSaleOrder(existingOrder);
 
     if (!payload.items) {
+      const newShippingCents =
+        payload.shippingValue !== undefined
+          ? toCents(payload.shippingValue ?? 0)
+          : toCents(existingOrder.shippingValue ?? 0);
+      const newTotalCents =
+        toCents(existingOrder.totalValue) -
+        toCents(existingOrder.shippingValue ?? 0) +
+        newShippingCents;
+
       const order = await tx.order.update({
         where: { id },
         data: {
@@ -277,22 +306,9 @@ const updateOrder = async (client, { id, userId, payload }) => {
                 ? fromCents(toCents(payload.doterraPv)).toFixed(2)
                 : null,
           }),
-          ...(payload.doterraValue !== undefined && {
-            doterraValue:
-              payload.doterraValue != null
-                ? fromCents(toCents(payload.doterraValue)).toFixed(2)
-                : null,
-          }),
-          ...(payload.shippingValue !== undefined && {
-            shippingValue: fromCents(
-              toCents(payload.shippingValue ?? 0),
-            ).toFixed(2),
-            totalValue: fromCents(
-              toCents(existingOrder.totalValue) -
-                toCents(existingOrder.shippingValue ?? 0) +
-                toCents(payload.shippingValue ?? 0),
-            ).toFixed(2),
-          }),
+          shippingValue: fromCents(newShippingCents).toFixed(2),
+          totalValue: fromCents(newTotalCents).toFixed(2),
+          doterraValue: fromCents(newTotalCents).toFixed(2),
         },
         include: {
           items: {
@@ -311,7 +327,7 @@ const updateOrder = async (client, { id, userId, payload }) => {
         const { status } = await syncOrderStatus(tx, {
           orderId: id,
           items: order.items,
-          shippingCents: toCents(payload.shippingValue ?? 0),
+          shippingCents: newShippingCents,
           isTeamOrder: order.isTeamOrder,
         });
         order.status = status;
@@ -320,31 +336,58 @@ const updateOrder = async (client, { id, userId, payload }) => {
       return order;
     }
 
-    const personIds = [...new Set(payload.items.map((item) => item.personId))];
-    const persons = await tx.person.findMany({
-      where: { id: { in: personIds }, userId },
-    });
+    const isTeamOrder =
+      payload.isTeamOrder ?? existingOrder.isTeamOrder ?? false;
 
-    if (persons.length !== personIds.length) {
-      throw badRequest('One or more persons not found');
+    // The self person owns every non-team order; items without an explicit
+    // person (new items added from the UI) are bound to them when the self
+    // person exists. Explicitly-provided persons (legacy data) are preserved.
+    const selfPerson = await tx.person.findFirst({
+      where: { userId, isSelf: true },
+    });
+    const selfPersonId = selfPerson?.id ?? null;
+
+    // Verify explicitly-provided persons exist and belong to the user. Team
+    // orders and legacy non-team items reference real persons; new non-team
+    // items are bound to the self person below, so they need no validation.
+    const personIds = [
+      ...new Set(payload.items.map((item) => item.personId).filter(Boolean)),
+    ];
+    if (personIds.length > 0) {
+      const persons = await tx.person.findMany({
+        where: { id: { in: personIds }, userId },
+      });
+      if (persons.length !== personIds.length) {
+        throw badRequest('One or more persons not found');
+      }
     }
 
+    const resolvedPayloadItems = resolveItemDefaults({
+      items: payload.items,
+      isTeamOrder,
+      selfPersonId,
+    });
+
     // Verify all products exist and are available (ATIVO or INDISPONIVEL)
-    await validateProducts(tx, payload.items);
+    await validateProducts(tx, resolvedPayloadItems);
 
-    // Self ids from old items (their persons) and new items' persons
-    const newSelfIds = selfPersonIdSet(persons);
-    const oldSelfIds = selfPersonIdSet(
-      existingOrder.items.map((it) => it.person).filter(Boolean),
-    );
-    const selfIds = new Set([...newSelfIds, ...oldSelfIds]);
+    // Self ids from old items (their persons) and the resolved self person,
+    // so the stock diff handles person reassignment correctly.
+    const selfIds = new Set();
+    if (selfPersonId) selfIds.add(selfPersonId);
+    for (const person of existingOrder.items
+      .map((it) => it.person)
+      .filter(Boolean)) {
+      if (person.isSelf) selfIds.add(person.id);
+    }
 
-    validateStockItemRules(payload.items, selfIds);
+    validateStockItemRules(resolvedPayloadItems, selfIds);
 
     const shippingCents = toCents(
       payload.shippingValue ?? existingOrder.shippingValue ?? 0,
     );
-    const totalCents = orderLineTotalCents(payload.items) + shippingCents;
+    const totalCents =
+      orderLineTotalCents(resolvedPayloadItems) + shippingCents;
 
     // Resolve kit fields (preserving frozen snapshots for unchanged items),
     // then compute the stock diff between old and new items (skipped for
@@ -352,10 +395,8 @@ const updateOrder = async (client, { id, userId, payload }) => {
     const resolvedItems = await resolveOrderUpdateItems(
       tx,
       existingOrder.items,
-      payload.items,
+      resolvedPayloadItems,
     );
-    const isTeamOrder =
-      payload.isTeamOrder ?? existingOrder.isTeamOrder ?? false;
     if (!isTeamOrder) {
       const diff = computeStockDiff(
         existingOrder.items,
@@ -401,6 +442,7 @@ const updateOrder = async (client, { id, userId, payload }) => {
         orderNumber: payload.orderNumber || existingOrder.orderNumber,
         totalValue: fromCents(totalCents).toFixed(2),
         shippingValue: fromCents(shippingCents).toFixed(2),
+        doterraValue: fromCents(totalCents).toFixed(2),
         orderDate: payload.orderDate
           ? parseLocalDate(payload.orderDate)
           : undefined,
@@ -420,12 +462,6 @@ const updateOrder = async (client, { id, userId, payload }) => {
               ? fromCents(toCents(payload.doterraPv)).toFixed(2)
               : null,
         }),
-        ...(payload.doterraValue !== undefined && {
-          doterraValue:
-            payload.doterraValue != null
-              ? fromCents(toCents(payload.doterraValue)).toFixed(2)
-              : null,
-        }),
       },
     });
 
@@ -442,6 +478,7 @@ const updateOrder = async (client, { id, userId, payload }) => {
         details: newItem.details ?? null,
         quantity: newItem.quantity ?? 1,
         forStock: newItem.forStock ?? false,
+        useCashback: newItem.useCashback ?? false,
         chargedValueMode: newItem.chargedValueMode ?? 'UNIT',
         kitStockMode: newItem.kitStockMode ?? null,
         ...(newItem.kitSnapshot !== undefined
@@ -547,36 +584,52 @@ const addItemToOrder = async (client, { orderId, userId, payload }) => {
       );
     }
 
-    // Check if person exists and belongs to user
-    const person = await tx.person.findFirst({
-      where: { id: payload.personId, userId },
+    const isTeamOrder = order.isTeamOrder;
+
+    // The self person owns non-team orders; a new item is bound to them unless
+    // an explicit person is provided. Team orders require the team member who
+    // placed the order.
+    const selfPerson = await tx.person.findFirst({
+      where: { userId, isSelf: true },
+    });
+    const selfPersonId = selfPerson?.id ?? null;
+    const [resolved] = resolveItemDefaults({
+      items: [payload],
+      isTeamOrder,
+      selfPersonId,
     });
 
+    if (!resolved.personId) {
+      throw badRequest('Person is required');
+    }
+    const person = await tx.person.findFirst({
+      where: { id: resolved.personId, userId },
+    });
     if (!person) {
       throw badRequest('Person not found');
     }
 
     // Verify product exists and is available (when provided)
-    await validateProducts(tx, [payload]);
+    await validateProducts(tx, [resolved]);
 
     validateStockItemRules(
-      [payload],
-      new Set(person.isSelf ? [person.id] : []),
+      [resolved],
+      new Set(selfPersonId ? [selfPersonId] : []),
     );
 
     // Attach the frozen kit snapshot and validate the stock mode for kit items.
-    await resolveKitFields(tx, [payload]);
+    await resolveKitFields(tx, [resolved]);
 
     const newTotalCents =
       orderLineTotalCents([
         ...(await tx.item.findMany({ where: { orderId } })),
-        payload,
+        resolved,
       ]) + toCents(order.shippingValue ?? 0);
 
     // Add item to order
     const item = await tx.item.create({
       data: {
-        ...itemCreateData(payload),
+        ...itemCreateData(resolved),
         orderId,
       },
       include: {
@@ -585,11 +638,13 @@ const addItemToOrder = async (client, { orderId, userId, payload }) => {
       },
     });
 
-    // Update order total value (exact cents)
+    // Update order total value (exact cents). The doTERRA value always equals
+    // the total (sum of products + shipping), so it is derived, not informed.
     const updatedOrder = await tx.order.update({
       where: { id: orderId },
       data: {
         totalValue: fromCents(newTotalCents).toFixed(2),
+        doterraValue: fromCents(newTotalCents).toFixed(2),
       },
       include: {
         items: {
@@ -724,6 +779,7 @@ const updateItem = async (client, { id: itemId, userId, payload }) => {
         details: itemData.details ?? null,
         quantity: itemData.quantity ?? 1,
         forStock: itemData.forStock ?? false,
+        useCashback: itemData.useCashback ?? false,
         chargedValueMode: itemData.chargedValueMode ?? 'UNIT',
         kitStockMode: itemData.kitStockMode ?? null,
         ...(itemData.kitSnapshot !== undefined
@@ -736,7 +792,8 @@ const updateItem = async (client, { id: itemId, userId, payload }) => {
       },
     });
 
-    // Update order total value (exact cents) when line value changed
+    // Update order total value (exact cents) when line value changed. The
+    // doTERRA value always equals the total, so it follows the same change.
     const oldLineCents = lineValueCents(existingItem);
     const newLineCents = lineValueCents(newData);
     if (oldLineCents !== newLineCents) {
@@ -747,7 +804,10 @@ const updateItem = async (client, { id: itemId, userId, payload }) => {
         toCents(currentOrder.totalValue) - oldLineCents + newLineCents;
       await tx.order.update({
         where: { id: existingItem.orderId },
-        data: { totalValue: fromCents(newTotalCents).toFixed(2) },
+        data: {
+          totalValue: fromCents(newTotalCents).toFixed(2),
+          doterraValue: fromCents(newTotalCents).toFixed(2),
+        },
       });
     }
 
@@ -814,7 +874,10 @@ const deleteItem = async (client, { id: itemId, userId }) => {
       toCents(existingItem.order.shippingValue ?? 0);
     await tx.order.update({
       where: { id: existingItem.orderId },
-      data: { totalValue: fromCents(newTotalCents).toFixed(2) },
+      data: {
+        totalValue: fromCents(newTotalCents).toFixed(2),
+        doterraValue: fromCents(newTotalCents).toFixed(2),
+      },
     });
 
     // Recompute order status after removing the item
