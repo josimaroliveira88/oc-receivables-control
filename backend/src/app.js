@@ -3,6 +3,8 @@ import cors from 'cors';
 import morgan from 'morgan';
 import { ZodError } from 'zod';
 import dotenv from 'dotenv';
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpec from './docs/swagger.js';
 
 if (process.env.NODE_ENV !== 'test') {
   dotenv.config();
@@ -30,6 +32,19 @@ app.use(
   }),
 );
 app.use(express.json());
+
+
+// Swagger UI e spec bruta — públicas (o JWT entra pelo botão "Authorize" da UI)
+app.use('/api/docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    customSiteTitle: 'Receivables Control API',
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  })
+);
+app.get('/api/docs.json', (req, res) => res.json(swaggerSpec));
 
 // Routes will be mounted here
 app.get('/health', (req, res) => {
@@ -82,5 +97,6 @@ app.use((error, req, res, _next) => {
   const message = error.message || 'Internal Server Error';
   res.status(status).json({ error: message });
 });
+
 
 export default app;
