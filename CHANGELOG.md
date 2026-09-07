@@ -9,6 +9,15 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 83 — Documentação Swagger/OpenAPI completa do backend (2026-09-07)
+
+### Added
+- **Anotações `@openapi` em todas as rotas** (`backend/src/routes/*.js`) seguindo o modelo de `authRoutes.js` (`POST /api/auth/login`): `POST /api/auth/register`; 8 endpoints de `peopleRoutes.js` (lista com `q`/`classification`/`sortBy`/`sortDir`, por ID, `summary`, `purchases`, `self`, update, delete); 14 endpoints de `ordersRoutes.js` (CRUD, itens, `POST /:orderId/payments`, `PUT /payments/:id`, `GET /:orderId/balance`, anexo via `multipart/form-data` com campo `file` PNG/JPEG/WebP); 5 de `salesRoutes.js`; `GET /api/dashboard`; 5 de `productRoutes.js` (filtros `active`/`status`/`available`/`inStock`/`q`, paginação); 4 de `stockRoutes.js`. Rotas públicas usam `security: []`; as autenticadas herdam o `bearerAuth` global. Erros via `$ref` para as respostas reutilizáveis (`BadRequest`, `Unauthorized`, `NotFound`, nova `Conflict`).
+- **`components.schemas` completos em `backend/src/docs/swagger.js`**: `LoginResponse` corrigido (`token` + `expiresIn`), `RegisterInput`/`RegisterResponse`, `Person` expandido + `PersonInput`/`PersonSummary`/`PersonPurchase`, `PaymentType`, `OrderInput`/`OrderUpdateInput`/`OrderItemInput`/`Order`, `Payment`/`PaymentInput`/`PaymentUpdateInput`/`PaymentResult`, `PersonBalance`/`OrderBalance`, `AttachmentResponse`, `SaleInput`/`SaleUpdateInput`/`SaleItemInput`, `DashboardSummary`, `ProductInput`/`ProductUpdateInput`/`Product`/`PaginatedProducts`/`Pagination`, `MovementInput`/`StockMovement`/`InventoryItem`/`MovementResult` e genérico `Message` — todos espelhando os validadores Zod e as projeções dos controllers.
+
+### Tests
+- Sem testes novos (mudança só de comentários/docs — o diff das rotas contém apenas blocos JSDoc, nenhuma lógica alterada). Verificação: spec gerada com 24 paths e 0 operações sem tag; smoke test via `curl` contra o backend (401 sem token, register/login com `token`/`expiresIn`, 200 em `people`/`products`/`sales`/`stock`/`dashboard`/`orders`, ciclo POST/summary/purchases/DELETE de pessoa, `/api/docs.json` com 24 paths e `/api/docs` 200); usuário de smoke removido do banco de dev. **631 backend + 734 frontend tests passing**; `npm run lint` e `format:check` limpos.
+
 ## Phase 82 — Lista de produtos comprados no detalhamento do cliente (2026-09-05)
 
 ### Added
