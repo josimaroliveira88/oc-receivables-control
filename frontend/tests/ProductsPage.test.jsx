@@ -237,6 +237,72 @@ describe('ProductsPage', () => {
       });
     });
 
+    it('should display placeholders instead of crashing when prices are null', async () => {
+      const nullPriceProduct = {
+        ...mockProduct,
+        id: '99',
+        name: 'Kit Sem Preço',
+        code: 'KITNULL01',
+        regularPrice: null,
+        memberPrice: null,
+        pv: null,
+        pricePerPv: null,
+      };
+      mockGet.mockResolvedValue({ data: fullResponse([nullPriceProduct]) });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Kit Sem Preço')).toBeInTheDocument();
+      });
+
+      const row = screen.getByText('Kit Sem Preço').closest('tr');
+      expect(
+        row.querySelector('[data-label="Preço Regular"]'),
+      ).toHaveTextContent('—');
+      expect(
+        row.querySelector('[data-label="Preço Membro"]'),
+      ).toHaveTextContent('—');
+      expect(row.querySelector('[data-label="PV"]')).toHaveTextContent('—');
+      expect(row.querySelector('[data-label="R$/PV"]')).toHaveTextContent('—');
+      expect(row.querySelector('[data-label="70% OFF"]')).toHaveTextContent(
+        '—',
+      );
+    });
+
+    it('should keep filtering by name working when a product has null prices', async () => {
+      const nullPriceProduct = {
+        ...mockProduct,
+        id: '99',
+        name: 'Kit Sem Preço',
+        code: 'KITNULL01',
+        regularPrice: null,
+        memberPrice: null,
+        pv: null,
+        pricePerPv: null,
+      };
+      mockGet.mockResolvedValue({
+        data: fullResponse([mockProduct, nullPriceProduct]),
+      });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      fireEvent.change(
+        screen.getByPlaceholderText('Buscar por nome ou código...'),
+        { target: { value: 'Kit' } },
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Kit Sem Preço')).toBeInTheDocument();
+        expect(
+          screen.queryByText('Adaptiv® Pastilhas'),
+        ).not.toBeInTheDocument();
+      });
+      expect(mockGet).toHaveBeenCalledTimes(1);
+    });
+
     it('should display status badge for active, unavailable and inactive products', async () => {
       mockGet.mockResolvedValue({
         data: fullResponse([

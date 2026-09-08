@@ -109,6 +109,26 @@ describe('formatProductRowForCopy', () => {
 
     expect(formatProductRowForCopy(product).split('\n')).toHaveLength(5);
   });
+
+  it('should use placeholders instead of throwing when prices are null', () => {
+    const product = {
+      code: 'KIT1',
+      name: 'Kit Sem Preço',
+      size: 'kit',
+      regularPrice: null,
+      memberPrice: null,
+      pv: null,
+    };
+
+    expect(formatProductRowForCopy(product)).toBe(
+      [
+        'Kit Sem Preço (kit)',
+        'Preço Regular: —',
+        'Preço de Membros: —',
+        'PV: —',
+      ].join('\n'),
+    );
+  });
 });
 
 describe('calculateDiscountedPrice', () => {
