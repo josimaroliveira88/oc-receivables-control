@@ -253,13 +253,18 @@ export function useProducts() {
   };
 
   const openEditModal = (product) => {
+    const toPriceInput = (value) => {
+      if (value === null || value === undefined || value === '') return '';
+      const parsed = parseFloat(value);
+      return Number.isNaN(parsed) ? '' : String(parsed);
+    };
     const form = {
       code: product.code,
       name: product.name,
       size: product.size,
-      regularPrice: String(parseFloat(product.regularPrice)),
-      memberPrice: String(parseFloat(product.memberPrice)),
-      pv: product.pv,
+      regularPrice: toPriceInput(product.regularPrice),
+      memberPrice: toPriceInput(product.memberPrice),
+      pv: product.pv ?? '',
       doterraUrl: product.doterraUrl || '',
       productType: product.productType || 'SIMPLES',
       components: (product.components || []).map((c) => ({

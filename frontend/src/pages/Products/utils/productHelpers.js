@@ -44,11 +44,15 @@ export const formatProductRowForCopy = (product) => {
   const firstLine = product.size
     ? `${product.name} (${product.size})`
     : product.name;
+  const pv =
+    product.pv === null || product.pv === undefined || product.pv === ''
+      ? '—'
+      : product.pv;
   const lines = [
     firstLine,
     `Preço Regular: ${formatBRL(product.regularPrice)}`,
     `Preço de Membros: ${formatBRL(product.memberPrice)}`,
-    `PV: ${product.pv}`,
+    `PV: ${pv}`,
   ];
   if (product.doterraUrl) {
     lines.push(product.doterraUrl);
@@ -132,8 +136,12 @@ export const filterAndSortProducts = (
   const result = products.filter((product) => {
     if (
       query &&
-      !product.name.toLowerCase().includes(query) &&
-      !product.code.toLowerCase().includes(query)
+      !String(product.name ?? '')
+        .toLowerCase()
+        .includes(query) &&
+      !String(product.code ?? '')
+        .toLowerCase()
+        .includes(query)
     ) {
       return false;
     }

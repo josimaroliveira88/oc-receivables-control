@@ -166,19 +166,31 @@ const ProductsTable = ({
                         data-label="Preço Regular"
                         className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-left lg:text-right text-sm text-gray-700 dark:text-gray-200 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
                       >
-                        {formatBRL(product.regularPrice)}
+                        {product.regularPrice === null ||
+                        product.regularPrice === undefined ||
+                        product.regularPrice === ''
+                          ? '—'
+                          : formatBRL(product.regularPrice)}
                       </td>
                       <td
                         data-label="Preço Membro"
                         className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-left lg:text-right text-sm text-gray-700 dark:text-gray-200 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
                       >
-                        {formatBRL(product.memberPrice)}
+                        {product.memberPrice === null ||
+                        product.memberPrice === undefined ||
+                        product.memberPrice === ''
+                          ? '—'
+                          : formatBRL(product.memberPrice)}
                       </td>
                       <td
                         data-label="PV"
                         className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-left lg:text-right text-sm text-gray-700 dark:text-gray-200 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
                       >
-                        {product.pv}
+                        {product.pv === null ||
+                        product.pv === undefined ||
+                        product.pv === ''
+                          ? '—'
+                          : product.pv}
                       </td>
                       <td
                         data-label="R$/PV"
@@ -193,11 +205,15 @@ const ProductsTable = ({
                         data-label="70% OFF"
                         className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-left lg:text-right text-sm text-gray-700 dark:text-gray-200 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
                       >
-                        {formatBRL(
-                          fromCents(
-                            calculateDiscountedPrice(product.memberPrice),
-                          ),
-                        )}
+                        {product.memberPrice === null ||
+                        product.memberPrice === undefined ||
+                        product.memberPrice === ''
+                          ? '—'
+                          : formatBRL(
+                              fromCents(
+                                calculateDiscountedPrice(product.memberPrice),
+                              ),
+                            )}
                       </td>
                       <td
                         data-label="Status"
