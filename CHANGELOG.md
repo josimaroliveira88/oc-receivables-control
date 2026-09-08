@@ -9,6 +9,15 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 84 — Placeholder para produtos sem preço na lista (2026-09-08)
+
+### Fixed
+- **Tela em branco ao filtrar produtos por nome**: produtos sem preço vigente (o backend projeta `regularPrice`/`memberPrice`/`pv` como `null` em `backend/src/utils/productsProjection.js`) quebravam o `formatBRL` (`frontend/src/utils/money.js`), que chamava `toLocaleString` sem guarda contra `null`. `formatBRL` agora devolve `—` para `null`/`undefined`/string vazia/`NaN`, e a tabela (`frontend/src/pages/Products/components/ProductsTable.jsx`) exibe `—` nas colunas Preço Regular, Preço Membro, PV e 70% OFF — a coluna 70% OFF mostrava `R$ 0,00` (enganoso) para preço de membro nulo em vez de quebrar.
+- **Edição de produto sem preço mostrava "NaN"**: `openEditModal` (`frontend/src/pages/Products/useProducts.js`) fazia `String(parseFloat(null))`; valores nulos/inválidos agora viram campo vazio. `filterAndSortProducts` (`frontend/src/pages/Products/utils/productHelpers.js`) tolera `name`/`code` nulos, e "Copiar linha" usa `—` para preços/PV nulos.
+
+### Tests
+- Frontend: novo `frontend/tests/money.test.js` (`formatBRL` com valores válidos e placeholder para nulo/indefinido/`NaN`/vazio); dois testes novos em `frontend/tests/ProductsPage.test.jsx` (linha com preços nulos renderiza placeholders; filtro por nome com produto sem preço não quebra a página); um teste novo em `frontend/tests/productHelpers.test.js` ("Copiar linha" com preços nulos). **631 backend + 739 frontend tests passing**; lint sem erros (5 warnings preexistentes em Sales), `prettier --check` limpo nos arquivos alterados, `cd frontend && npm run build` limpo.
+
 ## Phase 83 — Documentação Swagger/OpenAPI completa do backend (2026-09-07)
 
 ### Added
