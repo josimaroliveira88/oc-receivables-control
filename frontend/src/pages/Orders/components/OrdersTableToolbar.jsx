@@ -1,9 +1,6 @@
 import React from 'react';
 import { Search } from 'lucide-react';
-import {
-  SEARCH_FIELD_OPTIONS,
-  PAYMENT_TYPE_FILTER_OPTIONS,
-} from '../utils/orderHelpers';
+import { SEARCH_FIELD_OPTIONS } from '../utils/orderHelpers';
 
 const selectClass =
   'w-full sm:w-auto px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors';
@@ -11,10 +8,8 @@ const selectClass =
 const OrdersTableToolbar = ({
   search,
   searchField,
-  paymentTypeFilter,
   onSearchChange,
   onSearchFieldChange,
-  onPaymentTypeFilterChange,
   onSearchSubmit,
 }) => {
   return (
@@ -58,24 +53,6 @@ const OrdersTableToolbar = ({
           <Search className="w-4 h-4" />
           Pesquisar
         </button>
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          <span className="sr-only">Tipo de pagamento</span>
-          <select
-            value={paymentTypeFilter}
-            onChange={(e) => onPaymentTypeFilterChange(e.target.value)}
-            className={selectClass}
-            aria-label="Tipo de pagamento"
-          >
-            {PAYMENT_TYPE_FILTER_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
       </div>
     </form>
   );

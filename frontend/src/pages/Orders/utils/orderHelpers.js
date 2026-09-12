@@ -63,15 +63,6 @@ export const SEARCH_FIELD_OPTIONS = [
   { value: 'orderNotes', label: 'Descrição' },
 ];
 
-// Options for the payment type filter.
-export const PAYMENT_TYPE_FILTER_OPTIONS = [
-  { value: '', label: 'Todos os tipos de pagamento' },
-  { value: 'PIX', label: 'Somente PIX' },
-  { value: 'BOLETO', label: 'Somente Boleto' },
-  { value: 'CARTAO_CREDITO', label: 'Somente Cartão de Crédito' },
-  { value: 'INFINITE_PAY', label: 'Somente InfinitePay' },
-];
-
 export const itemPayload = (item) => ({
   ...(typeof item.id === 'string' && item.id ? { id: item.id } : {}),
   description: item.description.trim() || null,

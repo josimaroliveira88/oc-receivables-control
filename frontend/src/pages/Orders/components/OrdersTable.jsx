@@ -23,13 +23,11 @@ const OrdersTable = ({
   orders,
   search,
   searchField,
-  paymentTypeFilter,
   sortBy,
   sortDir,
   hasActiveFilters,
   onSearchChange,
   onSearchFieldChange,
-  onPaymentTypeFilterChange,
   onSearchSubmit,
   onSort,
   onEdit,
@@ -43,10 +41,8 @@ const OrdersTable = ({
       <OrdersTableToolbar
         search={search}
         searchField={searchField}
-        paymentTypeFilter={paymentTypeFilter}
         onSearchChange={onSearchChange}
         onSearchFieldChange={onSearchFieldChange}
-        onPaymentTypeFilterChange={onPaymentTypeFilterChange}
         onSearchSubmit={onSearchSubmit}
       />
 
@@ -89,24 +85,34 @@ const OrdersTable = ({
                   onSort={onSort}
                   width="w-[10%]"
                 />
-                <th
-                  scope="col"
-                  className="w-[9%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
-                >
-                  Pagamento
-                </th>
-                <th
-                  scope="col"
-                  className="w-[8%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
-                >
-                  PV doTERRA
-                </th>
-                <th
-                  scope="col"
-                  className="w-[9%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
-                >
-                  Valor (R$)
-                </th>
+                <SortableHeader
+                  label="Pagamento"
+                  field="paymentType"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                  width="w-[9%]"
+                  testIdPrefix="orders"
+                />
+                <SortableHeader
+                  label="PV"
+                  field="doterraPv"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                  width="w-[8%]"
+                  testIdPrefix="orders"
+                />
+                <SortableHeader
+                  label="Valor"
+                  field="totalValue"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                  width="w-[9%]"
+                  align="right"
+                  testIdPrefix="orders"
+                />
                 <th
                   scope="col"
                   className="w-[32%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
@@ -166,7 +172,7 @@ const OrdersTable = ({
                       <PaymentTypeBadge type={order.paymentType} />
                     </td>
                     <td
-                      data-label="PV doTERRA"
+                      data-label="PV"
                       className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
                     >
                       {order.doterraPv != null
@@ -174,7 +180,7 @@ const OrdersTable = ({
                         : '—'}
                     </td>
                     <td
-                      data-label="Valor (R$)"
+                      data-label="Valor"
                       className={`block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm ${order.isTeamOrder ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-gray-100'} before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden`}
                     >
                       {formatBRL(parseFloat(order.totalValue))}

@@ -22,13 +22,11 @@ const OrdersPage = () => {
     refreshOrders,
     search,
     searchField,
-    paymentTypeFilter,
     sortBy,
     sortDir,
     hasActiveFilters,
     setSearch,
     setSearchField,
-    setPaymentTypeFilter,
     handleSearchSubmit,
     handleSort,
     showCreateModal,
@@ -173,13 +171,11 @@ const OrdersPage = () => {
             orders={orders}
             search={search}
             searchField={searchField}
-            paymentTypeFilter={paymentTypeFilter}
             sortBy={sortBy}
             sortDir={sortDir}
             hasActiveFilters={hasActiveFilters}
             onSearchChange={setSearch}
             onSearchFieldChange={setSearchField}
-            onPaymentTypeFilterChange={setPaymentTypeFilter}
             onSearchSubmit={handleSearchSubmit}
             onSort={handleSort}
             onEdit={handleEditOrder}
