@@ -9,6 +9,17 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 87 — Tipos de pagamento do pedido e tooltip de itens no número do pedido (2026-09-12)
+
+### Changed
+- **Formulário de Pedido limitado a PIX, Boleto e Crédito**: o select `Tipo de Pagamento` do `OrderForm` (`frontend/src/pages/Orders/components/OrderForm.jsx`) deixou de exibir `InfinitePay` e renomeou a opção `CARTAO_CREDITO` de "Cartão de Crédito" para **Crédito**. A mudança vale apenas para o campo em nível de pedido (`Order.paymentType`); os modais de pagamento (`PaymentModal`, `EditPaymentModal`) e a tela de Vendas mantêm a lista completa.
+- **Rótulo "Crédito" propagado**: `paymentTypeLabel` (`frontend/src/pages/Orders/utils/orderHelpers.js`) passou a devolver `Crédito` para `CARTAO_CREDITO`, refletindo também no `PaymentTypeBadge` da tabela e no modal de detalhamento. Pedidos legados com `INFINITE_PAY` continuam exibindo `InfinitePay`.
+- **Tooltip dinâmico no número do pedido**: o `title` estático "Ver pedido no site" do link do número (`frontend/src/pages/Orders/components/OrdersTable.jsx`) foi substituído por `getOrderNumberTooltip(order)` (`orderHelpers.js`). Para pedidos comuns, lista uma entrada por item no formato `{produto} (Paguei R$ {valor da linha})`, unidas por ` / `, sem separador ao final; para pedidos da equipe, agrupa por produto único e usa `Pago R$` no lugar de `Paguei R$`. O valor usa o total da linha (campo "Valor Pago (total)"), respeitando o modo UNIT/TOTAL.
+
+### Tests
+- Frontend (`frontend/tests/OrdersPage.test.jsx`): teste das opções do `Tipo de Pagamento` reescrito para garantir PIX/Boleto/Crédito e a ausência de "Cartão de Crédito"/"InfinitePay"; novo bloco `Order number tooltip` com seis casos (pedido comum por item, item único sem separador final, multiplicação por quantidade, agrupamento por produto em pedido da equipe, produtos distintos, pedido sem itens); teste do badge `Crédito` na lista; teste de links de rastreio ajustado para o novo atributo `title`.
+- Frontend (`frontend/tests/OrdersPayments.test.jsx`): expectativa do badge do modal de detalhamento atualizada para `Crédito`. **631 backend + 752 frontend tests passing**; lint sem erros (5 warnings preexistentes), `cd frontend && npm run build` limpo e `prettier --check` limpo nos arquivos alterados (apenas o `backend/src/app.js` preexistente segue sinalizado).
+
 ## Phase 86 — Ajustes da lista de Pedidos dōTERRA: caixa mista dos cabeçalhos, larguras, ordenação e remoção do filtro de pagamento (2026-09-12)
 
 ### Changed
