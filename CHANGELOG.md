@@ -9,6 +9,18 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 89 — Raiz abre Produtos e Dashboard na última posição do menu (2026-09-12)
+
+### Changed
+- **Raiz redireciona para Produtos**: em `frontend/src/App.jsx`, a rota `/` deixou de renderizar o `DashboardPage` e passou a redirecionar (`<Navigate to="/products" replace />`); o Dashboard ganhou rota própria em `/dashboard`, dentro do bloco protegido. Como o `LoginPage` continua navegando para `/` após o login (`frontend/src/pages/LoginPage.jsx`), o usuário passa a cair na tela de Produtos automaticamente. O catch-all `*` segue redirecionando para `/`, agora resolvido em Produtos.
+- **Dashboard movido para a última posição do menu**: `Header.jsx` (desktop) e `MobileDrawer.jsx` (mobile) passam a exibir a ordem Clientes → Pedidos dōTERRA → Vendas → Produtos → Estoque → Dashboard, com o item Dashboard apontando para `/dashboard`.
+- **Lista de navegação extraída para módulo compartilhado**: novo `frontend/src/utils/navigation.js` exporta `navigationItems` (rota, ícone e rótulo PT-BR), consumido por `Header.jsx` e `MobileDrawer.jsx`, eliminando a duplicação das duas listas.
+
+### Tests
+- Novo `frontend/tests/navigation.test.js` (ordem, rótulos, ícones e unicidade de rotas) e `frontend/tests/App.test.jsx` (raiz cai em Produtos, `/dashboard` renderiza o Dashboard e rotas desconhecidas redirecionam para Produtos).
+- `Header.test.jsx` e `MobileDrawer.test.jsx` ganharam asserções de ordem dos itens (Dashboard por último) e do link `/dashboard`.
+- **772 frontend tests passing** (backend inalterado); `cd frontend && npm run lint` sem erros (5 warnings preexistentes), `cd frontend && npm run build` limpo e `prettier --check` limpo nos arquivos alterados.
+
 ## Phase 88 — Design system rosa (claro) / Dracula (escuro) com suporte a tema (2026-09-12)
 
 ### Added
