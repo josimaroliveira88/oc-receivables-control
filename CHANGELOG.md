@@ -9,6 +9,15 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 85 — Remoção das colunas Status/Valor Pendente e do filtro de status em Pedidos dōTERRA (2026-09-12)
+
+### Changed
+- **Colunas "Status" e "Valor Pendente" removidas da lista de Pedidos dōTERRA** (`frontend/src/pages/Orders/components/OrdersTable.jsx`): cabeçalhos e células (desktop e cartões mobile) foram removidos e as larguras das colunas restantes reajustadas. Os dados continuam no banco e nos modais de detalhamento/pagamento; o status segue disponível via API (`GET /api/orders?status=...`).
+- **Filtro de status removido da toolbar** (`frontend/src/pages/Orders/components/OrdersTableToolbar.jsx`): com a coluna de status fora, o select "Status" (`STATUS_FILTER_OPTIONS`) e o estado `statusFilter`/`setStatusFilter` saíram de `useOrderFilters.js`, `useOrders.js` e `index.jsx`; busca por texto, filtro de tipo de pagamento e ordenação permanecem. Pedidos da equipe passam a ser identificados pela ausência da ação de pagamento.
+
+### Tests
+- Frontend: testes que ancoravam as colunas removidas/status foram reescritos ou removidos em `frontend/tests/OrdersPage.test.jsx` e `frontend/tests/OrdersPayments.test.jsx`; o e2e `frontend/e2e/team-orders.spec.js` passa a validar o status `EQUIPE`/`PENDENTE` via API (`GET /api/orders?q=...`) em vez do filtro, e o teste do filtro "Somente da equipe" foi removido. **631 backend + 735 frontend tests passing**; lint sem erros (5 warnings preexistentes), `prettier --check` e `cd frontend && npm run build` limpos.
+
 ## Phase 84 — Placeholder para produtos sem preço na lista (2026-09-08)
 
 ### Fixed
