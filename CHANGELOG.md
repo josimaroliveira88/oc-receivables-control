@@ -9,6 +9,30 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 88 — Design system rosa (claro) / Dracula (escuro) com suporte a tema (2026-09-12)
+
+### Added
+- **Design tokens semânticos** em `frontend/src/index.css` (`:root` claro / `.dark` escuro) expostos no `frontend/tailwind.config.js`: superfícies (`base`, `surface`, `elevated`), bordas (`line`), tiers de texto (`ink`/`ink-soft`/`ink-faint`), família de acento (`accent`/`accent-hover`/`accent-soft`/`accent-on`/`accent-on-soft`), paleta de apoio (`success`, `warning`, `info`, `mystic`, `danger` como `*-soft` + `*-fg`) e badges de pagamento (`badge.boleto`/`badge.infinitepay`/`badge.pix`). O modo escuro segue o Dracula (`#1E1F29`, `#282A36`, `#44475A`, `#F8F8F2`, acento `#FF79C6`).
+- **Mapa central de cores de badge** em `frontend/src/utils/badgeStyles.js`: status de pedido/venda (Pendente=amarelo, Parcial=ciano, Quitado=verde, Equipe=roxo), tipos de pagamento (PIX=verde, Boleto=laranja, InfinitePay=rosa, Crédito=roxo), entrega, status de produto, movimentos de estoque, quantidade em estoque e booleano — consumido por `Badges.jsx`, `SaleBadges.jsx`, `BoolBadge.jsx`, `productHelpers.js` e `stockHelpers.js`.
+- **Script de verificação de contraste** `frontend/scripts/contrast-check.mjs` (WCAG AA ≥ 4,5:1) lendo os pares fg/bg direto do `index.css`, nos dois modos.
+
+### Changed
+- **Paleta azul substituída por rosa como acento + paleta de apoio**: removidos `primary-*`, `blue-*`, `indigo-*`, `emerald-*`, `amber-*` e os gradientes `brand-gradient` (código morto). Todas as telas (Dashboard, Clientes, Pedidos dōTERRA, Vendas, Produtos, Estoque), Login/Registro e componentes compartilhados passam a consumir os tokens semânticos. O rosa é usado apenas como sinalização (ações primárias, links, item de navegação ativo, foco de campos, indicadores de progresso/seleção); badges e status usam a paleta secundária para evitar monotonia.
+- **Barra de navegação e drawer neutros** (`Header.jsx`, `MobileDrawer.jsx`): o gradiente azul deu lugar a `bg-surface` + borda, com o item ativo em `text-accent-on-soft`/`bg-accent-soft`.
+- **Botões primários sólidos** (`bg-accent hover:bg-accent-hover text-accent-on`), sem gradiente; foco em `ring-accent`/`ring-offset-surface`. Cards passam a `border border-line` em vez da borda superior azul de 4px; linhas de tabela com hover `bg-accent-soft`; rótulos mobile (`data-label`) sem `uppercase`; spinners em `border-accent`.
+- **`BalanceChart` ciente do tema**: lê os tokens via `getComputedStyle` (com fallback para jsdom) e recalcula ao alternar claro/escuro; barras Itens=acento e Pagamentos=verde.
+- **Toast** escurecido para `bg-green-700`/`bg-red-700` (contraste AA com texto branco).
+- **Ajustes de tom para AA**: Boleto claro `#9C5306` (era `#B5650A`, 3,68:1), vermelho escuro `#FF7B7B` (era `#FF5555`, 3,83:1), roxo escuro `#C4A2FB` (era `#BD93F9`, 4,41:1) e novo token `--accent-on-soft` para texto de acento sobre fundos soft/base.
+
+### Removed
+- Paleta `primary` e os `backgroundImage.brand-gradient`/`brand-gradient-soft` do `tailwind.config.js`, além das variáveis `--brand-gradient*` do `index.css`.
+- Classes de paleta crua e variantes `dark:` de cor em `frontend/src` (os tokens já resolvem por modo).
+
+### Tests
+- Novos `frontend/tests/badgeStyles.test.jsx` (mapas completos, fallbacks e ausência de paleta crua/hex) e `frontend/tests/BalanceChart.test.jsx` (cores por token e tema persistido).
+- Asserções ancoradas em classe atualizadas em `MobileDrawer`, `OrdersPayments`, `OrdersPage`, `PeoplePage`, `SalesPage` e `DashboardPage` (agora renderizado sob `ThemeProvider`).
+- **631 backend + 761 frontend tests passing**; `npm run lint` sem erros (5 warnings preexistentes), `cd frontend && npm run build` limpo, `npm run format:check` limpo e `node frontend/scripts/contrast-check.mjs` com 30/30 pares AA.
+
 ## Phase 87 — Tipos de pagamento do pedido e tooltip de itens no número do pedido (2026-09-12)
 
 ### Changed

@@ -64,6 +64,26 @@ The ~400-line threshold is a mandatory review trigger, not an absolute rule: fil
 | Utils (`{nome}Helpers.js`) | Pure functions for one domain. Split by domain when unrelated concepts accumulate. |
 | Shared component | Lives in `src/components/` only if genuinely reusable (`ActionMenu`, `Modal`, `ConfirmDialog`, `Toast`); page-only widgets stay in the page folder. `Modal` is the single wrapper for every dialog (see `AGENTS.md` High-Value Pitfalls): it owns the `z-[60]` backdrop, backdrop click + Escape, and the polite close (`isDirty` → discard `ConfirmDialog`). Form modals pass children as a render prop `(requestClose) => ...` and compute `isDirty` with the shared `src/hooks/useDirtyForm.js` against a snapshot the domain hook owns. |
 
+### Design tokens and theming
+
+The palette is **not** raw Tailwind colors. Every surface, border, text tier and accent comes from semantic CSS variables declared in `src/index.css` (`:root` = light, `.dark` = dark) and exposed in `tailwind.config.js`:
+
+| Group | Utilities |
+|---|---|
+| Surfaces | `bg-base` (page), `bg-surface` (cards/modals/inputs/menus), `bg-elevated` (raised secondary) |
+| Borders | `border-line`, `divide-line` |
+| Text | `text-ink`, `text-ink-soft`, `text-ink-faint` |
+| Accent (pink) | `bg-accent`, `hover:bg-accent-hover`, `bg-accent-soft`, `text-accent`, `text-accent-on`, `text-accent-on-soft`, `focus:ring-accent`, `focus:border-accent` |
+| Support / status | `success`, `warning`, `info`, `mystic`, `danger` as `bg-{name}-soft` + `text-{name}-fg`; payment badges via `bg-badge-{boleto\|infinitepay\|pix}-bg` + `text-badge-...-fg` |
+
+Rules:
+
+1. **Pink is signal, not wallpaper.** `accent` is only for primary buttons, links, the active nav item, focus rings and selected/progress indicators — never for large fills or the whole navbar.
+2. **Badges/status use the support palette**, mapped centrally in `src/utils/badgeStyles.js`; import from there instead of writing color classes in components.
+3. **No raw palette or hex for theme/status colors.** `gray-*`, `blue-*`, `primary-*`, `emerald-*`… must not appear in `src/`; tokens already resolve per mode, so tokenized elements need no `dark:` variants.
+4. **Table row hover/active uses `bg-accent-soft`**; card separation uses `border border-line` + a light shadow.
+5. Changing a token value requires re-running `node scripts/contrast-check.mjs` (WCAG AA ≥ 4.5:1) from `frontend/`.
+
 ## 4. Rules for any request
 
 Apply to every new feature, improvement, or maintenance task:
