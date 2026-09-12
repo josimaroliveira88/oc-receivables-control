@@ -51,6 +51,27 @@ describe('Header', () => {
     expect(salesLink).toHaveAttribute('href', '/sales');
   });
 
+  it('should render navigation items with Dashboard last', () => {
+    renderHeader();
+    const labels = screen
+      .getAllByRole('link')
+      .map((link) => link.textContent.trim());
+    expect(labels).toEqual([
+      'Clientes',
+      'Pedidos dōTERRA',
+      'Vendas',
+      'Produtos',
+      'Estoque',
+      'Dashboard',
+    ]);
+  });
+
+  it('should link Dashboard to /dashboard', () => {
+    renderHeader();
+    const dashboardLink = screen.getByRole('link', { name: /Dashboard/ });
+    expect(dashboardLink).toHaveAttribute('href', '/dashboard');
+  });
+
   it('should render Sair button', () => {
     renderHeader();
     expect(screen.getByText('Sair')).toBeInTheDocument();

@@ -81,6 +81,31 @@ describe('MobileDrawer', () => {
     expect(salesLink).toHaveTextContent('Vendas');
   });
 
+  it('should list navigation items with Dashboard last', () => {
+    renderDrawer();
+    fireEvent.click(screen.getByLabelText('Abrir menu'));
+    const labels = screen
+      .getAllByRole('link')
+      .map((link) => link.textContent.trim());
+    expect(labels).toEqual([
+      'Clientes',
+      'Pedidos dōTERRA',
+      'Vendas',
+      'Produtos',
+      'Estoque',
+      'Dashboard',
+    ]);
+  });
+
+  it('should link Dashboard to /dashboard', () => {
+    renderDrawer();
+    fireEvent.click(screen.getByLabelText('Abrir menu'));
+    const dashboardLink = screen
+      .getAllByRole('link')
+      .find((link) => link.getAttribute('href') === '/dashboard');
+    expect(dashboardLink).toHaveTextContent('Dashboard');
+  });
+
   it('should close the drawer when a nav link is clicked', () => {
     renderDrawer();
     fireEvent.click(screen.getByLabelText('Abrir menu'));
