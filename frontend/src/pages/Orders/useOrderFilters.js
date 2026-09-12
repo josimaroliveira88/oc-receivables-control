@@ -6,7 +6,6 @@ import { useState, useCallback } from 'react';
 export function useOrderFilters() {
   const [search, setSearch] = useState('');
   const [searchField, setSearchField] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('');
   const [paymentTypeFilter, setPaymentTypeFilter] = useState('');
   const [sortBy, setSortBy] = useState('');
   const [sortDir, setSortDir] = useState('asc');
@@ -19,14 +18,13 @@ export function useOrderFilters() {
     if (searchField !== 'all') {
       params.searchField = searchField;
     }
-    if (statusFilter) params.status = statusFilter;
     if (paymentTypeFilter) params.paymentType = paymentTypeFilter;
     if (sortBy) {
       params.sortBy = sortBy;
       params.sortDir = sortDir;
     }
     return params;
-  }, [search, searchField, statusFilter, paymentTypeFilter, sortBy, sortDir]);
+  }, [search, searchField, paymentTypeFilter, sortBy, sortDir]);
 
   const handleSort = (field, dir) => {
     setSortBy(field);
@@ -36,20 +34,17 @@ export function useOrderFilters() {
   const hasActiveFilters =
     search.trim() !== '' ||
     searchField !== 'all' ||
-    statusFilter !== '' ||
     paymentTypeFilter !== '' ||
     sortBy !== '';
 
   return {
     search,
     searchField,
-    statusFilter,
     paymentTypeFilter,
     sortBy,
     sortDir,
     setSearch,
     setSearchField,
-    setStatusFilter,
     setPaymentTypeFilter,
     buildOrderParams,
     handleSort,

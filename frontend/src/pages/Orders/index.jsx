@@ -22,14 +22,12 @@ const OrdersPage = () => {
     refreshOrders,
     search,
     searchField,
-    statusFilter,
     paymentTypeFilter,
     sortBy,
     sortDir,
     hasActiveFilters,
     setSearch,
     setSearchField,
-    setStatusFilter,
     setPaymentTypeFilter,
     handleSearchSubmit,
     handleSort,
@@ -175,14 +173,12 @@ const OrdersPage = () => {
             orders={orders}
             search={search}
             searchField={searchField}
-            statusFilter={statusFilter}
             paymentTypeFilter={paymentTypeFilter}
             sortBy={sortBy}
             sortDir={sortDir}
             hasActiveFilters={hasActiveFilters}
             onSearchChange={setSearch}
             onSearchFieldChange={setSearchField}
-            onStatusFilterChange={setStatusFilter}
             onPaymentTypeFilterChange={setPaymentTypeFilter}
             onSearchSubmit={handleSearchSubmit}
             onSort={handleSort}

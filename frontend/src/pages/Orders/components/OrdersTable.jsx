@@ -11,11 +11,10 @@ import { formatBRL } from '../../../utils/money';
 import { formatDateBR } from '../../../utils/dates';
 import { trackingUrl } from '../utils/orderHelpers';
 import {
-  getOrderFinancials,
   getPaymentActionLabel,
   shouldShowPaymentAction,
 } from '../utils/receivablesHelpers';
-import { StatusBadge, PaymentTypeBadge } from './Badges';
+import { PaymentTypeBadge } from './Badges';
 import ActionMenu from '../../../components/ActionMenu';
 import SortableHeader from '../../../components/SortableHeader';
 import OrdersTableToolbar from './OrdersTableToolbar';
@@ -24,14 +23,12 @@ const OrdersTable = ({
   orders,
   search,
   searchField,
-  statusFilter,
   paymentTypeFilter,
   sortBy,
   sortDir,
   hasActiveFilters,
   onSearchChange,
   onSearchFieldChange,
-  onStatusFilterChange,
   onPaymentTypeFilterChange,
   onSearchSubmit,
   onSort,
@@ -46,11 +43,9 @@ const OrdersTable = ({
       <OrdersTableToolbar
         search={search}
         searchField={searchField}
-        statusFilter={statusFilter}
         paymentTypeFilter={paymentTypeFilter}
         onSearchChange={onSearchChange}
         onSearchFieldChange={onSearchFieldChange}
-        onStatusFilterChange={onStatusFilterChange}
         onPaymentTypeFilterChange={onPaymentTypeFilterChange}
         onSearchSubmit={onSearchSubmit}
       />
@@ -74,7 +69,7 @@ const OrdersTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[9%]"
+                  width="w-[10%]"
                   align="right"
                   testIdPrefix="orders"
                 />
@@ -84,7 +79,7 @@ const OrdersTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[7%]"
+                  width="w-[8%]"
                 />
                 <SortableHeader
                   label="Conta ID"
@@ -92,51 +87,35 @@ const OrdersTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[9%]"
+                  width="w-[10%]"
                 />
                 <th
                   scope="col"
-                  className="w-[8%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  className="w-[9%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                 >
                   Pagamento
                 </th>
                 <th
                   scope="col"
-                  className="w-[7%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  className="w-[8%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                 >
                   PV doTERRA
                 </th>
                 <th
                   scope="col"
-                  className="w-[7%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  className="w-[9%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                 >
                   Valor (R$)
                 </th>
-                <SortableHeader
-                  label="Valor Pendente"
-                  field="pendingValue"
-                  sortBy={sortBy}
-                  sortDir={sortDir}
-                  onSort={onSort}
-                  width="w-[8%]"
-                />
                 <th
                   scope="col"
-                  className="w-[18%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  className="w-[26%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                 >
                   Descrição
                 </th>
-                <SortableHeader
-                  label="Status"
-                  field="status"
-                  sortBy={sortBy}
-                  sortDir={sortDir}
-                  onSort={onSort}
-                  width="w-[5%]"
-                />
                 <th
                   scope="col"
-                  className="w-[14%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                  className="w-[20%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
                 >
                   Ações
                 </th>
@@ -144,7 +123,6 @@ const OrdersTable = ({
             </thead>
             <tbody className="block lg:table-row-group bg-white dark:bg-gray-800 lg:divide-y divide-gray-200 dark:divide-gray-700">
               {orders.map((order) => {
-                const { pendingCents } = getOrderFinancials(order);
                 const showPaymentAction = shouldShowPaymentAction(order);
                 const paymentActionLabel = getPaymentActionLabel(order);
                 return (
@@ -202,12 +180,6 @@ const OrdersTable = ({
                       {formatBRL(parseFloat(order.totalValue))}
                     </td>
                     <td
-                      data-label="Valor Pendente"
-                      className={`block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm ${pendingCents === 0 ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-gray-100'} before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden`}
-                    >
-                      {order.isTeamOrder ? '—' : formatBRL(pendingCents / 100)}
-                    </td>
-                    <td
                       data-label="Descrição"
                       className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
                     >
@@ -223,12 +195,6 @@ const OrdersTable = ({
                           —
                         </span>
                       )}
-                    </td>
-                    <td
-                      data-label="Status"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
-                    >
-                      <StatusBadge status={order.status} />
                     </td>
                     <td
                       data-label="Ações"

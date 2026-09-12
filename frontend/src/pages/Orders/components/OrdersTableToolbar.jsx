@@ -2,7 +2,6 @@ import React from 'react';
 import { Search } from 'lucide-react';
 import {
   SEARCH_FIELD_OPTIONS,
-  STATUS_FILTER_OPTIONS,
   PAYMENT_TYPE_FILTER_OPTIONS,
 } from '../utils/orderHelpers';
 
@@ -12,11 +11,9 @@ const selectClass =
 const OrdersTableToolbar = ({
   search,
   searchField,
-  statusFilter,
   paymentTypeFilter,
   onSearchChange,
   onSearchFieldChange,
-  onStatusFilterChange,
   onPaymentTypeFilterChange,
   onSearchSubmit,
 }) => {
@@ -64,21 +61,6 @@ const OrdersTableToolbar = ({
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          <span className="sr-only">Status</span>
-          <select
-            value={statusFilter}
-            onChange={(e) => onStatusFilterChange(e.target.value)}
-            className={selectClass}
-            aria-label="Status"
-          >
-            {STATUS_FILTER_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           <span className="sr-only">Tipo de pagamento</span>
           <select

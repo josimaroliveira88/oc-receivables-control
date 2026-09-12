@@ -20,13 +20,11 @@ export function useOrders() {
   const {
     search,
     searchField,
-    statusFilter,
     paymentTypeFilter,
     sortBy,
     sortDir,
     setSearch,
     setSearchField,
-    setStatusFilter,
     setPaymentTypeFilter,
     buildOrderParams,
     handleSort,
@@ -570,7 +568,7 @@ export function useOrders() {
   // clicks the search button (handleSearchSubmit).
   useEffect(() => {
     fetchOrdersRef.current();
-  }, [searchField, statusFilter, paymentTypeFilter, sortBy, sortDir]);
+  }, [searchField, paymentTypeFilter, sortBy, sortDir]);
 
   // Support deep-linking from the Stock history ("Ver pedido") via ?editOrder=.
   // Opens the edit modal for the referenced order once data is loaded.
@@ -593,14 +591,12 @@ export function useOrders() {
     refreshOrders,
     search,
     searchField,
-    statusFilter,
     paymentTypeFilter,
     sortBy,
     sortDir,
     hasActiveFilters,
     setSearch,
     setSearchField,
-    setStatusFilter,
     setPaymentTypeFilter,
     handleSearchSubmit,
     handleSort,
