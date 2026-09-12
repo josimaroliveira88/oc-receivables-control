@@ -91,31 +91,31 @@ const OrdersTable = ({
                 />
                 <th
                   scope="col"
-                  className="w-[9%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  className="w-[9%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
                 >
                   Pagamento
                 </th>
                 <th
                   scope="col"
-                  className="w-[8%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  className="w-[8%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
                 >
                   PV doTERRA
                 </th>
                 <th
                   scope="col"
-                  className="w-[9%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  className="w-[9%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
                 >
                   Valor (R$)
                 </th>
                 <th
                   scope="col"
-                  className="w-[26%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  className="w-[32%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
                 >
                   Descrição
                 </th>
                 <th
                   scope="col"
-                  className="w-[20%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                  className="w-[14%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300"
                 >
                   Ações
                 </th>

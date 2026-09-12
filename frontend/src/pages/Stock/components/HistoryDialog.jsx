@@ -107,31 +107,31 @@ const HistoryDialog = ({
                   <tr>
                     <th
                       scope="col"
-                      className="w-[20%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                      className="w-[20%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
                     >
                       Data Efetiva
                     </th>
                     <th
                       scope="col"
-                      className="w-[25%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                      className="w-[25%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
                     >
                       Data de Registro
                     </th>
                     <th
                       scope="col"
-                      className="w-[15%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                      className="w-[15%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
                     >
                       Tipo
                     </th>
                     <th
                       scope="col"
-                      className="w-[15%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                      className="w-[15%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
                     >
                       Quantidade
                     </th>
                     <th
                       scope="col"
-                      className="w-[25%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                      className="w-[25%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
                     >
                       Motivo
                     </th>

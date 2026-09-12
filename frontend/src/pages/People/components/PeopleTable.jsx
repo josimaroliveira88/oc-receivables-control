@@ -92,13 +92,13 @@ const PeopleTable = ({
                 />
                 <th
                   scope="col"
-                  className="w-[7%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  className="w-[7%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
                 >
                   WhatsApp
                 </th>
                 <th
                   scope="col"
-                  className="w-[7%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  className="w-[7%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
                 >
                   Instagram
                 </th>

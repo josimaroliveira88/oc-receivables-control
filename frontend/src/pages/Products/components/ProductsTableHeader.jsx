@@ -14,7 +14,7 @@ const ProductsTableHeader = ({ sortBy, sortDir, onSort }) => (
     />
     <th
       scope="col"
-      className="w-[4%] px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+      className="w-[4%] px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
     >
       Site
     </th>
@@ -88,13 +88,13 @@ const ProductsTableHeader = ({ sortBy, sortDir, onSort }) => (
     />
     <th
       scope="col"
-      className="w-[12%] px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+      className="w-[12%] px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
     >
       Status
     </th>
     <th
       scope="col"
-      className="w-[10%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+      className="w-[10%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
     >
       Ações
     </th>

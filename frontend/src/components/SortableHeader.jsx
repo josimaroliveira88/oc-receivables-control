@@ -29,7 +29,7 @@ const SortableHeader = ({
     <th
       scope="col"
       aria-sort={ariaSort}
-      className={`${width || ''} px-6 py-3 ${alignClass} text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider`}
+      className={`${width || ''} px-6 py-3 ${alignClass} text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider`}
     >
       <button
         type="button"
