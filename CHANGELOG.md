@@ -9,6 +9,15 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 86 — Cabeçalhos de coluna em caixa mista e rebalanceamento das larguras em Pedidos dōTERRA (2026-09-12)
+
+### Changed
+- **Cabeçalhos de todas as tabelas padronizados em caixa mista** (primeira letra maiúscula, ex.: "Pagamento", "PV doTERRA", "Valor (R$)", "Descrição", "Ações"): a classe `uppercase` foi removida do `SortableHeader` (`frontend/src/components/SortableHeader.jsx`), o que afeta toda coluna ordenável, e dos `<th>` estáticos de `OrdersTable.jsx`, `PeopleTable.jsx` (WhatsApp/Instagram), `SalesTable.jsx` (Recebido/Ações), `ProductsTableHeader.jsx` (Site/Status/Ações), `StockTable.jsx` (Ações) e `HistoryDialog.jsx` (Data Efetiva, Data de Registro, Tipo, Quantidade, Motivo). Os rótulos mobile (`data-label`) e o texto dos cabeçalhos não mudaram.
+- **Larguras em Pedidos dōTERRA**: a coluna "Descrição" passou de `w-[26%]` para `w-[32%]` e "Ações" de `w-[20%]` para `w-[14%]` (`frontend/src/pages/Orders/components/OrdersTable.jsx`), ampliando o texto visível da descrição e reduzindo o espaço do menu de ações.
+
+### Tests
+- Frontend: novos testes de capitalização dos cabeçalhos em `SearchSortComponents.test.jsx` (classe sem `uppercase` no `SortableHeader`) e em `OrdersPage.test.jsx`, `SalesPage.test.jsx`, `ProductsPage.test.jsx` e `StockPage.test.jsx` (tabelas e histórico), além de um teste das larguras de Descrição/Ações em `OrdersPage.test.jsx`. **631 backend + 742 frontend tests passing**; lint sem erros (5 warnings preexistentes), `prettier --check` limpo nos arquivos alterados e `cd frontend && npm run build` limpo.
+
 ## Phase 85 — Remoção das colunas Status/Valor Pendente e do filtro de status em Pedidos dōTERRA (2026-09-12)
 
 ### Changed
