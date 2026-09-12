@@ -593,19 +593,18 @@ describe('OrdersPage', () => {
     it('should display tracking links for each order', async () => {
       renderPage();
       await waitFor(() => {
-        const links = screen.getAllByTitle('Ver pedido no site');
-        expect(links).toHaveLength(2);
-        expect(links[0]).toHaveTextContent('ORD-001');
-        expect(links[1]).toHaveTextContent('ORD-002');
-        expect(links[0]).toHaveAttribute(
-          'href',
-          'https://status.ondeestameupedido.com/tracking/22747/ORD-001/',
-        );
-        expect(links[1]).toHaveAttribute(
-          'href',
-          'https://status.ondeestameupedido.com/tracking/22747/ORD-002/',
-        );
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
+      const firstLink = screen.getByText('ORD-001').closest('a');
+      const secondLink = screen.getByText('ORD-002').closest('a');
+      expect(firstLink).toHaveAttribute(
+        'href',
+        'https://status.ondeestameupedido.com/tracking/22747/ORD-001/',
+      );
+      expect(secondLink).toHaveAttribute(
+        'href',
+        'https://status.ondeestameupedido.com/tracking/22747/ORD-002/',
+      );
     });
 
     it('should not render a separate tracking column', async () => {
@@ -615,6 +614,130 @@ describe('OrdersPage', () => {
           screen.queryByRole('columnheader', { name: 'Rastreio' }),
         ).not.toBeInTheDocument();
       });
+    });
+
+    it('should render "Crédito" on the payment type badge', async () => {
+      const order = { ...mockOrders[0], paymentType: 'CARTAO_CREDITO' };
+      mockGetImplementation([order]);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('Crédito')).toBeInTheDocument();
+      });
+      expect(screen.queryByText('Cartão de Crédito')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Order number tooltip', () => {
+    const baseOrder = {
+      id: '1',
+      orderNumber: 'ORD-TOOLTIP',
+      orderDate: '2026-05-15T00:00:00.000Z',
+      totalValue: '300.00',
+      status: 'PENDENTE',
+      accountOwner: null,
+      paymentType: null,
+      orderNotes: null,
+      doterraPv: null,
+      doterraValue: null,
+      attachmentFilename: null,
+      isTeamOrder: false,
+      items: [
+        {
+          id: 'i1',
+          description: null,
+          chargedValue: '100.00',
+          quantity: 1,
+          chargedValueMode: 'UNIT',
+          product: { name: 'Adaptiv Pastilhas' },
+        },
+        {
+          id: 'i2',
+          description: null,
+          chargedValue: '200.00',
+          quantity: 1,
+          chargedValueMode: 'UNIT',
+          product: { name: 'Óleo de Lavanda' },
+        },
+      ],
+    };
+
+    const numberLink = () => screen.getByText('ORD-TOOLTIP').closest('a');
+
+    const renderWithOrder = async (order) => {
+      mockGetImplementation([order]);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('ORD-TOOLTIP')).toBeInTheDocument();
+      });
+    };
+
+    it('should show per-item "Paguei R$" tooltip on the order number for a non-team order', async () => {
+      await renderWithOrder(baseOrder);
+      expect(numberLink()).toHaveAttribute(
+        'title',
+        'Adaptiv Pastilhas (Paguei R$\u00a0100,00) / Óleo de Lavanda (Paguei R$\u00a0200,00)',
+      );
+    });
+
+    it('should produce a single-item tooltip with no trailing separator', async () => {
+      await renderWithOrder({
+        ...baseOrder,
+        items: [baseOrder.items[1]],
+      });
+      expect(numberLink()).toHaveAttribute(
+        'title',
+        'Óleo de Lavanda (Paguei R$\u00a0200,00)',
+      );
+    });
+
+    it('should multiply the unit value by the quantity in the tooltip', async () => {
+      await renderWithOrder({
+        ...baseOrder,
+        items: [{ ...baseOrder.items[0], chargedValue: '50.00', quantity: 3 }],
+      });
+      expect(numberLink()).toHaveAttribute(
+        'title',
+        'Adaptiv Pastilhas (Paguei R$\u00a0150,00)',
+      );
+    });
+
+    it('should group by unique product with "Pago R$" for a team order', async () => {
+      await renderWithOrder({
+        ...baseOrder,
+        isTeamOrder: true,
+        items: [
+          {
+            ...baseOrder.items[0],
+            product: { name: 'Menta Verde' },
+            chargedValue: '100.00',
+          },
+          {
+            ...baseOrder.items[1],
+            product: { name: 'Menta Verde' },
+            chargedValue: '200.00',
+          },
+        ],
+      });
+      expect(numberLink()).toHaveAttribute(
+        'title',
+        'Menta Verde (Pago R$\u00a0300,00)',
+      );
+    });
+
+    it('should keep distinct products separate in a team order tooltip', async () => {
+      await renderWithOrder({
+        ...baseOrder,
+        isTeamOrder: true,
+      });
+      expect(numberLink()).toHaveAttribute(
+        'title',
+        'Adaptiv Pastilhas (Pago R$\u00a0100,00) / Óleo de Lavanda (Pago R$\u00a0200,00)',
+      );
+    });
+
+    it('should render an empty tooltip when the order has no items', async () => {
+      await renderWithOrder({ ...baseOrder, items: [] });
+      expect(numberLink()).toHaveAttribute('title', '');
     });
   });
 
@@ -855,7 +978,7 @@ describe('OrdersPage', () => {
       });
     });
 
-    it('should display "Tipo de Pagamento" dropdown with all options', async () => {
+    it('should display "Tipo de Pagamento" dropdown with PIX, Boleto and Crédito', async () => {
       renderPage();
 
       await waitFor(() => {
@@ -872,11 +995,14 @@ describe('OrdersPage', () => {
           screen.getByRole('option', { name: 'Boleto' }),
         ).toBeInTheDocument();
         expect(
-          screen.getByRole('option', { name: 'Cartão de Crédito' }),
+          screen.getByRole('option', { name: 'Crédito' }),
         ).toBeInTheDocument();
         expect(
-          screen.getByRole('option', { name: 'InfinitePay' }),
-        ).toBeInTheDocument();
+          screen.queryByRole('option', { name: 'Cartão de Crédito' }),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.queryByRole('option', { name: 'InfinitePay' }),
+        ).not.toBeInTheDocument();
       });
     });
 

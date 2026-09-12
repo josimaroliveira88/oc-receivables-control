@@ -2016,7 +2016,7 @@ describe('Payment type on order payments', () => {
     const modal = within(screen.getByTestId('details-modal'));
     fireEvent.click(modal.getByTestId('detail-person-p1'));
     expect(modal.getByTestId('payment-badge-pt-pay-1')).toHaveTextContent(
-      'Cartão de Crédito',
+      'Crédito',
     );
   });
 
