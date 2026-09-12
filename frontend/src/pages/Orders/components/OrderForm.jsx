@@ -174,8 +174,7 @@ const OrderForm = ({
           <option value="">Selecione...</option>
           <option value="PIX">PIX</option>
           <option value="BOLETO">Boleto</option>
-          <option value="CARTAO_CREDITO">Cartão de Crédito</option>
-          <option value="INFINITE_PAY">InfinitePay</option>
+          <option value="CARTAO_CREDITO">Crédito</option>
         </select>
       </div>
 

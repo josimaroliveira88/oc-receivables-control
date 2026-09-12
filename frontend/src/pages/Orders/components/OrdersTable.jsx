@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { formatBRL } from '../../../utils/money';
 import { formatDateBR } from '../../../utils/dates';
-import { trackingUrl } from '../utils/orderHelpers';
+import { getOrderNumberTooltip, trackingUrl } from '../utils/orderHelpers';
 import {
   getPaymentActionLabel,
   shouldShowPaymentAction,
@@ -145,7 +145,7 @@ const OrdersTable = ({
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 whitespace-nowrap text-sm text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 transition-colors lg:w-full lg:justify-end"
-                        title="Ver pedido no site"
+                        title={getOrderNumberTooltip(order)}
                       >
                         <span className="min-w-[10ch] text-right">
                           {order.orderNumber}

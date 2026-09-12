@@ -49,10 +49,38 @@ export const paymentTypeLabel = (type) => {
   const map = {
     PIX: 'PIX',
     BOLETO: 'Boleto',
-    CARTAO_CREDITO: 'Cartão de Crédito',
+    CARTAO_CREDITO: 'Crédito',
     INFINITE_PAY: 'InfinitePay',
   };
   return map[type] || type;
+};
+
+// Hover text for the order-number cell. Non-team orders list one entry per
+// item with its line total, e.g. "Produto A (Paguei R$ 100,00) / Produto B
+// (Paguei R$ 200,00)". Team orders group items by unique product and use
+// "Pago" instead of "Paguei". Products are separated by " / ", never trailing.
+export const getOrderNumberTooltip = (order) => {
+  if (!order) return '';
+  const items = order.items || [];
+  const nameOf = (item) => item.product?.name || item.description || '—';
+
+  if (order.isTeamOrder) {
+    const totals = new Map();
+    items.forEach((item) => {
+      const name = nameOf(item);
+      totals.set(name, (totals.get(name) || 0) + lineValueCents(item));
+    });
+    return Array.from(totals.entries())
+      .map(([name, cents]) => `${name} (Pago ${formatBRL(fromCents(cents))})`)
+      .join(' / ');
+  }
+
+  return items
+    .map(
+      (item) =>
+        `${nameOf(item)} (Paguei ${formatBRL(fromCents(lineValueCents(item)))})`,
+    )
+    .join(' / ');
 };
 
 // Options for the column selector next to the orders search input.
