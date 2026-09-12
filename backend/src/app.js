@@ -33,16 +33,16 @@ app.use(
 );
 app.use(express.json());
 
-
 // Swagger UI e spec bruta — públicas (o JWT entra pelo botão "Authorize" da UI)
-app.use('/api/docs',
+app.use(
+  '/api/docs',
   swaggerUi.serve,
   swaggerUi.setup(swaggerSpec, {
     customSiteTitle: 'Receivables Control API',
     swaggerOptions: {
       persistAuthorization: true,
     },
-  })
+  }),
 );
 app.get('/api/docs.json', (req, res) => res.json(swaggerSpec));
 
@@ -97,6 +97,5 @@ app.use((error, req, res, _next) => {
   const message = error.message || 'Internal Server Error';
   res.status(status).json({ error: message });
 });
-
 
 export default app;
