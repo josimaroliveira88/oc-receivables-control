@@ -400,13 +400,13 @@ describe('OrdersPage', () => {
       });
     });
 
-    it('should display PV doTERRA per order', async () => {
+    it('should display PV per order', async () => {
       renderPage();
       await waitFor(() => {
         expect(screen.getByText('45.00')).toBeInTheDocument();
       });
       const row = screen.getByText('ORD-002').closest('tr');
-      const pvCell = row.querySelector('td[data-label="PV doTERRA"]');
+      const pvCell = row.querySelector('td[data-label="PV"]');
       expect(pvCell).toHaveTextContent('—');
     });
 
@@ -420,7 +420,7 @@ describe('OrdersPage', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('should display "Conta ID", "Pagamento" and "PV doTERRA" column headers', async () => {
+    it('should display "Conta ID", "Pagamento" and "PV" column headers', async () => {
       renderPage();
       await waitFor(() => {
         expect(
@@ -430,7 +430,7 @@ describe('OrdersPage', () => {
           screen.getByRole('columnheader', { name: 'Pagamento' }),
         ).toBeInTheDocument();
         expect(
-          screen.getByRole('columnheader', { name: 'PV doTERRA' }),
+          screen.getByRole('columnheader', { name: 'PV' }),
         ).toBeInTheDocument();
         expect(
           screen.queryByRole('columnheader', { name: 'Valor doTERRA' }),
@@ -449,8 +449,8 @@ describe('OrdersPage', () => {
         'Data',
         'Conta ID',
         'Pagamento',
-        'PV doTERRA',
-        'Valor (R$)',
+        'PV',
+        'Valor',
         'Descrição',
         'Ações',
       ].forEach((name) => {
@@ -2956,7 +2956,7 @@ describe('OrdersPage', () => {
       });
     });
 
-    it('should refetch immediately when the payment type filter changes', async () => {
+    it('should not render the payment type filter', async () => {
       mockGetImplementation(mockOrders);
       renderPage();
 
@@ -2964,19 +2964,42 @@ describe('OrdersPage', () => {
         expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
 
-      fireEvent.change(screen.getByLabelText('Tipo de pagamento'), {
-        target: { value: 'PIX' },
-      });
-
-      await waitFor(() => {
-        const lastOrderCall = mockGet.mock.calls
-          .filter(([url]) => url === '/orders')
-          .at(-1);
-        expect(lastOrderCall[1].params.paymentType).toBe('PIX');
-      });
+      expect(
+        screen.queryByLabelText('Tipo de pagamento'),
+      ).not.toBeInTheDocument();
     });
 
-    it('should combine an active filter with a sort in a single request', async () => {
+    it.each([
+      ['paymentType', 'Pagamento'],
+      ['doterraPv', 'PV'],
+      ['totalValue', 'Valor'],
+    ])(
+      'should sort ascending by %s when the "%s" header is clicked',
+      async (field, label) => {
+        mockGetImplementation(mockOrders);
+        renderPage();
+
+        await waitFor(() => {
+          expect(screen.getByText('ORD-001')).toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByTestId(`orders-sort-${field}`));
+
+        await waitFor(() => {
+          const last = mockGet.mock.calls
+            .filter(([url]) => url === '/orders')
+            .at(-1);
+          expect(last[1].params.sortBy).toBe(field);
+          expect(last[1].params.sortDir).toBe('asc');
+        });
+
+        expect(
+          screen.getByRole('columnheader', { name: label }),
+        ).toBeInTheDocument();
+      },
+    );
+
+    it('should combine an active search with a sort in a single request', async () => {
       mockGetImplementation(mockOrders);
       renderPage();
 
@@ -2984,12 +3007,14 @@ describe('OrdersPage', () => {
         expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
 
-      fireEvent.change(screen.getByLabelText('Tipo de pagamento'), {
-        target: { value: 'PIX' },
+      fireEvent.change(screen.getByLabelText('Buscar pedidos'), {
+        target: { value: 'ORD' },
       });
+      fireEvent.submit(screen.getByLabelText('Filtros de pedidos'));
+
       await waitFor(() => {
         const calls = mockGet.mock.calls.filter(([url]) => url === '/orders');
-        expect(calls.at(-1)[1].params.paymentType).toBe('PIX');
+        expect(calls.at(-1)[1].params.q).toBe('ORD');
       });
 
       fireEvent.click(screen.getByTestId('orders-sort-orderNumber'));
@@ -2997,7 +3022,7 @@ describe('OrdersPage', () => {
       await waitFor(() => {
         const calls = mockGet.mock.calls.filter(([url]) => url === '/orders');
         const last = calls.at(-1);
-        expect(last[1].params.paymentType).toBe('PIX');
+        expect(last[1].params.q).toBe('ORD');
         expect(last[1].params.sortBy).toBe('orderNumber');
         expect(last[1].params.sortDir).toBe('asc');
       });

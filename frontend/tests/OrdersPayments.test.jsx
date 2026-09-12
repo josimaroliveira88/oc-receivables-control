@@ -827,7 +827,7 @@ describe('OrdersPayments', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('should render PV doTERRA from the order field', async () => {
+    it('should render PV from the order field', async () => {
       mockGetImplementation([mockOrders[0]]);
       renderPage();
 
@@ -838,7 +838,7 @@ describe('OrdersPayments', () => {
       expect(within(rowFor('ORD-001')).getByText('15.50')).toBeInTheDocument();
     });
 
-    it('should render a dash when PV doTERRA is absent', async () => {
+    it('should render a dash when PV is absent', async () => {
       mockGetImplementation([mockOrders[1]]);
       renderPage();
 
@@ -847,7 +847,7 @@ describe('OrdersPayments', () => {
       });
 
       const row = rowFor('ORD-002');
-      const pvCell = row.querySelector('td[data-label="PV doTERRA"]');
+      const pvCell = row.querySelector('td[data-label="PV"]');
       expect(pvCell).toHaveTextContent('—');
     });
 
