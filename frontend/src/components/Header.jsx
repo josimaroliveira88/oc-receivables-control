@@ -1,28 +1,8 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import {
-  LayoutDashboard,
-  Users,
-  ClipboardList,
-  ShoppingCart,
-  Package,
-  Boxes,
-  LogOut,
-  Sun,
-  Moon,
-  User,
-  HelpCircle,
-} from 'lucide-react';
-
-const navLinks = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/people', icon: Users, label: 'Clientes' },
-  { to: '/orders', icon: ClipboardList, label: 'Pedidos dōTERRA' },
-  { to: '/sales', icon: ShoppingCart, label: 'Vendas' },
-  { to: '/products', icon: Package, label: 'Produtos' },
-  { to: '/stock', icon: Boxes, label: 'Estoque' },
-];
+import { LogOut, Sun, Moon, User, HelpCircle } from 'lucide-react';
+import { navigationItems } from '../utils/navigation';
 
 const Header = () => {
   const { logout, user } = useAuth();
@@ -33,7 +13,7 @@ const Header = () => {
         <h1 className="text-2xl font-bold text-ink">Controle de Recebíveis</h1>
         <div className="flex items-center space-x-3">
           <nav className="hidden md:flex items-center space-x-2 mr-4">
-            {navLinks.map(({ to, icon: Icon, label }) => (
+            {navigationItems.map(({ to, icon: Icon, label }) => (
               <NavLink
                 key={to}
                 to={to}

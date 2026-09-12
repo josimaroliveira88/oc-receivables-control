@@ -40,7 +40,8 @@ const App = () => {
             </ProtectedRoute>
           }
         >
-          <Route path="/" element={<DashboardPage />} />
+          <Route path="/" element={<Navigate to="/products" replace />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/people" element={<PeoplePage />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/sales" element={<SalesPage />} />

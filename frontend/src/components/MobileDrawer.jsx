@@ -2,30 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import {
-  LayoutDashboard,
-  Users,
-  ClipboardList,
-  ShoppingCart,
-  Package,
-  Boxes,
-  LogOut,
-  Sun,
-  Moon,
-  User,
-  HelpCircle,
-  Menu,
-  X,
-} from 'lucide-react';
-
-const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/people', icon: Users, label: 'Clientes' },
-  { to: '/orders', icon: ClipboardList, label: 'Pedidos dōTERRA' },
-  { to: '/sales', icon: ShoppingCart, label: 'Vendas' },
-  { to: '/products', icon: Package, label: 'Produtos' },
-  { to: '/stock', icon: Boxes, label: 'Estoque' },
-];
+import { LogOut, Sun, Moon, User, HelpCircle, Menu, X } from 'lucide-react';
+import { navigationItems } from '../utils/navigation';
 
 const MobileDrawer = () => {
   const { logout, user } = useAuth();
@@ -108,7 +86,7 @@ const MobileDrawer = () => {
         </div>
 
         <nav className="py-2 flex-1 overflow-y-auto">
-          {navItems.map(({ to, icon: Icon, label }) => (
+          {navigationItems.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}
