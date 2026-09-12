@@ -215,12 +215,13 @@ describe('OrdersPage', () => {
       });
     });
 
-    it('should display status badges', async () => {
+    it('should not display status badges in the table', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('Pendente')).toBeInTheDocument();
-        expect(screen.getByText('Quitado')).toBeInTheDocument();
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
+      expect(screen.queryByText('Pendente')).not.toBeInTheDocument();
+      expect(screen.queryByText('Quitado')).not.toBeInTheDocument();
     });
 
     it('should display an actions kebab trigger for each order', async () => {
@@ -2920,26 +2921,6 @@ describe('OrdersPage', () => {
       });
     });
 
-    it('should refetch immediately when the status filter changes', async () => {
-      mockGetImplementation(mockOrders);
-      renderPage();
-
-      await waitFor(() => {
-        expect(screen.getByText('ORD-001')).toBeInTheDocument();
-      });
-
-      fireEvent.change(screen.getByLabelText('Status'), {
-        target: { value: 'QUITADO' },
-      });
-
-      await waitFor(() => {
-        const lastOrderCall = mockGet.mock.calls
-          .filter(([url]) => url === '/orders')
-          .at(-1);
-        expect(lastOrderCall[1].params.status).toBe('QUITADO');
-      });
-    });
-
     it('should refetch immediately when the payment type filter changes', async () => {
       mockGetImplementation(mockOrders);
       renderPage();
@@ -2968,12 +2949,12 @@ describe('OrdersPage', () => {
         expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
 
-      fireEvent.change(screen.getByLabelText('Status'), {
-        target: { value: 'QUITADO' },
+      fireEvent.change(screen.getByLabelText('Tipo de pagamento'), {
+        target: { value: 'PIX' },
       });
       await waitFor(() => {
         const calls = mockGet.mock.calls.filter(([url]) => url === '/orders');
-        expect(calls.at(-1)[1].params.status).toBe('QUITADO');
+        expect(calls.at(-1)[1].params.paymentType).toBe('PIX');
       });
 
       fireEvent.click(screen.getByTestId('orders-sort-orderNumber'));
@@ -2981,7 +2962,7 @@ describe('OrdersPage', () => {
       await waitFor(() => {
         const calls = mockGet.mock.calls.filter(([url]) => url === '/orders');
         const last = calls.at(-1);
-        expect(last[1].params.status).toBe('QUITADO');
+        expect(last[1].params.paymentType).toBe('PIX');
         expect(last[1].params.sortBy).toBe('orderNumber');
         expect(last[1].params.sortDir).toBe('asc');
       });

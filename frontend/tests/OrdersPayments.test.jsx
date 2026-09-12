@@ -438,31 +438,36 @@ describe('OrdersPayments', () => {
   });
 
   describe('Badge Rendering', () => {
-    it('should render 🔴 Pendente badge for PENDENTE status', async () => {
-      mockGetImplementation([mockOrders[0]]);
+    it('should not render status badges in the table', async () => {
+      mockGetImplementation(mockOrders);
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('Pendente')).toBeInTheDocument();
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
+      expect(screen.queryByText('Pendente')).not.toBeInTheDocument();
+      expect(screen.queryByText(/Parcial/)).not.toBeInTheDocument();
+      expect(screen.queryByText('Quitado')).not.toBeInTheDocument();
     });
+  });
 
-    it('should render ⚠️ Parcial badge for PARCIAL status', async () => {
-      mockGetImplementation([mockOrders[1]]);
+  describe('Pending Value Columns', () => {
+    it('should not render the Valor Pendente column in the table', async () => {
+      mockGetImplementation(mockOrders);
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText(/Parcial/)).toBeInTheDocument();
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
+      expect(
+        document.querySelector('td[data-label="Valor Pendente"]'),
+      ).toBeNull();
+      expect(
+        document.querySelector('th[data-testid="orders-sort-pendingValue"]'),
+      ).toBeNull();
     });
+  });
 
-    it('should render ✅ Quitado badge for QUITADO status', async () => {
-      mockGetImplementation([mockOrders[2]]);
-      renderPage();
-      await waitFor(() => {
-        expect(screen.getByText(/Quitado/)).toBeInTheDocument();
-      });
-    });
-
-    it('should render Equipe badge, "—" pending and no payment action for a team order', async () => {
+  describe('Team Order Display', () => {
+    it('should show no payment action for a team order', async () => {
       const teamOrder = {
         id: 'order-team',
         orderNumber: 'ORD-TEAM',
@@ -478,13 +483,8 @@ describe('OrdersPayments', () => {
       mockGetImplementation([teamOrder]);
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText(/Equipe/)).toBeInTheDocument();
+        expect(screen.getByText('ORD-TEAM')).toBeInTheDocument();
       });
-
-      const pendingCell = document.querySelector(
-        'td[data-label="Valor Pendente"]',
-      );
-      expect(pendingCell).toHaveTextContent('—');
 
       fireEvent.click(screen.getByTestId('order-actions-order-team-trigger'));
       expect(screen.queryByText('Registrar Pagamento')).not.toBeInTheDocument();
@@ -527,9 +527,6 @@ describe('OrdersPayments', () => {
   });
 
   describe('Action Menu (kebab)', () => {
-    const rowForOrder = (orderNumber) =>
-      screen.getByText(orderNumber).closest('tr');
-
     const openReceivableMenu = async (orderId) => {
       await waitFor(() => {
         expect(
@@ -692,44 +689,15 @@ describe('OrdersPayments', () => {
       });
     });
 
-    it('should render Valor Pendente with muted styling when pending is zero', async () => {
-      mockGetImplementation([mockOrders[2]]);
-      renderPage();
-      await waitFor(() => {
-        expect(screen.getByText('ORD-003')).toBeInTheDocument();
-      });
-      const pendingCell = rowForOrder('ORD-003').querySelector(
-        'td[data-label="Valor Pendente"]',
-      );
-      expect(pendingCell).toHaveClass('text-gray-400');
-      expect(pendingCell).toHaveClass('dark:text-gray-500');
-    });
-
-    it('should render Valor Pendente with default styling when pending is positive', async () => {
-      mockGetImplementation([mockOrders[0]]);
-      renderPage();
-      await waitFor(() => {
-        expect(screen.getByText('ORD-001')).toBeInTheDocument();
-      });
-      const pendingCell = rowForOrder('ORD-001').querySelector(
-        'td[data-label="Valor Pendente"]',
-      );
-      expect(pendingCell).toHaveClass('text-gray-900');
-      expect(pendingCell).toHaveClass('dark:text-gray-100');
-    });
-
     it('should render R$ 0,00 pending for an all-self order with freight', async () => {
       mockGetImplementation([selfOrderWithFreight]);
       renderPage();
       await waitFor(() => {
         expect(screen.getByText('ORD-SELF-FRT')).toBeInTheDocument();
       });
-      const pendingCell = rowForOrder('ORD-SELF-FRT').querySelector(
-        'td[data-label="Valor Pendente"]',
-      );
-      expect(pendingCell).toHaveTextContent('R$ 0,00');
-      expect(pendingCell).toHaveClass('text-gray-400');
-      expect(pendingCell).toHaveClass('dark:text-gray-500');
+      expect(
+        document.querySelector('td[data-label="Valor Pendente"]'),
+      ).toBeNull();
     });
 
     it('should not offer the payment action for an all-self order with freight', async () => {
@@ -759,12 +727,22 @@ describe('OrdersPayments', () => {
       await waitFor(() => {
         expect(screen.getByText('ORD-MIXED-FRT')).toBeInTheDocument();
       });
-      const pendingCell = rowForOrder('ORD-MIXED-FRT').querySelector(
-        'td[data-label="Valor Pendente"]',
+      expect(
+        document.querySelector('td[data-label="Valor Pendente"]'),
+      ).toBeNull();
+      fireEvent.click(
+        screen.getByTestId('order-actions-order-mixed-freight-trigger'),
       );
-      expect(pendingCell).toHaveTextContent('R$ 70,00');
-      expect(pendingCell).toHaveClass('text-gray-900');
-      expect(pendingCell).toHaveClass('dark:text-gray-100');
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('order-actions-order-mixed-freight-menu'),
+        ).toBeInTheDocument();
+      });
+      expect(
+        screen.getByTestId(
+          'order-actions-order-mixed-freight-item-Registrar-Pagamento',
+        ),
+      ).toBeInTheDocument();
     });
   });
 
@@ -810,7 +788,7 @@ describe('OrdersPayments', () => {
       expect(ownerCell).toHaveTextContent('—');
     });
 
-    it('should render pending value equal to total when no payments exist', async () => {
+    it('should not render a pending value column', async () => {
       mockGetImplementation([mockOrders[0]]);
       renderPage();
 
@@ -818,11 +796,12 @@ describe('OrdersPayments', () => {
         expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
 
-      const row = rowFor('ORD-001');
-      expect(within(row).getAllByText(/R\$\s*300,00/)).toHaveLength(2);
+      expect(
+        within(rowFor('ORD-001')).getAllByText(/R\$\s*300,00/),
+      ).toHaveLength(1);
     });
 
-    it('should render pending value as total minus paid amount', async () => {
+    it('should not render pending balance values from other orders', async () => {
       mockGetImplementation([mockOrders[1]]);
       renderPage();
 
@@ -831,11 +810,11 @@ describe('OrdersPayments', () => {
       });
 
       expect(
-        within(rowFor('ORD-002')).getByText(/R\$\s*450,00/),
-      ).toBeInTheDocument();
+        within(rowFor('ORD-002')).queryByText(/R\$\s*450,00/),
+      ).not.toBeInTheDocument();
     });
 
-    it('should clamp pending value to R$ 0,00 on overpayment', async () => {
+    it('should not render pending value for a quitado order', async () => {
       mockGetImplementation([mockOrders[2]]);
       renderPage();
 
@@ -844,8 +823,8 @@ describe('OrdersPayments', () => {
       });
 
       expect(
-        within(rowFor('ORD-003')).getByText(/R\$\s*0,00/),
-      ).toBeInTheDocument();
+        within(rowFor('ORD-003')).queryByText(/R\$\s*0,00/),
+      ).not.toBeInTheDocument();
     });
 
     it('should render PV doTERRA from the order field', async () => {

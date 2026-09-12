@@ -38,6 +38,7 @@ test.describe('Pedidos da equipe (status EQUIPE) - e2e', () => {
   let testUser;
   let personName;
   let teamOrderNumber;
+  let token;
   const teamOrderCharged = 250;
 
   test.beforeAll(async ({ request, playwright }) => {
@@ -47,11 +48,7 @@ test.describe('Pedidos da equipe (status EQUIPE) - e2e', () => {
     const api = await playwright.request.newContext({
       baseURL: 'http://localhost:4000',
     });
-    const token = await loginAndGetToken(
-      api,
-      testUser.username,
-      testUser.password,
-    );
+    token = await loginAndGetToken(api, testUser.username, testUser.password);
 
     personName = `Cliente E2E ${testUser.username.slice(-6)}`;
     await createPersonViaApi(api, token, personName);
@@ -59,12 +56,23 @@ test.describe('Pedidos da equipe (status EQUIPE) - e2e', () => {
     teamOrderNumber = uniqueOrderNumber('EQT');
   });
 
+  const fetchOrderStatus = async (request, orderNumber) => {
+    const res = await request.get('http://localhost:4000/api/orders', {
+      headers: { Authorization: `Bearer ${token}` },
+      params: { q: orderNumber, searchField: 'orderNumber' },
+    });
+    expect(res.ok()).toBeTruthy();
+    const orders = await res.json();
+    return orders.find((order) => order.orderNumber === orderNumber)?.status;
+  };
+
   test.beforeEach(async ({ page, baseURL }) => {
     await login(page, baseURL, testUser.username, testUser.password);
   });
 
   test('CT1 - criar um pedido da equipe pelo formulário', async ({
     page,
+    request,
   }, testInfo) => {
     await page.goto('/orders');
     await expect(page.getByText('Pedidos dōTERRA')).toBeVisible({
@@ -106,10 +114,10 @@ test.describe('Pedidos da equipe (status EQUIPE) - e2e', () => {
 
     const row = rowByNumber(page, teamOrderNumber);
     await expect(row).toBeVisible();
-    await expect(row).toContainText('Equipe');
-    await expect(row.locator('td[data-label="Valor Pendente"]')).toHaveText(
-      '—',
-    );
+    await expect(row.locator('td[data-label="Status"]')).toHaveCount(0);
+    await expect(row.locator('td[data-label="Valor Pendente"]')).toHaveCount(0);
+
+    expect(await fetchOrderStatus(request, teamOrderNumber)).toBe('EQUIPE');
 
     await triggerFor(page, teamOrderNumber).click();
     await expect(page.getByText('Registrar Pagamento')).toHaveCount(0);
@@ -119,27 +127,6 @@ test.describe('Pedidos da equipe (status EQUIPE) - e2e', () => {
       path: testInfo.outputPath('team-order-row.png'),
       fullPage: true,
     });
-  });
-
-  test('CT2 - filtro "Somente da equipe"', async ({ page }) => {
-    await page.goto('/orders');
-    await expect(page.getByText('Pedidos dōTERRA')).toBeVisible({
-      timeout: 15_000,
-    });
-
-    await page.getByLabel('Status').selectOption('EQUIPE');
-
-    await expect(page.getByText(teamOrderNumber)).toBeVisible();
-
-    const orderNumbers = await page.evaluate(() => {
-      const rows = Array.from(document.querySelectorAll('table tbody tr'));
-      return rows
-        .map((r) => r.querySelector('a[title="Ver pedido no site"]'))
-        .filter(Boolean)
-        .map((a) => a.innerText.trim());
-    });
-
-    expect(orderNumbers).toContain(teamOrderNumber);
   });
 
   test('CT3 - detalhes do pedido da equipe (somente leitura)', async ({
@@ -187,6 +174,7 @@ test.describe('Pedidos da equipe (status EQUIPE) - e2e', () => {
 
   test('CT5 - alternar para pedido normal recalcula status', async ({
     page,
+    request,
   }, testInfo) => {
     await page.goto('/orders');
     await expect(page.getByText('Pedidos dōTERRA')).toBeVisible({
@@ -194,7 +182,7 @@ test.describe('Pedidos da equipe (status EQUIPE) - e2e', () => {
     });
 
     const row = rowByNumber(page, teamOrderNumber);
-    await expect(row).toContainText('Equipe');
+    await expect(row).toBeVisible();
 
     await triggerFor(page, teamOrderNumber).click();
     await page.getByText('Editar').click();
@@ -213,13 +201,13 @@ test.describe('Pedidos da equipe (status EQUIPE) - e2e', () => {
     await waitFormClose(page);
 
     const updated = rowByNumber(page, teamOrderNumber);
-    const statusCell = updated.locator('td[data-label="Status"]');
-    await expect(statusCell).toContainText('Pendente');
-    await expect(statusCell).not.toContainText('Equipe');
+    await expect(updated).toBeVisible();
+    await expect(updated.locator('td[data-label="Status"]')).toHaveCount(0);
+    await expect(
+      updated.locator('td[data-label="Valor Pendente"]'),
+    ).toHaveCount(0);
 
-    const pendingCell = updated.locator('td[data-label="Valor Pendente"]');
-    await expect(pendingCell).not.toHaveText('—');
-    await expect(pendingCell).toContainText('R$ 250,00');
+    expect(await fetchOrderStatus(request, teamOrderNumber)).toBe('PENDENTE');
 
     await page.screenshot({
       path: testInfo.outputPath('order-toggled-to-normal.png'),
