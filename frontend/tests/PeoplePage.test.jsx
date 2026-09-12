@@ -230,7 +230,7 @@ describe('PeoplePage', () => {
       const birthdayRow = screen
         .getByText('Aniversariante do Mês')
         .closest('tr');
-      expect(birthdayRow.className).toMatch(/bg-amber-50/);
+      expect(birthdayRow.className).toMatch(/bg-warning-soft/);
 
       const regularRow = screen.getByText('Maria Santos').closest('tr');
       expect(regularRow.className).not.toMatch(/bg-amber/);
@@ -1234,8 +1234,8 @@ describe('PeoplePage', () => {
       await openClientActionsMenu('1');
 
       const excluirItem = screen.getByTestId('client-actions-1-item-Excluir');
-      expect(excluirItem.className).toMatch(/text-red-600/);
-      expect(excluirItem.className).toMatch(/hover:bg-red/);
+      expect(excluirItem.className).toMatch(/text-danger-fg/);
+      expect(excluirItem.className).toMatch(/hover:bg-danger-soft/);
     });
 
     it('should expose correct a11y semantics on trigger, menu and items', async () => {

@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import DashboardPage from '../src/pages/DashboardPage';
 import { ToastProvider } from '../src/components/Toast';
+import { ThemeProvider } from '../src/context/ThemeContext';
 
 const mockGet = vi.fn();
 const mockExportExcel = vi.fn();
@@ -44,9 +45,11 @@ const mockGetImplementation = (data = mockDashboardData) => {
 const renderPage = () => {
   return render(
     <MemoryRouter>
-      <ToastProvider>
-        <DashboardPage />
-      </ToastProvider>
+      <ThemeProvider>
+        <ToastProvider>
+          <DashboardPage />
+        </ToastProvider>
+      </ThemeProvider>
     </MemoryRouter>,
   );
 };

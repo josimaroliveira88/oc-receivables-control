@@ -286,12 +286,12 @@ describe('SalesPage', () => {
 
       const underpaidCell = getReceivedCell(findRowByClient('João Silva'));
       expect(underpaidCell).toHaveTextContent(/R\$\s*0,00/);
-      expect(underpaidCell.className).toContain('text-red-600');
+      expect(underpaidCell.className).toContain('text-danger-fg');
 
       const settledCell = getReceivedCell(findRowByClient('Maria Santos'));
       expect(settledCell).toHaveTextContent(/R\$\s*500,00/);
-      expect(settledCell.className).toContain('text-green-600');
-      expect(settledCell.className).not.toContain('text-red-600');
+      expect(settledCell.className).toContain('text-success-fg');
+      expect(settledCell.className).not.toContain('text-danger-fg');
 
       const overpaidRow = screen
         .getAllByText('Venda com excedente')
@@ -301,7 +301,7 @@ describe('SalesPage', () => {
         'td[data-label="Recebido"]',
       );
       expect(overpaidCell).toHaveTextContent(/R\$\s*600,00/);
-      expect(overpaidCell.className).toContain('text-blue-600');
+      expect(overpaidCell.className).toContain('text-info-fg');
     });
 
     it('should display status badges', async () => {

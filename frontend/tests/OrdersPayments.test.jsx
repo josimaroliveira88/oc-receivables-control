@@ -562,7 +562,7 @@ describe('OrdersPayments', () => {
       fireEvent.click(screen.getByTestId('order-actions-order-1-trigger'));
       expect(
         screen.getByTestId('order-actions-order-1-item-Registrar-Pagamento'),
-      ).toHaveClass('bg-primary-600');
+      ).toHaveClass('bg-accent');
       expect(
         screen.getByTestId('order-actions-order-1-item-Detalhar-Pagamentos'),
       ).toBeInTheDocument();

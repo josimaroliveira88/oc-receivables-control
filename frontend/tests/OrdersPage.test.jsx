@@ -283,8 +283,8 @@ describe('OrdersPage', () => {
 
       await waitFor(() => {
         const deleteItem = screen.getByTestId('order-actions-1-item-Excluir');
-        expect(deleteItem.className).toMatch(/text-red-600/);
-        expect(deleteItem.className).toMatch(/hover:bg-red/);
+        expect(deleteItem.className).toMatch(/text-danger-fg/);
+        expect(deleteItem.className).toMatch(/hover:bg-danger-soft/);
       });
     });
 

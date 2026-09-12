@@ -96,7 +96,7 @@ describe('MobileDrawer', () => {
     const peopleLink = screen
       .getAllByRole('link')
       .find((link) => link.getAttribute('href') === '/people');
-    expect(peopleLink.className).toContain('text-primary-600');
+    expect(peopleLink.className).toContain('text-accent-on-soft');
   });
 
   it('should call logout when Sair is clicked', () => {
