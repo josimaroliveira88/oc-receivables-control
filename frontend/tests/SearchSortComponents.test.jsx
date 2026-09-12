@@ -122,6 +122,28 @@ describe('SortableHeader', () => {
 
     expect(screen.getByRole('columnheader').className).toContain('text-right');
   });
+
+  it('renders the header label without all-caps styling', () => {
+    render(
+      <table>
+        <thead>
+          <tr>
+            <SortableHeader
+              label="Pagamento"
+              field="paymentType"
+              sortBy=""
+              sortDir="asc"
+              onSort={vi.fn()}
+            />
+          </tr>
+        </thead>
+      </table>,
+    );
+
+    expect(screen.getByRole('columnheader').className).not.toMatch(
+      /\buppercase\b/,
+    );
+  });
 });
 
 describe('SearchInput', () => {

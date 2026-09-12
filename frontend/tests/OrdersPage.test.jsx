@@ -438,6 +438,41 @@ describe('OrdersPage', () => {
       });
     });
 
+    it('should render column headers in Title Case without all-caps styling', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+
+      [
+        'Número',
+        'Data',
+        'Conta ID',
+        'Pagamento',
+        'PV doTERRA',
+        'Valor (R$)',
+        'Descrição',
+        'Ações',
+      ].forEach((name) => {
+        const header = screen.getByRole('columnheader', { name });
+        expect(header.className).not.toMatch(/\buppercase\b/);
+      });
+    });
+
+    it('should allocate a wider Descrição column and a narrower Ações column', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+
+      expect(
+        screen.getByRole('columnheader', { name: 'Descrição' }).className,
+      ).toContain('w-[32%]');
+      expect(
+        screen.getByRole('columnheader', { name: 'Ações' }).className,
+      ).toContain('w-[14%]');
+    });
+
     it('should not show "Visualizar Anexo" when the order has no attachment', async () => {
       renderPage();
       await waitFor(() => {

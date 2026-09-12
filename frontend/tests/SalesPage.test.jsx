@@ -314,6 +314,28 @@ describe('SalesPage', () => {
       });
     });
 
+    it('should render column headers in Title Case without all-caps styling', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+
+      [
+        'Data',
+        'Cliente',
+        'Valor (R$)',
+        'Pendente',
+        'Recebido',
+        'Entrega',
+        'Descrição',
+        'Status',
+        'Ações',
+      ].forEach((name) => {
+        const header = screen.getByRole('columnheader', { name });
+        expect(header.className).not.toMatch(/\buppercase\b/);
+      });
+    });
+
     it('should display the client name per sale', async () => {
       renderPage();
       await waitFor(() => {

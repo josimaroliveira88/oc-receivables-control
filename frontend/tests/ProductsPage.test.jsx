@@ -381,6 +381,32 @@ describe('ProductsPage', () => {
       ).toBeInTheDocument();
     });
 
+    it('should render column headers in Title Case without all-caps styling', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      [
+        'Código',
+        'Site',
+        'Produto',
+        'Tamanho',
+        'Preço Regular',
+        'Preço Membro',
+        'PV',
+        'R$/PV',
+        '70% OFF',
+        'Status',
+        'Ações',
+      ].forEach((name) => {
+        const header = screen.getByRole('columnheader', { name });
+        expect(header.className).not.toMatch(/\buppercase\b/);
+      });
+    });
+
     it('should display 30% of the member price for every product', async () => {
       mockGet.mockResolvedValue({
         data: fullResponse([mockProduct, mockInactiveProduct]),

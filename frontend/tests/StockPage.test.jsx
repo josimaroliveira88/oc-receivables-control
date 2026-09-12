@@ -671,6 +671,38 @@ describe('StockPage', () => {
       expect(registrationCells[0].textContent).toMatch(/2026/);
     });
 
+    it('should render history column headers in Title Case without all-caps styling', async () => {
+      mockGet
+        .mockResolvedValueOnce({ data: [mockInventoryItem] })
+        .mockResolvedValueOnce({ data: [mockMovement()] });
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      await clickStockAction(
+        '11111111-1111-1111-1111-111111111111',
+        'Ver-Historico',
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Data Efetiva')).toBeInTheDocument();
+      });
+
+      [
+        'Data Efetiva',
+        'Data de Registro',
+        'Tipo',
+        'Quantidade',
+        'Motivo',
+      ].forEach((name) => {
+        const header = screen.getByRole('columnheader', { name });
+        expect(header.className).not.toMatch(/\buppercase\b/);
+      });
+    });
+
     it('should show an empty state when the product has no movements yet', async () => {
       mockGet
         .mockResolvedValueOnce({ data: [mockInventoryItem] })
@@ -1503,6 +1535,22 @@ describe('StockPage', () => {
         const nameTexts = Array.from(names).map((td) => td.textContent.trim());
         expect(nameTexts).toEqual(['Basil', 'Adaptiv® Pastilhas']);
       });
+    });
+
+    it('should render column headers in Title Case without all-caps styling', async () => {
+      mockGet.mockResolvedValue({ data: [mockInventoryItem] });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adaptiv® Pastilhas')).toBeInTheDocument();
+      });
+
+      ['Código', 'Produto', 'Tamanho', 'Estoque Atual', 'Ações'].forEach(
+        (name) => {
+          const header = screen.getByRole('columnheader', { name });
+          expect(header.className).not.toMatch(/\buppercase\b/);
+        },
+      );
     });
 
     it('should show the filtered empty state when nothing matches', async () => {
