@@ -1,8 +1,7 @@
 export const fieldClass =
-  'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors';
+  'w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors';
 
-export const inputLabelClass =
-  'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
+export const inputLabelClass = 'block text-sm font-medium text-ink-soft mb-1';
 
 export const instagramHref = (value) =>
   value.startsWith('http://') || value.startsWith('https://')

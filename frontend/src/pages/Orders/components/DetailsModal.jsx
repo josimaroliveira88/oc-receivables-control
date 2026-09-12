@@ -27,72 +27,58 @@ const DetailsModal = ({
     >
       {(requestClose) => (
         <div className="px-6 py-4">
-          <div className="mb-4 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 p-3">
+          <div className="mb-4 rounded-md border border-line bg-base p-3">
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
               <div>
-                <dt className="text-xs text-gray-500 dark:text-gray-400">
-                  Número
-                </dt>
-                <dd className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <dt className="text-xs text-ink-faint">Número</dt>
+                <dd className="text-sm font-medium text-ink">
                   {order.orderNumber}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-gray-500 dark:text-gray-400">
-                  Data
-                </dt>
-                <dd className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <dt className="text-xs text-ink-faint">Data</dt>
+                <dd className="text-sm font-medium text-ink">
                   {formatDateBR(order.orderDate)}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-gray-500 dark:text-gray-400">
-                  Conta ID
-                </dt>
-                <dd className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <dt className="text-xs text-ink-faint">Conta ID</dt>
+                <dd className="text-sm font-medium text-ink">
                   {order.accountOwner || '—'}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-gray-500 dark:text-gray-400">
-                  Valor Total
-                </dt>
+                <dt className="text-xs text-ink-faint">Valor Total</dt>
                 <dd
                   data-testid="details-summary-total"
-                  className="text-sm font-medium text-gray-900 dark:text-gray-100"
+                  className="text-sm font-medium text-ink"
                 >
                   {formatBRL(parseFloat(order.totalValue))}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-gray-500 dark:text-gray-400">
-                  Frete
-                </dt>
+                <dt className="text-xs text-ink-faint">Frete</dt>
                 <dd
                   data-testid="details-summary-shipping"
-                  className="text-sm font-medium text-gray-900 dark:text-gray-100"
+                  className="text-sm font-medium text-ink"
                 >
                   {formatBRL(parseFloat(order.shippingValue || 0))}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-gray-500 dark:text-gray-400">
-                  Valor Pendente
-                </dt>
+                <dt className="text-xs text-ink-faint">Valor Pendente</dt>
                 <dd
                   data-testid="details-summary-pending"
-                  className="text-sm font-medium text-gray-900 dark:text-gray-100"
+                  className="text-sm font-medium text-ink"
                 >
                   {formatBRL(getOrderPendingCents(order) / 100)}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-gray-500 dark:text-gray-400">
-                  Descrição
-                </dt>
+                <dt className="text-xs text-ink-faint">Descrição</dt>
                 <dd
                   data-testid="details-summary-description"
-                  className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate"
+                  className="text-sm font-medium text-ink truncate"
                   title={order.orderNotes || undefined}
                 >
                   {order.orderNotes || '—'}
@@ -102,16 +88,16 @@ const DetailsModal = ({
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center py-8 text-sm text-gray-500 dark:text-gray-400">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600 mr-2" />
+            <div className="flex items-center justify-center py-8 text-sm text-ink-faint">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-accent mr-2" />
               Carregando detalhamento...
             </div>
           ) : balances.length === 0 ? (
-            <p className="py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+            <p className="py-6 text-center text-sm text-ink-faint">
               Nenhuma pessoa neste pedido
             </p>
           ) : (
-            <div className="rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="rounded-md border border-line overflow-hidden">
               {balances.map((balance) => {
                 const expanded = expandedPersonId === balance.personId;
                 const items = personItems(balance.personId);
@@ -119,33 +105,31 @@ const DetailsModal = ({
                 return (
                   <div
                     key={balance.personId}
-                    className="border-b last:border-b-0 border-gray-200 dark:border-gray-700"
+                    className="border-b last:border-b-0 border-line"
                   >
                     <button
                       type="button"
                       data-testid={`detail-person-${balance.personId}`}
                       aria-expanded={expanded}
                       onClick={() => onTogglePerson(balance.personId)}
-                      className="w-full px-3 py-3 flex items-center justify-between gap-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      className="w-full px-3 py-3 flex items-center justify-between gap-3 text-left hover:bg-accent-soft transition-colors"
                     >
-                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                      <span className="font-medium text-ink">
                         {balance.personName}
                         {balance.isSelf ? ' (Você)' : ''}
                       </span>
                       <span className="flex items-center gap-3 text-sm whitespace-nowrap">
-                        <span className="text-gray-600 dark:text-gray-300">
+                        <span className="text-ink-soft">
                           Total: {formatBRL(balance.itemTotal)}
                         </span>
                         {balance.isSelf ? (
-                          <span className="text-emerald-700 dark:text-emerald-400">
-                            Recebido
-                          </span>
+                          <span className="text-success-fg">Recebido</span>
                         ) : (
                           <span
                             className={
                               toCents(balance.pending) === 0
-                                ? 'text-gray-400 dark:text-gray-500'
-                                : 'text-primary-700 dark:text-primary-400'
+                                ? 'text-ink-faint'
+                                : 'text-accent'
                             }
                           >
                             Pendente: {formatBRL(balance.pending)}
@@ -162,33 +146,33 @@ const DetailsModal = ({
                     {expanded && (
                       <div
                         data-testid={`detail-panel-${balance.personId}`}
-                        className="px-3 pb-4 bg-gray-50 dark:bg-gray-900/30"
+                        className="px-3 pb-4 bg-base"
                       >
-                        <h4 className="pt-3 mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <h4 className="pt-3 mb-2 text-sm font-medium text-ink-soft">
                           Itens desta pessoa
                         </h4>
                         {items.length === 0 ? (
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                          <p className="text-sm text-ink-faint">
                             Nenhum item registrado para esta pessoa
                           </p>
                         ) : (
-                          <div className="rounded-md border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700 overflow-hidden">
+                          <div className="rounded-md border border-line divide-y divide-line overflow-hidden">
                             {items.map((item) => (
                               <div
                                 key={item.id}
-                                className="px-3 py-2 bg-white dark:bg-gray-800"
+                                className="px-3 py-2 bg-surface"
                               >
                                 <div className="flex items-start justify-between gap-2">
-                                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                  <span className="text-sm font-medium text-ink">
                                     {item.product?.name ||
                                       item.description ||
                                       '—'}
                                   </span>
-                                  <span className="text-sm font-semibold text-primary-700 dark:text-primary-400 whitespace-nowrap">
+                                  <span className="text-sm font-semibold text-accent whitespace-nowrap">
                                     {formatBRL(fromCents(lineValueCents(item)))}
                                   </span>
                                 </div>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                <p className="text-xs text-ink-faint mt-0.5">
                                   {item.quantity > 1
                                     ? `Qtd: ${item.quantity} · `
                                     : ''}
@@ -199,26 +183,26 @@ const DetailsModal = ({
                           </div>
                         )}
 
-                        <h4 className="mt-4 mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <h4 className="mt-4 mb-2 text-sm font-medium text-ink-soft">
                           Pagamentos recebidos
                         </h4>
                         {payments.length === 0 ? (
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                          <p className="text-sm text-ink-faint">
                             Nenhum pagamento recebido
                           </p>
                         ) : (
-                          <div className="rounded-md border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700 overflow-hidden">
+                          <div className="rounded-md border border-line divide-y divide-line overflow-hidden">
                             {payments.map((payment) => (
                               <div
                                 key={payment.id}
-                                className="px-3 py-2 bg-white dark:bg-gray-800"
+                                className="px-3 py-2 bg-surface"
                               >
                                 <div className="flex items-start justify-between gap-2">
-                                  <span className="text-sm text-gray-900 dark:text-gray-100">
+                                  <span className="text-sm text-ink">
                                     {formatDateBR(payment.paidAt)}
                                   </span>
                                   <span className="flex items-center gap-2">
-                                    <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 whitespace-nowrap">
+                                    <span className="text-sm font-semibold text-success-fg whitespace-nowrap">
                                       {formatBRL(parseFloat(payment.amount))}
                                     </span>
                                     {payment.paymentType && (
@@ -232,13 +216,13 @@ const DetailsModal = ({
                                       data-testid={`edit-payment-${payment.id}`}
                                       aria-label="Editar pagamento"
                                       onClick={() => onEditPayment(payment)}
-                                      className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                                      className="text-ink-faint hover:text-ink transition-colors"
                                     >
                                       <Pencil size={16} aria-hidden="true" />
                                     </button>
                                   </span>
                                 </div>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                <p className="text-xs text-ink-faint mt-0.5">
                                   Observação: {payment.notes || '—'}
                                 </p>
                               </div>
@@ -257,7 +241,7 @@ const DetailsModal = ({
             <button
               type="button"
               onClick={requestClose}
-              className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
+              className="px-4 py-2 text-sm font-medium text-ink-soft hover:text-ink bg-base hover:bg-elevated rounded-md transition-colors"
             >
               Fechar
             </button>

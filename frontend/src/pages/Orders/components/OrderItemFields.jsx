@@ -38,20 +38,18 @@ const OrderItemFields = ({
     <div
       data-testid={`order-item-${index}`}
       className={`border rounded-md p-4 mb-3 ${
-        error
-          ? 'border-red-400 dark:border-red-500'
-          : 'border-gray-200 dark:border-gray-700'
+        error ? 'border-danger-fg' : 'border-line'
       }`}
     >
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+        <span className="text-sm font-medium text-ink-soft">
           Item {index + 1}
         </span>
         {canRemove && (
           <button
             type="button"
             onClick={onRemove}
-            className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 text-sm transition-colors"
+            className="text-danger-fg text-sm transition-colors"
           >
             Remover
           </button>
@@ -60,21 +58,21 @@ const OrderItemFields = ({
       {error && (
         <div
           data-testid={`order-item-error-${item.id}`}
-          className="mb-3 p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md"
+          className="mb-3 p-2 bg-danger-soft rounded-md"
         >
-          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          <p className="text-sm text-danger-fg">{error}</p>
         </div>
       )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {isTeamOrder && (
           <div className="md:col-span-3">
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+            <label className="block text-xs font-medium text-ink-faint mb-1">
               Pessoa
             </label>
             <select
               value={item.personId}
               onChange={(e) => onPersonSelect(index, e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-sm"
+              className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors text-sm"
             >
               <option value="">Selecione uma pessoa</option>
               <option value={selfPerson ? selfPerson.id : SELF_PERSON_ID}>
@@ -92,7 +90,7 @@ const OrderItemFields = ({
         )}
 
         <div className="md:col-span-3">
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+          <label className="block text-xs font-medium text-ink-faint mb-1">
             Produto
           </label>
           <ProductCombobox
@@ -105,7 +103,7 @@ const OrderItemFields = ({
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+          <label className="block text-xs font-medium text-ink-faint mb-1">
             Valor Membro (unidade)
           </label>
           <input
@@ -117,12 +115,12 @@ const OrderItemFields = ({
             }
             readOnly
             tabIndex={-1}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md shadow-sm cursor-not-allowed text-sm"
+            className="w-full px-3 py-2 border border-line bg-base text-ink-soft rounded-md shadow-sm cursor-not-allowed text-sm"
             placeholder="—"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+          <label className="block text-xs font-medium text-ink-faint mb-1">
             Valor Pago (R$)
           </label>
           <CurrencyInput
@@ -133,7 +131,7 @@ const OrderItemFields = ({
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+          <label className="block text-xs font-medium text-ink-faint mb-1">
             Quantidade
           </label>
           <input
@@ -143,12 +141,12 @@ const OrderItemFields = ({
             data-testid={`order-item-quantity-${index}`}
             value={item.quantity}
             onChange={(e) => onUpdateField('quantity', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-sm"
+            className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors text-sm"
             placeholder="1"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+          <label className="block text-xs font-medium text-ink-faint mb-1">
             Valor Pago (total)
           </label>
           <input
@@ -156,12 +154,12 @@ const OrderItemFields = ({
             value={formatBRL(fromCents(lineValueCents(item)))}
             readOnly
             tabIndex={-1}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md shadow-sm cursor-not-allowed text-sm"
+            className="w-full px-3 py-2 border border-line bg-base text-ink-soft rounded-md shadow-sm cursor-not-allowed text-sm"
             placeholder="—"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+          <label className="block text-xs font-medium text-ink-faint mb-1">
             Valor Membro (total)
           </label>
           <input
@@ -171,20 +169,20 @@ const OrderItemFields = ({
             }
             readOnly
             tabIndex={-1}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md shadow-sm cursor-not-allowed text-sm"
+            className="w-full px-3 py-2 border border-line bg-base text-ink-soft rounded-md shadow-sm cursor-not-allowed text-sm"
             placeholder="—"
           />
         </div>
 
         <div className="md:col-span-3">
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+          <label className="block text-xs font-medium text-ink-faint mb-1">
             O valor cobrado é
           </label>
           <select
             data-testid={`order-item-price-mode-${index}`}
             value={item.chargedValueMode}
             onChange={(e) => onUpdateField('chargedValueMode', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-sm"
+            className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors text-sm"
           >
             <option value="UNIT">Preço por unidade</option>
             <option value="TOTAL">Valor total da linha</option>
@@ -192,17 +190,17 @@ const OrderItemFields = ({
         </div>
 
         <div className="md:col-span-3">
-          <label className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+          <label className="flex items-start gap-2 text-sm text-ink-soft cursor-pointer">
             <input
               type="checkbox"
               data-testid={`order-item-cashback-${index}`}
               checked={item.useCashback}
               onChange={(e) => onCashbackToggle(index, e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              className="mt-0.5 h-4 w-4 rounded border-line text-accent focus:ring-accent"
             />
             <span>
               Usei pontos de cashback e ganhei 70% de desconto
-              <span className="block text-xs text-gray-500 dark:text-gray-400">
+              <span className="block text-xs text-ink-faint">
                 Marca: preenche o valor pago com 30% do preço de membro.
                 Desmarca: preenche com o preço de membro. Você ainda pode
                 editar.
@@ -213,7 +211,7 @@ const OrderItemFields = ({
 
         {canManageStock && (
           <div className="md:col-span-3">
-            <label className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+            <label className="flex items-start gap-2 text-sm text-ink-soft cursor-pointer">
               <input
                 type="checkbox"
                 data-testid={`order-item-stock-toggle-${index}`}
@@ -222,11 +220,11 @@ const OrderItemFields = ({
                   onUpdateField('forStock', e.target.checked);
                   if (!e.target.checked) onUpdateField('kitStockMode', '');
                 }}
-                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                className="mt-0.5 h-4 w-4 rounded border-line text-accent focus:ring-accent"
               />
               <span>
                 Este item é para meu estoque
-                <span className="block text-xs text-gray-500 dark:text-gray-400">
+                <span className="block text-xs text-ink-faint">
                   Adiciona ao seu estoque; não gera cobrança pendente.
                 </span>
               </span>
@@ -236,29 +234,29 @@ const OrderItemFields = ({
 
         {canManageStock && item.forStock && isKit && (
           <div className="md:col-span-3">
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+            <label className="block text-xs font-medium text-ink-faint mb-1">
               Como enviar para o estoque?
             </label>
             <div className="flex flex-col sm:flex-row gap-3">
-              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-ink-soft cursor-pointer">
                 <input
                   type="radio"
                   name={`order-item-kit-mode-${index}`}
                   data-testid={`order-item-kit-mode-kit-${index}`}
                   checked={item.kitStockMode === 'KIT'}
                   onChange={() => onUpdateField('kitStockMode', 'KIT')}
-                  className="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500"
+                  className="h-4 w-4 border-line text-accent focus:ring-accent"
                 />
                 Estocar o kit
               </label>
-              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-ink-soft cursor-pointer">
                 <input
                   type="radio"
                   name={`order-item-kit-mode-${index}`}
                   data-testid={`order-item-kit-mode-components-${index}`}
                   checked={item.kitStockMode === 'COMPONENTS'}
                   onChange={() => onUpdateField('kitStockMode', 'COMPONENTS')}
-                  className="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500"
+                  className="h-4 w-4 border-line text-accent focus:ring-accent"
                 />
                 Estocar os componentes do kit
               </label>
@@ -267,7 +265,7 @@ const OrderItemFields = ({
         )}
 
         <div className="md:col-span-3">
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+          <label className="block text-xs font-medium text-ink-faint mb-1">
             Detalhes do Item
           </label>
           <textarea
@@ -275,10 +273,10 @@ const OrderItemFields = ({
             onChange={(e) => onUpdateField('details', e.target.value)}
             maxLength={500}
             rows={2}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-sm"
+            className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors text-sm"
             placeholder="Adicione detalhes do item (até 500 caracteres)"
           />
-          <div className="mt-1 text-right text-xs text-gray-400 dark:text-gray-500">
+          <div className="mt-1 text-right text-xs text-ink-faint">
             {item.details.length}/500
           </div>
         </div>

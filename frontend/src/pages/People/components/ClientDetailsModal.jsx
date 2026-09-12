@@ -12,10 +12,8 @@ import api from '../../../services/api';
 
 const DetailItem = ({ label, children }) => (
   <div>
-    <dt className="text-xs text-gray-500 dark:text-gray-400">{label}</dt>
-    <dd className="text-sm font-medium text-gray-900 dark:text-gray-100 break-words">
-      {children}
-    </dd>
+    <dt className="text-xs text-ink-faint">{label}</dt>
+    <dd className="text-sm font-medium text-ink break-words">{children}</dd>
   </div>
 );
 
@@ -28,34 +26,34 @@ const PURCHASE_GROUPS = [
 
 const PurchaseTable = ({ label, testId, rows, onProductClick }) => (
   <div className="mb-3 last:mb-0">
-    <h4 className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+    <h4 className="mb-1 text-xs font-medium uppercase tracking-wide text-ink-faint">
       {label}
     </h4>
     <div
-      className="overflow-x-auto rounded-md border border-gray-200 dark:border-gray-700"
+      className="overflow-x-auto rounded-md border border-line"
       data-testid={testId}
     >
       <table className="min-w-full text-sm">
-        <thead className="bg-gray-100 dark:bg-gray-900/50">
+        <thead className="bg-base">
           <tr>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">
+            <th className="px-3 py-2 text-left text-xs font-medium text-ink-faint">
               Data
             </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">
+            <th className="px-3 py-2 text-left text-xs font-medium text-ink-faint">
               Produto
             </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">
+            <th className="px-3 py-2 text-left text-xs font-medium text-ink-faint">
               Qtd
             </th>
-            <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">
+            <th className="px-3 py-2 text-right text-xs font-medium text-ink-faint">
               Total
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+        <tbody className="divide-y divide-line">
           {rows.map((row, index) => (
             <tr key={`${row.orderId}-${index}`}>
-              <td className="px-3 py-2 whitespace-nowrap text-gray-600 dark:text-gray-300">
+              <td className="px-3 py-2 whitespace-nowrap text-ink-soft">
                 {formatDateBR(row.orderDate)}
               </td>
               <td className="px-3 py-2">
@@ -63,15 +61,13 @@ const PurchaseTable = ({ label, testId, rows, onProductClick }) => (
                   type="button"
                   data-testid="client-purchase-product"
                   onClick={() => onProductClick(row)}
-                  className="text-left text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 hover:underline transition-colors"
+                  className="text-left text-accent hover:text-accent-hover hover:underline transition-colors"
                 >
                   {row.name || '—'}
                 </button>
               </td>
-              <td className="px-3 py-2 text-gray-600 dark:text-gray-300">
-                {row.quantity}
-              </td>
-              <td className="px-3 py-2 whitespace-nowrap text-right text-gray-900 dark:text-gray-100">
+              <td className="px-3 py-2 text-ink-soft">{row.quantity}</td>
+              <td className="px-3 py-2 whitespace-nowrap text-right text-ink">
                 {formatBRL(fromCents(row.totalCents))}
               </td>
             </tr>
@@ -168,7 +164,7 @@ const ClientDetailsModal = ({ person, onClose }) => {
     >
       {(requestClose) => (
         <div className="px-6 py-4">
-          <div className="rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 p-3">
+          <div className="rounded-md border border-line bg-base p-3">
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
               <DetailItem label="Nome">{person.name}</DetailItem>
               <DetailItem label="Grupos em Comum">
@@ -185,7 +181,7 @@ const ClientDetailsModal = ({ person, onClose }) => {
                       href={waLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
+                      className="inline-flex items-center gap-1.5 text-accent hover:text-accent-hover transition-colors"
                     >
                       <SiWhatsapp size={16} />
                       {maskWhatsApp(person.whatsapp)}
@@ -203,7 +199,7 @@ const ClientDetailsModal = ({ person, onClose }) => {
                     href={instagramHref(person.instagram)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
+                    className="inline-flex items-center gap-1.5 text-accent hover:text-accent-hover transition-colors"
                   >
                     <SiInstagram size={16} />
                     {person.instagram}
@@ -229,18 +225,16 @@ const ClientDetailsModal = ({ person, onClose }) => {
             </dl>
           </div>
 
-          <h3 className="mt-5 mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+          <h3 className="mt-5 mb-2 text-sm font-medium text-ink-soft">
             Resumo financeiro
           </h3>
           {loading ? (
-            <div className="flex items-center justify-center py-6 text-sm text-gray-500 dark:text-gray-400">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600 mr-2" />
+            <div className="flex items-center justify-center py-6 text-sm text-ink-faint">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-accent mr-2" />
               Carregando resumo...
             </div>
           ) : error ? (
-            <p className="py-4 text-center text-sm text-red-600 dark:text-red-400">
-              {error}
-            </p>
+            <p className="py-4 text-center text-sm text-danger-fg">{error}</p>
           ) : (
             <div
               role="button"
@@ -254,12 +248,12 @@ const ClientDetailsModal = ({ person, onClose }) => {
                   togglePurchases();
                 }
               }}
-              className="relative rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 p-3 cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="relative rounded-md border border-line bg-base p-3 cursor-pointer hover:border-line transition-colors focus:outline-none focus:ring-2 focus:ring-accent"
             >
               <ChevronDown
                 size={16}
                 aria-hidden="true"
-                className={`absolute right-3 top-3 text-gray-400 dark:text-gray-500 transition-transform ${
+                className={`absolute right-3 top-3 text-ink-faint transition-transform ${
                   showPurchases ? 'rotate-180' : ''
                 }`}
               />
@@ -277,7 +271,7 @@ const ClientDetailsModal = ({ person, onClose }) => {
                 <DetailItem label="Total pago">
                   <span
                     data-testid="client-summary-paid"
-                    className="text-emerald-700 dark:text-emerald-400"
+                    className="text-success-fg"
                   >
                     {formatBRL(fromCents(summary.totalPaidCents))}
                   </span>
@@ -285,11 +279,7 @@ const ClientDetailsModal = ({ person, onClose }) => {
                 <DetailItem label="Total em aberto">
                   <span
                     data-testid="client-summary-open"
-                    className={
-                      summary.totalOpenCents > 0
-                        ? 'text-primary-700 dark:text-primary-400'
-                        : ''
-                    }
+                    className={summary.totalOpenCents > 0 ? 'text-accent' : ''}
                   >
                     {formatBRL(fromCents(summary.totalOpenCents))}
                   </span>
@@ -301,16 +291,16 @@ const ClientDetailsModal = ({ person, onClose }) => {
           {showPurchases && (
             <div className="mt-3" data-testid="client-purchases">
               {purchasesLoading ? (
-                <div className="flex items-center justify-center py-4 text-sm text-gray-500 dark:text-gray-400">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600 mr-2" />
+                <div className="flex items-center justify-center py-4 text-sm text-ink-faint">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-accent mr-2" />
                   Carregando produtos...
                 </div>
               ) : purchasesError ? (
-                <p className="py-3 text-center text-sm text-red-600 dark:text-red-400">
+                <p className="py-3 text-center text-sm text-danger-fg">
                   {purchasesError}
                 </p>
               ) : !purchases || purchases.length === 0 ? (
-                <p className="py-3 text-center text-sm text-gray-500 dark:text-gray-400">
+                <p className="py-3 text-center text-sm text-ink-faint">
                   Nenhum produto comprado.
                 </p>
               ) : (
@@ -337,7 +327,7 @@ const ClientDetailsModal = ({ person, onClose }) => {
             <button
               type="button"
               onClick={requestClose}
-              className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
+              className="px-4 py-2 text-sm font-medium text-ink-soft hover:text-ink bg-base hover:bg-elevated rounded-md transition-colors"
             >
               Fechar
             </button>

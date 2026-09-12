@@ -1,75 +1,38 @@
 import React from 'react';
 import { paymentTypeLabel } from '../utils/orderHelpers';
+import {
+  ORDER_STATUS_CLASSES,
+  ORDER_STATUS_FALLBACK,
+  PAYMENT_TYPE_CLASSES,
+  PAYMENT_TYPE_FALLBACK,
+} from '../../../utils/badgeStyles';
+
+const STATUS_LABELS = {
+  PENDENTE: 'Pendente',
+  PARCIAL: 'Parcial',
+  QUITADO: 'Quitado',
+  EQUIPE: 'Equipe',
+};
 
 export const StatusBadge = ({ status }) => {
-  const config = {
-    PENDENTE: {
-      label: 'Pendente',
-      dot: 'bg-amber-500',
-      className:
-        'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
-    },
-    PARCIAL: {
-      label: 'Parcial',
-      dot: 'bg-blue-500',
-      className:
-        'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
-    },
-    QUITADO: {
-      label: 'Quitado',
-      dot: 'bg-emerald-500',
-      className:
-        'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400',
-    },
-    EQUIPE: {
-      label: 'Equipe',
-      dot: 'bg-violet-500',
-      className:
-        'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400',
-    },
-  };
-  const cfg = config[status] || {
-    label: status,
-    dot: 'bg-gray-500',
-    className: 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
-  };
+  const cfg = ORDER_STATUS_CLASSES[status] || ORDER_STATUS_FALLBACK;
   return (
     <span
       className={`inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-full ${cfg.className}`}
     >
       <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
-      {cfg.label}
+      {STATUS_LABELS[status] || status}
     </span>
   );
 };
 
 export const PaymentTypeBadge = ({ type, testId }) => {
-  if (!type) return <span className="text-gray-400 dark:text-gray-500">—</span>;
-  const config = {
-    PIX: {
-      className:
-        'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400',
-    },
-    BOLETO: {
-      className:
-        'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
-    },
-    CARTAO_CREDITO: {
-      className:
-        'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
-    },
-    INFINITE_PAY: {
-      className:
-        'bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400',
-    },
-  };
-  const cfg = config[type] || {
-    className: 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
-  };
+  if (!type) return <span className="text-ink-faint">—</span>;
+  const className = PAYMENT_TYPE_CLASSES[type] || PAYMENT_TYPE_FALLBACK;
   return (
     <span
       data-testid={testId}
-      className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${cfg.className}`}
+      className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${className}`}
     >
       {paymentTypeLabel(type)}
     </span>

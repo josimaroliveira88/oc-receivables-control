@@ -40,72 +40,58 @@ const PaymentModal = ({
     >
       {(requestClose) => (
         <form onSubmit={onSubmit} className="px-6 py-4">
-          <div className="mb-4 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 p-3">
+          <div className="mb-4 rounded-md border border-line bg-base p-3">
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
               <div>
-                <dt className="text-xs text-gray-500 dark:text-gray-400">
-                  Número
-                </dt>
-                <dd className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <dt className="text-xs text-ink-faint">Número</dt>
+                <dd className="text-sm font-medium text-ink">
                   {order.orderNumber}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-gray-500 dark:text-gray-400">
-                  Data
-                </dt>
-                <dd className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <dt className="text-xs text-ink-faint">Data</dt>
+                <dd className="text-sm font-medium text-ink">
                   {formatDateBR(order.orderDate)}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-gray-500 dark:text-gray-400">
-                  Conta ID
-                </dt>
-                <dd className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <dt className="text-xs text-ink-faint">Conta ID</dt>
+                <dd className="text-sm font-medium text-ink">
                   {order.accountOwner || '—'}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-gray-500 dark:text-gray-400">
-                  Valor Total
-                </dt>
+                <dt className="text-xs text-ink-faint">Valor Total</dt>
                 <dd
                   data-testid="order-summary-total"
-                  className="text-sm font-medium text-gray-900 dark:text-gray-100"
+                  className="text-sm font-medium text-ink"
                 >
                   {formatBRL(parseFloat(order.totalValue))}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-gray-500 dark:text-gray-400">
-                  Frete
-                </dt>
+                <dt className="text-xs text-ink-faint">Frete</dt>
                 <dd
                   data-testid="order-summary-shipping"
-                  className="text-sm font-medium text-gray-900 dark:text-gray-100"
+                  className="text-sm font-medium text-ink"
                 >
                   {formatBRL(parseFloat(order.shippingValue || 0))}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-gray-500 dark:text-gray-400">
-                  Valor Pendente
-                </dt>
+                <dt className="text-xs text-ink-faint">Valor Pendente</dt>
                 <dd
                   data-testid="order-summary-pending"
-                  className="text-sm font-medium text-gray-900 dark:text-gray-100"
+                  className="text-sm font-medium text-ink"
                 >
                   {formatBRL(orderPendingCents / 100)}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-gray-500 dark:text-gray-400">
-                  Descrição
-                </dt>
+                <dt className="text-xs text-ink-faint">Descrição</dt>
                 <dd
                   data-testid="order-summary-description"
-                  className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate"
+                  className="text-sm font-medium text-ink truncate"
                   title={order.orderNotes || undefined}
                 >
                   {order.orderNotes || '—'}
@@ -115,11 +101,11 @@ const PaymentModal = ({
           </div>
 
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-ink-soft mb-1">
               Pessoa
             </label>
             {balances.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-ink-faint">
                 Nenhuma pessoa neste pedido
               </p>
             ) : (
@@ -127,7 +113,7 @@ const PaymentModal = ({
                 aria-label="Pessoa"
                 value={selectedPersonId}
                 onChange={(e) => onChangePerson(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
               >
                 {balances.map((b) => (
                   <option key={b.personId} value={b.personId}>
@@ -139,17 +125,17 @@ const PaymentModal = ({
           </div>
 
           {selectedPersonId && (
-            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md">
+            <div className="mb-4 p-3 bg-info-soft rounded-md">
               {selectedIsSelf ? (
-                <p className="text-sm text-blue-700 dark:text-blue-400">
+                <p className="text-sm text-info-fg">
                   Item do próprio usuário — já recebido, sem valor a registrar.
                 </p>
               ) : selectedIsZeroItem ? (
-                <p className="text-sm text-blue-700 dark:text-blue-400">
+                <p className="text-sm text-info-fg">
                   Nada a receber — baixa sem valor
                 </p>
               ) : (
-                <p className="text-sm text-blue-700 dark:text-blue-400">
+                <p className="text-sm text-info-fg">
                   Saldo pendente:{' '}
                   <strong>{formatBRL(selectedPendingCents / 100)}</strong>
                 </p>
@@ -159,29 +145,26 @@ const PaymentModal = ({
 
           {selectedPersonId && (
             <div className="mb-4">
-              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <h4 className="text-sm font-medium text-ink-soft mb-2">
                 Itens desta pessoa
               </h4>
               {selectedPersonItems.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-ink-faint">
                   Nenhum item registrado para esta pessoa
                 </p>
               ) : (
-                <div className="rounded-md border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700 overflow-hidden">
+                <div className="rounded-md border border-line divide-y divide-line overflow-hidden">
                   {selectedPersonItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="px-3 py-2 bg-white dark:bg-gray-800"
-                    >
+                    <div key={item.id} className="px-3 py-2 bg-surface">
                       <div className="flex items-start justify-between gap-2">
-                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <span className="text-sm font-medium text-ink">
                           {item.description || '—'}
                         </span>
-                        <span className="text-sm font-semibold text-primary-700 dark:text-primary-400 whitespace-nowrap">
+                        <span className="text-sm font-semibold text-accent whitespace-nowrap">
                           {formatBRL(fromCents(lineValueCents(item)))}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      <p className="text-xs text-ink-faint mt-0.5">
                         {item.quantity > 1 ? `Qtd: ${item.quantity} · ` : ''}
                         {`Detalhes: ${item.details || '—'}`}
                       </p>
@@ -195,7 +178,7 @@ const PaymentModal = ({
           <div className="mb-4">
             <label
               htmlFor="paymentDate"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="block text-sm font-medium text-ink-soft mb-1"
             >
               Data do Pagamento
             </label>
@@ -204,12 +187,12 @@ const PaymentModal = ({
               type="date"
               value={paymentDate}
               onChange={(e) => onChangeDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+              className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
             />
           </div>
 
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-ink-soft mb-1">
               Valor (R$)
             </label>
             <CurrencyInput
@@ -223,7 +206,7 @@ const PaymentModal = ({
           <div className="mb-4">
             <label
               htmlFor="paymentFormType"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="block text-sm font-medium text-ink-soft mb-1"
             >
               Forma de Pagamento
             </label>
@@ -231,7 +214,7 @@ const PaymentModal = ({
               id="paymentFormType"
               value={paymentFormType}
               onChange={(e) => onChangePaymentType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+              className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
             >
               <option value="">Não informada</option>
               <option value="PIX">PIX</option>
@@ -242,23 +225,21 @@ const PaymentModal = ({
           </div>
 
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-ink-soft mb-1">
               Notas (opcional)
             </label>
             <input
               type="text"
               value={paymentNotes}
               onChange={(e) => onChangeNotes(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+              className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
               placeholder="Observações sobre o pagamento"
             />
           </div>
 
           {paymentError && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md">
-              <p className="text-sm text-red-600 dark:text-red-400">
-                {paymentError}
-              </p>
+            <div className="mb-4 p-3 bg-danger-soft rounded-md">
+              <p className="text-sm text-danger-fg">{paymentError}</p>
             </div>
           )}
 
@@ -266,14 +247,14 @@ const PaymentModal = ({
             <button
               type="button"
               onClick={requestClose}
-              className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
+              className="px-4 py-2 text-sm font-medium text-ink-soft hover:text-ink bg-base hover:bg-elevated rounded-md transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={submitting || balances.length === 0 || selectedIsSelf}
-              className="px-4 py-2 bg-gradient-to-r from-primary-700 to-primary-500 hover:from-primary-800 hover:to-primary-600 disabled:from-primary-400 disabled:to-primary-300 text-white font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-accent hover:bg-accent-hover text-accent-on font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting
                 ? 'Registrando...'

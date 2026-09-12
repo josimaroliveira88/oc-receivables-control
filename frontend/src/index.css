@@ -4,11 +4,68 @@
 
 @layer base {
   :root {
-    --brand-gradient: linear-gradient(to right, #1e40af, #2563eb);
-    --brand-gradient-soft: linear-gradient(to right, #1d4ed8, #3b82f6);
+    --bg: #fdf6f8;
+    --bg-surface: #ffffff;
+    --bg-elevated: #ffffff;
+    --border: #f0dbe4;
+    --text-primary: #2d1b24;
+    --text-secondary: #8a6b76;
+    --text-tertiary: #b996a4;
+    --accent: #d6336c;
+    --accent-hover: #c2255c;
+    --accent-soft: #fbe4ec;
+    --accent-text-on: #ffffff;
+    --accent-on-soft: #c2255c;
+
+    --badge-boleto-bg: #fce9d6;
+    --badge-boleto-fg: #9c5306;
+    --badge-infinitepay-bg: #f6dce6;
+    --badge-infinitepay-fg: #a32e5c;
+    --badge-pix-bg: #dcf3e4;
+    --badge-pix-fg: #1e7a45;
+
+    --success-bg: #dcf3e4;
+    --success-fg: #1e7a45;
+    --warning-bg: #fbf4d6;
+    --warning-fg: #7e6400;
+    --info-bg: #ddf1f7;
+    --info-fg: #0b7285;
+    --mystic-bg: #ede5fb;
+    --mystic-fg: #5b21b6;
+    --danger-bg: #fce4e4;
+    --danger-fg: #a61b1b;
   }
+
   .dark {
-    --brand-gradient: linear-gradient(to right, #0f172a, #1e293b);
-    --brand-gradient-soft: linear-gradient(to right, #1e3a8a, #2563eb);
+    --bg: #1e1f29;
+    --bg-surface: #282a36;
+    --bg-elevated: #2f3140;
+    --border: #44475a;
+    --text-primary: #f8f8f2;
+    --text-secondary: #a9abc9;
+    --text-tertiary: #6e7191;
+    --accent: #ff79c6;
+    --accent-hover: #ff92d0;
+    --accent-soft: rgba(255, 121, 198, 0.14);
+    --accent-text-on: #1e1f29;
+    --accent-on-soft: #ff79c6;
+
+    --badge-boleto-bg: rgba(255, 184, 108, 0.16);
+    --badge-boleto-fg: #ffb86c;
+    --badge-infinitepay-bg: rgba(255, 121, 198, 0.16);
+    --badge-infinitepay-fg: #ff92d0;
+    --badge-pix-bg: rgba(80, 250, 123, 0.14);
+    --badge-pix-fg: #50fa7b;
+
+    --success-bg: rgba(80, 250, 123, 0.14);
+    --success-fg: #50fa7b;
+    --warning-bg: rgba(241, 250, 140, 0.14);
+    --warning-fg: #f1fa8c;
+    --info-bg: rgba(139, 233, 253, 0.14);
+    --info-fg: #8be9fd;
+    --mystic-bg: rgba(189, 147, 249, 0.16);
+    --mystic-fg: #c4a2fb;
+    --danger-bg: rgba(255, 85, 85, 0.14);
+    --danger-fg: #ff7b7b;
   }
 }

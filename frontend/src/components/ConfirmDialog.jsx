@@ -45,20 +45,20 @@ const ConfirmDialog = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full mx-4 p-6"
+        className="bg-surface rounded-xl shadow-2xl max-w-md w-full mx-4 p-6"
       >
         <div className="flex items-start">
-          <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center mr-4 shrink-0">
-            <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+          <div className="w-12 h-12 rounded-full bg-warning-soft flex items-center justify-center mr-4 shrink-0">
+            <AlertTriangle className="w-6 h-6 text-warning-fg" />
           </div>
           <div className="flex-1">
             <h2
               id="confirm-dialog-title"
-              className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2"
+              className="text-lg font-semibold text-ink mb-2"
             >
               {title}
             </h2>
-            <div className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+            <div className="text-sm text-ink-soft leading-relaxed">
               {message}
             </div>
           </div>
@@ -69,7 +69,7 @@ const ConfirmDialog = ({
             type="button"
             onClick={onCancel}
             disabled={loading}
-            className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm font-medium text-ink-soft hover:text-ink bg-base hover:bg-elevated rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {cancelLabel}
           </button>
@@ -78,7 +78,7 @@ const ConfirmDialog = ({
             type="button"
             onClick={onConfirm}
             disabled={loading}
-            className="px-4 py-2 bg-gradient-to-r from-primary-700 to-primary-500 hover:from-primary-800 hover:to-primary-600 text-white font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-accent hover:bg-accent-hover text-accent-on font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Processando...' : confirmLabel}
           </button>

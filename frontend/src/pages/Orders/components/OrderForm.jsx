@@ -60,7 +60,7 @@ const OrderForm = ({
       <div className="mb-4">
         <label
           htmlFor="orderNumber"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          className="block text-sm font-medium text-ink-soft mb-1"
         >
           Número do Pedido
         </label>
@@ -71,7 +71,7 @@ const OrderForm = ({
           onChange={(e) => onChangeField('orderNumber', e.target.value)}
           onBlur={() => onChangeField('orderNumberBlurred', true)}
           required
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+          className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
           placeholder="Informe o número do pedido da dōTERRA"
         />
         {orderNumberBlurred && orderNumber.trim() && (
@@ -80,7 +80,7 @@ const OrderForm = ({
               href={trackingUrl(orderNumber.trim())}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 underline"
+              className="inline-flex items-center gap-1 text-sm text-accent hover:text-accent-hover underline"
             >
               <ExternalLink className="w-3.5 h-3.5" />
               Ver pedido no site
@@ -90,11 +90,9 @@ const OrderForm = ({
         {orderNumberError && (
           <div
             data-testid="order-number-error"
-            className="mt-1 p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md"
+            className="mt-1 p-2 bg-danger-soft rounded-md"
           >
-            <p className="text-sm text-red-600 dark:text-red-400">
-              {orderNumberError}
-            </p>
+            <p className="text-sm text-danger-fg">{orderNumberError}</p>
           </div>
         )}
       </div>
@@ -102,7 +100,7 @@ const OrderForm = ({
       <div className="mb-4">
         <label
           htmlFor="accountOwner"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          className="block text-sm font-medium text-ink-soft mb-1"
         >
           Conta ID (ID dōTERRA ou nome)
         </label>
@@ -112,7 +110,7 @@ const OrderForm = ({
           value={accountOwner}
           onChange={(e) => onChangeField('accountOwner', e.target.value)}
           maxLength={120}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+          className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
           placeholder="Ex.: 6254862 ou Ana Silva"
         />
       </div>
@@ -125,16 +123,16 @@ const OrderForm = ({
             checked={isTeamOrder}
             onChange={(e) => onChangeField('isTeamOrder', e.target.checked)}
             data-testid="order-is-team-order"
-            className="mt-1 h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
+            className="mt-1 h-4 w-4 rounded border-line text-accent focus:ring-accent"
           />
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <span className="text-sm font-medium text-ink-soft">
             Pedido da equipe (outra pessoa fez o pedido e pagou)
           </span>
         </label>
         {isTeamOrder && (
           <p
             data-testid="order-team-notice"
-            className="mt-1 ml-7 text-xs text-gray-500 dark:text-gray-400"
+            className="mt-1 ml-7 text-xs text-ink-faint"
           >
             Este pedido é apenas um registro: não entra no controle de
             recebimento, nos seus gastos nem no estoque.
@@ -145,7 +143,7 @@ const OrderForm = ({
       <div className="mb-4">
         <label
           htmlFor="orderDate"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          className="block text-sm font-medium text-ink-soft mb-1"
         >
           Data do Pedido
         </label>
@@ -154,14 +152,14 @@ const OrderForm = ({
           type="date"
           value={orderDate}
           onChange={(e) => onChangeField('orderDate', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+          className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
         />
       </div>
 
       <div className="mb-4">
         <label
           htmlFor="paymentType"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          className="block text-sm font-medium text-ink-soft mb-1"
         >
           Tipo de Pagamento
         </label>
@@ -169,7 +167,7 @@ const OrderForm = ({
           id="paymentType"
           value={paymentType}
           onChange={(e) => onChangeField('paymentType', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+          className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
         >
           <option value="">Selecione...</option>
           <option value="PIX">PIX</option>
@@ -181,7 +179,7 @@ const OrderForm = ({
       <div className="mb-4">
         <label
           htmlFor="doterraPv"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          className="block text-sm font-medium text-ink-soft mb-1"
         >
           PV doTERRA
         </label>
@@ -192,17 +190,15 @@ const OrderForm = ({
           min="0"
           value={doterraPv}
           onChange={(e) => onChangeField('doterraPv', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+          className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
           placeholder="Ex.: 46.5"
         />
         {doterraPvError && (
           <div
             data-testid="order-doterra-pv-error"
-            className="mt-1 p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md"
+            className="mt-1 p-2 bg-danger-soft rounded-md"
           >
-            <p className="text-sm text-red-600 dark:text-red-400">
-              {doterraPvError}
-            </p>
+            <p className="text-sm text-danger-fg">{doterraPvError}</p>
           </div>
         )}
       </div>
@@ -210,7 +206,7 @@ const OrderForm = ({
       <div className="mb-4">
         <label
           htmlFor="orderAttachment"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          className="block text-sm font-medium text-ink-soft mb-1"
         >
           Anexo (print do pedido doTERRA)
         </label>
@@ -222,15 +218,15 @@ const OrderForm = ({
             data-testid="order-attachment-existing"
             className="flex flex-wrap items-center gap-2"
           >
-            <span className="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300">
-              <ImageIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+            <span className="inline-flex items-center gap-1.5 text-sm text-ink-soft">
+              <ImageIcon className="w-4 h-4 text-ink-faint" />
               Anexo existente
             </span>
             <button
               type="button"
               data-testid="order-attachment-remove"
               onClick={() => onChangeField('attachmentRemoved', true)}
-              className="inline-flex items-center gap-1 text-sm text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+              className="inline-flex items-center gap-1 text-sm text-danger-fg transition-colors"
             >
               <X className="w-3.5 h-3.5" />
               Remover
@@ -246,7 +242,7 @@ const OrderForm = ({
               onChange={(e) =>
                 onChangeField('attachmentFile', e.target.files?.[0] || null)
               }
-              className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-primary-50 file:text-primary-700 dark:file:bg-primary-900/30 dark:file:text-primary-400 hover:file:bg-primary-100 transition-colors"
+              className="block w-full text-sm text-ink-faint file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-accent-soft file:text-accent-on-soft hover:file:bg-accent-soft transition-colors"
             />
             {previewUrl && (
               <div className="mt-2">
@@ -254,7 +250,7 @@ const OrderForm = ({
                   data-testid="order-attachment-preview"
                   src={previewUrl}
                   alt="Prévia do anexo"
-                  className="max-h-40 rounded-md border border-gray-200 dark:border-gray-700"
+                  className="max-h-40 rounded-md border border-line"
                 />
               </div>
             )}
@@ -265,7 +261,7 @@ const OrderForm = ({
       <div className="mb-4">
         <label
           htmlFor="orderNotes"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          className="block text-sm font-medium text-ink-soft mb-1"
         >
           Descrição do Pedido
         </label>
@@ -275,19 +271,17 @@ const OrderForm = ({
           onChange={(e) => onChangeField('orderNotes', e.target.value)}
           maxLength={500}
           rows={3}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+          className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
           placeholder="Acrescente informações adicionais — motivo do pedido, promoções, encomendas, etc."
         />
-        <div className="mt-1 text-right text-xs text-gray-400 dark:text-gray-500">
+        <div className="mt-1 text-right text-xs text-ink-faint">
           {orderNotes.length}/500
         </div>
       </div>
 
       <div className="mb-4">
         <div className="flex items-center justify-between mb-3">
-          <span className="font-medium text-gray-700 dark:text-gray-300">
-            Itens do Pedido
-          </span>
+          <span className="font-medium text-ink-soft">Itens do Pedido</span>
         </div>
 
         {items.map((item, index) => (
@@ -314,7 +308,7 @@ const OrderForm = ({
           type="button"
           onClick={onAddItem}
           ref={addItemBtnRef}
-          className="w-full px-3 py-2 mt-1 text-sm font-medium text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 rounded-md transition-colors flex items-center justify-center gap-1"
+          className="w-full px-3 py-2 mt-1 text-sm font-medium text-accent-on-soft hover:text-accent-on-soft bg-accent-soft hover:bg-accent-soft rounded-md transition-colors flex items-center justify-center gap-1"
         >
           <Plus className="w-4 h-4" />
           Adicionar Item
@@ -332,13 +326,13 @@ const OrderForm = ({
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
+          className="px-4 py-2 text-sm font-medium text-ink-soft hover:text-ink bg-base hover:bg-elevated rounded-md transition-colors"
         >
           Cancelar
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-gradient-to-r from-primary-700 to-primary-500 hover:from-primary-800 hover:to-primary-600 text-white font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+          className="px-4 py-2 bg-accent hover:bg-accent-hover text-accent-on font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
         >
           {isEdit ? 'Atualizar' : 'Salvar'}
         </button>

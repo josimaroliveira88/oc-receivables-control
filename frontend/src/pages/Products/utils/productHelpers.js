@@ -1,4 +1,5 @@
 import { formatBRL, toCents } from '../../../utils/money';
+import { PRODUCT_STATUS_CLASSES } from '../../../utils/badgeStyles';
 
 export const PAGE_SIZE = 20;
 
@@ -23,22 +24,20 @@ const SORTABLE_FIELDS = [
 export const PRODUCT_STATUS = {
   ATIVO: {
     label: 'Ativo',
-    className:
-      'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+    className: PRODUCT_STATUS_CLASSES.ATIVO,
   },
   INDISPONIVEL: {
     label: 'Indisponível',
-    className:
-      'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
+    className: PRODUCT_STATUS_CLASSES.INDISPONIVEL,
   },
   INATIVO: {
     label: 'Inativo',
-    className: 'bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300',
+    className: PRODUCT_STATUS_CLASSES.INATIVO,
   },
 };
 
 export const inputClass =
-  'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:text-gray-500 dark:disabled:text-gray-400 disabled:cursor-not-allowed';
+  'w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors disabled:bg-base disabled:text-ink-faint disabled:cursor-not-allowed';
 
 export const formatProductRowForCopy = (product) => {
   const firstLine = product.size

@@ -4,7 +4,7 @@ import Modal from '../../../components/Modal';
 import { MOVEMENT_TYPE_OPTIONS } from '../utils/stockHelpers';
 
 const inputClass =
-  'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:text-gray-500 dark:disabled:text-gray-400 disabled:cursor-not-allowed';
+  'w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors disabled:bg-base disabled:text-ink-faint disabled:cursor-not-allowed';
 
 const MovementDialog = ({
   isOpen,
@@ -32,9 +32,9 @@ const MovementDialog = ({
       {(requestClose) => (
         <form onSubmit={onSubmit} className="px-6 py-4">
           {error && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md">
+            <div className="mb-4 p-3 bg-danger-soft rounded-md">
               <p
-                className="text-sm text-red-600 dark:text-red-400"
+                className="text-sm text-danger-fg"
                 data-testid="movement-form-error"
               >
                 {error}
@@ -43,12 +43,12 @@ const MovementDialog = ({
           )}
 
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-ink-soft mb-1">
               Produto
             </label>
             {product ? (
               <p
-                className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-md"
+                className="px-3 py-2 text-sm text-ink bg-base border border-line rounded-md"
                 data-testid="movement-product-info"
               >
                 {product.name} ({product.code})
@@ -64,7 +64,7 @@ const MovementDialog = ({
           </div>
 
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-ink-soft mb-1">
               Tipo
             </label>
             <select
@@ -83,7 +83,7 @@ const MovementDialog = ({
           </div>
 
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-ink-soft mb-1">
               Quantidade
             </label>
             <input
@@ -101,7 +101,7 @@ const MovementDialog = ({
           </div>
 
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-ink-soft mb-1">
               Data Efetiva
             </label>
             <input
@@ -117,7 +117,7 @@ const MovementDialog = ({
           </div>
 
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-ink-soft mb-1">
               Motivo
             </label>
             <textarea
@@ -137,14 +137,14 @@ const MovementDialog = ({
               type="button"
               onClick={requestClose}
               disabled={submitting}
-              className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-sm font-medium text-ink-soft hover:text-ink bg-base hover:bg-elevated rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Fechar
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-4 py-2 bg-gradient-to-r from-primary-700 to-primary-500 hover:from-primary-800 hover:to-primary-600 text-white font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-accent hover:bg-accent-hover text-accent-on font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? 'Salvando...' : 'Salvar'}
             </button>

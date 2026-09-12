@@ -36,54 +36,46 @@ const SaleEditPaymentModal = ({
     >
       {(requestClose) => (
         <form onSubmit={onSubmit} className="px-6 py-4">
-          <div className="mb-4 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 p-3">
+          <div className="mb-4 rounded-md border border-line bg-base p-3">
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
               <div>
-                <dt className="text-xs text-gray-500 dark:text-gray-400">
-                  Nº Venda
-                </dt>
-                <dd className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <dt className="text-xs text-ink-faint">Nº Venda</dt>
+                <dd className="text-sm font-medium text-ink">
                   {sale.orderNumber}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-gray-500 dark:text-gray-400">
-                  Data do Pedido
-                </dt>
-                <dd className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <dt className="text-xs text-ink-faint">Data do Pedido</dt>
+                <dd className="text-sm font-medium text-ink">
                   {formatDateBR(sale.orderDate)}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-gray-500 dark:text-gray-400">
-                  Pessoa
-                </dt>
-                <dd className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <dt className="text-xs text-ink-faint">Pessoa</dt>
+                <dd className="text-sm font-medium text-ink">
                   {personName || '—'}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-gray-500 dark:text-gray-400">
-                  Valor Atual
-                </dt>
-                <dd className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <dt className="text-xs text-ink-faint">Valor Atual</dt>
+                <dd className="text-sm font-medium text-ink">
                   {formatBRL(parseFloat(payment.amount))}
                 </dd>
               </div>
             </dl>
           </div>
 
-          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md">
+          <div className="mb-4 p-3 bg-info-soft rounded-md">
             {isSelf ? (
-              <p className="text-sm text-blue-700 dark:text-blue-400">
+              <p className="text-sm text-info-fg">
                 Item do próprio usuário — já recebido, sem efeito no status.
               </p>
             ) : isZeroItem ? (
-              <p className="text-sm text-blue-700 dark:text-blue-400">
+              <p className="text-sm text-info-fg">
                 Nada a receber — baixa sem valor
               </p>
             ) : (
-              <p className="text-sm text-blue-700 dark:text-blue-400">
+              <p className="text-sm text-info-fg">
                 Saldo pendente: <strong>{formatBRL(pendingCents / 100)}</strong>
               </p>
             )}
@@ -92,7 +84,7 @@ const SaleEditPaymentModal = ({
           <div className="mb-4">
             <label
               htmlFor="saleEditPaymentDate"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="block text-sm font-medium text-ink-soft mb-1"
             >
               Data do Pagamento
             </label>
@@ -101,14 +93,14 @@ const SaleEditPaymentModal = ({
               type="date"
               value={paymentDate}
               onChange={(e) => onChangeDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+              className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
             />
           </div>
 
           <div className="mb-4">
             <label
               htmlFor="saleEditPaymentAmount"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="block text-sm font-medium text-ink-soft mb-1"
             >
               Valor (R$)
             </label>
@@ -123,7 +115,7 @@ const SaleEditPaymentModal = ({
           <div className="mb-4">
             <label
               htmlFor="saleEditPaymentFormType"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="block text-sm font-medium text-ink-soft mb-1"
             >
               Forma de Pagamento
             </label>
@@ -131,7 +123,7 @@ const SaleEditPaymentModal = ({
               id="saleEditPaymentFormType"
               value={paymentType}
               onChange={(e) => onChangePaymentType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+              className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
             >
               <option value="">Não informada</option>
               <option value="PIX">PIX</option>
@@ -144,7 +136,7 @@ const SaleEditPaymentModal = ({
           <div className="mb-4">
             <label
               htmlFor="saleEditPaymentNotes"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="block text-sm font-medium text-ink-soft mb-1"
             >
               Notas (opcional)
             </label>
@@ -153,16 +145,14 @@ const SaleEditPaymentModal = ({
               type="text"
               value={paymentNotes}
               onChange={(e) => onChangeNotes(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+              className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
               placeholder="Observações sobre o pagamento"
             />
           </div>
 
           {paymentError && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md">
-              <p className="text-sm text-red-600 dark:text-red-400">
-                {paymentError}
-              </p>
+            <div className="mb-4 p-3 bg-danger-soft rounded-md">
+              <p className="text-sm text-danger-fg">{paymentError}</p>
             </div>
           )}
 
@@ -170,14 +160,14 @@ const SaleEditPaymentModal = ({
             <button
               type="button"
               onClick={requestClose}
-              className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
+              className="px-4 py-2 text-sm font-medium text-ink-soft hover:text-ink bg-base hover:bg-elevated rounded-md transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-4 py-2 bg-gradient-to-r from-primary-700 to-primary-500 hover:from-primary-800 hover:to-primary-600 text-white font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-accent hover:bg-accent-hover text-accent-on font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? 'Atualizando...' : 'Atualizar'}
             </button>

@@ -52,19 +52,17 @@ const PeoplePage = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        <span className="ml-2 text-gray-500 dark:text-gray-400">
-          Carregando...
-        </span>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
+        <span className="ml-2 text-ink-faint">Carregando...</span>
       </div>
     );
   }
 
   return (
     <>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border-t-4 border-primary-600 dark:border-primary-400">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-          <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
+      <div className="bg-surface border border-line rounded-lg shadow-md">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-line px-6 py-4">
+          <h2 className="text-xl font-semibold text-ink">
             Cadastro de Clientes
           </h2>
           <div className="mt-3 sm:mt-0 flex flex-wrap gap-2">
@@ -83,10 +81,10 @@ const PeoplePage = () => {
                   : 'Mostrar apenas aniversariantes do mês'
               }
               data-testid="toggle-birthday-month"
-              className={`inline-flex items-center gap-2 px-4 py-2 font-medium rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
+              className={`inline-flex items-center gap-2 px-4 py-2 font-medium rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface ${
                 birthdayOnly
-                  ? 'bg-primary-600 hover:bg-primary-700 text-white border border-transparent'
-                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                  ? 'bg-accent hover:bg-accent-hover text-accent-on border border-transparent'
+                  : 'bg-surface text-ink-soft border border-line hover:bg-accent-soft'
               }`}
             >
               <Cake className="w-4 h-4" aria-hidden="true" />
@@ -94,7 +92,7 @@ const PeoplePage = () => {
             </button>
             <button
               onClick={() => openCreateModal()}
-              className="px-4 py-2 bg-gradient-to-r from-primary-700 to-primary-500 hover:from-primary-800 hover:to-primary-600 text-white font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              className="px-4 py-2 bg-accent hover:bg-accent-hover text-accent-on font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
             >
               Novo
             </button>
@@ -103,8 +101,8 @@ const PeoplePage = () => {
 
         <div className="px-6 py-4">
           {error && !(showCreateModal || showEditModal) && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md">
-              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            <div className="mb-4 p-3 bg-danger-soft rounded-md">
+              <p className="text-sm text-danger-fg">{error}</p>
             </div>
           )}
 

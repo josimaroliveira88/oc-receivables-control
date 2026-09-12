@@ -38,12 +38,12 @@ const PeopleTable = ({
           placeholder="Buscar por nome, WhatsApp ou Observação..."
           ariaLabel="Buscar clientes"
         />
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label className="block text-sm font-medium text-ink-soft">
           <span className="sr-only">Classificação</span>
           <select
             value={classification}
             onChange={(e) => onClassificationChange(e.target.value)}
-            className="w-full sm:w-auto px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+            className="w-full sm:w-auto px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
             aria-label="Classificação"
           >
             {CLASSIFICATION_OPTIONS.map((option) => (
@@ -55,14 +55,14 @@ const PeopleTable = ({
         </label>
       </div>
       {totalCount > 0 && (
-        <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+        <p className="mt-3 text-sm text-ink-faint">
           {totalCount === 1 ? '1 cliente' : `${totalCount} clientes`}
         </p>
       )}
 
       {people.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-500 dark:text-gray-400">
+          <p className="text-ink-faint">
             {hasActiveFilters
               ? 'Nenhum cliente encontrado para os filtros aplicados.'
               : 'Nenhum cliente cadastrado'}
@@ -71,7 +71,7 @@ const PeopleTable = ({
       ) : (
         <div className="mt-4">
           <table className="w-full text-sm text-left block lg:table lg:table-fixed">
-            <thead className="hidden lg:table-header-group bg-gray-50 dark:bg-gray-700">
+            <thead className="hidden lg:table-header-group bg-base">
               <tr>
                 <SortableHeader
                   label="Nome"
@@ -92,25 +92,25 @@ const PeopleTable = ({
                 />
                 <th
                   scope="col"
-                  className="w-[7%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
+                  className="w-[7%] px-6 py-3 text-left text-xs font-medium text-ink-faint tracking-wider"
                 >
                   WhatsApp
                 </th>
                 <th
                   scope="col"
-                  className="w-[7%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
+                  className="w-[7%] px-6 py-3 text-left text-xs font-medium text-ink-faint tracking-wider"
                 >
                   Instagram
                 </th>
                 <th
                   scope="col"
-                  className="w-[9%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
+                  className="w-[9%] px-6 py-3 text-left text-xs font-medium text-ink-faint tracking-wider"
                 >
                   Aniversário
                 </th>
                 <th
                   scope="col"
-                  className="w-[17%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
+                  className="w-[17%] px-6 py-3 text-left text-xs font-medium text-ink-faint tracking-wider"
                 >
                   Observação
                 </th>
@@ -141,40 +141,40 @@ const PeopleTable = ({
                 />
                 <th
                   scope="col"
-                  className="w-[7%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
+                  className="w-[7%] px-6 py-3 text-right text-xs font-medium text-ink-faint tracking-wider"
                 >
                   Ações
                 </th>
               </tr>
             </thead>
-            <tbody className="block lg:table-row-group bg-white dark:bg-gray-800 lg:divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="block lg:table-row-group bg-surface lg:divide-y divide-line">
               {people.map((person) => {
                 const waLink = whatsAppLink(person.whatsapp);
                 const isBirthdayMonth =
                   currentMonth === birthMonthOf(person.birthday);
                 const rowClasses = isBirthdayMonth
-                  ? 'bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/40'
-                  : 'hover:bg-gray-50 dark:hover:bg-gray-700';
+                  ? 'bg-warning-soft'
+                  : 'hover:bg-accent-soft';
                 return (
                   <tr
                     key={person.id}
-                    className={`block lg:table-row border border-gray-200 dark:border-gray-700 lg:border-0 rounded-lg lg:rounded-none shadow-sm lg:shadow-none mb-3 lg:mb-0 transition-colors ${rowClasses}`}
+                    className={`block lg:table-row border border-line lg:border-0 rounded-lg lg:rounded-none shadow-sm lg:shadow-none mb-3 lg:mb-0 transition-colors ${rowClasses}`}
                   >
                     <td
                       data-label="Nome"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 break-words text-sm text-gray-900 dark:text-gray-100 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 break-words text-sm text-ink before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
                     >
                       {person.name}
                     </td>
                     <td
                       data-label="Grupos em Comum"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 break-words text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 break-words text-sm text-ink-faint before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
                     >
                       {person.commonGroups || '-'}
                     </td>
                     <td
                       data-label="WhatsApp"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-ink-faint before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
                     >
                       {person.whatsapp ? (
                         waLink ? (
@@ -184,7 +184,7 @@ const PeopleTable = ({
                             rel="noopener noreferrer"
                             title={maskWhatsApp(person.whatsapp)}
                             aria-label={`Abrir WhatsApp ${maskWhatsApp(person.whatsapp)}`}
-                            className="inline-flex text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
+                            className="inline-flex text-accent hover:text-accent-hover transition-colors"
                           >
                             <SiWhatsapp size={20} />
                           </a>
@@ -192,7 +192,7 @@ const PeopleTable = ({
                           <span
                             title={person.whatsapp}
                             aria-label={`WhatsApp: ${person.whatsapp}`}
-                            className="inline-flex text-gray-400 dark:text-gray-500"
+                            className="inline-flex text-ink-faint"
                           >
                             <SiWhatsapp size={20} />
                           </span>
@@ -203,7 +203,7 @@ const PeopleTable = ({
                     </td>
                     <td
                       data-label="Instagram"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-ink-faint before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
                     >
                       {person.instagram ? (
                         <a
@@ -212,7 +212,7 @@ const PeopleTable = ({
                           rel="noopener noreferrer"
                           title={person.instagram}
                           aria-label={`Abrir Instagram ${person.instagram}`}
-                          className="inline-flex text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
+                          className="inline-flex text-accent hover:text-accent-hover transition-colors"
                         >
                           <SiInstagram size={20} />
                         </a>
@@ -222,14 +222,12 @@ const PeopleTable = ({
                     </td>
                     <td
                       data-label="Aniversário"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 lg:before:hidden"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-ink-faint before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
                     >
                       {person.birthday ? (
                         <span
                           className={
-                            isBirthdayMonth
-                              ? 'font-medium text-amber-700 dark:text-amber-400'
-                              : ''
+                            isBirthdayMonth ? 'font-medium text-warning-fg' : ''
                           }
                         >
                           {person.birthday}
@@ -240,7 +238,7 @@ const PeopleTable = ({
                     </td>
                     <td
                       data-label="Observação"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 lg:before:hidden"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 text-sm text-ink-faint before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
                     >
                       {person.observacao ? (
                         <span
@@ -255,25 +253,25 @@ const PeopleTable = ({
                     </td>
                     <td
                       data-label="VIP"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
                     >
                       <BoolBadge value={person.isVip} />
                     </td>
                     <td
                       data-label="Membro doTERRA"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
                     >
                       <BoolBadge value={person.isDoterraMember} />
                     </td>
                     <td
                       data-label="Equipe"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
                     >
                       <BoolBadge value={person.isTeamMember} />
                     </td>
                     <td
                       data-label="Ações"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 text-left lg:text-right text-sm font-medium before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 lg:before:hidden relative"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 text-left lg:text-right text-sm font-medium before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden relative"
                     >
                       <div className="flex justify-end">
                         <ActionMenu

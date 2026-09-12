@@ -58,7 +58,7 @@ const AttachmentPreviewModal = ({ order, onClose }) => {
               data-testid="attachment-preview-expand"
               aria-pressed={expanded}
               onClick={() => setExpanded((prev) => !prev)}
-              className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-ink-soft bg-base hover:bg-elevated rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-accent"
             >
               {expanded ? (
                 <Minimize2 className="h-4 w-4" aria-hidden="true" />
@@ -71,18 +71,16 @@ const AttachmentPreviewModal = ({ order, onClose }) => {
         )}
         {loading && (
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-            <span className="ml-2 text-gray-500 dark:text-gray-400">
-              Carregando...
-            </span>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
+            <span className="ml-2 text-ink-faint">Carregando...</span>
           </div>
         )}
         {error && (
           <div
             data-testid="attachment-preview-error"
-            className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md"
+            className="p-3 bg-danger-soft rounded-md"
           >
-            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            <p className="text-sm text-danger-fg">{error}</p>
           </div>
         )}
         {imageUrl && (
@@ -92,8 +90,8 @@ const AttachmentPreviewModal = ({ order, onClose }) => {
             alt={`Print do pedido ${order.orderNumber}`}
             className={
               expanded
-                ? 'mx-auto w-full max-h-[85vh] object-contain rounded-md border border-gray-200 dark:border-gray-700'
-                : 'mx-auto max-h-[70vh] rounded-md border border-gray-200 dark:border-gray-700'
+                ? 'mx-auto w-full max-h-[85vh] object-contain rounded-md border border-line'
+                : 'mx-auto max-h-[70vh] rounded-md border border-line'
             }
           />
         )}

@@ -16,7 +16,7 @@ import OnboardingTour from './components/OnboardingTour';
 
 const AppLayout = () => {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+    <div className="min-h-screen bg-base transition-colors">
       <Header />
       <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 md:pt-6 pb-6">
         <Outlet />

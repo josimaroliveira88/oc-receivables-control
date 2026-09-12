@@ -150,18 +150,18 @@ const OnboardingTour = () => {
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full mx-4 p-8">
+      <div className="bg-surface rounded-xl shadow-2xl max-w-md w-full mx-4 p-8">
         <div className="flex justify-center mb-4">
-          <div className="w-16 h-16 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center">
-            <IconComponent className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+          <div className="w-16 h-16 rounded-full bg-accent-soft flex items-center justify-center">
+            <IconComponent className="w-8 h-8 text-accent" />
           </div>
         </div>
 
-        <h2 className="text-xl font-bold text-center text-gray-800 dark:text-gray-100 mb-3">
+        <h2 className="text-xl font-bold text-center text-ink mb-3">
           {step.title}
         </h2>
 
-        <p className="text-gray-600 dark:text-gray-300 text-center leading-relaxed mb-6">
+        <p className="text-ink-soft text-center leading-relaxed mb-6">
           {step.description}
         </p>
 
@@ -171,23 +171,23 @@ const OnboardingTour = () => {
               key={index}
               className={`h-2 rounded-full transition-all duration-300 ${
                 index === currentStep
-                  ? 'w-3 bg-primary-600 dark:bg-primary-400'
+                  ? 'w-3 bg-accent'
                   : index < currentStep
-                    ? 'w-2 bg-primary-300 dark:bg-primary-600'
-                    : 'w-2 bg-gray-300 dark:bg-gray-600'
+                    ? 'w-2 bg-accent-soft'
+                    : 'w-2 bg-ink-faint'
               }`}
             />
           ))}
         </div>
 
-        <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-4">
+        <p className="text-center text-sm text-ink-faint mb-4">
           Passo {currentStep + 1} de {steps.length}
         </p>
 
         <div className="flex items-center justify-between">
           <button
             onClick={endTour}
-            className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+            className="text-sm text-ink-faint hover:text-ink transition-colors"
           >
             Pular Tutorial
           </button>
@@ -196,7 +196,7 @@ const OnboardingTour = () => {
             {!isFirst && (
               <button
                 onClick={prevStep}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-ink-soft bg-base hover:bg-elevated rounded-md transition-colors"
               >
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 Anterior
@@ -205,7 +205,7 @@ const OnboardingTour = () => {
 
             <button
               onClick={nextStep}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-primary-700 to-primary-500 hover:from-primary-800 hover:to-primary-600 rounded-md shadow-sm transition-all"
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-accent-on bg-accent hover:bg-accent-hover rounded-md shadow-sm transition-all"
             >
               {isLast ? 'Começar a Usar!' : 'Próximo'}
               {!isLast && <ChevronRight className="w-4 h-4 ml-1" />}

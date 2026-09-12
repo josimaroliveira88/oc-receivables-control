@@ -58,7 +58,7 @@ const StatusBadgeDropdown = ({ product, onStatusChange }) => {
         aria-expanded={open}
         aria-label={`Alterar status do produto ${product.name}`}
         data-testid={`product-status-${status}`}
-        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${cfg.className} hover:ring-2 hover:ring-primary-500/40 focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer transition-all`}
+        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${cfg.className} hover:ring-2 hover:ring-accent focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer transition-all`}
       >
         {status === 'INDISPONIVEL' && <AlertCircle className="w-3.5 h-3.5" />}
         {cfg.label}
@@ -79,7 +79,7 @@ const StatusBadgeDropdown = ({ product, onStatusChange }) => {
             role="menu"
             aria-orientation="vertical"
             data-testid={`product-status-menu-${product.id}`}
-            className="absolute left-1/2 -translate-x-1/2 mt-2 z-[80] w-44 origin-top bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 focus:outline-none"
+            className="absolute left-1/2 -translate-x-1/2 mt-2 z-[80] w-44 origin-top bg-surface border border-line rounded-lg shadow-lg py-1 focus:outline-none"
           >
             {STATUS_OPTIONS.map((option) => {
               const optionCfg =
@@ -92,7 +92,7 @@ const StatusBadgeDropdown = ({ product, onStatusChange }) => {
                   role="menuitem"
                   onClick={(e) => handleSelect(e, option)}
                   data-testid={`product-status-${product.id}-option-${option}`}
-                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 focus:outline-none transition-colors"
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-ink-soft hover:bg-accent-soft focus:bg-accent-soft focus:outline-none transition-colors"
                 >
                   <span
                     className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${optionCfg.className}`}
@@ -104,7 +104,7 @@ const StatusBadgeDropdown = ({ product, onStatusChange }) => {
                   </span>
                   {isCurrent && (
                     <Check
-                      className="w-3.5 h-3.5 ml-auto text-primary-600 dark:text-primary-400"
+                      className="w-3.5 h-3.5 ml-auto text-accent"
                       aria-hidden="true"
                     />
                   )}

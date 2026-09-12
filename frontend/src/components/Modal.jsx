@@ -55,18 +55,16 @@ const Modal = ({
       }}
     >
       <div
-        className={`bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full ${maxWidth} max-h-[90vh] overflow-y-auto`}
+        className={`bg-surface rounded-lg shadow-xl w-full ${maxWidth} max-h-[90vh] overflow-y-auto`}
       >
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-            {title}
-          </h3>
+        <div className="px-6 py-4 border-b border-line flex items-center justify-between">
+          <h3 className="text-lg font-medium text-ink">{title}</h3>
           <button
             type="button"
             aria-label={closeAriaLabel}
             onClick={requestClose}
             disabled={submitting}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-2xl leading-none disabled:opacity-50"
+            className="text-ink-faint hover:text-ink text-2xl leading-none disabled:opacity-50"
           >
             &times;
           </button>

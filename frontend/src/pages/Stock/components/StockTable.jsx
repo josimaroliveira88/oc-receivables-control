@@ -28,7 +28,7 @@ const StockTable = ({
           ariaLabel="Buscar produtos em estoque"
         />
         {totalCount > 0 && (
-          <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+          <p className="mt-3 text-sm text-ink-faint">
             {totalCount === 1 ? '1 produto' : `${totalCount} produtos`}
           </p>
         )}
@@ -37,7 +37,7 @@ const StockTable = ({
       <div className="px-6 py-4">
         {inventory.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500 dark:text-gray-400">
+            <p className="text-ink-faint">
               {hasActiveFilters
                 ? 'Nenhum produto encontrado para os filtros aplicados.'
                 : 'Nenhum produto em estoque'}
@@ -45,7 +45,7 @@ const StockTable = ({
           </div>
         ) : (
           <table className="w-full text-sm text-left block lg:table lg:table-fixed">
-            <thead className="hidden lg:table-header-group bg-gray-50 dark:bg-gray-700">
+            <thead className="hidden lg:table-header-group bg-base">
               <tr>
                 <SortableHeader
                   label="Código"
@@ -84,39 +84,39 @@ const StockTable = ({
                 />
                 <th
                   scope="col"
-                  className="w-[20%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wider"
+                  className="w-[20%] px-6 py-3 text-right text-xs font-medium text-ink-faint tracking-wider"
                 >
                   Ações
                 </th>
               </tr>
             </thead>
-            <tbody className="block lg:table-row-group bg-white dark:bg-gray-800 lg:divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="block lg:table-row-group bg-surface lg:divide-y divide-line">
               {inventory.map((item) => (
                 <tr
                   key={item.productId}
-                  className="block lg:table-row border border-gray-200 dark:border-gray-700 lg:border-0 rounded-lg lg:rounded-none shadow-sm lg:shadow-none mb-3 lg:mb-0 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  className="block lg:table-row border border-line lg:border-0 rounded-lg lg:rounded-none shadow-sm lg:shadow-none mb-3 lg:mb-0 hover:bg-accent-soft transition-colors"
                 >
                   <td
                     data-label="Código"
-                    className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                    className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-ink before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
                   >
                     {item.code}
                   </td>
                   <td
                     data-label="Produto"
-                    className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 break-words text-sm text-gray-900 dark:text-gray-100 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                    className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 break-words text-sm text-ink before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
                   >
                     {item.name}
                   </td>
                   <td
                     data-label="Tamanho"
-                    className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                    className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-ink-faint before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
                   >
                     {item.size || '-'}
                   </td>
                   <td
                     data-label="Estoque Atual"
-                    className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-left lg:text-right before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                    className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-left lg:text-right before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
                   >
                     <span
                       data-testid={`stock-quantity-${item.productId}`}
@@ -127,7 +127,7 @@ const StockTable = ({
                   </td>
                   <td
                     data-label="Ações"
-                    className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 text-left lg:text-right text-sm font-medium before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden relative"
+                    className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 text-left lg:text-right text-sm font-medium before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden relative"
                   >
                     <div className="flex items-center justify-end gap-2">
                       <ActionMenu

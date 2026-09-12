@@ -51,7 +51,7 @@ const SalesTable = ({
 
       {sales.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-500 dark:text-gray-400">
+          <p className="text-ink-faint">
             {hasActiveFilters
               ? 'Nenhuma venda encontrada para os filtros aplicados.'
               : 'Nenhuma venda cadastrada'}
@@ -60,7 +60,7 @@ const SalesTable = ({
       ) : (
         <div className="mt-4">
           <table className="w-full text-sm text-left block lg:table lg:table-fixed">
-            <thead className="hidden lg:table-header-group bg-gray-50 dark:bg-gray-700">
+            <thead className="hidden lg:table-header-group bg-base">
               <tr>
                 <SortableHeader
                   label="Data"
@@ -97,7 +97,7 @@ const SalesTable = ({
                 />
                 <th
                   scope="col"
-                  className="w-[10%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300"
+                  className="w-[10%] px-6 py-3 text-left text-xs font-medium text-ink-faint"
                 >
                   Recebido
                 </th>
@@ -127,92 +127,90 @@ const SalesTable = ({
                 />
                 <th
                   scope="col"
-                  className="w-[14%] px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300"
+                  className="w-[14%] px-6 py-3 text-right text-xs font-medium text-ink-faint"
                 >
                   Ações
                 </th>
               </tr>
             </thead>
-            <tbody className="block lg:table-row-group bg-white dark:bg-gray-800 lg:divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="block lg:table-row-group bg-surface lg:divide-y divide-line">
               {sales.map((sale) => {
                 const { totalCents, paidCents, pendingCents } =
                   getSaleFinancials(sale);
                 const receivedColorClass =
                   paidCents < totalCents
-                    ? 'text-red-600 dark:text-red-400'
+                    ? 'text-danger-fg'
                     : paidCents === totalCents
-                      ? 'text-green-600 dark:text-green-400'
-                      : 'text-blue-600 dark:text-blue-400';
+                      ? 'text-success-fg'
+                      : 'text-info-fg';
                 const showPaymentAction = shouldShowSalePaymentAction(sale);
                 const paymentActionLabel = getSalePaymentActionLabel(sale);
                 return (
                   <tr
                     key={sale.id}
-                    className="block lg:table-row border border-gray-200 dark:border-gray-700 lg:border-0 rounded-lg lg:rounded-none shadow-sm lg:shadow-none mb-3 lg:mb-0 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    className="block lg:table-row border border-line lg:border-0 rounded-lg lg:rounded-none shadow-sm lg:shadow-none mb-3 lg:mb-0 hover:bg-accent-soft transition-colors"
                   >
                     <td
                       data-label="Data"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-ink before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
                     >
                       {formatDateBR(sale.orderDate)}
                     </td>
                     <td
                       data-label="Cliente"
                       title={getSaleClientTooltip(sale)}
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 break-words text-sm text-gray-900 dark:text-gray-100 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 break-words text-sm text-ink before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
                     >
                       {getSaleClientName(sale) || '—'}
                     </td>
                     <td
                       data-label="Valor (R$)"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-ink before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
                     >
                       {formatBRL(parseFloat(sale.totalValue))}
                     </td>
                     <td
                       data-label="Pendente"
-                      className={`block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm ${pendingCents === 0 ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-gray-100'} before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden`}
+                      className={`block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm ${pendingCents === 0 ? 'text-ink-faint' : 'text-ink'} before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden`}
                     >
                       {formatBRL(pendingCents / 100)}
                     </td>
                     <td
                       data-label="Recebido"
-                      className={`block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm ${receivedColorClass} before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden`}
+                      className={`block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm ${receivedColorClass} before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden`}
                     >
                       {formatBRL(paidCents / 100)}
                     </td>
                     <td
                       data-label="Entrega"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
                     >
                       <DeliveryBadge deliveredAt={sale.deliveredAt} />
                     </td>
                     <td
                       data-label="Descrição"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
                     >
                       {sale.orderNotes ? (
                         <span
                           title={sale.orderNotes}
-                          className="block text-sm text-gray-900 dark:text-gray-100 truncate"
+                          className="block text-sm text-ink truncate"
                         >
                           {sale.orderNotes}
                         </span>
                       ) : (
-                        <span className="text-sm text-gray-400 dark:text-gray-500">
-                          —
-                        </span>
+                        <span className="text-sm text-ink-faint">—</span>
                       )}
                     </td>
                     <td
                       data-label="Status"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
                     >
                       <StatusBadge status={sale.status} />
                     </td>
                     <td
                       data-label="Ações"
-                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 text-left lg:text-right text-sm font-medium before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-gray-500 dark:before:text-gray-400 before:mb-1 before:uppercase lg:before:hidden"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 text-left lg:text-right text-sm font-medium before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
                     >
                       <div className="flex justify-end">
                         <ActionMenu

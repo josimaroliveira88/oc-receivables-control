@@ -58,7 +58,7 @@ const ProductCombobox = ({
             onFocus={() => setOpen(true)}
             placeholder="Busque um produto..."
             aria-label="Produto"
-            className="w-full px-3 py-2 pr-8 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-sm"
+            className="w-full px-3 py-2 pr-8 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors text-sm"
           />
           {open && (
             <>
@@ -66,9 +66,9 @@ const ProductCombobox = ({
                 className="fixed inset-0 z-[60]"
                 onClick={() => setOpen(false)}
               />
-              <ul className="absolute z-[70] mt-1 max-h-60 w-full overflow-auto bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg">
+              <ul className="absolute z-[70] mt-1 max-h-60 w-full overflow-auto bg-surface border border-line rounded-md shadow-lg">
                 {filtered.length === 0 && (
-                  <li className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                  <li className="px-3 py-2 text-sm text-ink-faint">
                     Nenhum produto encontrado
                   </li>
                 )}
@@ -76,7 +76,7 @@ const ProductCombobox = ({
                   <li
                     key={p.id}
                     onMouseDown={() => handleSelect(p.id)}
-                    className="cursor-pointer px-3 py-2 text-sm text-gray-900 dark:text-gray-100 hover:bg-primary-50 dark:hover:bg-primary-900/40 transition-colors"
+                    className="cursor-pointer px-3 py-2 text-sm text-ink hover:bg-accent-soft transition-colors"
                   >
                     <span className="font-medium">{p.name}</span> ({p.code}) —{' '}
                     {subtitle(p)}
@@ -90,7 +90,7 @@ const ProductCombobox = ({
           <button
             type="button"
             onClick={handleClear}
-            className="px-3 py-2 text-xs font-medium text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-md transition-colors whitespace-nowrap"
+            className="px-3 py-2 text-xs font-medium text-danger-fg bg-danger-soft rounded-md transition-colors whitespace-nowrap"
           >
             Limpar produto
           </button>

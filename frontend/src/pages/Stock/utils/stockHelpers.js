@@ -1,17 +1,20 @@
+import {
+  MOVEMENT_TYPE_CLASSES,
+  STOCK_QUANTITY_CLASSES,
+} from '../../../utils/badgeStyles';
+
 export const MOVEMENT_TYPES = {
   ENTRADA: {
     label: 'Entrada',
-    className:
-      'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+    className: MOVEMENT_TYPE_CLASSES.ENTRADA,
   },
   SAIDA: {
     label: 'Saída',
-    className: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
+    className: MOVEMENT_TYPE_CLASSES.SAIDA,
   },
   AJUSTE: {
     label: 'Ajuste',
-    className:
-      'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+    className: MOVEMENT_TYPE_CLASSES.AJUSTE,
   },
 };
 
@@ -26,12 +29,12 @@ export const LOW_STOCK_THRESHOLD = 5;
 export const stockBadgeClass = (quantity) => {
   const value = Number(quantity ?? 0);
   if (value <= 0) {
-    return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400';
+    return STOCK_QUANTITY_CLASSES.missing;
   }
   if (value <= LOW_STOCK_THRESHOLD) {
-    return 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400';
+    return STOCK_QUANTITY_CLASSES.low;
   }
-  return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400';
+  return STOCK_QUANTITY_CLASSES.ok;
 };
 
 export const formatQuantity = (n) => String(Number(n ?? 0));

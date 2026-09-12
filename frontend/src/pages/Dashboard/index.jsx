@@ -19,20 +19,18 @@ const DashboardPage = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        <span className="ml-2 text-gray-500 dark:text-gray-400">
-          Carregando...
-        </span>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
+        <span className="ml-2 text-ink-faint">Carregando...</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border-t-4 border-primary-600 dark:border-primary-400">
+      <div className="bg-surface border border-line rounded-lg shadow-md">
         <div className="p-6">
-          <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md">
-            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          <div className="p-3 bg-danger-soft rounded-md">
+            <p className="text-sm text-danger-fg">{error}</p>
           </div>
         </div>
       </div>
@@ -41,7 +39,7 @@ const DashboardPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border-t-4 border-primary-600 dark:border-primary-400">
+      <div className="bg-surface border border-line rounded-lg shadow-md">
         <DashboardHeader
           exporting={exporting}
           canExport={canExport}

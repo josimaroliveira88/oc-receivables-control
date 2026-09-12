@@ -55,14 +55,14 @@ const ProductForm = ({
       {error && (
         <div
           data-testid="product-form-error"
-          className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md"
+          className="mb-4 p-3 bg-danger-soft rounded-md"
         >
-          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          <p className="text-sm text-danger-fg">{error}</p>
         </div>
       )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-sm font-medium text-ink-soft mb-1">
             Código
           </label>
           {isEdit ? (
@@ -74,7 +74,7 @@ const ProductForm = ({
                 title="O código não pode ser alterado"
                 className={inputClass}
               />
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              <p className="mt-1 text-xs text-ink-faint">
                 O código não pode ser alterado.
               </p>
             </>
@@ -90,7 +90,7 @@ const ProductForm = ({
           )}
         </div>
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-sm font-medium text-ink-soft mb-1">
             Produto
           </label>
           <input
@@ -103,7 +103,7 @@ const ProductForm = ({
           />
         </div>
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-sm font-medium text-ink-soft mb-1">
             Tamanho
           </label>
           <input
@@ -116,11 +116,11 @@ const ProductForm = ({
           />
         </div>
         <div className="mb-4">
-          <span className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <span className="block text-sm font-medium text-ink-soft mb-1">
             Tipo de produto
           </span>
           <div className="flex items-center gap-4 pt-1">
-            <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <label className="inline-flex items-center gap-2 text-sm text-ink-soft">
               <input
                 type="radio"
                 name="product-type"
@@ -128,11 +128,11 @@ const ProductForm = ({
                 checked={(values.productType || 'SIMPLES') === 'SIMPLES'}
                 onChange={() => handleTypeChange('SIMPLES')}
                 data-testid="product-type-radio-SIMPLES"
-                className="text-primary-600 focus:ring-primary-500"
+                className="text-accent focus:ring-accent"
               />
               Simples
             </label>
-            <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <label className="inline-flex items-center gap-2 text-sm text-ink-soft">
               <input
                 type="radio"
                 name="product-type"
@@ -140,38 +140,38 @@ const ProductForm = ({
                 checked={(values.productType || 'SIMPLES') === 'KIT'}
                 onChange={() => handleTypeChange('KIT')}
                 data-testid="product-type-radio-KIT"
-                className="text-primary-600 focus:ring-primary-500"
+                className="text-accent focus:ring-accent"
               />
               Kit
             </label>
           </div>
         </div>
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-sm font-medium text-ink-soft mb-1">
             Preço Regular (R$)
           </label>
           <CurrencyInput
             value={values.regularPrice}
             onChange={(e) => onChangeField('regularPrice', e.target.value)}
             required
-            className="disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:text-gray-500 dark:disabled:text-gray-400 disabled:cursor-not-allowed"
+            className="disabled:bg-base disabled:text-ink-faint disabled:cursor-not-allowed"
             placeholder="Digite o preço regular"
           />
         </div>
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-sm font-medium text-ink-soft mb-1">
             Preço de Membro (R$)
           </label>
           <CurrencyInput
             value={values.memberPrice}
             onChange={(e) => onChangeField('memberPrice', e.target.value)}
             required
-            className="disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:text-gray-500 dark:disabled:text-gray-400 disabled:cursor-not-allowed"
+            className="disabled:bg-base disabled:text-ink-faint disabled:cursor-not-allowed"
             placeholder="Digite o preço de membro"
           />
         </div>
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-sm font-medium text-ink-soft mb-1">
             PV
           </label>
           <input
@@ -187,7 +187,7 @@ const ProductForm = ({
         </div>
         {isEdit && (
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-ink-soft mb-1">
               Status
             </label>
             <select
@@ -204,11 +204,11 @@ const ProductForm = ({
         )}
       </div>
       {isKit && (
-        <div className="mb-4 p-3 border border-primary-200 dark:border-primary-800 rounded-md">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <div className="mb-4 p-3 border border-line rounded-md">
+          <label className="block text-sm font-medium text-ink-soft mb-1">
             Componentes do kit
           </label>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+          <p className="text-xs text-ink-faint mb-3">
             Vincule ao menos um produto simples ao kit.
           </p>
           {components.map((comp, index) => (
@@ -236,12 +236,12 @@ const ProductForm = ({
                 onChange={(e) =>
                   updateComponent(index, 'quantity', e.target.value)
                 }
-                className="w-20 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-sm"
+                className="w-20 px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors text-sm"
               />
               <button
                 type="button"
                 onClick={() => removeComponent(index)}
-                className="px-3 py-2 text-xs font-medium text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-md transition-colors whitespace-nowrap"
+                className="px-3 py-2 text-xs font-medium text-danger-fg bg-danger-soft rounded-md transition-colors whitespace-nowrap"
               >
                 Remover
               </button>
@@ -250,14 +250,14 @@ const ProductForm = ({
           <button
             type="button"
             onClick={addComponent}
-            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-primary-700 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-md transition-colors"
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-accent-on-soft hover:bg-accent-soft rounded-md transition-colors"
           >
             <Plus size={16} /> Adicionar componente
           </button>
         </div>
       )}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label className="block text-sm font-medium text-ink-soft mb-1">
           URL do produto no site da dōTERRA
         </label>
         <input
@@ -272,7 +272,7 @@ const ProductForm = ({
         <button
           type="button"
           onClick={onClose}
-          className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
+          className="px-4 py-2 text-sm font-medium text-ink-soft hover:text-ink bg-base hover:bg-elevated rounded-md transition-colors"
         >
           Fechar
         </button>
@@ -281,14 +281,14 @@ const ProductForm = ({
             type="button"
             onClick={onSaveAndEditNext}
             disabled={!hasNextProduct}
-            className="px-4 py-2 text-sm font-medium text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+            className="px-4 py-2 text-sm font-medium text-accent-on-soft bg-accent-soft hover:bg-accent-soft disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
           >
             Salvar e editar próximo
           </button>
         )}
         <button
           type="submit"
-          className="px-4 py-2 bg-gradient-to-r from-primary-700 to-primary-500 hover:from-primary-800 hover:to-primary-600 text-white font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+          className="px-4 py-2 bg-accent hover:bg-accent-hover text-accent-on font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
         >
           Salvar
         </button>

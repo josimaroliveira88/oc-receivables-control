@@ -46,22 +46,20 @@ const MobileDrawer = () => {
 
   return (
     <>
-      <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-primary-800 to-primary-600 md:hidden">
+      <div className="fixed top-0 left-0 right-0 z-40 bg-surface border-b border-line shadow-sm md:hidden">
         <div className="flex items-center justify-between px-4 py-3">
           <button
             onClick={() => setIsOpen(true)}
-            className="p-2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-md transition-colors"
+            className="p-2 text-ink-soft hover:text-accent-on-soft hover:bg-accent-soft rounded-md transition-colors"
             aria-label="Abrir menu"
           >
             <Menu className="w-5 h-5" />
           </button>
-          <h1 className="text-lg font-bold text-white">
-            Controle de Recebíveis
-          </h1>
+          <h1 className="text-lg font-bold text-ink">Controle de Recebíveis</h1>
           <div className="flex items-center space-x-1">
             <button
               onClick={toggleTheme}
-              className="p-2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-md transition-colors"
+              className="p-2 text-ink-soft hover:text-accent-on-soft hover:bg-accent-soft rounded-md transition-colors"
               aria-label={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
             >
               {theme === 'dark' ? (
@@ -72,7 +70,7 @@ const MobileDrawer = () => {
             </button>
             {user && (
               <span
-                className="p-1.5 text-white/80 bg-white/10 rounded-md"
+                className="p-1.5 text-ink-soft bg-base rounded-md"
                 aria-label="Usuário logado"
               >
                 <User className="w-5 h-5" />
@@ -94,17 +92,15 @@ const MobileDrawer = () => {
       <aside
         ref={drawerRef}
         aria-label="Menu de navegação"
-        className={`fixed top-0 left-0 h-full w-64 z-50 bg-white dark:bg-gray-800 shadow-xl transform transition-transform md:hidden flex flex-col ${
+        className={`fixed top-0 left-0 h-full w-64 z-50 bg-surface shadow-xl transform transition-transform md:hidden flex flex-col ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">
-            Menu
-          </h2>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-line">
+          <h2 className="text-lg font-bold text-ink">Menu</h2>
           <button
             onClick={closeDrawer}
-            className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            className="p-1.5 text-ink-faint hover:text-ink transition-colors"
             aria-label="Fechar menu"
           >
             <X className="w-5 h-5" />
@@ -120,8 +116,8 @@ const MobileDrawer = () => {
               className={({ isActive }) =>
                 `flex items-center px-4 py-3 text-sm font-medium transition-colors ${
                   isActive
-                    ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30'
-                    : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    ? 'text-accent-on-soft bg-accent-soft'
+                    : 'text-ink-soft hover:text-accent-on-soft hover:bg-accent-soft'
                 }`
               }
             >
@@ -131,13 +127,13 @@ const MobileDrawer = () => {
           ))}
         </nav>
 
-        <div className="border-t border-gray-200 dark:border-gray-700 py-2">
+        <div className="border-t border-line py-2">
           <button
             onClick={() => {
               closeDrawer();
               window.dispatchEvent(new Event('start-onboarding-tour'));
             }}
-            className="w-full flex items-center px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="w-full flex items-center px-4 py-3 text-sm text-ink-soft hover:bg-accent-soft transition-colors"
           >
             <HelpCircle className="w-5 h-5 mr-3" />
             Tutorial
@@ -148,7 +144,7 @@ const MobileDrawer = () => {
                 closeDrawer();
                 logout();
               }}
-              className="w-full flex items-center px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="w-full flex items-center px-4 py-3 text-sm text-danger-fg hover:bg-accent-soft transition-colors"
             >
               <LogOut className="w-5 h-5 mr-3" />
               Sair

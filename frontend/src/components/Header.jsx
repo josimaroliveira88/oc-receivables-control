@@ -28,11 +28,9 @@ const Header = () => {
   const { logout, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   return (
-    <header className="hidden md:block bg-gradient-to-r from-primary-800 to-primary-600 shadow-md">
+    <header className="hidden md:block bg-surface border-b border-line shadow-sm">
       <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">
-          Controle de Recebíveis
-        </h1>
+        <h1 className="text-2xl font-bold text-ink">Controle de Recebíveis</h1>
         <div className="flex items-center space-x-3">
           <nav className="hidden md:flex items-center space-x-2 mr-4">
             {navLinks.map(({ to, icon: Icon, label }) => (
@@ -42,8 +40,8 @@ const Header = () => {
                 className={({ isActive }) =>
                   `px-3 py-2 text-sm font-medium rounded-md transition-colors inline-flex items-center ${
                     isActive
-                      ? 'text-white bg-white/20'
-                      : 'text-white/80 hover:text-white hover:bg-white/10'
+                      ? 'text-accent-on-soft bg-accent-soft'
+                      : 'text-ink-soft hover:text-accent-on-soft hover:bg-accent-soft'
                   }`
                 }
               >
@@ -56,7 +54,7 @@ const Header = () => {
             onClick={() =>
               window.dispatchEvent(new Event('start-onboarding-tour'))
             }
-            className="hidden md:inline-flex items-center p-2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-md transition-colors"
+            className="hidden md:inline-flex items-center p-2 text-ink-soft hover:text-accent-on-soft hover:bg-accent-soft rounded-md transition-colors"
             aria-label="Tutorial"
             title="Tutorial"
           >
@@ -64,7 +62,7 @@ const Header = () => {
           </button>
           <button
             onClick={toggleTheme}
-            className="hidden md:inline-flex items-center p-2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-md transition-colors"
+            className="hidden md:inline-flex items-center p-2 text-ink-soft hover:text-accent-on-soft hover:bg-accent-soft rounded-md transition-colors"
             aria-label={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
           >
             {theme === 'dark' ? (
@@ -74,14 +72,14 @@ const Header = () => {
             )}
           </button>
           {user && (
-            <span className="hidden md:inline-flex items-center px-3 py-1.5 text-sm text-white/80 bg-white/10 rounded-md">
+            <span className="hidden md:inline-flex items-center px-3 py-1.5 text-sm text-ink-soft bg-base rounded-md">
               <User className="w-4 h-4 mr-1.5" />
               {user.username}
             </span>
           )}
           <button
             onClick={logout}
-            className="hidden md:inline-flex items-center px-4 py-2 text-sm font-medium text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-md transition-colors"
+            className="hidden md:inline-flex items-center px-4 py-2 text-sm font-medium text-ink-soft hover:text-accent-on-soft hover:bg-accent-soft rounded-md transition-colors"
           >
             <LogOut className="w-4 h-4 mr-1" />
             Sair

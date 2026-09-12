@@ -48,14 +48,14 @@ export const ToastProvider = ({ children }) => {
             key={toast.id}
             className={`flex items-center px-4 py-3 rounded-md shadow-lg text-sm font-medium transition-all transform translate-x-0 opacity-100 ${
               toast.type === 'success'
-                ? 'bg-green-600 text-white'
-                : 'bg-red-600 text-white'
+                ? 'bg-green-700 text-white'
+                : 'bg-red-700 text-white'
             }`}
           >
             <span className="flex-1">{formatToastMessage(toast.message)}</span>
             <button
               onClick={() => removeToast(toast.id)}
-              className="ml-3 text-white hover:text-gray-200 text-lg leading-none"
+              className="ml-3 text-white/80 hover:text-white text-lg leading-none"
             >
               &times;
             </button>

@@ -90,7 +90,7 @@ const ActionMenu = ({
         aria-expanded={open}
         aria-label={ariaLabel}
         data-testid={`${testIdPrefix}-trigger`}
-        className="inline-flex items-center justify-center p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
+        className="inline-flex items-center justify-center p-2 rounded-lg text-ink-faint hover:bg-accent-soft focus:outline-none focus:ring-2 focus:ring-accent transition-colors"
       >
         <MoreVertical className="w-5 h-5" aria-hidden="true" />
       </button>
@@ -110,17 +110,17 @@ const ActionMenu = ({
             role="menu"
             aria-orientation="vertical"
             data-testid={`${testIdPrefix}-menu`}
-            className={`absolute right-0 ${openUpward ? 'bottom-full mb-2 origin-bottom-right' : 'mt-2 origin-top-right'} z-[80] w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700 rounded-lg shadow-lg py-1 focus:outline-none`}
+            className={`absolute right-0 ${openUpward ? 'bottom-full mb-2 origin-bottom-right' : 'mt-2 origin-top-right'} z-[80] w-44 bg-surface border border-line divide-y divide-line rounded-lg shadow-lg py-1 focus:outline-none`}
           >
             {actions.map((action) => {
               const Icon = action.icon;
               const isDanger = action.variant === 'danger';
               const isPrimary = action.variant === 'primary';
               const itemClasses = isDanger
-                ? 'flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-300 focus:bg-red-50 dark:focus:bg-red-900/20 focus:outline-none transition-colors'
+                ? 'flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-danger-fg hover:bg-danger-soft focus:bg-danger-soft focus:outline-none transition-colors'
                 : isPrimary
-                  ? 'flex w-full items-center gap-2 px-4 py-2 text-left text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 focus:outline-none transition-colors'
-                  : 'flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 focus:outline-none transition-colors';
+                  ? 'flex w-full items-center gap-2 px-4 py-2 text-left text-sm font-medium text-accent-on bg-accent hover:bg-accent-hover focus:outline-none transition-colors'
+                  : 'flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-ink-soft hover:bg-accent-soft focus:bg-accent-soft focus:outline-none transition-colors';
 
               return (
                 <button

@@ -1,5 +1,7 @@
 import flowbitePlugin from 'flowbite/plugin.js';
 
+const cssVar = (name) => `var(${name})`;
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: 'class',
@@ -11,22 +13,56 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+        base: cssVar('--bg'),
+        surface: cssVar('--bg-surface'),
+        elevated: cssVar('--bg-elevated'),
+        line: cssVar('--border'),
+        ink: {
+          DEFAULT: cssVar('--text-primary'),
+          soft: cssVar('--text-secondary'),
+          faint: cssVar('--text-tertiary'),
         },
-      },
-      backgroundImage: {
-        'brand-gradient': 'linear-gradient(to right, #1e40af, #2563eb)',
-        'brand-gradient-soft': 'linear-gradient(to right, #1d4ed8, #3b82f6)',
+        accent: {
+          DEFAULT: cssVar('--accent'),
+          hover: cssVar('--accent-hover'),
+          soft: cssVar('--accent-soft'),
+          on: cssVar('--accent-text-on'),
+          'on-soft': cssVar('--accent-on-soft'),
+        },
+        success: {
+          soft: cssVar('--success-bg'),
+          fg: cssVar('--success-fg'),
+        },
+        warning: {
+          soft: cssVar('--warning-bg'),
+          fg: cssVar('--warning-fg'),
+        },
+        info: {
+          soft: cssVar('--info-bg'),
+          fg: cssVar('--info-fg'),
+        },
+        danger: {
+          soft: cssVar('--danger-bg'),
+          fg: cssVar('--danger-fg'),
+        },
+        mystic: {
+          soft: cssVar('--mystic-bg'),
+          fg: cssVar('--mystic-fg'),
+        },
+        badge: {
+          boleto: {
+            bg: cssVar('--badge-boleto-bg'),
+            fg: cssVar('--badge-boleto-fg'),
+          },
+          infinitepay: {
+            bg: cssVar('--badge-infinitepay-bg'),
+            fg: cssVar('--badge-infinitepay-fg'),
+          },
+          pix: {
+            bg: cssVar('--badge-pix-bg'),
+            fg: cssVar('--badge-pix-fg'),
+          },
+        },
       },
     },
   },

@@ -24,9 +24,9 @@ const WhatsappField = ({ value, onChange }) => {
         inputMode="numeric"
       />
       {outOfPattern && (
-        <div className="mt-2 flex items-start gap-2 p-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
-          <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-          <p className="text-xs text-amber-700 dark:text-amber-300">
+        <div className="mt-2 flex items-start gap-2 p-2.5 bg-warning-soft rounded-md">
+          <AlertTriangle className="w-4 h-4 text-warning-fg shrink-0 mt-0.5" />
+          <p className="text-xs text-warning-fg">
             Número fora do padrão (código do país + DDD + número). Ex.: +55 (11)
             99999-8888. Você pode salvar mesmo assim.
           </p>

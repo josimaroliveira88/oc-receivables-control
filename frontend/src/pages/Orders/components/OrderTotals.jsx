@@ -20,10 +20,10 @@ const OrderTotals = ({
   return (
     <div className="mb-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-md p-3">
+        <div className="bg-base rounded-md p-3">
           <label
             htmlFor="shippingValue"
-            className="block text-xs text-gray-500 dark:text-gray-400"
+            className="block text-xs text-ink-faint"
           >
             Frete (R$)
           </label>
@@ -37,21 +37,17 @@ const OrderTotals = ({
           {shippingValueError && (
             <div
               data-testid="order-freight-error"
-              className="mt-1 p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md"
+              className="mt-1 p-2 bg-danger-soft rounded-md"
             >
-              <p className="text-sm text-red-600 dark:text-red-400">
-                {shippingValueError}
-              </p>
+              <p className="text-sm text-danger-fg">{shippingValueError}</p>
             </div>
           )}
         </div>
-        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-md p-3">
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            Valor Total
-          </div>
+        <div className="bg-base rounded-md p-3">
+          <div className="text-xs text-ink-faint">Valor Total</div>
           <div
             data-testid="order-totals-charged-footer"
-            className="text-lg font-medium text-gray-900 dark:text-gray-100"
+            className="text-lg font-medium text-ink"
           >
             {formatBRL(fromCents(totalCents))}
           </div>

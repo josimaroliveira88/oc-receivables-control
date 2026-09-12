@@ -47,7 +47,7 @@ const SaleForm = ({
       <div className="mb-4">
         <label
           htmlFor="saleClient"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          className="block text-sm font-medium text-ink-soft mb-1"
         >
           Cliente
         </label>
@@ -55,7 +55,7 @@ const SaleForm = ({
           id="saleClient"
           value={clientPersonId}
           onChange={(e) => onChangeField('clientPersonId', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+          className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
         >
           <option value="">Selecione um cliente</option>
           {people
@@ -69,11 +69,9 @@ const SaleForm = ({
         {clientError && (
           <div
             data-testid="sale-client-error"
-            className="mt-1 p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md"
+            className="mt-1 p-2 bg-danger-soft rounded-md"
           >
-            <p className="text-sm text-red-600 dark:text-red-400">
-              {clientError}
-            </p>
+            <p className="text-sm text-danger-fg">{clientError}</p>
           </div>
         )}
       </div>
@@ -82,7 +80,7 @@ const SaleForm = ({
         <div>
           <label
             htmlFor="saleOrderDate"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            className="block text-sm font-medium text-ink-soft mb-1"
           >
             Data do Pedido
           </label>
@@ -91,13 +89,13 @@ const SaleForm = ({
             type="date"
             value={orderDate}
             onChange={(e) => onChangeField('orderDate', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+            className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
           />
         </div>
         <div>
           <label
             htmlFor="saleDeliveredAt"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            className="block text-sm font-medium text-ink-soft mb-1"
           >
             Data de entrega
           </label>
@@ -106,7 +104,7 @@ const SaleForm = ({
             type="date"
             value={deliveredAt}
             onChange={(e) => onChangeField('deliveredAt', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+            className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
           />
         </div>
       </div>
@@ -114,7 +112,7 @@ const SaleForm = ({
       <div className="mb-4">
         <label
           htmlFor="saleDescription"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          className="block text-sm font-medium text-ink-soft mb-1"
         >
           Descrição da Venda
         </label>
@@ -124,19 +122,17 @@ const SaleForm = ({
           onChange={(e) => onChangeField('description', e.target.value)}
           maxLength={500}
           rows={3}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+          className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
           placeholder="Acrescente informações adicionais — forma de cobrança, prazos, etc."
         />
-        <div className="mt-1 text-right text-xs text-gray-400 dark:text-gray-500">
+        <div className="mt-1 text-right text-xs text-ink-faint">
           {description.length}/500
         </div>
       </div>
 
       <div className="mb-4">
         <div className="flex items-center justify-between mb-3">
-          <span className="font-medium text-gray-700 dark:text-gray-300">
-            Itens da Venda
-          </span>
+          <span className="font-medium text-ink-soft">Itens da Venda</span>
         </div>
 
         {items.map((item, index) => (
@@ -159,7 +155,7 @@ const SaleForm = ({
           type="button"
           onClick={onAddItem}
           ref={addItemBtnRef}
-          className="w-full px-3 py-2 mt-1 text-sm font-medium text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 rounded-md transition-colors flex items-center justify-center gap-1"
+          className="w-full px-3 py-2 mt-1 text-sm font-medium text-accent-on-soft hover:text-accent-on-soft bg-accent-soft hover:bg-accent-soft rounded-md transition-colors flex items-center justify-center gap-1"
         >
           <Plus className="w-4 h-4" />
           Adicionar Item
@@ -179,13 +175,13 @@ const SaleForm = ({
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
+          className="px-4 py-2 text-sm font-medium text-ink-soft hover:text-ink bg-base hover:bg-elevated rounded-md transition-colors"
         >
           Cancelar
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-gradient-to-r from-primary-700 to-primary-500 hover:from-primary-800 hover:to-primary-600 text-white font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+          className="px-4 py-2 bg-accent hover:bg-accent-hover text-accent-on font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
         >
           {isEdit ? 'Atualizar' : 'Salvar'}
         </button>

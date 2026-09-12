@@ -66,10 +66,7 @@ const PersonFormFields = ({ values, onChange, showSelfCheckbox = true }) => {
           placeholder="DD/MM"
           aria-describedby="person-birthday-hint"
         />
-        <p
-          id="person-birthday-hint"
-          className="mt-1 text-xs text-gray-500 dark:text-gray-400"
-        >
+        <p id="person-birthday-hint" className="mt-1 text-xs text-ink-faint">
           Dia e mês do aniversário (ex.: 15/08)
         </p>
       </div>
@@ -96,7 +93,7 @@ const PersonFormFields = ({ values, onChange, showSelfCheckbox = true }) => {
           className={fieldClass}
           placeholder="Informações gerais sobre o cliente (até 2000 caracteres)"
         />
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+        <p className="mt-1 text-xs text-ink-faint">
           {(values.observacao ?? '').length}/2000
         </p>
       </div>
@@ -105,14 +102,14 @@ const PersonFormFields = ({ values, onChange, showSelfCheckbox = true }) => {
         <div className="mb-4">
           <label
             htmlFor="person-self"
-            className="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
+            className="inline-flex items-center gap-2 text-sm font-medium text-ink-soft cursor-pointer"
           >
             <input
               id="person-self"
               type="checkbox"
               checked={values.isSelf}
               onChange={(e) => onChange('isSelf', e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              className="h-4 w-4 rounded border-line text-accent focus:ring-accent"
             />
             Esta pessoa sou eu
           </label>
