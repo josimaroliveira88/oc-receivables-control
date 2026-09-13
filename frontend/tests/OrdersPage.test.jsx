@@ -3454,4 +3454,93 @@ describe('OrdersPage', () => {
       expect(screen.getByTestId('order-item-stock-toggle-0')).toBeChecked();
     });
   });
+
+  describe('Order Simulator', () => {
+    beforeEach(() => {
+      mockGetImplementation([]);
+    });
+
+    it('should render the "Simulador" button next to "Novo Pedido"', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId('simulator-open')).toBeInTheDocument();
+      expect(screen.getByTestId('simulator-open')).toHaveTextContent(
+        'Simulador',
+      );
+    });
+
+    it('should open the modal and compute PV and member totals from the catalog', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('simulator-open')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('simulator-open'));
+      await waitFor(() => {
+        expect(screen.getByText('Simulador de Pedido')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('simulator-add-row'));
+      const row = screen.getByTestId('simulator-row-0');
+      fireEvent.change(
+        within(row).getByPlaceholderText('Busque um produto...'),
+        { target: { value: 'Adaptiv' } },
+      );
+      fireEvent.mouseDown(screen.getByText(/Adaptiv Pastilhas/));
+      fireEvent.change(screen.getByTestId('simulator-quantity-0'), {
+        target: { value: '2' },
+      });
+
+      expect(screen.getByTestId('simulator-total-pv')).toHaveTextContent(
+        '30,00',
+      );
+      expect(screen.getByTestId('simulator-total-member')).toHaveTextContent(
+        /R\$\s*180,00/,
+      );
+    });
+
+    it('should discard the simulation when the modal is closed', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('simulator-open')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('simulator-open'));
+      fireEvent.click(screen.getByTestId('simulator-add-row'));
+      expect(screen.getByTestId('simulator-row-0')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('simulator-close'));
+      expect(screen.queryByTestId('simulator-modal')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('simulator-open'));
+      expect(screen.queryByTestId('simulator-row-0')).not.toBeInTheDocument();
+      expect(screen.getByTestId('simulator-empty')).toBeInTheDocument();
+    });
+
+    it('should keep the real order form independent from the simulator', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('simulator-open')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('simulator-open'));
+      fireEvent.click(screen.getByTestId('simulator-add-row'));
+      fireEvent.click(screen.getByTestId('simulator-close'));
+
+      fireEvent.click(screen.getByText('Novo Pedido'));
+      await waitFor(() => {
+        expect(
+          screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        ).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('order-item-quantity-0')).toHaveValue(1);
+    });
+  });
 });

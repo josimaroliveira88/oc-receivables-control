@@ -1,0 +1,160 @@
+import { describe, it, expect } from 'vitest';
+import {
+  createEmptyRow,
+  rowTotals,
+  totalsFor,
+  formatPv,
+  formatMemberCents,
+} from '../src/pages/Orders/utils/simulatorHelpers';
+
+const products = [
+  {
+    id: 'p1',
+    code: '60226006',
+    name: 'Adaptiv Pastilhas',
+    memberPrice: '231.25',
+    pv: '31',
+    productType: 'SIMPLES',
+  },
+  {
+    id: 'kit1',
+    code: 'KIT001',
+    name: 'Kit Início',
+    memberPrice: '300.00',
+    pv: '50',
+    productType: 'KIT',
+  },
+  {
+    id: 'noprice',
+    code: '0',
+    name: 'Sem Preço',
+    memberPrice: null,
+    pv: null,
+  },
+];
+
+describe('createEmptyRow', () => {
+  it('creates an unselected row with quantity 1', () => {
+    const row = createEmptyRow();
+    expect(row.productId).toBe('');
+    expect(row.quantity).toBe(1);
+    expect(typeof row.id).toBe('string');
+    expect(row.id.length).toBeGreaterThan(0);
+  });
+
+  it('generates unique ids across calls', () => {
+    const ids = new Set(Array.from({ length: 50 }, () => createEmptyRow().id));
+    expect(ids.size).toBe(50);
+  });
+});
+
+describe('rowTotals', () => {
+  it('multiplies the unit PV and member price by the quantity', () => {
+    const result = rowTotals({ productId: 'p1', quantity: 2 }, products);
+    expect(result.hasProduct).toBe(true);
+    expect(result.pvUnit).toBe(31);
+    expect(result.pvTotal).toBe(62);
+    expect(result.memberUnitCents).toBe(23125);
+    expect(result.memberTotalCents).toBe(46250);
+  });
+
+  it('uses the kit own PV and member price without expanding components', () => {
+    const result = rowTotals({ productId: 'kit1', quantity: 2 }, products);
+    expect(result.pvTotal).toBe(100);
+    expect(result.memberTotalCents).toBe(60000);
+  });
+
+  it('returns zeros and no product flag when nothing is selected', () => {
+    const result = rowTotals({ productId: '', quantity: 3 }, products);
+    expect(result.hasProduct).toBe(false);
+    expect(result.pvTotal).toBe(0);
+    expect(result.memberTotalCents).toBe(0);
+  });
+
+  it('treats a product without prices as zero', () => {
+    const result = rowTotals({ productId: 'noprice', quantity: 2 }, products);
+    expect(result.hasProduct).toBe(true);
+    expect(result.pvTotal).toBe(0);
+    expect(result.memberUnitCents).toBeNull();
+    expect(result.memberTotalCents).toBe(0);
+  });
+
+  it('treats invalid or negative quantities as 1', () => {
+    expect(rowTotals({ productId: 'p1', quantity: '' }, products).pvTotal).toBe(
+      31,
+    );
+    expect(
+      rowTotals({ productId: 'p1', quantity: 'abc' }, products).pvTotal,
+    ).toBe(31);
+    expect(rowTotals({ productId: 'p1', quantity: 0 }, products).pvTotal).toBe(
+      31,
+    );
+    expect(rowTotals({ productId: 'p1', quantity: -4 }, products).pvTotal).toBe(
+      31,
+    );
+  });
+
+  it('avoids floating point drift on decimal PV', () => {
+    const withDecimal = [{ id: 'x', memberPrice: '0.10', pv: '0.10' }];
+    const result = rowTotals({ productId: 'x', quantity: 3 }, withDecimal);
+    expect(result.pvTotal).toBe(0.3);
+    expect(result.memberTotalCents).toBe(30);
+  });
+});
+
+describe('totalsFor', () => {
+  it('returns zeros for an empty list', () => {
+    expect(totalsFor([], products)).toEqual({
+      totalPv: 0,
+      totalMemberCents: 0,
+    });
+  });
+
+  it('sums PV and member totals across independent rows', () => {
+    const rows = [
+      { productId: 'p1', quantity: 2 },
+      { productId: 'kit1', quantity: 1 },
+      { productId: '', quantity: 5 },
+    ];
+    const result = totalsFor(rows, products);
+    expect(result.totalPv).toBe(112);
+    expect(result.totalMemberCents).toBe(76250);
+  });
+
+  it('sums duplicate rows of the same product independently', () => {
+    const rows = [
+      { productId: 'p1', quantity: 1 },
+      { productId: 'p1', quantity: 1 },
+    ];
+    const result = totalsFor(rows, products);
+    expect(result.totalPv).toBe(62);
+    expect(result.totalMemberCents).toBe(46250);
+  });
+});
+
+describe('formatPv', () => {
+  it('returns an em dash for missing values', () => {
+    expect(formatPv(null)).toBe('—');
+    expect(formatPv(undefined)).toBe('—');
+    expect(formatPv('')).toBe('—');
+    expect(formatPv('abc')).toBe('—');
+  });
+
+  it('formats numbers with two decimals in pt-BR', () => {
+    expect(formatPv(0)).toBe('0,00');
+    expect(formatPv(31)).toBe('31,00');
+    expect(formatPv(12.345)).toBe('12,35');
+  });
+});
+
+describe('formatMemberCents', () => {
+  it('returns an em dash for missing cents', () => {
+    expect(formatMemberCents(null)).toBe('—');
+    expect(formatMemberCents(undefined)).toBe('—');
+  });
+
+  it('formats integer cents as BRL', () => {
+    expect(formatMemberCents(0)).toMatch(/R\$\s*0,00/);
+    expect(formatMemberCents(23125)).toMatch(/R\$\s*231,25/);
+  });
+});
