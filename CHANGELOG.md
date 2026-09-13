@@ -9,6 +9,18 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 90 — Coluna Origem na lista de Pedidos dōTERRA (2026-09-13)
+
+### Added
+- **Coluna "Origem"** em `frontend/src/pages/Orders/components/OrdersTable.jsx`, logo após "Valor": badge `Usuário` (neutro) para pedidos comuns e `Equipe` (roxo) para `isTeamOrder`, tornando explícita a distinção que antes dependia da ausência da ação de pagamento.
+- **Badge centralizado**: `OrderOriginBadge` em `frontend/src/pages/Orders/components/Badges.jsx`, consumindo `ORDER_ORIGIN_CLASSES` (`user` = `bg-base text-ink-soft`, `team` = `bg-mystic-soft text-mystic-fg`) em `frontend/src/utils/badgeStyles.js`.
+
+### Changed
+- **Larguras das colunas rebalanceadas** para acomodar Origem (8%) sem alterar Descrição (32%) e Ações (14%): Número 10→9, Data 8→7, Conta ID 10→9, Pagamento 9→7, PV 8→7 e Valor 9→7.
+
+### Tests
+- Frontend (`frontend/tests/OrdersPage.test.jsx`): novos casos para a posição da coluna (imediatamente após "Valor") e para os badges `Usuário`/`Equipe`; cabeçalho "Origem" incluído na verificação de Title Case. **774 frontend tests passing** (backend inalterado); `cd frontend && npm run lint` sem erros (5 warnings preexistentes), `cd frontend && npm run build` limpo e `npm run format:check` limpo.
+
 ## Phase 89 — Raiz abre Produtos e Dashboard na última posição do menu (2026-09-12)
 
 ### Changed
