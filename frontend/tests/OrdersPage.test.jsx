@@ -451,6 +451,7 @@ describe('OrdersPage', () => {
         'Pagamento',
         'PV',
         'Valor',
+        'Origem',
         'Descrição',
         'Ações',
       ].forEach((name) => {
@@ -471,6 +472,41 @@ describe('OrdersPage', () => {
       expect(
         screen.getByRole('columnheader', { name: 'Ações' }).className,
       ).toContain('w-[14%]');
+    });
+
+    it('should render the "Origem" column right after "Valor"', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+
+      const headers = screen
+        .getAllByRole('columnheader')
+        .map((header) => header.textContent.trim());
+      expect(headers.indexOf('Origem')).toBe(headers.indexOf('Valor') + 1);
+    });
+
+    it('should show "Usuário" for a normal order and "Equipe" for a team order', async () => {
+      mockGetImplementation([
+        mockOrders[0],
+        { ...mockOrders[1], isTeamOrder: true },
+      ]);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
+      });
+
+      const normalCell = screen
+        .getByText('ORD-001')
+        .closest('tr')
+        .querySelector('td[data-label="Origem"]');
+      const teamCell = screen
+        .getByText('ORD-002')
+        .closest('tr')
+        .querySelector('td[data-label="Origem"]');
+
+      expect(within(normalCell).getByText('Usuário')).toBeInTheDocument();
+      expect(within(teamCell).getByText('Equipe')).toBeInTheDocument();
     });
 
     it('should not show "Visualizar Anexo" when the order has no attachment', async () => {
