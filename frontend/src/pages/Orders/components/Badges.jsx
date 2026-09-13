@@ -3,6 +3,7 @@ import { paymentTypeLabel } from '../utils/orderHelpers';
 import {
   ORDER_STATUS_CLASSES,
   ORDER_STATUS_FALLBACK,
+  ORDER_ORIGIN_CLASSES,
   PAYMENT_TYPE_CLASSES,
   PAYMENT_TYPE_FALLBACK,
 } from '../../../utils/badgeStyles';
@@ -35,6 +36,20 @@ export const PaymentTypeBadge = ({ type, testId }) => {
       className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${className}`}
     >
       {paymentTypeLabel(type)}
+    </span>
+  );
+};
+
+export const OrderOriginBadge = ({ isTeamOrder }) => {
+  const isTeam = Boolean(isTeamOrder);
+  return (
+    <span
+      data-testid="order-origin-badge"
+      className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
+        isTeam ? ORDER_ORIGIN_CLASSES.team : ORDER_ORIGIN_CLASSES.user
+      }`}
+    >
+      {isTeam ? 'Equipe' : 'Usuário'}
     </span>
   );
 };

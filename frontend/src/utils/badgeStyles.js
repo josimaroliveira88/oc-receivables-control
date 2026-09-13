@@ -36,6 +36,11 @@ export const PAYMENT_TYPE_CLASSES = {
 
 export const PAYMENT_TYPE_FALLBACK = 'bg-base text-ink-soft';
 
+export const ORDER_ORIGIN_CLASSES = {
+  user: 'bg-base text-ink-soft',
+  team: 'bg-mystic-soft text-mystic-fg',
+};
+
 export const DELIVERY_CLASSES = {
   delivered: {
     className: 'bg-success-soft text-success-fg',

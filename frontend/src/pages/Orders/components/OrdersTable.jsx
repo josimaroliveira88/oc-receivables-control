@@ -14,7 +14,7 @@ import {
   getPaymentActionLabel,
   shouldShowPaymentAction,
 } from '../utils/receivablesHelpers';
-import { PaymentTypeBadge } from './Badges';
+import { PaymentTypeBadge, OrderOriginBadge } from './Badges';
 import ActionMenu from '../../../components/ActionMenu';
 import SortableHeader from '../../../components/SortableHeader';
 import OrdersTableToolbar from './OrdersTableToolbar';
@@ -65,7 +65,7 @@ const OrdersTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[10%]"
+                  width="w-[9%]"
                   align="right"
                   testIdPrefix="orders"
                 />
@@ -75,7 +75,7 @@ const OrdersTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[8%]"
+                  width="w-[7%]"
                 />
                 <SortableHeader
                   label="Conta ID"
@@ -83,7 +83,7 @@ const OrdersTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[10%]"
+                  width="w-[9%]"
                 />
                 <SortableHeader
                   label="Pagamento"
@@ -91,7 +91,7 @@ const OrdersTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[9%]"
+                  width="w-[7%]"
                   testIdPrefix="orders"
                 />
                 <SortableHeader
@@ -100,7 +100,7 @@ const OrdersTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[8%]"
+                  width="w-[7%]"
                   testIdPrefix="orders"
                 />
                 <SortableHeader
@@ -109,10 +109,16 @@ const OrdersTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[9%]"
+                  width="w-[7%]"
                   align="right"
                   testIdPrefix="orders"
                 />
+                <th
+                  scope="col"
+                  className="w-[8%] px-6 py-3 text-left text-xs font-medium text-ink-faint tracking-wider"
+                >
+                  Origem
+                </th>
                 <th
                   scope="col"
                   className="w-[32%] px-6 py-3 text-left text-xs font-medium text-ink-faint tracking-wider"
@@ -184,6 +190,12 @@ const OrdersTable = ({
                       className={`block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm ${order.isTeamOrder ? 'text-ink-faint' : 'text-ink'} before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden`}
                     >
                       {formatBRL(parseFloat(order.totalValue))}
+                    </td>
+                    <td
+                      data-label="Origem"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
+                    >
+                      <OrderOriginBadge isTeamOrder={order.isTeamOrder} />
                     </td>
                     <td
                       data-label="Descrição"
