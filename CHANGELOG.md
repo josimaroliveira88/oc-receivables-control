@@ -9,6 +9,19 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 91 — Simulador de Pedidos na tela de Pedidos dōTERRA (2026-09-13)
+
+### Added
+- **Simulador de Pedido** na tela de Pedidos: botão "Simulador" ao lado de "Novo Pedido" em `frontend/src/pages/Orders/index.jsx` abre um modal em formato de planilha onde o usuário escolhe produtos, informa quantidades e vê, em tempo real, o PV unitário/total e o Valor Membro unitário/total de cada linha, além dos somatórios "Soma dos PV" e "Soma do Valor Membro" no rodapé. A simulação é efêmera: ao fechar o modal as linhas são descartadas e nada é enviado à API.
+- **Componentes do simulador** em `frontend/src/pages/Orders/components/`: `OrderSimulatorModal.jsx` (chrome do modal, botão "Adicionar linha", tabela, totais e ações "Limpar"/"Fechar") e `OrderSimulatorRow.jsx` (combobox de produto, quantidade e colunas derivadas somente leitura). Linhas são independentes — o mesmo produto pode aparecer mais de uma vez e cada linha soma separadamente.
+- **Estado efêmero** em `frontend/src/pages/Orders/useOrderSimulator.js` (`rows`, `addRow`, `removeRow`, `updateRowField`, `clearAll`, abrir/fechar), isolando a feature das demais responsabilidades de `useOrders.js`.
+- **Cálculos puros** em `frontend/src/pages/Orders/utils/simulatorHelpers.js` (`createEmptyRow`, `rowTotals`, `totalsFor`, `formatPv`, `formatMemberCents`), com PV e valores de membro derivados do produto do catálogo. KITs usam o PV/preço do próprio kit (sem expandir componentes), sem qualquer ajuste de cashback.
+
+### Tests
+- Novos `frontend/tests/simulatorHelpers.test.js` (15 testes: multiplicação por quantidade, KIT como produto único, quantidades inválidas, ausência de preço, deriva de ponto flutuante e formatação) e `frontend/tests/OrderSimulatorModal.test.jsx` (8 testes: estado vazio, adicionar/selecionar/alterar/remover linhas, linhas duplicadas, limpar e descarte ao fechar).
+- `frontend/tests/OrdersPage.test.jsx` ganhou 4 casos de integração (botão no header, totais calculados a partir do catálogo, descarte ao fechar e independência em relação ao formulário de pedido real).
+- **801 frontend tests passing** (backend inalterado); `cd frontend && npm run lint` sem erros (5 warnings preexistentes), `cd frontend && npm run build` limpo e `npm run format:check` limpo.
+
 ## Phase 90 — Coluna Origem na lista de Pedidos dōTERRA (2026-09-13)
 
 ### Added
