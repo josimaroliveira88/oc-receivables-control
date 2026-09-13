@@ -3135,6 +3135,7 @@ describe('OrdersPage', () => {
       ['paymentType', 'Pagamento'],
       ['doterraPv', 'PV'],
       ['totalValue', 'Valor'],
+      ['isTeamOrder', 'Origem'],
     ])(
       'should sort ascending by %s when the "%s" header is clicked',
       async (field, label) => {

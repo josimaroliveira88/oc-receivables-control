@@ -2135,6 +2135,68 @@ describe('Orders CRUD with Items', () => {
       }
     });
 
+    it('should sort by isTeamOrder (origin) ascending and descending', async () => {
+      const suffix = Date.now();
+      const normalId = (
+        await request(app)
+          .post('/api/orders')
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            orderNumber: `ORIGINN-${suffix}`,
+            items: [
+              {
+                description: 'Pedido do usuário',
+                chargedValue: 100.0,
+                personId: searchPersonId,
+              },
+            ],
+          })
+      ).body.id;
+
+      const teamId = (
+        await request(app)
+          .post('/api/orders')
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            orderNumber: `ORIGINT-${suffix}`,
+            isTeamOrder: true,
+            items: [
+              {
+                description: 'Pedido da equipe',
+                chargedValue: 100.0,
+                personId: searchPersonId,
+              },
+            ],
+          })
+      ).body.id;
+
+      try {
+        const asc = await request(app)
+          .get(
+            `/api/orders?q=ORIGIN&searchField=orderNumber&sortBy=isTeamOrder&sortDir=asc`,
+          )
+          .set('Authorization', `Bearer ${authToken}`);
+
+        expect(asc.status).toBe(200);
+        const ascIds = asc.body.map((o) => o.id);
+        expect(ascIds.indexOf(normalId)).toBeLessThan(ascIds.indexOf(teamId));
+
+        const desc = await request(app)
+          .get(
+            `/api/orders?q=ORIGIN&searchField=orderNumber&sortBy=isTeamOrder&sortDir=desc`,
+          )
+          .set('Authorization', `Bearer ${authToken}`);
+
+        expect(desc.status).toBe(200);
+        const descIds = desc.body.map((o) => o.id);
+        expect(descIds.indexOf(teamId)).toBeLessThan(descIds.indexOf(normalId));
+      } finally {
+        await prisma.order
+          .deleteMany({ where: { id: { in: [normalId, teamId] } } })
+          .catch(() => {});
+      }
+    });
+
     it('should keep user isolation when filtering', async () => {
       const otherReg = await request(app)
         .post('/api/auth/register')
