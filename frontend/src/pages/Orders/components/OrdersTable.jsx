@@ -113,12 +113,15 @@ const OrdersTable = ({
                   align="right"
                   testIdPrefix="orders"
                 />
-                <th
-                  scope="col"
-                  className="w-[8%] px-6 py-3 text-left text-xs font-medium text-ink-faint tracking-wider"
-                >
-                  Origem
-                </th>
+                <SortableHeader
+                  label="Origem"
+                  field="isTeamOrder"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                  width="w-[8%]"
+                  testIdPrefix="orders"
+                />
                 <th
                   scope="col"
                   className="w-[32%] px-6 py-3 text-left text-xs font-medium text-ink-faint tracking-wider"

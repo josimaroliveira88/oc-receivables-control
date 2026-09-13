@@ -11,6 +11,7 @@ const ORDER_SORTABLE_FIELDS = [
   'orderNotes',
   'doterraPv',
   'doterraValue',
+  'isTeamOrder',
   'createdAt',
 ];
 
