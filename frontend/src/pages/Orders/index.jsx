@@ -9,7 +9,9 @@ import PaymentModal from './components/PaymentModal';
 import DetailsModal from './components/DetailsModal';
 import EditPaymentModal from './components/EditPaymentModal';
 import AttachmentPreviewModal from './components/AttachmentPreviewModal';
+import OrderSimulatorModal from './components/OrderSimulatorModal';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import { useOrderSimulator } from './useOrderSimulator';
 
 const OrdersPage = () => {
   const [viewAttachmentOrder, setViewAttachmentOrder] = useState(null);
@@ -132,6 +134,17 @@ const OrdersPage = () => {
     cancelEditOverpay,
   } = useOrderPayments({ refreshOrders, orders, loading });
 
+  const {
+    isOpen: simulatorOpen,
+    rows: simulatorRows,
+    openSimulator,
+    closeSimulator,
+    addRow: addSimulatorRow,
+    removeRow: removeSimulatorRow,
+    updateRowField: updateSimulatorRowField,
+    clearAll: clearSimulator,
+  } = useOrderSimulator();
+
   const editOrder = orders.find((o) => o.id === editOrderId);
 
   if (loading) {
@@ -148,12 +161,21 @@ const OrdersPage = () => {
       <div className="bg-surface border border-line rounded-lg shadow-md">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-line px-6 py-4">
           <h2 className="text-xl font-semibold text-ink">Pedidos dōTERRA</h2>
-          <button
-            onClick={() => openCreateOrder()}
-            className="mt-3 sm:mt-0 px-4 py-2 bg-accent hover:bg-accent-hover text-accent-on font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
-          >
-            Novo Pedido
-          </button>
+          <div className="mt-3 sm:mt-0 flex items-center gap-2">
+            <button
+              onClick={openSimulator}
+              data-testid="simulator-open"
+              className="px-4 py-2 text-sm font-medium text-accent-on-soft bg-accent-soft hover:bg-accent-soft/80 rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
+            >
+              Simulador
+            </button>
+            <button
+              onClick={() => openCreateOrder()}
+              className="px-4 py-2 bg-accent hover:bg-accent-hover text-accent-on font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
+            >
+              Novo Pedido
+            </button>
+          </div>
         </div>
 
         <div className="px-6 py-4">
@@ -182,6 +204,17 @@ const OrdersPage = () => {
           />
         </div>
       </div>
+
+      <OrderSimulatorModal
+        isOpen={simulatorOpen}
+        rows={simulatorRows}
+        products={products}
+        onClose={closeSimulator}
+        onAddRow={addSimulatorRow}
+        onUpdateField={updateSimulatorRowField}
+        onRemoveRow={removeSimulatorRow}
+        onClearAll={clearSimulator}
+      />
 
       <Modal
         isOpen={showCreateModal || showEditModal}
