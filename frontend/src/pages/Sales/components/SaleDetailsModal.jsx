@@ -80,7 +80,7 @@ const SaleDetailsModal = ({
                 <dt className="text-xs text-ink-faint">Valor Pendente</dt>
                 <dd
                   data-testid="sale-details-summary-pending"
-                  className={`text-base font-semibold ${
+                  className={`text-sm font-semibold whitespace-nowrap ${
                     pendingCents === 0 ? 'text-ink-faint' : 'text-accent'
                   }`}
                 >
