@@ -218,7 +218,7 @@ const options = {
               $ref: '#/components/schemas/PaymentType',
               nullable: true,
             },
-            orderNotes: { type: 'string', maxLength: 500, nullable: true },
+            orderNotes: { type: 'string', maxLength: 2000, nullable: true },
             doterraPv: { type: 'number', minimum: 0, nullable: true },
             items: {
               type: 'array',
@@ -239,7 +239,7 @@ const options = {
               $ref: '#/components/schemas/PaymentType',
               nullable: true,
             },
-            orderNotes: { type: 'string', maxLength: 500, nullable: true },
+            orderNotes: { type: 'string', maxLength: 2000, nullable: true },
             doterraPv: { type: 'number', minimum: 0, nullable: true },
             items: {
               type: 'array',
@@ -396,7 +396,7 @@ const options = {
             orderDate: { type: 'string', example: '2026-09-07' },
             shippingValue: { type: 'number', minimum: 0, nullable: true },
             additionalValue: { type: 'number', minimum: 0, nullable: true },
-            description: { type: 'string', maxLength: 500, nullable: true },
+            description: { type: 'string', maxLength: 2000, nullable: true },
             deliveredAt: { type: 'string', nullable: true },
             items: {
               type: 'array',
@@ -412,7 +412,7 @@ const options = {
             orderDate: { type: 'string', example: '2026-09-07' },
             shippingValue: { type: 'number', minimum: 0, nullable: true },
             additionalValue: { type: 'number', minimum: 0, nullable: true },
-            description: { type: 'string', maxLength: 500, nullable: true },
+            description: { type: 'string', maxLength: 2000, nullable: true },
             deliveredAt: { type: 'string', nullable: true },
             items: {
               type: 'array',

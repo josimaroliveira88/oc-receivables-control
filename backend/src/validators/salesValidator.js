@@ -45,7 +45,7 @@ const createSaleSchema = z.object({
     .default(0),
   description: z
     .string()
-    .max(500, 'Description must be at most 500 characters')
+    .max(2000, 'Description must be at most 2000 characters')
     .optional()
     .nullable(),
   deliveredAt: z.string().optional().nullable(),
@@ -67,7 +67,7 @@ const updateSaleSchema = z.object({
     .nullable(),
   description: z
     .string()
-    .max(500, 'Description must be at most 500 characters')
+    .max(2000, 'Description must be at most 2000 characters')
     .optional()
     .nullable(),
   deliveredAt: z.string().optional().nullable(),

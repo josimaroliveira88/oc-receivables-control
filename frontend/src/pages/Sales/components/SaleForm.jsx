@@ -120,13 +120,13 @@ const SaleForm = ({
           id="saleDescription"
           value={description}
           onChange={(e) => onChangeField('description', e.target.value)}
-          maxLength={500}
+          maxLength={2000}
           rows={3}
           className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
           placeholder="Acrescente informações adicionais — forma de cobrança, prazos, etc."
         />
         <div className="mt-1 text-right text-xs text-ink-faint">
-          {description.length}/500
+          {description.length}/2000
         </div>
       </div>
 

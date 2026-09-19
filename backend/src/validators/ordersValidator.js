@@ -51,7 +51,7 @@ const orderDescriptiveSchema = {
   paymentType: paymentTypeSchema.optional().nullable(),
   orderNotes: z
     .string()
-    .max(500, 'Order notes must be at most 500 characters')
+    .max(2000, 'Order notes must be at most 2000 characters')
     .optional()
     .nullable(),
   doterraPv: z

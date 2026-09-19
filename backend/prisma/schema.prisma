@@ -54,7 +54,7 @@ model Order {
   deliveredAt  DateTime?
   accountOwner String?      @db.VarChar(120)
   paymentType  PaymentType?
-  orderNotes   String?      @db.VarChar(500)
+  orderNotes   String?      @db.VarChar(2000)
   doterraPv    Decimal?     @db.Decimal(10, 2)
   doterraValue Decimal?     @db.Decimal(10, 2)
   attachmentFilename String? @db.VarChar(255)

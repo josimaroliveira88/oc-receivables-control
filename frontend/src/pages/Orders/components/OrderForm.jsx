@@ -321,13 +321,13 @@ const OrderForm = ({
           id="orderNotes"
           value={orderNotes}
           onChange={(e) => onChangeField('orderNotes', e.target.value)}
-          maxLength={500}
+          maxLength={2000}
           rows={3}
           className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
           placeholder="Acrescente informações adicionais — motivo do pedido, promoções, encomendas, etc."
         />
         <div className="mt-1 text-right text-xs text-ink-faint">
-          {orderNotes.length}/500
+          {orderNotes.length}/2000
         </div>
       </div>
 
