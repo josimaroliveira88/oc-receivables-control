@@ -1,6 +1,7 @@
 import request from 'supertest';
 import app from '../src/app.js';
 import prisma from '../src/config/database.js';
+import { syncExpenseFromOrder } from '../src/services/financeSyncService.js';
 
 const registerUser = async (prefix) => {
   const username = `${prefix}_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
@@ -302,6 +303,71 @@ describe('Finances automatic sync', () => {
         'Compra de produtos dōTERRA',
       );
       expect(rows[0].categoryId).toBe(category.id);
+    });
+
+    it('uses totalValue for a purchase order shared by multiple clients', async () => {
+      const secondClient = await prisma.person.create({
+        data: { name: 'Segundo Cliente', userId: user.userId },
+      });
+
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: `CMP-MULTI-${Date.now()}`,
+          orderDate: new Date('2026-03-10T00:00:00Z'),
+          orderType: 'COMPRA',
+          totalValue: 150,
+          doterraValue: 100,
+          userId: user.userId,
+          items: {
+            create: [
+              {
+                description: 'Óleo A',
+                chargedValue: 100,
+                personId: clientPerson.id,
+              },
+              {
+                description: 'Óleo B',
+                chargedValue: 50,
+                personId: secondClient.id,
+              },
+            ],
+          },
+        },
+      });
+
+      await syncExpenseFromOrder(prisma, { userId: user.userId, order });
+
+      const rows = await getRows({ origin: 'PEDIDO_DOTERRA' });
+      expect(rows).toHaveLength(1);
+      expect(Number(rows[0].amount)).toBe(150);
+    });
+
+    it('uses doterraValue for a purchase order with a single client', async () => {
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: `CMP-SINGLE-${Date.now()}`,
+          orderDate: new Date('2026-03-10T00:00:00Z'),
+          orderType: 'COMPRA',
+          totalValue: 150,
+          doterraValue: 100,
+          userId: user.userId,
+          items: {
+            create: [
+              {
+                description: 'Óleo',
+                chargedValue: 150,
+                personId: clientPerson.id,
+              },
+            ],
+          },
+        },
+      });
+
+      await syncExpenseFromOrder(prisma, { userId: user.userId, order });
+
+      const rows = await getRows({ origin: 'PEDIDO_DOTERRA' });
+      expect(rows).toHaveLength(1);
+      expect(Number(rows[0].amount)).toBe(100);
     });
 
     it('creates no expense row for a team order', async () => {
