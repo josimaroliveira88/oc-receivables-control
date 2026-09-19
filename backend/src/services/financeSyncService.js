@@ -39,6 +39,19 @@ const shouldSyncIncome = ({ payment, order }) =>
   !order.isTeamOrder &&
   payment.paymentType !== 'INFINITE_PAY';
 
+// A purchase order shared by more than one client (items linked to two or more
+// distinct people) uses its displayed total as the ledger amount, instead of
+// the dōTERRA value, so each shared order reflects the value the user sees in
+// the orders list.
+const orderHasMultipleClients = async (client, orderId) => {
+  const rows = await client.item.findMany({
+    where: { orderId, personId: { not: null } },
+    distinct: ['personId'],
+    select: { personId: true },
+  });
+  return rows.length > 1;
+};
+
 // Creates/updates the income row derived from a sale payment, or removes the
 // existing row when the payment must not feed the ledger. Keyed by the unique
 // `paymentId`, so it is idempotent.
@@ -84,11 +97,15 @@ const syncExpenseFromOrder = async (client, { userId, order }) => {
     return null;
   }
 
+  const amount = (await orderHasMultipleClients(client, order.id))
+    ? order.totalValue
+    : (order.doterraValue ?? order.totalValue);
+
   const data = {
     userId,
     type: 'DESPESA',
     origin: 'PEDIDO_DOTERRA',
-    amount: order.doterraValue ?? order.totalValue,
+    amount,
     description: `Pedido dōTERRA ${order.orderNumber}`,
     transactionDate: order.orderDate,
     categoryId: await resolveCategoryId(client, userId, 'PEDIDO_DOTERRA'),
@@ -115,6 +132,8 @@ export {
   resolveCategoryId,
   removeIncomeForPayment,
   removeExpenseForOrder,
+  shouldSyncIncome,
+  orderHasMultipleClients,
   syncIncomeFromPayment,
   syncExpenseFromOrder,
 };
