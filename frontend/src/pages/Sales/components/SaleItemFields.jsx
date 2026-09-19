@@ -3,7 +3,6 @@ import { formatBRL, fromCents } from '../../../utils/money';
 import CurrencyInput from '../../../components/CurrencyInput';
 import ProductCombobox from '../../../components/ProductCombobox';
 import {
-  isKitItem,
   memberLineTotal,
   memberCashbackLineTotal,
   lineValueCents,
@@ -19,8 +18,6 @@ const SaleItemFields = ({
   onProductSelect,
   onRemove,
 }) => {
-  const isKit = isKitItem(item, products);
-
   return (
     <div
       data-testid={`sale-item-${index}`}
@@ -139,7 +136,7 @@ const SaleItemFields = ({
         {item.useCashback && (
           <div>
             <label className="block text-xs font-medium text-ink-faint mb-1">
-              Valor Membro c/ 70% de desconto (total)
+              Valor 70%
             </label>
             <input
               type="text"
@@ -190,38 +187,6 @@ const SaleItemFields = ({
             </span>
           </label>
         </div>
-
-        {isKit && (
-          <div className="md:col-span-3">
-            <label className="block text-xs font-medium text-ink-faint mb-1">
-              Como enviar para o estoque?
-            </label>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <label className="flex items-center gap-2 text-sm text-ink-soft cursor-pointer">
-                <input
-                  type="radio"
-                  name={`sale-item-kit-mode-${index}`}
-                  data-testid={`sale-item-kit-mode-kit-${index}`}
-                  checked={item.kitStockMode === 'KIT'}
-                  onChange={() => onUpdateField('kitStockMode', 'KIT')}
-                  className="h-4 w-4 border-line text-accent focus:ring-accent"
-                />
-                Estocar o kit
-              </label>
-              <label className="flex items-center gap-2 text-sm text-ink-soft cursor-pointer">
-                <input
-                  type="radio"
-                  name={`sale-item-kit-mode-${index}`}
-                  data-testid={`sale-item-kit-mode-components-${index}`}
-                  checked={item.kitStockMode === 'COMPONENTS'}
-                  onChange={() => onUpdateField('kitStockMode', 'COMPONENTS')}
-                  className="h-4 w-4 border-line text-accent focus:ring-accent"
-                />
-                Estocar os componentes do kit
-              </label>
-            </div>
-          </div>
-        )}
 
         <div className="md:col-span-3">
           <label className="block text-xs font-medium text-ink-faint mb-1">

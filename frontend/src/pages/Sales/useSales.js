@@ -176,7 +176,10 @@ export function useSales() {
                 product && product.memberPrice != null
                   ? parseFloat(product.memberPrice).toString()
                   : '',
-              kitStockMode: '',
+              // Sales always deduct KIT products as kits (never components),
+              // so the mode is fixed when a KIT product is selected.
+              kitStockMode:
+                product && product.productType === 'KIT' ? 'KIT' : '',
             }
           : item,
       ),
@@ -280,8 +283,6 @@ export function useSales() {
         newItemErrors[item.id] = 'Quantidade deve ser maior ou igual a 1';
       } else if (!item.productId) {
         newItemErrors[item.id] = 'Produto é obrigatório';
-      } else if (isKitItem(item, products) && !item.kitStockMode) {
-        newItemErrors[item.id] = 'Escolha como enviar o kit para o estoque';
       }
     });
     setItemErrors(newItemErrors);
@@ -305,7 +306,13 @@ export function useSales() {
         : parseFloat(additionalValue),
     description: description.trim() || null,
     deliveredAt: deliveredAt || null,
-    items: items.map(saleItemPayload),
+    // Every sale item deducts stock; KIT products always deduct the kit
+    // itself (KIT mode) regardless of how the item was previously stored.
+    items: items.map((item) =>
+      isKitItem(item, products)
+        ? { ...saleItemPayload(item), kitStockMode: 'KIT' }
+        : saleItemPayload(item),
+    ),
   });
 
   const handleCreateSale = async (e) => {
