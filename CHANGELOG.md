@@ -9,6 +9,29 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 92 — Cliente no nível do pedido de equipe e ajustes de Vendas/pagamentos (2026-09-19)
+
+### Added
+- **Cliente no nível do pedido de equipe**: na tela de Pedidos dōTERRA o cliente de um pedido `isTeamOrder` passou a ser escolhido no nível do pedido, e não mais por item. O select "Cliente" (`order-team-person`, logo abaixo do checkbox "Pedido da equipe" em `frontend/src/pages/Orders/components/OrderForm.jsx`) vincula a pessoa escolhida a todos os itens; o select por item (`order-item-person-N`, `OrderItemFields.jsx`) só aparece no modo legado. O cliente continua persistido em `Item.personId` — a mesma estrutura usada pelo self person nos pedidos comuns — sem alteração de schema. `useOrders.js` sincroniza o cliente em todos os itens, herda-o em itens adicionados e valida "Cliente é obrigatório". Ao editar pedidos anteriores à mudança, `deriveTeamClientFromItems` (`frontend/src/pages/Orders/utils/orderHelpers.js`) adota o modo por pedido quando todos os itens compartilham o mesmo cliente (ou nenhum) e mantém o modo por item quando os clientes divergem; unificar um pedido legado sob um cliente abre um `ConfirmDialog` ("Ao escolher um cliente para todo o pedido, todos os itens serão vinculados a essa pessoa. Deseja continuar?").
+- **Coluna "Cliente" na lista de Pedidos**: logo após "Conta ID" (`OrdersTable.jsx`), com `getOrderClientLabel` (`orderHelpers.js`) exibindo o cliente único do pedido de equipe, `Vários` quando os itens divergem e `Eu (você)` para pedidos comuns. Larguras rebalanceadas: Descrição 32%→20% e nova coluna Cliente em 12%.
+- **Forma de pagamento Dinheiro**: novo valor `DINHEIRO` no enum Prisma `PaymentType` (`backend/prisma/schema.prisma`), migration `backend/prisma/migrations/20260919120000_add_dinheiro_payment_type/migration.sql` (`ALTER TYPE ... ADD VALUE 'DINHEIRO'`), `backend/src/utils/paymentTypes.js` sincronizado com o Zod e badge/tokens (`badgeStyles.js`, `index.css`, `tailwind.config.js`, `paymentTypeLabel`, `scripts/contrast-check.mjs`).
+- **Backfill de status de pedidos**: `backend/scripts/resyncOrderStatuses.js` (idempotente, `--dry-run`, exposto como `npm run fix:order-status`) recalcula o status de todos os pedidos com `computeOrderStatus`; `syncOrderStatuses` (`backend/src/utils/receivables.js`) passou a aceitar `{ dryRun }` e a retornar as divergências `{ id, from, to }`.
+
+### Changed
+- **Pagamentos da tela de Vendas** restritos a **PIX**, **InfinitePay** e **Dinheiro** (opção "Não informada" mantida), enquanto os Pedidos seguem com a lista completa (PIX, Boleto, Crédito, InfinitePay). `PAYMENT_TYPE_OPTIONS` (`frontend/src/pages/Sales/utils/saleHelpers.js`) é consumido por `SalePaymentModal.jsx` e `SaleEditPaymentModal.jsx`, que mantêm o tipo legado do pagamento em edição.
+- **Kit em vendas**: a tela de Vendas deixou de exibir os radios "Como enviar para o estoque?"; como venda é saída de estoque, o item KIT sempre movimenta o próprio kit (`kitStockMode: 'KIT'`, definido em `useSales.js` e reforçado no payload, inclusive para itens legados salvos como `COMPONENTS`), sem validação manual. `SaleItemFields.jsx` deixou de renderizar os radios e o label do cashback passou de "Valor Membro c/ 70% de desconto (total)" para **"Valor 70%"**.
+- **Status ao editar pagamento**: `createPayment`/`updatePayment` passaram a considerar o `additionalValue` da venda (`additionalCents` em `computeOrderStatus`, `backend/src/services/paymentsService.js`), evitando que uma venda permaneça `QUITADO` após o pagamento ser reduzido.
+- **`ARCHITECTURE.md`** atualizado (pagamentos da Vendas, item KIT e cliente no nível do pedido de equipe).
+
+### Fixed
+- Correção retroativa de pedidos persistidos com status incorreto por não considerarem o `additionalValue`; o backfill foi aplicado no banco local (1 status corrigido: `V-0001` `QUITADO` → `PARCIAL`).
+
+### Tests
+- Backend: `payments.test.js` e `salesPayments.test.js` (DINHEIRO aceito, `'CHEQUE'` inválido; `PARCIAL`/`QUITADO` com adicional) e `orderStatusSync.test.js` (+4, backfill e `dryRun`). **640 backend passing**.
+- Frontend: `OrdersPage.test.jsx` (+7) cobrindo o select de cliente no nível do pedido, propagação aos itens, obrigatoriedade, hidratação no modo por pedido, modo legado com clientes divergentes, confirmação de unificação e a coluna Cliente; `SalesPayments.test.jsx` e `badgeStyles.test.jsx` para as opções limitadas de pagamento; `SalesPage.test.jsx` (+3) para ausência dos radios de kit, envio de `kitStockMode: 'KIT'` e label "Valor 70%". **814 frontend passing**.
+- E2E Playwright: novo `frontend/e2e/team-order-client.spec.js` (criação com cliente no pedido, hidratação na edição, modo legado divergente e unificação com confirmação) e ajustes em `frontend/e2e/team-orders.spec.js` (seleção pelo novo select e asserção da coluna Cliente); **8 E2E passing**. Corrigido também o alvo do teste do dashboard (`/dashboard`, pois a raiz passou a redirecionar para Produtos).
+- `npm run lint` sem erros (5 warnings preexistentes), `npm run build` limpo, `npm run format:check` limpo e `contrast-check` WCAG AA ok.
+
 ## Phase 91 — Simulador de Pedidos na tela de Pedidos dōTERRA (2026-09-13)
 
 ### Added
