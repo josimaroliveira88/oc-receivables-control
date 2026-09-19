@@ -9,6 +9,17 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 100 — Módulo Financeiro: backfill de lançamentos e regra de pedido compartilhado (2026-09-19)
+
+### Added
+- **Backfill de lançamentos financeiros (`backend/scripts/backfillFinancialTransactions.js`)**: script de manutenção idempotente (com `--dry-run`, atalho `npm run backfill:finance-transactions`) que preenche o fluxo de caixa a partir de dados anteriores ao módulo — garante as categorias padrão de cada usuário e deriva **uma despesa por pedido dōTERRA** (`COMPRA` não-equipe) e **uma receita por pagamento de venda** (`VENDA` não-equipe, exceto `INFINITE_PAY`), reutilizando `syncExpenseFromOrder`/`syncIncomeFromPayment`. Como os helpers fazem upsert por pedido/pagamento, rodar novamente nunca duplica linhas. Aplicado na base `receivables_cliente`: 26 despesas (`PEDIDO_DOTERRA`, R$ 20.044,24) + 9 receitas (`VENDA`, R$ 1.968,30).
+
+### Changed
+- **`backend/src/services/financeSyncService.js`**: `syncExpenseFromOrder` passa a usar `order.totalValue` como valor do lançamento quando o pedido dōTERRA é **compartilhado por mais de um cliente** (itens ligados a dois ou mais `personId` distintos); nos demais pedidos mantém `doterraValue ?? totalValue`. Novo helper `orderHasMultipleClients` e export de `shouldSyncIncome` para reuso no backfill, mantendo a regra idêntica entre o sync em tempo real e a carga histórica.
+
+### Tests
+- Backend: `financeSync.test.js` ganhou 2 casos (15 no total) — pedido multi-cliente com `doterraValue` divergente usa `totalValue`; pedido de cliente único usa `doterraValue`. **731 backend passing**; `npm run lint` e Prettier limpos. Frontend sem alterações.
+
 ## Phase 99 — Módulo Financeiro: lançamentos, integração automática, frontend e remoção do dashboard (F3–F7) (2026-09-19)
 
 ### Added
