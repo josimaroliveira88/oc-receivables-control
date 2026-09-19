@@ -1,4 +1,9 @@
-import { badRequest, notFound, forbidden } from '../src/utils/httpError.js';
+import {
+  badRequest,
+  notFound,
+  forbidden,
+  conflict,
+} from '../src/utils/httpError.js';
 
 describe('httpError util', () => {
   describe('badRequest', () => {
@@ -28,6 +33,16 @@ describe('httpError util', () => {
       expect(error).toBeInstanceOf(Error);
       expect(error.message).toBe('Not allowed');
       expect(error.status).toBe(403);
+    });
+  });
+
+  describe('conflict', () => {
+    it('returns an Error with status 409 and the given message', () => {
+      const error = conflict('Category already exists');
+
+      expect(error).toBeInstanceOf(Error);
+      expect(error.message).toBe('Category already exists');
+      expect(error.status).toBe(409);
     });
   });
 
