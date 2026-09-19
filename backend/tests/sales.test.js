@@ -189,6 +189,26 @@ describe('Sales orders CRUD', () => {
       createdSaleIds.push(res.body.id);
     });
 
+    it('accepts a description with the maximum 2000 characters', async () => {
+      const description = 'x'.repeat(2000);
+      const res = await request(app)
+        .post('/api/sales')
+        .set('Authorization', `Bearer ${user.token}`)
+        .send(salePayload({ description }));
+      expect(res.status).toBe(201);
+      expect(res.body.orderNotes).toBe(description);
+      createdSaleIds.push(res.body.id);
+    });
+
+    it('rejects a description longer than 2000 characters', async () => {
+      const res = await request(app)
+        .post('/api/sales')
+        .set('Authorization', `Bearer ${user.token}`)
+        .send(salePayload({ description: 'x'.repeat(2001) }));
+      expect(res.status).toBe(400);
+      expect(res.body.error[0].path).toEqual(['description']);
+    });
+
     it('rejects missing clientPersonId', async () => {
       const res = await request(app)
         .post('/api/sales')

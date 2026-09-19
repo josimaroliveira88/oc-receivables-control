@@ -1102,7 +1102,8 @@ describe('OrdersPage', () => {
       fireEvent.click(screen.getByText('Novo Pedido'));
 
       await waitFor(() => {
-        expect(screen.getAllByText('0/500')).toHaveLength(2);
+        expect(screen.getByText('0/2000')).toBeInTheDocument();
+        expect(screen.getByText('0/500')).toBeInTheDocument();
       });
 
       fireEvent.change(screen.getByLabelText('Descrição do Pedido'), {
@@ -1110,7 +1111,7 @@ describe('OrdersPage', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText('8/500')).toBeInTheDocument();
+        expect(screen.getByText('8/2000')).toBeInTheDocument();
       });
     });
 

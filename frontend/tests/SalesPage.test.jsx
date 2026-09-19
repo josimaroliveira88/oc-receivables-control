@@ -559,6 +559,18 @@ describe('SalesPage', () => {
       expect(screen.getByLabelText('Data de entrega')).toBeInTheDocument();
     });
 
+    it('should display the sale description character counter up to 2000', async () => {
+      renderPage();
+      await openCreateModal();
+      expect(screen.getByText('0/2000')).toBeInTheDocument();
+
+      fireEvent.change(screen.getByLabelText('Descrição da Venda'), {
+        target: { value: 'Promoção' },
+      });
+
+      expect(screen.getByText('8/2000')).toBeInTheDocument();
+    });
+
     it('should NOT display purchase-only fields', async () => {
       renderPage();
       await openCreateModal();

@@ -975,13 +975,31 @@ describe('Orders CRUD with Items', () => {
       expect(response.body.error[0].path).toEqual(['accountOwner']);
     });
 
-    it('should reject order with orderNotes longer than 500 characters', async () => {
+    it('should accept order with orderNotes of exactly 2000 characters', async () => {
+      const orderNotes = 'y'.repeat(2000);
+      const response = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderNumber: uniqueOrderNumber('ORD-MAXNOTES'),
+          orderNotes,
+          items: [
+            { description: 'Item', chargedValue: 50.0, personId: testPersonId },
+          ],
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.orderNotes).toBe(orderNotes);
+      createdOrderId = response.body.id;
+    });
+
+    it('should reject order with orderNotes longer than 2000 characters', async () => {
       const response = await request(app)
         .post('/api/orders')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           orderNumber: uniqueOrderNumber('ORD-LONGNOTES'),
-          orderNotes: 'y'.repeat(501),
+          orderNotes: 'y'.repeat(2001),
           items: [
             { description: 'Item', chargedValue: 50.0, personId: testPersonId },
           ],
