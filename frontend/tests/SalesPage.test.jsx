@@ -148,7 +148,44 @@ const mockProducts = [
     pv: '8',
     status: 'INDISPONIVEL',
   },
+  {
+    id: 'prod-kit',
+    name: 'Kit Bem-Estar',
+    code: '60226099',
+    memberPrice: '200.00',
+    pv: '40',
+    status: 'ATIVO',
+    productType: 'KIT',
+  },
 ];
+
+const kitSale = {
+  id: 'sale-kit',
+  orderNumber: 'V-KIT1',
+  orderDate: '2026-08-01',
+  totalValue: '200.00',
+  shippingValue: '0',
+  additionalValue: '0',
+  deliveredAt: null,
+  status: 'PENDENTE',
+  orderNotes: null,
+  items: [
+    {
+      id: 'kit-item-1',
+      description: 'Kit Bem-Estar',
+      chargedValue: '200.00',
+      quantity: 1,
+      chargedValueMode: 'UNIT',
+      personId: 'p1',
+      person: { name: 'João Silva' },
+      productId: 'prod-kit',
+      product: { id: 'prod-kit', name: 'Kit Bem-Estar', code: '60226099' },
+      memberPrice: '200.00',
+      kitStockMode: 'COMPONENTS',
+    },
+  ],
+  payments: [],
+};
 
 const mockGetImplementation = (salesData = [], peopleData = mockPeople) => {
   mockGet.mockImplementation((url) => {
@@ -905,6 +942,104 @@ describe('SalesPage', () => {
     });
   });
 
+  describe('Sale kit items', () => {
+    const selectKit = () => {
+      const combobox = screen.getByPlaceholderText('Busque um produto...');
+      fireEvent.change(combobox, { target: { value: 'Kit Bem-Estar' } });
+      fireEvent.mouseDown(screen.getByText(/Kit Bem-Estar/));
+    };
+
+    it('should not render the kit stock mode radios for a KIT product', async () => {
+      mockGetImplementation([]);
+      renderPage();
+      await openCreateModal();
+      selectKit();
+      await waitFor(() => {
+        expect(
+          screen.getByDisplayValue('Kit Bem-Estar (60226099)'),
+        ).toBeInTheDocument();
+      });
+      expect(
+        screen.queryByText('Como enviar para o estoque?'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('sale-item-kit-mode-kit-0'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('sale-item-kit-mode-components-0'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should send kitStockMode KIT in the create payload for a KIT product', async () => {
+      mockPost.mockResolvedValue({
+        data: { id: '5', orderNumber: 'V-0005' },
+      });
+      mockGetImplementation([]);
+      renderPage();
+      await openCreateModal();
+      fireEvent.change(screen.getByLabelText('Cliente'), {
+        target: { value: 'p1' },
+      });
+      selectKit();
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '20000' },
+      });
+
+      const form = screen.getByTestId('sale-freight').closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith(
+          '/sales',
+          expect.objectContaining({
+            items: [
+              expect.objectContaining({
+                productId: 'prod-kit',
+                kitStockMode: 'KIT',
+              }),
+            ],
+          }),
+        );
+      });
+    });
+
+    it('should normalize a legacy COMPONENTS kit item to KIT when updating a sale', async () => {
+      mockPut.mockResolvedValue({
+        data: { id: 'sale-kit', orderNumber: 'V-KIT1' },
+      });
+      mockGetImplementation([kitSale]);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+      await clickSaleAction('sale-kit', 'Editar');
+      await waitFor(() => {
+        expect(screen.getByText('Editar Venda')).toBeInTheDocument();
+      });
+      expect(
+        screen.queryByText('Como enviar para o estoque?'),
+      ).not.toBeInTheDocument();
+
+      const form = screen.getByTestId('sale-freight').closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPut).toHaveBeenCalledWith(
+          '/sales/sale-kit',
+          expect.objectContaining({
+            items: [
+              expect.objectContaining({
+                id: 'kit-item-1',
+                productId: 'prod-kit',
+                kitStockMode: 'KIT',
+              }),
+            ],
+          }),
+        );
+      });
+    });
+  });
+
   describe('Sale item cashback', () => {
     const setupItem = async () => {
       mockGetImplementation([]);
@@ -930,6 +1065,7 @@ describe('SalesPage', () => {
       await waitFor(() => {
         expect(screen.getByDisplayValue('R$ 54,00')).toBeInTheDocument();
       });
+      expect(screen.getByText('Valor 70%')).toBeInTheDocument();
       fireEvent.click(screen.getByTestId('sale-item-cashback-0'));
       await waitFor(() => {
         expect(screen.queryByDisplayValue('R$ 54,00')).not.toBeInTheDocument();
