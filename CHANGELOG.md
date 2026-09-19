@@ -9,6 +9,25 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 96 — Taxa do InfinitePay no registro de pagamento de vendas (2026-09-19)
+
+### Added
+- **Valor líquido e taxa no pagamento**: `Payment.netAmount` (`Decimal(10,2)` nullable) guarda o valor que o usuário efetivamente recebeu após a taxa da maquininha; `null` significa sem taxa (líquido = valor cobrado). A taxa é **sempre derivada** (`amount - netAmount`) por `backend/src/utils/paymentFee.js` e `frontend/src/utils/paymentFee.js`, nunca persistida. Migration `backend/prisma/migrations/20260919140000_add_gateway_fee_fields/migration.sql`.
+- **Checkbox de repasse e campo de líquido no modal de pagamento**: em `SalePaymentModal.jsx` e `SaleEditPaymentModal.jsx`, ao selecionar **InfinitePay** aparecem o checkbox **"Repassar taxa do InfinitePay ao cliente"** e o campo **"Valor líquido recebido (R$)"** (`salePaymentNetAmount` / `saleEditPaymentNetAmount`), com a taxa exibida em tempo real (`sale-payment-fee` / `sale-edit-payment-fee`). O checkbox é refletido ao reabrir a edição.
+- **Flag de repasse na venda**: `Order.passesGatewayFeeToClient` (Boolean, default `false`) registra que a taxa foi repassada ao cliente. O campo `passesGatewayFeeToClient` é aceito opcionalmente pelos endpoints de pagamento (`POST /api/orders/:orderId/payments`, `PUT /api/orders/payments/:id`) e persistido na ordem dentro da mesma transação; quando omitido, a ordem não é alterada.
+- **Detalhamento e Excel**: o `SaleDetailsModal.jsx` passou a exibir `Taxa` e `Líquido` por pagamento (`payment-fee-<id>`); a exportação (`frontend/src/utils/exportExcel.js`) ganhou as colunas **Taxa (R$)** e **Líquido (R$)** na aba **Vendas** e **Taxa (R$)** / **Valor Líquido (R$)** no **Histórico de Pagamentos**.
+
+### Changed
+- **API de pagamento**: `netAmount` e `passesGatewayFeeToClient` entraram em `backend/src/validators/paymentsValidator.js`; `backend/src/services/paymentsService.js` rejeita `netAmount > amount` (`400 Net amount cannot be greater than the charged amount`) e retorna `feeAmount` derivado em `payment`. O saldo continua sendo quitado por `amount` com pendente limitado a zero, então o repasse da taxa **não gera crédito/sobrepagamento**.
+- **Aviso de sobrepagamento**: o guard do frontend passou a comparar o **líquido recebido** (ou o valor cobrado quando não há líquido) com o saldo pendente, de modo que uma taxa repassada ao cliente (cobrado > pendente, líquido == pendente) não dispara a confirmação de valor acima do saldo.
+- **Checkbox reposicionado**: a marcação de repasse fica no modal de pagamento (não no formulário de venda), já que não altera o layout em nenhum dos cenários (taxa repassada ou absorvida).
+- **`ARCHITECTURE.md`** atualizado (campos `Order.passesGatewayFeeToClient`/`Payment.netAmount`, taxa de gateway e colunas do Excel).
+
+### Tests
+- Backend: `salesPayments.test.js` (+12: líquido e taxa derivada nos dois cenários, `netAmount` nulo/sem taxa, rejeição de líquido maior que o cobrado, edição/limpeza do líquido e persistência do flag de repasse via pagamento). **661 backend passing**.
+- Frontend: `SalesPayments.test.jsx` (campo líquido e checkbox só para InfinitePay, taxa calculada, payloads com `netAmount`/`passesGatewayFeeToClient`, pré-preenchimento na edição e `Taxa`/`Líquido` no detalhamento), `exportExcel.test.js` (colunas e valores de taxa/líquido) e `SalesPage.test.jsx` ajustado. **850 frontend passing**.
+- `npm run lint` sem erros (5 warnings preexistentes), `npm run build` limpo e `npm run format:check` limpo.
+
 ## Phase 95 — Frete/adicionais no saldo pendente de vendas e detalhamento de cliente único (2026-09-19)
 
 ### Changed
