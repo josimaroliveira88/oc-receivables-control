@@ -67,6 +67,10 @@ app.use('/api/orders', ordersRoutes);
 import salesRoutes from './routes/salesRoutes.js';
 app.use('/api/sales', salesRoutes);
 
+// Finances routes (categories, transactions, settlements)
+import financesRoutes from './routes/financesRoutes.js';
+app.use('/api/finances', financesRoutes);
+
 // Dashboard routes
 import dashboardRoutes from './routes/dashboardRoutes.js';
 app.use('/api/dashboard', dashboardRoutes);

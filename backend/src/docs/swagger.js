@@ -18,7 +18,7 @@ const options = {
       title: 'Receivables Control API',
       version: '1.0.0',
       description:
-        'API do sistema de controle de recebíveis: clientes, pedidos dōTERRA, vendas, pagamentos, dashboard, catálogo e estoque.',
+        'API do sistema de controle de recebíveis: clientes, pedidos dōTERRA, vendas, pagamentos, finanças, dashboard, catálogo e estoque.',
     },
     servers: [
       {
@@ -42,6 +42,11 @@ const options = {
       {
         name: 'Sales',
         description: 'Vendas (VENDA), baixa de estoque e entrega',
+      },
+      {
+        name: 'Finances',
+        description:
+          'Fluxo de caixa: categorias e lançamentos financeiros manuais e automáticos',
       },
       {
         name: 'Dashboard',
@@ -121,6 +126,35 @@ const options = {
           type: 'object',
           properties: {
             message: { type: 'string' },
+          },
+        },
+        FinancialTransactionType: {
+          type: 'string',
+          enum: ['RECEITA', 'DESPESA'],
+        },
+        FinancialCategory: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            name: { type: 'string' },
+            type: { $ref: '#/components/schemas/FinancialTransactionType' },
+            isDefault: { type: 'boolean' },
+            active: { type: 'boolean' },
+          },
+        },
+        FinancialCategoryInput: {
+          type: 'object',
+          required: ['name', 'type'],
+          properties: {
+            name: { type: 'string', maxLength: 100 },
+            type: { $ref: '#/components/schemas/FinancialTransactionType' },
+          },
+        },
+        FinancialCategoryUpdateInput: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', maxLength: 100 },
+            active: { type: 'boolean' },
           },
         },
         PaymentType: {

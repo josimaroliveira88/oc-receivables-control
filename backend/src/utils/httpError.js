@@ -14,10 +14,16 @@ const notFound = (message) => {
   return error;
 };
 
+const conflict = (message) => {
+  const error = new Error(message);
+  error.status = 409;
+  return error;
+};
+
 const forbidden = (message) => {
   const error = new Error(message);
   error.status = 403;
   return error;
 };
 
-export { badRequest, notFound, forbidden };
+export { badRequest, notFound, forbidden, conflict };
