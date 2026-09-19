@@ -43,6 +43,18 @@ export async function createPersonViaApi(api, token, name) {
   return await res.json();
 }
 
+export async function createOrderViaApi(api, token, payload) {
+  const res = await api.post('http://localhost:4000/api/orders', {
+    headers: { Authorization: `Bearer ${token}` },
+    data: payload,
+    failOnStatusCode: false,
+  });
+  if (!res.ok()) {
+    throw new Error(`createOrder failed: ${res.status()} ${await res.text()}`);
+  }
+  return await res.json();
+}
+
 export async function loginAndGetToken(api, username, password) {
   const res = await api.post('http://localhost:4000/api/auth/login', {
     data: { username, password },

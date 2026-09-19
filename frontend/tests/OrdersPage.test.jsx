@@ -468,7 +468,7 @@ describe('OrdersPage', () => {
 
       expect(
         screen.getByRole('columnheader', { name: 'Descrição' }).className,
-      ).toContain('w-[32%]');
+      ).toContain('w-[20%]');
       expect(
         screen.getByRole('columnheader', { name: 'Ações' }).className,
       ).toContain('w-[14%]');
@@ -2711,6 +2711,257 @@ describe('OrdersPage', () => {
           }),
         );
       });
+    });
+  });
+
+  describe('Team order client at order level', () => {
+    const teamOrderSameClient = {
+      id: '10',
+      orderNumber: 'ORD-TEAM-SAME',
+      orderDate: '2026-05-15T00:00:00.000Z',
+      totalValue: '300.00',
+      status: 'EQUIPE',
+      isTeamOrder: true,
+      accountOwner: null,
+      paymentType: null,
+      orderNotes: null,
+      doterraPv: null,
+      attachmentFilename: null,
+      items: [
+        {
+          id: 'ti1',
+          description: 'Item A',
+          chargedValue: '100.00',
+          personId: 'p1',
+          person: { id: 'p1', name: 'João Silva' },
+          productId: 'prod-1',
+          memberPrice: '90.00',
+          quantity: 1,
+          forStock: false,
+          chargedValueMode: 'UNIT',
+        },
+        {
+          id: 'ti2',
+          description: 'Item B',
+          chargedValue: '200.00',
+          personId: 'p1',
+          person: { id: 'p1', name: 'João Silva' },
+          productId: 'prod-2',
+          memberPrice: '180.00',
+          quantity: 1,
+          forStock: false,
+          chargedValueMode: 'UNIT',
+        },
+      ],
+    };
+
+    const teamOrderDivergentClients = {
+      ...teamOrderSameClient,
+      id: '11',
+      orderNumber: 'ORD-TEAM-DIFF',
+      items: [
+        { ...teamOrderSameClient.items[0] },
+        {
+          ...teamOrderSameClient.items[1],
+          id: 'ti3',
+          personId: 'p2',
+          person: { id: 'p2', name: 'Maria Santos' },
+        },
+      ],
+    };
+
+    const openCreateModal = async () => {
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByText('Novo Pedido'));
+      await waitFor(() => {
+        expect(
+          screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        ).toBeInTheDocument();
+      });
+    };
+
+    const openEditModal = async (orderId) => {
+      await waitFor(() => {
+        expect(
+          screen.getByTestId(`order-actions-${orderId}-trigger`),
+        ).toBeInTheDocument();
+      });
+      await clickOrderAction(orderId, 'Editar');
+      await waitFor(() => {
+        expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
+      });
+    };
+
+    it('shows the client select at order level and hides per-item person selects', async () => {
+      mockGetImplementation([], mockPeople);
+      renderPage();
+      await openCreateModal();
+
+      fireEvent.click(screen.getByTestId('order-is-team-order'));
+
+      expect(screen.getByTestId('order-team-person')).toBeInTheDocument();
+      expect(screen.getByText('Cliente')).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('order-item-person-0'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('binds every item to the selected order-level client on create', async () => {
+      mockGetImplementation([], mockPeople);
+      mockPost.mockResolvedValue({ data: { id: '3', orderNumber: 'ORD-NEW' } });
+      renderPage();
+      await openCreateModal();
+
+      fireEvent.click(screen.getByTestId('order-is-team-order'));
+
+      fireEvent.change(
+        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        { target: { value: 'ORD-NEW' } },
+      );
+      fireEvent.change(screen.getByTestId('order-team-person'), {
+        target: { value: 'p1' },
+      });
+      fireEvent.change(screen.getAllByPlaceholderText('0,00')[0], {
+        target: { value: '10000' },
+      });
+
+      fireEvent.click(screen.getByText('Adicionar Item'));
+      const valueInputs = screen.getAllByPlaceholderText('0,00');
+      fireEvent.change(valueInputs[1], { target: { value: '5000' } });
+
+      const form = screen
+        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
+        .closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith(
+          '/orders',
+          expect.objectContaining({
+            items: expect.arrayContaining([
+              expect.objectContaining({ personId: 'p1' }),
+            ]),
+          }),
+        );
+      });
+      const payload = mockPost.mock.calls.find(([url]) => url === '/orders')[1];
+      expect(payload.items).toHaveLength(2);
+      expect(payload.items.every((item) => item.personId === 'p1')).toBe(true);
+    });
+
+    it('requires a client when creating a team order', async () => {
+      mockGetImplementation([], mockPeople);
+      renderPage();
+      await openCreateModal();
+
+      fireEvent.click(screen.getByTestId('order-is-team-order'));
+      fireEvent.change(
+        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
+        { target: { value: 'ORD-NO-CLIENT' } },
+      );
+      fireEvent.change(screen.getAllByPlaceholderText('0,00')[0], {
+        target: { value: '10000' },
+      });
+
+      const form = screen
+        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
+        .closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('order-team-person-error'),
+        ).toBeInTheDocument();
+      });
+      expect(mockPost).not.toHaveBeenCalled();
+    });
+
+    it('hydrates the order-level client when every item shares the same person', async () => {
+      mockGetImplementation([teamOrderSameClient]);
+      renderPage();
+      await openEditModal('10');
+
+      expect(screen.getByTestId('order-team-person')).toHaveValue('p1');
+      expect(
+        screen.queryByTestId('order-item-person-0'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('keeps per-item person selects when items have different persons', async () => {
+      mockGetImplementation([teamOrderDivergentClients]);
+      renderPage();
+      await openEditModal('11');
+
+      expect(screen.getByTestId('order-item-person-0')).toBeInTheDocument();
+      expect(screen.getByTestId('order-item-person-1')).toBeInTheDocument();
+      expect(screen.getByTestId('order-team-person')).toHaveValue('');
+    });
+
+    it('asks for confirmation before unifying items of a legacy team order', async () => {
+      mockGetImplementation([teamOrderDivergentClients]);
+      mockPut.mockResolvedValue({ data: { id: '11' } });
+      renderPage();
+      await openEditModal('11');
+
+      fireEvent.change(screen.getByTestId('order-team-person'), {
+        target: { value: 'p2' },
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/todos os itens serão vinculados a essa pessoa/i),
+        ).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
+
+      await waitFor(() => {
+        expect(
+          screen.queryByTestId('order-item-person-0'),
+        ).not.toBeInTheDocument();
+      });
+      expect(screen.getByTestId('order-team-person')).toHaveValue('p2');
+
+      const form = screen
+        .getByPlaceholderText('Informe o número do pedido da dōTERRA')
+        .closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        const payload = mockPut.mock.calls.find(([url]) =>
+          url.startsWith('/orders/'),
+        )[1];
+        expect(payload.items.every((item) => item.personId === 'p2')).toBe(
+          true,
+        );
+      });
+    });
+
+    it('shows the order client in the table and "Vários" for divergent persons', async () => {
+      mockGetImplementation([teamOrderSameClient, teamOrderDivergentClients]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-TEAM-SAME')).toBeInTheDocument();
+      });
+
+      expect(
+        screen.getByRole('columnheader', { name: 'Cliente' }),
+      ).toBeInTheDocument();
+
+      const sameCell = screen
+        .getByText('ORD-TEAM-SAME')
+        .closest('tr')
+        .querySelector('td[data-label="Cliente"]');
+      const diffCell = screen
+        .getByText('ORD-TEAM-DIFF')
+        .closest('tr')
+        .querySelector('td[data-label="Cliente"]');
+
+      expect(within(sameCell).getByText('João Silva')).toBeInTheDocument();
+      expect(within(diffCell).getByText('Vários')).toBeInTheDocument();
     });
   });
 

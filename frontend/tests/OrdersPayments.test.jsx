@@ -2153,8 +2153,9 @@ describe('Self person display in payment and details modals', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Eu Mesmo (Você)')).toBeInTheDocument();
-      expect(screen.getByText('Recebido')).toBeInTheDocument();
+      const modal = within(screen.getByTestId('details-modal'));
+      expect(modal.getByText('Eu Mesmo (Você)')).toBeInTheDocument();
+      expect(modal.getByText('Recebido')).toBeInTheDocument();
     });
   });
 

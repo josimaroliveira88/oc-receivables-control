@@ -75,7 +75,9 @@ test.describe('Pedidos da equipe (status EQUIPE) - e2e', () => {
     request,
   }, testInfo) => {
     await page.goto('/orders');
-    await expect(page.getByText('Pedidos dōTERRA')).toBeVisible({
+    await expect(
+      page.getByRole('heading', { name: 'Pedidos dōTERRA' }),
+    ).toBeVisible({
       timeout: 15_000,
     });
 
@@ -85,6 +87,7 @@ test.describe('Pedidos da equipe (status EQUIPE) - e2e', () => {
     const form = formScope(page);
     await form.getByTestId('order-is-team-order').check();
     await expect(form.getByTestId('order-team-notice')).toBeVisible();
+    await expect(form.getByTestId('order-team-person')).toBeVisible();
     await page.screenshot({
       path: testInfo.outputPath('team-order-form.png'),
       fullPage: true,
@@ -101,9 +104,7 @@ test.describe('Pedidos da equipe (status EQUIPE) - e2e', () => {
 
     await form.getByPlaceholder('0,00').fill(String(teamOrderCharged) + '00');
     await form
-      .getByTestId('order-item-0')
-      .locator('select')
-      .first()
+      .getByTestId('order-team-person')
       .selectOption({ label: personName });
 
     await form.getByRole('button', { name: 'Salvar' }).click();
@@ -116,6 +117,9 @@ test.describe('Pedidos da equipe (status EQUIPE) - e2e', () => {
     await expect(row).toBeVisible();
     await expect(row.locator('td[data-label="Status"]')).toHaveCount(0);
     await expect(row.locator('td[data-label="Valor Pendente"]')).toHaveCount(0);
+    await expect(row.locator('td[data-label="Cliente"]')).toContainText(
+      personName,
+    );
 
     expect(await fetchOrderStatus(request, teamOrderNumber)).toBe('EQUIPE');
 
@@ -133,7 +137,9 @@ test.describe('Pedidos da equipe (status EQUIPE) - e2e', () => {
     page,
   }, testInfo) => {
     await page.goto('/orders');
-    await expect(page.getByText('Pedidos dōTERRA')).toBeVisible({
+    await expect(
+      page.getByRole('heading', { name: 'Pedidos dōTERRA' }),
+    ).toBeVisible({
       timeout: 15_000,
     });
 
@@ -157,7 +163,7 @@ test.describe('Pedidos da equipe (status EQUIPE) - e2e', () => {
   test('CT4 - dashboard não inclui pedido da equipe', async ({
     page,
   }, testInfo) => {
-    await page.goto('/');
+    await page.goto('/dashboard');
     await expect(page.getByText('Total Pendente')).toBeVisible({
       timeout: 15_000,
     });
@@ -177,7 +183,9 @@ test.describe('Pedidos da equipe (status EQUIPE) - e2e', () => {
     request,
   }, testInfo) => {
     await page.goto('/orders');
-    await expect(page.getByText('Pedidos dōTERRA')).toBeVisible({
+    await expect(
+      page.getByRole('heading', { name: 'Pedidos dōTERRA' }),
+    ).toBeVisible({
       timeout: 15_000,
     });
 
@@ -190,12 +198,17 @@ test.describe('Pedidos da equipe (status EQUIPE) - e2e', () => {
 
     const editForm = formScope(page);
     await expect(editForm.getByTestId('order-is-team-order')).toBeChecked();
+    // A single-client team order hydrates the order-level client select.
+    await expect(
+      editForm.getByTestId('order-team-person').locator('option:checked'),
+    ).toHaveText(personName);
     await page.screenshot({
       path: testInfo.outputPath('edit-team-form.png'),
       fullPage: true,
     });
     await editForm.getByTestId('order-is-team-order').uncheck();
     await expect(editForm.getByTestId('order-team-notice')).toHaveCount(0);
+    await expect(editForm.getByTestId('order-team-person')).toHaveCount(0);
 
     await editForm.getByRole('button', { name: 'Atualizar' }).click();
     await waitFormClose(page);
