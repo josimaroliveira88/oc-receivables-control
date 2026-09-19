@@ -8,6 +8,7 @@ import { computeOrderStatus } from '../utils/receivables.js';
 import { paymentFeeCents } from '../utils/paymentFee.js';
 import { parseLocalDate } from '../utils/date.js';
 import { badRequest, notFound } from '../utils/httpError.js';
+import { syncIncomeFromPayment } from './financeSyncService.js';
 
 const TEAM_ORDER_MESSAGE =
   'Pedidos da equipe não aceitam pagamentos (a equipe já realizou o pagamento)';
@@ -107,6 +108,10 @@ const createPayment = async (client, { userId, orderId, payload }) => {
       await tx.order.update({ where: { id: orderId }, data: orderData });
     }
 
+    // Mirror the payment into the financial ledger (income) inside the same
+    // transaction. No-op for dōTERRA orders, team orders and InfinitePay.
+    await syncIncomeFromPayment(tx, { userId, payment, order });
+
     return {
       payment: withFeeAmount(payment),
       order: {
@@ -203,6 +208,10 @@ const updatePayment = async (client, { id, userId, payload }) => {
     if (Object.keys(orderData).length > 0) {
       await tx.order.update({ where: { id: order.id }, data: orderData });
     }
+
+    // Re-sync the ledger row for this payment (updates amount/date, or removes
+    // it when the payment becomes InfinitePay) inside the same transaction.
+    await syncIncomeFromPayment(tx, { userId, payment, order });
 
     return {
       payment: withFeeAmount(payment),

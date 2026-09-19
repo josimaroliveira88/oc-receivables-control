@@ -35,6 +35,7 @@ import {
   ORDER_SORTABLE_FIELDS,
   sortOrdersInMemory,
 } from '../utils/ordersSort.js';
+import { syncExpenseFromOrder } from './financeSyncService.js';
 
 const getOrders = async (client, { userId, query }) => {
   const { q, searchField, status, paymentType, sortBy, sortDir } = query;
@@ -253,6 +254,10 @@ const createOrder = async (client, { userId, payload }) => {
       }
     }
 
+    // Mirror the purchase order into the financial ledger (expense). Team
+    // orders produce no transaction.
+    await syncExpenseFromOrder(tx, { userId, order });
+
     return order;
   });
 };
@@ -332,6 +337,10 @@ const updateOrder = async (client, { id, userId, payload }) => {
         });
         order.status = status;
       }
+
+      // Re-sync the ledger row (amount/date, or remove it when the order became
+      // a team order) inside the same transaction.
+      await syncExpenseFromOrder(tx, { userId, order });
 
       return order;
     }
@@ -522,6 +531,8 @@ const updateOrder = async (client, { id, userId, payload }) => {
     });
     order.status = status;
 
+    await syncExpenseFromOrder(tx, { userId, order });
+
     return order;
   });
 };
@@ -677,6 +688,8 @@ const addItemToOrder = async (client, { orderId, userId, payload }) => {
     });
     updatedOrder.status = status;
 
+    await syncExpenseFromOrder(tx, { userId, order: updatedOrder });
+
     return item;
   });
 };
@@ -823,6 +836,11 @@ const updateItem = async (client, { id: itemId, userId, payload }) => {
       isTeamOrder: existingItem.order.isTeamOrder,
     });
 
+    const syncedOrder = await tx.order.findUnique({
+      where: { id: existingItem.orderId },
+    });
+    await syncExpenseFromOrder(tx, { userId, order: syncedOrder });
+
     return item;
   });
 };
@@ -891,6 +909,11 @@ const deleteItem = async (client, { id: itemId, userId }) => {
       shippingCents: toCents(existingItem.order.shippingValue ?? 0),
       isTeamOrder: existingItem.order.isTeamOrder,
     });
+
+    const syncedOrder = await tx.order.findUnique({
+      where: { id: existingItem.orderId },
+    });
+    await syncExpenseFromOrder(tx, { userId, order: syncedOrder });
 
     return { message: 'Item deleted successfully' };
   });
