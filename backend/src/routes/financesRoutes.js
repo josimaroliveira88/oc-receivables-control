@@ -125,4 +125,180 @@ router.put('/categories/:id', financesController.updateCategoryHandler);
 // DELETE /api/finances/categories/:id
 router.delete('/categories/:id', financesController.deleteCategoryHandler);
 
+/**
+ * @openapi
+ * /api/finances/transactions:
+ *   get:
+ *     tags: [Finances]
+ *     summary: Lista os lançamentos financeiros do usuário
+ *     description: Retorna o conjunto filtrado completo, ordenado por data e criação (desc).
+ *     parameters:
+ *       - in: query
+ *         name: type
+ *         schema: { $ref: '#/components/schemas/FinancialTransactionType' }
+ *       - in: query
+ *         name: origin
+ *         schema: { $ref: '#/components/schemas/FinancialOrigin' }
+ *       - in: query
+ *         name: categoryId
+ *         schema: { type: string, format: uuid }
+ *       - in: query
+ *         name: from
+ *         schema: { type: string, format: date }
+ *       - in: query
+ *         name: to
+ *         schema: { type: string, format: date }
+ *       - in: query
+ *         name: q
+ *         description: Busca textual em descrição e observações
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Lançamentos do usuário
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/FinancialTransaction'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+// GET /api/finances/transactions
+router.get('/transactions', financesController.getTransactions);
+
+/**
+ * @openapi
+ * /api/finances/transactions:
+ *   post:
+ *     tags: [Finances]
+ *     summary: Cria um lançamento financeiro manual
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/FinancialTransactionInput'
+ *     responses:
+ *       201:
+ *         description: Lançamento criado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FinancialTransaction'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+// POST /api/finances/transactions
+router.post('/transactions', financesController.createTransactionHandler);
+
+/**
+ * @openapi
+ * /api/finances/transactions/{id}:
+ *   put:
+ *     tags: [Finances]
+ *     summary: Atualiza um lançamento manual
+ *     description: Apenas lançamentos com origem MANUAL podem ser editados.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/FinancialTransactionUpdateInput'
+ *     responses:
+ *       200:
+ *         description: Lançamento atualizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FinancialTransaction'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+// PUT /api/finances/transactions/:id
+router.put('/transactions/:id', financesController.updateTransactionHandler);
+
+/**
+ * @openapi
+ * /api/finances/transactions/{id}:
+ *   delete:
+ *     tags: [Finances]
+ *     summary: Exclui um lançamento manual
+ *     description: Apenas lançamentos com origem MANUAL podem ser excluídos.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Lançamento excluído
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Message'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+// DELETE /api/finances/transactions/:id
+router.delete('/transactions/:id', financesController.deleteTransactionHandler);
+
+/**
+ * @openapi
+ * /api/finances/summary:
+ *   get:
+ *     tags: [Finances]
+ *     summary: Totais do período filtrado
+ *     description: Aceita os mesmos filtros da listagem e calcula sobre o conjunto completo.
+ *     parameters:
+ *       - in: query
+ *         name: type
+ *         schema: { $ref: '#/components/schemas/FinancialTransactionType' }
+ *       - in: query
+ *         name: origin
+ *         schema: { $ref: '#/components/schemas/FinancialOrigin' }
+ *       - in: query
+ *         name: categoryId
+ *         schema: { type: string, format: uuid }
+ *       - in: query
+ *         name: from
+ *         schema: { type: string, format: date }
+ *       - in: query
+ *         name: to
+ *         schema: { type: string, format: date }
+ *       - in: query
+ *         name: q
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Totais de receitas, despesas e saldo
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FinancialSummary'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+// GET /api/finances/summary
+router.get('/summary', financesController.getSummaryHandler);
+
 export default router;

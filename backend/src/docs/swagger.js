@@ -157,6 +157,76 @@ const options = {
             active: { type: 'boolean' },
           },
         },
+        FinancialOrigin: {
+          type: 'string',
+          enum: ['VENDA', 'RESGATE_INFINITEPAY', 'PEDIDO_DOTERRA', 'MANUAL'],
+        },
+        FinancialTransaction: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            type: { $ref: '#/components/schemas/FinancialTransactionType' },
+            origin: { $ref: '#/components/schemas/FinancialOrigin' },
+            amount: { type: 'string', example: '123.45' },
+            description: { type: 'string' },
+            transactionDate: { type: 'string', format: 'date' },
+            notes: { type: 'string', nullable: true },
+            categoryId: { type: 'string', format: 'uuid', nullable: true },
+            orderId: { type: 'string', format: 'uuid', nullable: true },
+            paymentId: { type: 'string', format: 'uuid', nullable: true },
+            category: {
+              allOf: [{ $ref: '#/components/schemas/FinancialCategory' }],
+              nullable: true,
+            },
+            feeAmount: {
+              type: 'string',
+              nullable: true,
+              description:
+                'Taxa do gateway derivada (informativa), quando há pagamento vinculado',
+            },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+        FinancialTransactionInput: {
+          type: 'object',
+          required: ['type', 'amount', 'description', 'transactionDate'],
+          properties: {
+            type: { $ref: '#/components/schemas/FinancialTransactionType' },
+            amount: { type: 'number', exclusiveMinimum: 0, example: 123.45 },
+            description: { type: 'string', maxLength: 255 },
+            transactionDate: { type: 'string', format: 'date' },
+            categoryId: {
+              type: 'string',
+              format: 'uuid',
+              nullable: true,
+            },
+            notes: { type: 'string', maxLength: 2000, nullable: true },
+          },
+        },
+        FinancialTransactionUpdateInput: {
+          type: 'object',
+          properties: {
+            type: { $ref: '#/components/schemas/FinancialTransactionType' },
+            amount: { type: 'number', exclusiveMinimum: 0 },
+            description: { type: 'string', maxLength: 255 },
+            transactionDate: { type: 'string', format: 'date' },
+            categoryId: {
+              type: 'string',
+              format: 'uuid',
+              nullable: true,
+            },
+            notes: { type: 'string', maxLength: 2000, nullable: true },
+          },
+        },
+        FinancialSummary: {
+          type: 'object',
+          properties: {
+            totalIncome: { type: 'string', example: '1200.50' },
+            totalExpense: { type: 'string', example: '300.25' },
+            balance: { type: 'string', example: '900.25' },
+          },
+        },
         PaymentType: {
           type: 'string',
           enum: ['PIX', 'BOLETO', 'CARTAO_CREDITO', 'INFINITE_PAY'],
