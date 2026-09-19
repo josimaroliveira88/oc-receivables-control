@@ -9,6 +9,20 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 95 — Frete/adicionais no saldo pendente de vendas e detalhamento de cliente único (2026-09-19)
+
+### Changed
+- **Detalhamento da venda sem accordion de pessoas**: como a venda tem um único cliente, o modal `SaleDetailsModal.jsx` deixou de exibir a lista de pessoas em accordion e passou a mostrar diretamente os itens e os pagamentos recebidos (com a ação de editar cada pagamento), dando ênfase ao **Valor Pendente** no cabeçalho (`text-accent` + negrito). O estado `expandedPersonId`/`toggleDetailPerson` foi removido de `useSalePayments.js` e `Sales/index.jsx`; `detailBalances` deixou de ser exposto pelo hook (segue usado internamente no cálculo do pendente ao editar um pagamento).
+- **`ARCHITECTURE.md`** atualizado (saldo de venda com frete/adicionais e detalhamento de cliente único).
+
+### Fixed
+- **Frete e Valores Adicionais agora entram no saldo pendente da venda**: o `GET /api/orders/:id/balance` calculava o pendente por pessoa apenas como itens − pagamentos, ignorando o frete e os adicionais da venda. Como o cliente da venda é sempre não-self, `buildOrderBalances` (`backend/src/utils/orderBalances.js`) passou a distribuir `shippingValue + additionalValue` entre as pessoas não-self (na prática o cliente único) e somá-los ao `pending`; `itemTotal` permanece a soma dos itens. Isso corrige o modal de pagamento/detalhamento que mostrava R$ 100,00 de saldo numa venda de R$ 100,00 + R$ 14,70 de frete e disparava o aviso de valor acima do saldo ao registrar R$ 114,70. Pedidos de compra (`COMPRA`) mantêm o comportamento anterior.
+
+### Tests
+- Backend: `orderBalances.test.js` (+5: venda soma frete + adicionais sem alterar `itemTotal`, subtrai pagamentos, rateia entre não-self, ignora self e ignora frete em `COMPRA`) e `salesPayments.test.js` (pendente 200 + 10 + 5 − 150 = 65; quitação só após pagar o frete). **649 backend passing**.
+- Frontend: `SalesPayments.test.jsx` ajustado (mocks alinhados ao saldo com encargos, detalhamento sem accordion e ênfase no pendente). **841 frontend passing**.
+- `npm run lint` sem erros (5 warnings preexistentes), `npm run build` limpo e `npm run format:check` limpo.
+
 ## Phase 94 — Descrição de venda/pedido ampliada para 2000 caracteres (2026-09-19)
 
 ### Changed
