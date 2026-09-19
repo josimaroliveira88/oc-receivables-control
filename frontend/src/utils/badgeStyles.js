@@ -82,3 +82,10 @@ export const CATEGORY_BADGE_CLASSES = {
   default: 'bg-info-soft text-info-fg',
   inactive: 'bg-base text-ink-soft',
 };
+
+export const FINANCIAL_TRANSACTION_TYPE_CLASSES = {
+  RECEITA: 'bg-success-soft text-success-fg',
+  DESPESA: 'bg-danger-soft text-danger-fg',
+};
+
+export const FINANCIAL_TRANSACTION_TYPE_FALLBACK = 'bg-base text-ink-soft';
