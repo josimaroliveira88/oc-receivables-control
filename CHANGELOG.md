@@ -9,6 +9,16 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 94 — Descrição de venda/pedido ampliada para 2000 caracteres (2026-09-19)
+
+### Changed
+- **Descrição de venda e pedido ampliada de 500 para 2000 caracteres**: o campo compartilhado `Order.orderNotes` — exibido em Vendas como "Descrição da Venda" e em Pedidos como "Descrição do Pedido" — passou a aceitar até 2000 caracteres. O banco foi alterado para `VARCHAR(2000)` na migration `backend/prisma/migrations/20260919130000_widen_order_notes_to_2000/migration.sql`; `backend/src/validators/salesValidator.js` (`description` em create/update) e `backend/src/validators/ordersValidator.js` (`orderNotes`) passaram a `.max(2000)`; o Swagger (`backend/src/docs/swagger.js`) reflete `maxLength: 2000` em `SaleInput`/`SaleUpdateInput`/`OrderInput`/`OrderUpdateInput`; `frontend/src/pages/Sales/components/SaleForm.jsx` e `frontend/src/pages/Orders/components/OrderForm.jsx` atualizaram o `maxLength` e o contador para `/2000`. Os "Detalhes do Item" (`Item.details`) permanecem limitados a 500 caracteres.
+
+### Tests
+- Backend: `sales.test.js` (+2: aceita descrição com 2000 e rejeita com 2001) e `orders.test.js` (+1 e ajuste: aceita `orderNotes` com 2000 e rejeita com 2001). **643 backend passing**.
+- Frontend: `SalesPage.test.jsx` (+1: contador da descrição da venda) e `OrdersPage.test.jsx` ajustado para os contadores `0/2000` e `8/2000`. **841 frontend passing**.
+- `npm run lint` sem erros (5 warnings preexistentes), `npm run build` limpo e `npm run format:check` limpo.
+
 ## Phase 93 — Simulador de Pedido: promoção, frete e campos numéricos (2026-09-19)
 
 ### Added
