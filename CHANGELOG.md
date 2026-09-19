@@ -16,6 +16,9 @@ Guidance for maintainers:
 - **Script `prisma:migrate:deploy` no backend**: adicionado `backend/package.json` script `"prisma:migrate:deploy": "prisma migrate deploy"` para garantir deploy seguro das migrations em produção (sem usar `migrate dev`).
 - **Verificação de atualização no `start.bat`**: antes de iniciar o projeto, o script executa `git fetch` e compara o branch local com `origin/<branch>`. Se houver commits pendentes, pergunta se deseja executar o `update.bat`; em caso positivo, chama `update.bat --from-start` e, ao final, retoma a inicialização. Falhas silenciosas (sem internet/Git) seguem o fluxo normal.
 
+### Fixed
+- **Parênteses não escapados em blocos `if` dos `.bat`**: `update.bat` e `start.bat` usavam `(...)` dentro de blocos entre parênteses (ex.: `(S/N)`, `(pressione Ctrl+C e confirme)`, `(sem conexao ou sem remote)`), o que fechava o bloco prematuramente e fazia o script abortar sempre com a saída truncada. Os textos foram reescritos sem parênteses e o fluxo de atualização do `start.bat` foi reestruturado com rótulos (`goto`), eliminando também a expansão de `%UPDATE_NOW%`/`%ERRORLEVEL%` no parse do bloco. A detecção de portas passou a considerar apenas `LISTENING` com correspondência literal (`findstr /C:":4000 "`).
+
 ### Tests
 - `npm run format:check` limpo e `npm run lint` no backend sem erros. O script `.bat` não é executável em ambiente Linux, mas sua estrutura foi validada contra o `start.bat` existente.
 

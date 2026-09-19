@@ -54,42 +54,51 @@ REM ============================================================
 echo [3/5] Verificando atualizacoes no repositorio...
 
 where git >nul 2>nul
-if %ERRORLEVEL% neq 0 goto :check_deps
+if errorlevel 1 goto :check_deps
 
-REM Tenta buscar as atualizacoes; falhas silenciosas (sem internet) seguem normalmente
+REM Tenta buscar as atualizacoes; falhas silenciosas seguem o fluxo normal
 call git fetch --quiet
-if %ERRORLEVEL% neq 0 (
-    echo       Nao foi possivel verificar atualizacoes (sem conexao ou sem remote). Continuando...
+if errorlevel 1 (
+    echo       Nao foi possivel verificar atualizacoes. Continuando...
     goto :check_deps
 )
 
-for /f "tokens=*" %%b in ('git rev-parse --abbrev-ref HEAD') do set CURRENT_BRANCH=%%b
-for /f "tokens=*" %%c in ('git rev-list --count HEAD..origin/%CURRENT_BRANCH%') do set COMMITS_BEHIND=%%c
+set CURRENT_BRANCH=
+set COMMITS_BEHIND=0
+for /f "tokens=*" %%b in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set CURRENT_BRANCH=%%b
+for /f "tokens=*" %%c in ('git rev-list --count HEAD..origin/%CURRENT_BRANCH% 2^>nul') do set COMMITS_BEHIND=%%c
 
-if %COMMITS_BEHIND% gtr 0 (
-    echo.
-    echo [AVISO] Ha %COMMITS_BEHIND% atualizacao(oes) disponivel(eis) no branch '%CURRENT_BRANCH%'.
-    set /p UPDATE_NOW="Deseja executar o update.bat agora? (S/N): "
-    if /i "%UPDATE_NOW%"=="S" (
-        echo.
-        echo Executando update.bat...
-        call "%~dp0update.bat" --from-start
-        if %ERRORLEVEL% neq 0 (
-            echo.
-            echo [ERRO] A atualizacao falhou. Verifique os erros acima.
-            pause
-            exit /b 1
-        )
-        echo.
-        echo Atualizacao concluida. Continuando a inicializacao...
-    ) else (
-        echo       Continuando sem atualizar.
-    )
-) else (
-    echo       Projeto atualizado. OK.
-)
+if "%CURRENT_BRANCH%"=="" goto :check_deps
+if "%COMMITS_BEHIND%"=="" goto :check_deps
+if "%COMMITS_BEHIND%"=="0" goto :update_none
 
+echo.
+echo [AVISO] Ha %COMMITS_BEHIND% atualizacoes pendentes no branch '%CURRENT_BRANCH%'.
+set /p UPDATE_NOW="Deseja executar o update.bat agora? S/N: "
+if /i not "%UPDATE_NOW%"=="S" goto :update_skip
+
+echo.
+echo Executando update.bat...
+call "%~dp0update.bat" --from-start
+if errorlevel 1 goto :update_failed
+
+echo.
+echo Atualizacao concluida. Continuando a inicializacao...
 goto :check_deps
+
+:update_none
+echo       Projeto atualizado. OK.
+goto :check_deps
+
+:update_skip
+echo       Continuando sem atualizar.
+goto :check_deps
+
+:update_failed
+echo.
+echo [ERRO] A atualizacao falhou. Verifique os erros acima.
+pause
+exit /b 1
 
 :check_deps
 echo [4/5] Verificando dependencias do projeto...

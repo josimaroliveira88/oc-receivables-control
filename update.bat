@@ -51,13 +51,13 @@ echo [1/9] Verificando se o projeto esta em execucao...
 
 set RUNNING=0
 
-netstat -ano | findstr ":4000" | findstr /I "LISTENING ESTABLISHED" >nul
+netstat -ano | findstr "LISTENING" | findstr /C:":4000 " >nul
 if %ERRORLEVEL% equ 0 (
     echo       [AVISO] Backend detectado na porta 4000.
     set RUNNING=1
 )
 
-netstat -ano | findstr ":3000" | findstr /I "LISTENING ESTABLISHED" >nul
+netstat -ano | findstr "LISTENING" | findstr /C:":3000 " >nul
 if %ERRORLEVEL% equ 0 (
     echo       [AVISO] Frontend detectado na porta 3000.
     set RUNNING=1
@@ -68,7 +68,7 @@ if %RUNNING% equ 1 (
     echo [ERRO] O projeto parece estar em execucao.
     echo.
     echo Para atualizar com seguranca, pare o projeto primeiro:
-    echo   - Feche a janela do start.bat (pressione Ctrl+C e confirme);
+    echo   - Feche a janela do start.bat com Ctrl+C;
     echo   - Ou finalize os processos Node.js manualmente.
     echo.
     pause
