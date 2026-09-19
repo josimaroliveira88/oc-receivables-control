@@ -6,6 +6,9 @@ import {
   createPersonViaApi,
   loginAndGetToken,
   uniqueOrderNumber,
+  listOrdersViaApi,
+  listFinanceTransactionsViaApi,
+  saveScreenshot,
 } from './helpers.js';
 
 const orderNumberInput = (page) =>
@@ -160,22 +163,29 @@ test.describe('Pedidos da equipe (status EQUIPE) - e2e', () => {
     });
   });
 
-  test('CT4 - dashboard não inclui pedido da equipe', async ({
+  test('CT4 - pedido da equipe não gera lançamento no fluxo de caixa', async ({
     page,
-  }, testInfo) => {
-    await page.goto('/dashboard');
-    await expect(page.getByText('Total Pendente')).toBeVisible({
+    request,
+  }) => {
+    // Team orders are excluded from financial tracking, so the ledger must not
+    // contain any row linked to this team order.
+    const orders = await listOrdersViaApi(request, token, {
+      q: teamOrderNumber,
+      searchField: 'orderNumber',
+    });
+    const order = orders.find((o) => o.orderNumber === teamOrderNumber);
+    expect(order).toBeTruthy();
+
+    const transactions = await listFinanceTransactionsViaApi(request, token);
+    expect(transactions.some((t) => t.orderId === order.id)).toBe(false);
+
+    await page.goto('/finances');
+    await expect(page.getByRole('heading', { name: 'Finanças' })).toBeVisible({
       timeout: 15_000,
     });
+    await expect(rowByNumber(page, teamOrderNumber)).toHaveCount(0);
 
-    const dashText = await page.locator('body').innerText();
-    expect(dashText).not.toMatch(/R\$\s*250,00[^\d]/);
-    expect(dashText).not.toMatch(/1\.300,00|1300,00/);
-
-    await page.screenshot({
-      path: testInfo.outputPath('dashboard-with-team-order.png'),
-      fullPage: true,
-    });
+    await saveScreenshot(page, 'f7-ct4-team-order-excluded-from-finances');
   });
 
   test('CT5 - alternar para pedido normal recalcula status', async ({

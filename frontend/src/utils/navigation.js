@@ -1,5 +1,4 @@
 import {
-  LayoutDashboard,
   Users,
   ClipboardList,
   ShoppingCart,
@@ -15,5 +14,4 @@ export const navigationItems = [
   { to: '/products', icon: Package, label: 'Produtos' },
   { to: '/stock', icon: Boxes, label: 'Estoque' },
   { to: '/finances', icon: Wallet, label: 'Finanças' },
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
 ];

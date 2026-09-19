@@ -3,7 +3,6 @@ import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProtectedRoute from './components/ProtectedRoute';
-import DashboardPage from './pages/DashboardPage';
 import PeoplePage from './pages/PeoplePage';
 import OrdersPage from './pages/OrdersPage';
 import SalesPage from './pages/SalesPage';
@@ -41,8 +40,7 @@ const App = () => {
             </ProtectedRoute>
           }
         >
-          <Route path="/" element={<Navigate to="/products" replace />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/" element={<Navigate to="/finances" replace />} />
           <Route path="/people" element={<PeoplePage />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/sales" element={<SalesPage />} />

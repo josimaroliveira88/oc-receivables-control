@@ -37,7 +37,6 @@ describe('Header', () => {
 
   it('should render desktop navigation links', () => {
     renderHeader();
-    expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Clientes')).toBeInTheDocument();
     expect(screen.getByText('Pedidos dōTERRA')).toBeInTheDocument();
     expect(screen.getByText('Vendas')).toBeInTheDocument();
@@ -52,7 +51,7 @@ describe('Header', () => {
     expect(salesLink).toHaveAttribute('href', '/sales');
   });
 
-  it('should render navigation items with Dashboard last', () => {
+  it('should render navigation items with Finanças last', () => {
     renderHeader();
     const labels = screen
       .getAllByRole('link')
@@ -64,14 +63,7 @@ describe('Header', () => {
       'Produtos',
       'Estoque',
       'Finanças',
-      'Dashboard',
     ]);
-  });
-
-  it('should link Dashboard to /dashboard', () => {
-    renderHeader();
-    const dashboardLink = screen.getByRole('link', { name: /Dashboard/ });
-    expect(dashboardLink).toHaveAttribute('href', '/dashboard');
   });
 
   it('should render Sair button', () => {

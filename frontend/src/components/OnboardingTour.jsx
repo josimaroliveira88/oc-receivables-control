@@ -2,8 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   GraduationCap,
-  LayoutDashboard,
-  BarChart3,
   Users,
   ClipboardList,
   DollarSign,
@@ -20,20 +18,6 @@ const steps = [
     description:
       'Vamos conhecer as principais funcionalidades do sistema em apenas alguns passos. Este tutorial rápido vai te mostrar como gerenciar clientes, pedidos e recebíveis.',
     icon: GraduationCap,
-    route: null,
-  },
-  {
-    title: 'Indicadores do Dashboard',
-    description:
-      'Os três cards de KPI mostram de forma clara: total pendente (em vermelho), total quitado (em verde) e os recebimentos do mês atual (em azul).',
-    icon: LayoutDashboard,
-    route: '/',
-  },
-  {
-    title: 'Gráficos e Exportação',
-    description:
-      'O gráfico de barras compara itens pendentes com pagamentos realizados por pessoa. Use o botão "Exportar para Excel" para gerar um relatório completo com 4 planilhas.',
-    icon: BarChart3,
     route: null,
   },
   {

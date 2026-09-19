@@ -55,10 +55,9 @@ describe('MobileDrawer', () => {
     );
   });
 
-  it('should render all 7 navigation items in the drawer', () => {
+  it('should render all 6 navigation items in the drawer', () => {
     renderDrawer();
     fireEvent.click(screen.getByLabelText('Abrir menu'));
-    expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Clientes')).toBeInTheDocument();
     expect(screen.getByText('Pedidos dōTERRA')).toBeInTheDocument();
     expect(screen.getByText('Vendas')).toBeInTheDocument();
@@ -67,10 +66,10 @@ describe('MobileDrawer', () => {
     expect(screen.getByText('Finanças')).toBeInTheDocument();
   });
 
-  it('should have 7 links in the drawer', () => {
+  it('should have 6 links in the drawer', () => {
     renderDrawer();
     fireEvent.click(screen.getByLabelText('Abrir menu'));
-    expect(screen.getAllByRole('link')).toHaveLength(7);
+    expect(screen.getAllByRole('link')).toHaveLength(6);
   });
 
   it('should link Vendas to /sales', () => {
@@ -82,7 +81,7 @@ describe('MobileDrawer', () => {
     expect(salesLink).toHaveTextContent('Vendas');
   });
 
-  it('should list navigation items with Dashboard last', () => {
+  it('should list navigation items with Finanças last', () => {
     renderDrawer();
     fireEvent.click(screen.getByLabelText('Abrir menu'));
     const labels = screen
@@ -95,17 +94,7 @@ describe('MobileDrawer', () => {
       'Produtos',
       'Estoque',
       'Finanças',
-      'Dashboard',
     ]);
-  });
-
-  it('should link Dashboard to /dashboard', () => {
-    renderDrawer();
-    fireEvent.click(screen.getByLabelText('Abrir menu'));
-    const dashboardLink = screen
-      .getAllByRole('link')
-      .find((link) => link.getAttribute('href') === '/dashboard');
-    expect(dashboardLink).toHaveTextContent('Dashboard');
   });
 
   it('should close the drawer when a nav link is clicked', () => {

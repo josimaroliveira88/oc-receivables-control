@@ -38,7 +38,7 @@ SomeForm.jsx
 
 ### Level 3 — Page orchestrator
 
-Apply to a page that mixes React state, API calls, handlers, and dense JSX, or that has table/form/modal/complex flow, or that crosses ~400 lines (whichever comes first). `DashboardPage` (295 lines) qualified because it mixed fetch, export, KPIs, chart, and yearly table in one file — line count is a trigger, not the only signal.
+Apply to a page that mixes React state, API calls, handlers, and dense JSX, or that has table/form/modal/complex flow, or that crosses ~400 lines (whichever comes first). `FinancesPage` qualified because it mixes a filtered list, a period summary, category management, and several modals in one screen — line count is a trigger, not the only signal.
 
 ```text
 pages/{Nome}Page.jsx              # Shim: One line re-exporting the folder.
