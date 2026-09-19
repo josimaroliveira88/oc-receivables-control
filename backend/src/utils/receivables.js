@@ -98,7 +98,10 @@ const computeOrderStatus = ({
 };
 
 // Recomputes and persists the status of the given orders when it changes.
-const syncOrderStatuses = async (db, orderIds) => {
+// When `dryRun` is true nothing is persisted. Returns the list of divergences
+// ({ id, from, to }) so callers (e.g. the backfill script) can report them.
+const syncOrderStatuses = async (db, orderIds, { dryRun = false } = {}) => {
+  const changes = [];
   for (const orderId of orderIds) {
     const order = await db.order.findUnique({
       where: { id: orderId },
@@ -113,12 +116,16 @@ const syncOrderStatuses = async (db, orderIds) => {
       isTeamOrder: order.isTeamOrder,
     });
     if (nextStatus !== order.status) {
-      await db.order.update({
-        where: { id: orderId },
-        data: { status: nextStatus },
-      });
+      if (!dryRun) {
+        await db.order.update({
+          where: { id: orderId },
+          data: { status: nextStatus },
+        });
+      }
+      changes.push({ id: orderId, from: order.status, to: nextStatus });
     }
   }
+  return changes;
 };
 
 // Recomputes status for every order of the user that contains an item of any
