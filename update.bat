@@ -161,6 +161,12 @@ echo.
 REM ============================================================
 REM 9. Pergunta se deseja iniciar o projeto
 REM ============================================================
+if /I "%~1"=="--from-start" (
+    echo.
+    echo Atualizacao concluida. Retornando ao start.bat...
+    exit /b 0
+)
+
 set /p START_PROJECT="Deseja iniciar o projeto agora? (S/N): "
 if /i "%START_PROJECT%"=="S" (
     echo.

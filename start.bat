@@ -10,7 +10,7 @@ echo.
 
 cd /d "%~dp0"
 
-echo [1/4] Verificando Node.js...
+echo [1/5] Verificando Node.js...
 where node >nul 2>nul
 if %ERRORLEVEL% neq 0 goto :no_node
 for /f "tokens=*" %%v in ('node -v') do set NODE_VERSION=%%v
@@ -26,11 +26,11 @@ pause
 exit /b 1
 
 :check_pg
-echo [2/4] Verificando PostgreSQL na porta 5432...
+echo [2/5] Verificando PostgreSQL na porta 5432...
 netstat -ano | findstr ":5432" | findstr "LISTENING" >nul
 if %ERRORLEVEL% neq 0 goto :no_pg
 echo       PostgreSQL detectado na porta 5432. OK.
-goto :check_deps
+goto :check_update
 
 :no_pg
 echo.
@@ -40,15 +40,59 @@ echo.
 set /p CONTINUE="Deseja continuar mesmo assim? (S/N): "
 if /i not "%CONTINUE%"=="S" goto :cancel
 echo       Continuando...
-goto :check_deps
+goto :check_update
 
 :cancel
 echo Operacao cancelada.
 pause
 exit /b 1
 
+REM ============================================================
+REM 3. Verifica se ha atualizacoes disponiveis no repositorio
+REM ============================================================
+:check_update
+echo [3/5] Verificando atualizacoes no repositorio...
+
+where git >nul 2>nul
+if %ERRORLEVEL% neq 0 goto :check_deps
+
+REM Tenta buscar as atualizacoes; falhas silenciosas (sem internet) seguem normalmente
+call git fetch --quiet
+if %ERRORLEVEL% neq 0 (
+    echo       Nao foi possivel verificar atualizacoes (sem conexao ou sem remote). Continuando...
+    goto :check_deps
+)
+
+for /f "tokens=*" %%b in ('git rev-parse --abbrev-ref HEAD') do set CURRENT_BRANCH=%%b
+for /f "tokens=*" %%c in ('git rev-list --count HEAD..origin/%CURRENT_BRANCH%') do set COMMITS_BEHIND=%%c
+
+if %COMMITS_BEHIND% gtr 0 (
+    echo.
+    echo [AVISO] Ha %COMMITS_BEHIND% atualizacao(oes) disponivel(eis) no branch '%CURRENT_BRANCH%'.
+    set /p UPDATE_NOW="Deseja executar o update.bat agora? (S/N): "
+    if /i "%UPDATE_NOW%"=="S" (
+        echo.
+        echo Executando update.bat...
+        call "%~dp0update.bat" --from-start
+        if %ERRORLEVEL% neq 0 (
+            echo.
+            echo [ERRO] A atualizacao falhou. Verifique os erros acima.
+            pause
+            exit /b 1
+        )
+        echo.
+        echo Atualizacao concluida. Continuando a inicializacao...
+    ) else (
+        echo       Continuando sem atualizar.
+    )
+) else (
+    echo       Projeto atualizado. OK.
+)
+
+goto :check_deps
+
 :check_deps
-echo [3/4] Verificando dependencias do projeto...
+echo [4/5] Verificando dependencias do projeto...
 if not exist "node_modules" goto :install_root
 goto :check_backend_deps
 
@@ -84,7 +128,7 @@ call npm --prefix backend run prisma:generate
 :deps_ok
 echo       Dependencias OK.
 
-echo [4/4] Iniciando backend (porta 4000) e frontend (porta 3000)...
+echo [5/5] Iniciando backend (porta 4000) e frontend (porta 3000)...
 echo.
 echo ============================================================
 echo   Backend:  http://localhost:4000

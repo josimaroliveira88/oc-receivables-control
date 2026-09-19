@@ -14,6 +14,7 @@ Guidance for maintainers:
 ### Added
 - **`update.bat`**: novo script de atualização para instalações Windows do cliente. Segue o roteiro de `docs/DEPLOYMENT.md`: verifica Node.js/Git, bloqueia a execução se detectar serviços nas portas `3000`/`4000`, exige confirmação de backup do banco, executa `git pull`, `npm ci` no backend e frontend, `prisma migrate deploy`, `prisma generate`, `npm run build` no frontend e, ao final, oferece iniciar o projeto chamando `start.bat`.
 - **Script `prisma:migrate:deploy` no backend**: adicionado `backend/package.json` script `"prisma:migrate:deploy": "prisma migrate deploy"` para garantir deploy seguro das migrations em produção (sem usar `migrate dev`).
+- **Verificação de atualização no `start.bat`**: antes de iniciar o projeto, o script executa `git fetch` e compara o branch local com `origin/<branch>`. Se houver commits pendentes, pergunta se deseja executar o `update.bat`; em caso positivo, chama `update.bat --from-start` e, ao final, retoma a inicialização. Falhas silenciosas (sem internet/Git) seguem o fluxo normal.
 
 ### Tests
 - `npm run format:check` limpo e `npm run lint` no backend sem erros. O script `.bat` não é executável em ambiente Linux, mas sua estrutura foi validada contra o `start.bat` existente.
