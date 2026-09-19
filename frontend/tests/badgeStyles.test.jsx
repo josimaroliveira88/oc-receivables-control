@@ -47,6 +47,9 @@ describe('badgeStyles', () => {
     expect(PAYMENT_TYPE_CLASSES.INFINITE_PAY).toBe(
       'bg-badge-infinitepay-bg text-badge-infinitepay-fg',
     );
+    expect(PAYMENT_TYPE_CLASSES.DINHEIRO).toBe(
+      'bg-badge-dinheiro-bg text-badge-dinheiro-fg',
+    );
     expect(PAYMENT_TYPE_CLASSES.CARTAO_CREDITO).toBe(
       'bg-mystic-soft text-mystic-fg',
     );

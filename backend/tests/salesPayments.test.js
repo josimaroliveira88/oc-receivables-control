@@ -183,12 +183,23 @@ describe('Sales <-> Payments', () => {
       expect(res.body.payment.paymentType).toBeNull();
     });
 
-    it('rejects an invalid paymentType', async () => {
+    it('records DINHEIRO as a paymentType', async () => {
       const created = await createSale([
         { productId: product.id, chargedValue: 100, quantity: 1 },
       ]);
       const res = await pay(created.body.id, 50, client.id, {
         paymentType: 'DINHEIRO',
+      });
+      expect(res.status).toBe(201);
+      expect(res.body.payment.paymentType).toBe('DINHEIRO');
+    });
+
+    it('rejects an invalid paymentType', async () => {
+      const created = await createSale([
+        { productId: product.id, chargedValue: 100, quantity: 1 },
+      ]);
+      const res = await pay(created.body.id, 50, client.id, {
+        paymentType: 'CHEQUE',
       });
       expect(res.status).toBe(400);
     });

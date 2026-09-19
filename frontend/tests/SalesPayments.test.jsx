@@ -291,7 +291,7 @@ describe('SalesPayments', () => {
       expect(modal.getByText('Óleo de Lavanda')).toBeInTheDocument();
     });
 
-    it('should include a "Forma de Pagamento" select with all options', async () => {
+    it('should include a "Forma de Pagamento" select limited to PIX, InfinitePay and Dinheiro', async () => {
       mockGetImplementation([mockSale]);
       renderPage();
       await openPaymentAction('sale-1');
@@ -303,14 +303,17 @@ describe('SalesPayments', () => {
       ).toBeInTheDocument();
       expect(screen.getByRole('option', { name: 'PIX' })).toBeInTheDocument();
       expect(
-        screen.getByRole('option', { name: 'Boleto' }),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole('option', { name: 'Cartão de Crédito' }),
-      ).toBeInTheDocument();
-      expect(
         screen.getByRole('option', { name: 'InfinitePay' }),
       ).toBeInTheDocument();
+      expect(
+        screen.getByRole('option', { name: 'Dinheiro' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', { name: 'Boleto' }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', { name: 'Cartão de Crédito' }),
+      ).not.toBeInTheDocument();
     });
 
     it('should send paymentType in the create payload when selected', async () => {
@@ -516,11 +519,11 @@ describe('SalesPayments', () => {
       });
       mockPut.mockResolvedValue({
         data: {
-          payment: { id: 'pay-1', amount: '120.00', paymentType: 'BOLETO' },
+          payment: { id: 'pay-1', amount: '120.00', paymentType: 'DINHEIRO' },
         },
       });
       fireEvent.change(editModal.getByLabelText('Forma de Pagamento'), {
-        target: { value: 'BOLETO' },
+        target: { value: 'DINHEIRO' },
       });
 
       fireEvent.submit(
@@ -532,9 +535,51 @@ describe('SalesPayments', () => {
           amount: 120,
           paidAt: '2026-08-08',
           notes: 'Pix atualizado',
-          paymentType: 'BOLETO',
+          paymentType: 'DINHEIRO',
         });
       });
+    });
+
+    it('should limit the options to PIX, InfinitePay and Dinheiro', async () => {
+      const editModal = await openEditModal();
+      expect(
+        editModal.getByRole('option', { name: 'PIX' }),
+      ).toBeInTheDocument();
+      expect(
+        editModal.getByRole('option', { name: 'InfinitePay' }),
+      ).toBeInTheDocument();
+      expect(
+        editModal.getByRole('option', { name: 'Dinheiro' }),
+      ).toBeInTheDocument();
+      expect(
+        editModal.queryByRole('option', { name: 'Boleto' }),
+      ).not.toBeInTheDocument();
+      expect(
+        editModal.queryByRole('option', { name: 'Cartão de Crédito' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should keep a legacy payment type (Boleto) selectable when editing', async () => {
+      const legacySale = {
+        ...detailSale,
+        payments: [
+          { ...detailSale.payments[0], paymentType: 'BOLETO', notes: 'Boleto' },
+        ],
+      };
+      mockGetImplementation([legacySale]);
+      renderPage();
+      await openDetailsAction('sale-detail');
+      const detailsModal = within(screen.getByTestId('sale-details-modal'));
+      fireEvent.click(detailsModal.getByTestId('detail-person-p1'));
+      fireEvent.click(detailsModal.getByTestId('edit-payment-pay-1'));
+      const editModal = within(
+        await screen.findByTestId('sale-edit-payment-modal'),
+      );
+      const select = editModal.getByLabelText('Forma de Pagamento');
+      expect(select.value).toBe('BOLETO');
+      expect(
+        editModal.getByRole('option', { name: 'Boleto' }),
+      ).toBeInTheDocument();
     });
 
     it('should clear the payment type when "Não informada" is selected', async () => {

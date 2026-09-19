@@ -1707,6 +1707,22 @@ describe('Payment type on payment records', () => {
     expect(stored.paymentType).toBe('PIX');
   });
 
+  it('accepts DINHEIRO as a paymentType', async () => {
+    const person = await prisma.person.create({
+      data: { name: 'Cliente PayType Dinheiro', userId },
+    });
+    createdPersonIds.push(person.id);
+    const order = await makeOrder(person.id);
+
+    const res = await request(app)
+      .post(`/api/orders/${order.id}/payments`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ amount: 40.0, personId: person.id, paymentType: 'DINHEIRO' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.payment.paymentType).toBe('DINHEIRO');
+  });
+
   it('accepts payments without a paymentType (null)', async () => {
     const person = await prisma.person.create({
       data: { name: 'Cliente PayType Null', userId },
@@ -1733,7 +1749,7 @@ describe('Payment type on payment records', () => {
     const res = await request(app)
       .post(`/api/orders/${order.id}/payments`)
       .set('Authorization', `Bearer ${authToken}`)
-      .send({ amount: 40.0, personId: person.id, paymentType: 'DINHEIRO' });
+      .send({ amount: 40.0, personId: person.id, paymentType: 'CHEQUE' });
 
     expect(res.status).toBe(400);
   });

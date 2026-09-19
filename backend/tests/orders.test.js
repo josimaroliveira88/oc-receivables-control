@@ -920,6 +920,7 @@ describe('Orders CRUD with Items', () => {
         'BOLETO',
         'CARTAO_CREDITO',
         'INFINITE_PAY',
+        'DINHEIRO',
       ]) {
         const response = await request(app)
           .post('/api/orders')
@@ -947,7 +948,7 @@ describe('Orders CRUD with Items', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           orderNumber: uniqueOrderNumber('ORD-BADPGTO'),
-          paymentType: 'DINHEIRO',
+          paymentType: 'CHEQUE',
           items: [
             { description: 'Item', chargedValue: 50.0, personId: testPersonId },
           ],
