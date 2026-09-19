@@ -1,6 +1,6 @@
 # Receivables Control System
 
-Sistema de controle de recebíveis desenvolvido com **Node.js**, **Express**, **React** e **PostgreSQL**. Permite gerenciar clientes, pedidos, itens e pagamentos com atualização automática de status e dashboard de analytics.
+Sistema de controle de recebíveis desenvolvido com **Node.js**, **Express**, **React** e **PostgreSQL**. Permite gerenciar clientes, pedidos, itens e pagamentos com atualização automática de status e fluxo de caixa integrado.
 
 > 🤖 **Desenvolvido com auxílio de IA**: Este projeto foi construído com assistência de inteligência artificial (opencode), seguindo metodologia TDD e boas práticas de desenvolvimento.
 
@@ -15,8 +15,7 @@ Sistema de controle de recebíveis desenvolvido com **Node.js**, **Express**, **
 - **Gestão de Pedidos** — CRUD com itens dinâmicos (descrição, valor, pessoa associada)
 - **Processamento de Pagamentos** — Registro com baixa de R$ 0,00 (brindes) e aceite de overpayment com confirmação
 - **Status Automático** — Pedidos transitam entre *Pendente*, *Parcial* e *Quitado*
-- **Dashboard Analytics** — KPIs (total pendente, quitado, recebimentos do mês) + gráfico por pessoa
-- **Exportação Excel** — Relatório de 4 planilhas com formatação BRL
+- **Finanças** — Fluxo de caixa com lançamentos automáticos (pagamentos de vendas e pedidos dōTERRA) e manuais, categorias padrão e customizáveis, resgate InfinitePay e resumo de receitas/despesas/saldo
 - **Modo escuro/claro** — Alternância com persistência em `localStorage`
 - **Design responsivo** — Navegação desktop e mobile com menu inferior
 - **Aritmética de centavos** — Cálculos financeiros com inteiros, sem erros de ponto flutuante
@@ -215,7 +214,7 @@ receivables-control/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/  # Header, Nav, Toast, etc.
-│   │   ├── pages/       # Dashboard, Clientes, Pedidos, etc.
+│   │   ├── pages/       # Finanças, Clientes, Pedidos, etc.
 │   │   ├── services/    # Axios client
 │   │   ├── context/     # AuthContext, ThemeContext
 │   │   └── utils/       # formatBRL, exportExcel

@@ -47,7 +47,7 @@ To implement a new client feature as a new phase:
    - New feature tests must pass
    - Run full test suite: `npm run test` in both `backend/` and `frontend/`
    - If existing tests fail, fix implementation (not the tests) until all pass
-   - Confirm no regressions in People, Orders, Payments, Dashboard, or Export features
+   - Confirm no regressions in People, Orders, Payments, Finances, or Export features
 
 6. **Update documentation upon completion**:
    - In `ROADMAP.md`:

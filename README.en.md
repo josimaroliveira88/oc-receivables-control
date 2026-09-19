@@ -1,6 +1,6 @@
 # Receivables Control System
 
-A receivables management system built with **Node.js**, **Express**, **React**, and **PostgreSQL**. Manage people, orders, items, and payments with automatic status transitions and an analytics dashboard.
+A receivables management system built with **Node.js**, **Express**, **React**, and **PostgreSQL**. Manage people, orders, items, and payments with automatic status transitions and an integrated cash-flow ledger.
 
 > 🤖 **AI-assisted development**: This project was built with assistance from artificial intelligence (opencode), following TDD methodology and software engineering best practices.
 
@@ -15,8 +15,7 @@ A receivables management system built with **Node.js**, **Express**, **React**, 
 - **Order Management** — CRUD with dynamic items (description, value, associated person)
 - **Payment Processing** — Register payments with R$ 0,00 "Dar baixa" (gifts) and confirmed overpayment acceptance
 - **Automatic Status** — Orders transition between *Pending*, *Partial*, and *Paid*
-- **Analytics Dashboard** — KPIs (total pending, total paid, current month revenue) + per-person chart
-- **Excel Export** — 4-sheet workbook with BRL currency formatting
+- **Finances** — Cash-flow ledger with automatic entries (sale payments and dōTERRA orders) and manual entries, default and custom categories, InfinitePay redemptions, and an income/expense/balance summary
 - **Dark/Light Mode** — Toggle with `localStorage` persistence
 - **Responsive Design** — Desktop navigation and mobile bottom nav bar
 - **Integer Cents Arithmetic** — Financial calculations using integers, no floating-point errors
@@ -211,7 +210,7 @@ receivables-control/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/  # Header, Nav, Toast, etc.
-│   │   ├── pages/       # Dashboard, People, Orders, etc.
+│   │   ├── pages/       # Finances, People, Orders, etc.
 │   │   ├── services/    # Axios client
 │   │   ├── context/     # AuthContext, ThemeContext
 │   │   └── utils/       # formatBRL, exportExcel

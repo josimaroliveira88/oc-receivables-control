@@ -2,7 +2,7 @@
 
 ## Current State
 
-MVP and Phases 1-80 are complete (see `CHANGELOG.md`). The application provides authenticated, user-isolated client, order, receivables, payment, dashboard, export, stock, and dōTERRA product-catalog workflows, including KIT products with per-component stock control.
+MVP and Phases 1-80 are complete (see `CHANGELOG.md`). The application provides authenticated, user-isolated client, order, receivables, payment, finances, export, stock, and dōTERRA product-catalog workflows, including KIT products with per-component stock control.
 
 - Internal documentation and code comments: English.
 - User-facing content: Brazilian Portuguese (PT-BR).
@@ -27,7 +27,7 @@ MVP and Phases 1-80 are complete (see `CHANGELOG.md`). The application provides 
 - Persist monetary values as Prisma `Decimal(10,2)`; Prisma commonly returns Decimal values as strings, so normalize before calculations or formatting.
 - Never compare or sum BRL values with raw floating-point arithmetic.
 - Payments allow overpayment after explicit frontend confirmation. A zero payment is valid only for a person whose item total is zero. Negative payments are invalid.
-- Preserve transactional consistency and order status transitions: `PENDENTE` -> `PARCIAL` -> `QUITADO`. Orders flagged `isTeamOrder` are an exception: `computeOrderStatus` always returns the dedicated `EQUIPE` status (never one of the three standard states), and team orders are excluded from all dashboard metrics, generate no stock movements, and reject payments. Toggling a team order back to normal recomputes the standard status.
+- Preserve transactional consistency and order status transitions: `PENDENTE` -> `PARCIAL` -> `QUITADO`. Orders flagged `isTeamOrder` are an exception: `computeOrderStatus` always returns the dedicated `EQUIPE` status (never one of the three standard states), and team orders generate no financial-ledger entries, generate no stock movements, and reject payments. Toggling a team order back to normal recomputes the standard status.
 
 ### Data isolation and security
 
