@@ -250,6 +250,205 @@ describe('Sales <-> Payments', () => {
     });
   });
 
+  describe('InfinitePay gateway fee', () => {
+    it('persists the passesGatewayFeeToClient flag on the sale', async () => {
+      const created = await createSale(
+        [{ productId: product.id, chargedValue: 100, quantity: 1 }],
+        { passesGatewayFeeToClient: true },
+      );
+      expect(created.status).toBe(201);
+      expect(created.body.passesGatewayFeeToClient).toBe(true);
+    });
+
+    it('defaults passesGatewayFeeToClient to false', async () => {
+      const created = await createSale([
+        { productId: product.id, chargedValue: 100, quantity: 1 },
+      ]);
+      expect(created.status).toBe(201);
+      expect(created.body.passesGatewayFeeToClient).toBe(false);
+    });
+
+    it('records the charged amount, the net received and the derived fee', async () => {
+      const created = await createSale([
+        { productId: product.id, chargedValue: 220, quantity: 1 },
+      ]);
+      const res = await pay(created.body.id, 234.02, client.id, {
+        paymentType: 'INFINITE_PAY',
+        netAmount: 220,
+      });
+
+      expect(res.status).toBe(201);
+      expect(res.body.order.status).toBe('QUITADO');
+      expect(parseFloat(res.body.payment.amount)).toBe(234.02);
+      expect(parseFloat(res.body.payment.netAmount)).toBe(220);
+      expect(parseFloat(res.body.payment.feeAmount)).toBe(14.02);
+
+      const balance = await request(app)
+        .get(`/api/orders/${created.body.id}/balance`)
+        .set('Authorization', `Bearer ${user.token}`);
+      expect(balance.status).toBe(200);
+      expect(balance.body.balances[0].pending).toBe(0);
+      expect(balance.body.balances[0].paymentTotal).toBe(234.02);
+    });
+
+    it('keeps pending zero when the fee was not passed on to the client', async () => {
+      const created = await createSale([
+        { productId: product.id, chargedValue: 640, quantity: 1 },
+      ]);
+      const res = await pay(created.body.id, 640, client.id, {
+        paymentType: 'INFINITE_PAY',
+        netAmount: 613.12,
+      });
+
+      expect(res.status).toBe(201);
+      expect(res.body.order.status).toBe('QUITADO');
+      expect(parseFloat(res.body.payment.netAmount)).toBe(613.12);
+      expect(parseFloat(res.body.payment.feeAmount)).toBe(26.88);
+
+      const balance = await request(app)
+        .get(`/api/orders/${created.body.id}/balance`)
+        .set('Authorization', `Bearer ${user.token}`);
+      expect(balance.body.balances[0].pending).toBe(0);
+    });
+
+    it('defaults netAmount to null and fee to zero when omitted', async () => {
+      const created = await createSale([
+        { productId: product.id, chargedValue: 100, quantity: 1 },
+      ]);
+      const res = await pay(created.body.id, 50, client.id);
+      expect(res.status).toBe(201);
+      expect(res.body.payment.netAmount).toBeNull();
+      expect(parseFloat(res.body.payment.feeAmount)).toBe(0);
+    });
+
+    it('rejects a net amount greater than the charged amount', async () => {
+      const created = await createSale([
+        { productId: product.id, chargedValue: 100, quantity: 1 },
+      ]);
+      const res = await pay(created.body.id, 100, client.id, {
+        netAmount: 150,
+      });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('Net amount cannot be greater');
+    });
+
+    it('updates the net amount and recomputes the fee on edit', async () => {
+      const created = await createSale([
+        { productId: product.id, chargedValue: 220, quantity: 1 },
+      ]);
+      const paid = await pay(created.body.id, 234.02, client.id, {
+        paymentType: 'INFINITE_PAY',
+        netAmount: 220,
+      });
+
+      const res = await request(app)
+        .put(`/api/orders/payments/${paid.body.payment.id}`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({ amount: 234.02, netAmount: 225 });
+
+      expect(res.status).toBe(200);
+      expect(parseFloat(res.body.payment.netAmount)).toBe(225);
+      expect(parseFloat(res.body.payment.feeAmount)).toBe(9.02);
+    });
+
+    it('clears the net amount with null on edit', async () => {
+      const created = await createSale([
+        { productId: product.id, chargedValue: 220, quantity: 1 },
+      ]);
+      const paid = await pay(created.body.id, 220, client.id, {
+        paymentType: 'INFINITE_PAY',
+        netAmount: 210,
+      });
+      const res = await request(app)
+        .put(`/api/orders/payments/${paid.body.payment.id}`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({ amount: 220, netAmount: null });
+      expect(res.status).toBe(200);
+      expect(res.body.payment.netAmount).toBeNull();
+      expect(parseFloat(res.body.payment.feeAmount)).toBe(0);
+    });
+
+    it('rejects a net amount greater than the charged amount on edit', async () => {
+      const created = await createSale([
+        { productId: product.id, chargedValue: 220, quantity: 1 },
+      ]);
+      const paid = await pay(created.body.id, 220, client.id);
+      const res = await request(app)
+        .put(`/api/orders/payments/${paid.body.payment.id}`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({ amount: 100, netAmount: 120 });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('Net amount cannot be greater');
+    });
+
+    it('persists the fee-passthrough flag on the order via the payment', async () => {
+      const created = await createSale([
+        { productId: product.id, chargedValue: 220, quantity: 1 },
+      ]);
+      expect(created.body.passesGatewayFeeToClient).toBe(false);
+
+      const res = await pay(created.body.id, 220, client.id, {
+        paymentType: 'INFINITE_PAY',
+        netAmount: 210,
+        passesGatewayFeeToClient: true,
+      });
+
+      expect(res.status).toBe(201);
+      expect(res.body.order.passesGatewayFeeToClient).toBe(true);
+
+      const stored = await prisma.order.findUnique({
+        where: { id: created.body.id },
+      });
+      expect(stored.passesGatewayFeeToClient).toBe(true);
+    });
+
+    it('leaves the order flag unchanged when the payment omits it', async () => {
+      const created = await createSale(
+        [{ productId: product.id, chargedValue: 220, quantity: 1 }],
+        { passesGatewayFeeToClient: true },
+      );
+
+      const res = await pay(created.body.id, 220, client.id, {
+        paymentType: 'INFINITE_PAY',
+        netAmount: 210,
+      });
+
+      expect(res.status).toBe(201);
+      expect(res.body.order.passesGatewayFeeToClient).toBe(true);
+
+      const stored = await prisma.order.findUnique({
+        where: { id: created.body.id },
+      });
+      expect(stored.passesGatewayFeeToClient).toBe(true);
+    });
+
+    it('updates the order flag when editing a payment', async () => {
+      const created = await createSale([
+        { productId: product.id, chargedValue: 220, quantity: 1 },
+      ]);
+      const paid = await pay(created.body.id, 220, client.id, {
+        paymentType: 'INFINITE_PAY',
+      });
+
+      const res = await request(app)
+        .put(`/api/orders/payments/${paid.body.payment.id}`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({
+          amount: 220,
+          paymentType: 'INFINITE_PAY',
+          passesGatewayFeeToClient: true,
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.order.passesGatewayFeeToClient).toBe(true);
+
+      const stored = await prisma.order.findUnique({
+        where: { id: created.body.id },
+      });
+      expect(stored.passesGatewayFeeToClient).toBe(true);
+    });
+  });
+
   describe('GET /api/orders/:orderId/balance on a sale', () => {
     it('includes shipping and additional charges in the client pending', async () => {
       const created = await createSale(

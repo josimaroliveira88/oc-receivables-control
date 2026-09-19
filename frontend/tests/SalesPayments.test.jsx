@@ -443,6 +443,165 @@ describe('SalesPayments', () => {
         screen.queryByText('Valor não pode ser negativo'),
       ).not.toBeInTheDocument();
     });
+
+    it('should show the net amount field only for InfinitePay', async () => {
+      mockGetImplementation([mockSale]);
+      renderPage();
+      await openPaymentAction('sale-1');
+
+      expect(
+        screen.queryByPlaceholderText('Igual ao valor cobrado'),
+      ).not.toBeInTheDocument();
+
+      fireEvent.change(screen.getByLabelText('Forma de Pagamento'), {
+        target: { value: 'INFINITE_PAY' },
+      });
+
+      expect(
+        screen.getByPlaceholderText('Igual ao valor cobrado'),
+      ).toBeInTheDocument();
+
+      fireEvent.change(screen.getByLabelText('Forma de Pagamento'), {
+        target: { value: 'PIX' },
+      });
+      expect(
+        screen.queryByPlaceholderText('Igual ao valor cobrado'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should compute and show the gateway fee from the net amount', async () => {
+      mockGetImplementation([mockSale]);
+      renderPage();
+      await openPaymentAction('sale-1');
+
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '23402' },
+      });
+      fireEvent.change(screen.getByLabelText('Forma de Pagamento'), {
+        target: { value: 'INFINITE_PAY' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('Igual ao valor cobrado'), {
+        target: { value: '22000' },
+      });
+
+      expect(screen.getByTestId('sale-payment-fee')).toHaveTextContent(
+        /R\$\s*14,02/,
+      );
+    });
+
+    it('should send netAmount in the create payload for InfinitePay', async () => {
+      mockGetImplementation([mockSale]);
+      mockPost.mockResolvedValue({
+        data: { id: 'pay-fee', amount: '234.02', netAmount: '220.00' },
+      });
+      renderPage();
+      await openPaymentAction('sale-1');
+
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '23402' },
+      });
+      fireEvent.change(screen.getByLabelText('Forma de Pagamento'), {
+        target: { value: 'INFINITE_PAY' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('Igual ao valor cobrado'), {
+        target: { value: '22000' },
+      });
+      fireEvent.submit(screen.getByPlaceholderText('0,00').closest('form'));
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith('/orders/sale-1/payments', {
+          amount: 234.02,
+          netAmount: 220,
+          passesGatewayFeeToClient: false,
+          personId: 'p1',
+          paidAt: expect.any(String),
+          notes: undefined,
+          paymentType: 'INFINITE_PAY',
+        });
+      });
+    });
+
+    it('should show the fee-passthrough checkbox only for InfinitePay', async () => {
+      mockGetImplementation([mockSale]);
+      renderPage();
+      await openPaymentAction('sale-1');
+
+      expect(
+        screen.queryByRole('checkbox', {
+          name: /Repassar taxa do InfinitePay ao cliente/,
+        }),
+      ).not.toBeInTheDocument();
+
+      fireEvent.change(screen.getByLabelText('Forma de Pagamento'), {
+        target: { value: 'INFINITE_PAY' },
+      });
+      expect(
+        screen.getByRole('checkbox', {
+          name: /Repassar taxa do InfinitePay ao cliente/,
+        }),
+      ).toBeInTheDocument();
+    });
+
+    it('should send passesGatewayFeeToClient when the checkbox is checked', async () => {
+      mockGetImplementation([mockSale]);
+      mockPost.mockResolvedValue({
+        data: { id: 'pay-fee', amount: '234.02', netAmount: '220.00' },
+      });
+      renderPage();
+      await openPaymentAction('sale-1');
+
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '23402' },
+      });
+      fireEvent.change(screen.getByLabelText('Forma de Pagamento'), {
+        target: { value: 'INFINITE_PAY' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('Igual ao valor cobrado'), {
+        target: { value: '22000' },
+      });
+      fireEvent.click(
+        screen.getByRole('checkbox', {
+          name: /Repassar taxa do InfinitePay ao cliente/,
+        }),
+      );
+      fireEvent.submit(screen.getByPlaceholderText('0,00').closest('form'));
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith('/orders/sale-1/payments', {
+          amount: 234.02,
+          netAmount: 220,
+          passesGatewayFeeToClient: true,
+          personId: 'p1',
+          paidAt: expect.any(String),
+          notes: undefined,
+          paymentType: 'INFINITE_PAY',
+        });
+      });
+    });
+
+    it('should reject a net amount greater than the charged amount', async () => {
+      mockGetImplementation([mockSale]);
+      renderPage();
+      await openPaymentAction('sale-1');
+
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '10000' },
+      });
+      fireEvent.change(screen.getByLabelText('Forma de Pagamento'), {
+        target: { value: 'INFINITE_PAY' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('Igual ao valor cobrado'), {
+        target: { value: '20000' },
+      });
+      fireEvent.submit(screen.getByPlaceholderText('0,00').closest('form'));
+
+      expect(mockPost).not.toHaveBeenCalled();
+      expect(
+        screen.getByText(
+          'Valor líquido não pode ser maior que o valor cobrado',
+        ),
+      ).toBeInTheDocument();
+    });
   });
 
   describe('Details Modal', () => {
@@ -477,6 +636,28 @@ describe('SalesPayments', () => {
       const modal = within(screen.getByTestId('sale-details-modal'));
       expect(modal.getByText('Pagamentos recebidos')).toBeInTheDocument();
       expect(modal.getByTestId('payment-badge-pay-1')).toHaveTextContent('PIX');
+    });
+
+    it('should show the gateway fee and net received on the payment row', async () => {
+      const feeSale = {
+        ...detailSale,
+        payments: [
+          {
+            ...detailSale.payments[0],
+            amount: '234.02',
+            netAmount: '220.00',
+            paymentType: 'INFINITE_PAY',
+          },
+        ],
+      };
+      mockGetImplementation([feeSale]);
+      renderPage();
+      await openDetailsAction('sale-detail');
+
+      const modal = within(screen.getByTestId('sale-details-modal'));
+      const feeLine = modal.getByTestId('payment-fee-pay-1');
+      expect(feeLine).toHaveTextContent(/Taxa:\s*R\$\s*14,02/);
+      expect(feeLine).toHaveTextContent(/Líquido:\s*R\$\s*220,00/);
     });
   });
 
@@ -533,6 +714,7 @@ describe('SalesPayments', () => {
       await waitFor(() => {
         expect(mockPut).toHaveBeenCalledWith('/orders/payments/pay-1', {
           amount: 120,
+          netAmount: null,
           paidAt: '2026-08-08',
           notes: 'Pix atualizado',
           paymentType: 'DINHEIRO',
@@ -581,6 +763,44 @@ describe('SalesPayments', () => {
       ).toBeInTheDocument();
     });
 
+    it('should prefill the net amount, fee checkbox and fee when editing InfinitePay', async () => {
+      const feeSale = {
+        ...detailSale,
+        passesGatewayFeeToClient: true,
+        payments: [
+          {
+            ...detailSale.payments[0],
+            amount: '234.02',
+            netAmount: '220.00',
+            paymentType: 'INFINITE_PAY',
+          },
+        ],
+      };
+      mockGetImplementation([feeSale]);
+      renderPage();
+      await openDetailsAction('sale-detail');
+      const detailsModal = within(screen.getByTestId('sale-details-modal'));
+      fireEvent.click(detailsModal.getByTestId('edit-payment-pay-1'));
+      const editModal = within(
+        await screen.findByTestId('sale-edit-payment-modal'),
+      );
+
+      expect(editModal.getByLabelText('Forma de Pagamento').value).toBe(
+        'INFINITE_PAY',
+      );
+      expect(
+        editModal.getByPlaceholderText('Igual ao valor cobrado'),
+      ).toHaveValue('220,00');
+      expect(
+        editModal.getByRole('checkbox', {
+          name: /Repassar taxa do InfinitePay ao cliente/,
+        }),
+      ).toBeChecked();
+      expect(editModal.getByTestId('sale-edit-payment-fee')).toHaveTextContent(
+        /R\$\s*14,02/,
+      );
+    });
+
     it('should clear the payment type when "Não informada" is selected', async () => {
       const editModal = await openEditModal();
       fireEvent.change(editModal.getByLabelText('Forma de Pagamento'), {
@@ -595,6 +815,7 @@ describe('SalesPayments', () => {
       await waitFor(() => {
         expect(mockPut).toHaveBeenCalledWith('/orders/payments/pay-1', {
           amount: 100,
+          netAmount: null,
           paidAt: '2026-08-06',
           notes: 'Pix recebido',
           paymentType: null,

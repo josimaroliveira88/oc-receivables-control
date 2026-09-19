@@ -92,6 +92,7 @@ const mockSales = [
       {
         person: { name: 'Maria Santos' },
         amount: '100.00',
+        netAmount: '90.00',
         paidAt: '2024-04-05T14:00:00.000Z',
         createdAt: '2024-04-05T14:00:00.000Z',
         notes: 'Entrada da venda',
@@ -247,6 +248,8 @@ describe('exportExcel', () => {
         'Data',
         'Cliente',
         'Valor Total (R$)',
+        'Taxa (R$)',
+        'Líquido (R$)',
         'Status',
       ]);
     });
@@ -267,9 +270,11 @@ describe('exportExcel', () => {
       expect(rows[1][0]).toBe('V-0001');
       expect(rows[1][2]).toBe('Maria Santos');
       expect(rows[1][3]).toBe(250);
-      expect(rows[1][4]).toBe('PENDENTE');
+      expect(rows[1][4]).toBe(10);
+      expect(rows[1][5]).toBe(90);
+      expect(rows[1][6]).toBe('PENDENTE');
       expect(rows[2][0]).toBe('V-0002');
-      expect(rows[2][4]).toBe('QUITADO');
+      expect(rows[2][6]).toBe('QUITADO');
     });
 
     it('should format sale dates as DD/MM/YYYY', () => {
@@ -398,6 +403,8 @@ describe('exportExcel', () => {
         'Pedido',
         'Pessoa',
         'Valor (R$)',
+        'Taxa (R$)',
+        'Valor Líquido (R$)',
         'Data',
         'Notas',
       ]);
@@ -448,7 +455,7 @@ describe('exportExcel', () => {
       const ws = wb.Sheets['Histórico de Pagamentos'];
       const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
 
-      expect(rows[1][3]).toBe('10/04/2024');
+      expect(rows[1][5]).toBe('10/04/2024');
     });
 
     it('should include notes field', () => {
@@ -462,7 +469,24 @@ describe('exportExcel', () => {
       const ws = wb.Sheets['Histórico de Pagamentos'];
       const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
 
-      expect(rows[1][4]).toBe('Primeira parcela');
+      expect(rows[1][6]).toBe('Primeira parcela');
+    });
+
+    it('should compute the gateway fee and net received per payment', async () => {
+      exportExcel({
+        orders: [],
+        sales: mockSales,
+        people: [],
+        dashboard: { personBalances: [] },
+      });
+
+      const wb = XLSX.writeFile.mock.calls[0][0];
+      const ws = wb.Sheets['Histórico de Pagamentos'];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+
+      expect(rows[1][2]).toBe(100);
+      expect(rows[1][3]).toBe(10);
+      expect(rows[1][4]).toBe(90);
     });
 
     it('should display "Sem pessoa" when payment has no person', () => {
@@ -538,7 +562,7 @@ describe('exportExcel', () => {
       expect(rows).toHaveLength(2);
       expect(rows[1][0]).toBe('V-0001');
       expect(rows[1][1]).toBe('Maria Santos');
-      expect(rows[1][4]).toBe('Entrada da venda');
+      expect(rows[1][6]).toBe('Entrada da venda');
     });
   });
 
@@ -731,7 +755,7 @@ describe('exportExcel', () => {
       const ws = wb.Sheets['Vendas'];
 
       expect(ws['!cols']).toBeDefined();
-      expect(ws['!cols'].length).toBe(5);
+      expect(ws['!cols'].length).toBe(7);
     });
 
     it('should set column widths on Clientes sheet', () => {
@@ -759,7 +783,7 @@ describe('exportExcel', () => {
       const ws = wb.Sheets['Histórico de Pagamentos'];
 
       expect(ws['!cols']).toBeDefined();
-      expect(ws['!cols'].length).toBe(5);
+      expect(ws['!cols'].length).toBe(7);
     });
 
     it('should set column widths on Saldo Pendente sheet', () => {
