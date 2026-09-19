@@ -1,5 +1,5 @@
 import React from 'react';
-import { DollarSign, Eye, Truck, Pencil, Trash } from 'lucide-react';
+import { DollarSign, Eye, Truck, Pencil, Trash, Landmark } from 'lucide-react';
 import { formatBRL } from '../../../utils/money';
 import { formatDateBR } from '../../../utils/dates';
 import {
@@ -7,6 +7,7 @@ import {
   getSaleClientTooltip,
   getSaleFinancials,
   getSalePaymentActionLabel,
+  saleHasInfinitePay,
   shouldShowSalePaymentAction,
 } from '../utils/saleHelpers';
 import { StatusBadge, DeliveryBadge } from './SaleBadges';
@@ -34,6 +35,7 @@ const SalesTable = ({
   onPayment,
   onDetails,
   onToggleDelivery,
+  onSettlement,
 }) => {
   return (
     <div>
@@ -145,6 +147,7 @@ const SalesTable = ({
                       : 'text-info-fg';
                 const showPaymentAction = shouldShowSalePaymentAction(sale);
                 const paymentActionLabel = getSalePaymentActionLabel(sale);
+                const showSettlementAction = saleHasInfinitePay(sale);
                 return (
                   <tr
                     key={sale.id}
@@ -222,6 +225,15 @@ const SalesTable = ({
                                     icon: DollarSign,
                                     variant: 'primary',
                                     onClick: () => onPayment(sale),
+                                  },
+                                ]
+                              : []),
+                            ...(showSettlementAction
+                              ? [
+                                  {
+                                    label: 'Registrar resgate InfinitePay',
+                                    icon: Landmark,
+                                    onClick: () => onSettlement(sale),
                                   },
                                 ]
                               : []),

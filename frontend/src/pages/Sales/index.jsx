@@ -2,12 +2,14 @@ import React from 'react';
 import { formatBRL, toCents } from '../../utils/money';
 import { useSales } from './useSales';
 import { useSalePayments } from './useSalePayments';
+import { useSaleSettlements } from '../Finances/useSaleSettlements';
 import SalesTable from './components/SalesTable';
 import Modal from '../../components/Modal';
 import SaleForm from './components/SaleForm';
 import SalePaymentModal from './components/SalePaymentModal';
 import SaleDetailsModal from './components/SaleDetailsModal';
 import SaleEditPaymentModal from './components/SaleEditPaymentModal';
+import GatewaySettlementModal from '../Finances/components/GatewaySettlementModal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 
 const SalesPage = () => {
@@ -131,6 +133,18 @@ const SalesPage = () => {
     cancelEditOverpay,
   } = useSalePayments({ refreshSales });
 
+  const {
+    settlementSale,
+    form: settlementForm,
+    formError: settlementError,
+    submitting: settlementSubmitting,
+    isDirty: settlementDirty,
+    openSettlement,
+    closeSettlement,
+    setFormField: setSettlementField,
+    handleSubmit: handleSettlementSubmit,
+  } = useSaleSettlements({ onSettled: refreshSales });
+
   const editSale = sales.find((s) => s.id === editSaleId);
 
   if (loading) {
@@ -182,6 +196,7 @@ const SalesPage = () => {
             onPayment={openPaymentModal}
             onDetails={openDetailsModal}
             onToggleDelivery={toggleDelivery}
+            onSettlement={openSettlement}
           />
         </div>
       </div>
@@ -293,6 +308,18 @@ const SalesPage = () => {
           onSubmit={handleEditSubmit}
         />
       )}
+
+      <GatewaySettlementModal
+        isOpen={!!settlementSale}
+        sale={settlementSale}
+        form={settlementForm}
+        formError={settlementError}
+        submitting={settlementSubmitting}
+        isDirty={settlementDirty}
+        onChangeField={setSettlementField}
+        onSubmit={handleSettlementSubmit}
+        onClose={closeSettlement}
+      />
 
       <ConfirmDialog
         open={showEditOverpayConfirm}

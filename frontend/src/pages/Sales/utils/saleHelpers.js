@@ -141,6 +141,11 @@ export const getSalePaymentActionLabel = (sale) =>
     ? 'Dar baixa'
     : 'Registrar Pagamento';
 
+// Whether a sale has at least one InfinitePay payment. Only these sales can
+// register an InfinitePay redemption in the finances module.
+export const saleHasInfinitePay = (sale) =>
+  (sale?.payments || []).some((p) => p.paymentType === 'INFINITE_PAY');
+
 // Options for the column selector next to the sales search input.
 export const SALE_SEARCH_FIELD_OPTIONS = [
   { value: 'all', label: 'Todas as colunas' },
