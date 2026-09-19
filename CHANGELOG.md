@@ -9,6 +9,14 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 101 — Aviso único do novo módulo de Finanças (2026-09-19)
+
+### Added
+- **Aviso de novo módulo de Finanças**: novo componente `frontend/src/components/FinancesAnnouncement.jsx`, montado no `AppLayout` (`frontend/src/App.jsx`) ao lado do `OnboardingTour`, usa o `Modal` compartilhado para exibir **uma única vez**, ao abrir a aplicação, um resumo das funcionalidades do módulo (lançamentos de receitas/despesas, resumo de receitas/despesas/saldo, filtros por período/tipo/origem/categoria, categorias personalizáveis e baixa de vendas por gateway). O estado "já visto" é gravado **por usuário** em `localStorage` (`finances_announcement_seen_<userId>`, via `useAuth().user.id`), então cada usuário vê o aviso uma vez por navegador; fechar por qualquer via (botão "Entendi", `×`, Escape ou clique no backdrop) marca como visto e não o exibe novamente.
+
+### Tests
+- Frontend: novo `frontend/tests/FinancesAnnouncement.test.jsx` (8: exibição na primeira abertura, ocultação após visto, lista de destaques, marcação por usuário, fechamento pelo botão e pelo `Modal` compartilhado, permanência após remontar e ausência sem usuário autenticado); `App.test.jsx` mocka o novo componente. **873 frontend passing**; `npm run build` e `npm run format:check` limpos e `npm run lint` sem erros (5 warnings preexistentes). Backend sem alterações.
+
 ## Phase 100 — Módulo Financeiro: backfill de lançamentos e regra de pedido compartilhado (2026-09-19)
 
 ### Added
