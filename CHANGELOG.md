@@ -9,6 +9,15 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 97 — Script de atualização para máquina do cliente (Windows) (2026-09-19)
+
+### Added
+- **`update.bat`**: novo script de atualização para instalações Windows do cliente. Segue o roteiro de `docs/DEPLOYMENT.md`: verifica Node.js/Git, bloqueia a execução se detectar serviços nas portas `3000`/`4000`, exige confirmação de backup do banco, executa `git pull`, `npm ci` no backend e frontend, `prisma migrate deploy`, `prisma generate`, `npm run build` no frontend e, ao final, oferece iniciar o projeto chamando `start.bat`.
+- **Script `prisma:migrate:deploy` no backend**: adicionado `backend/package.json` script `"prisma:migrate:deploy": "prisma migrate deploy"` para garantir deploy seguro das migrations em produção (sem usar `migrate dev`).
+
+### Tests
+- `npm run format:check` limpo e `npm run lint` no backend sem erros. O script `.bat` não é executável em ambiente Linux, mas sua estrutura foi validada contra o `start.bat` existente.
+
 ## Phase 96 — Taxa do InfinitePay no registro de pagamento de vendas (2026-09-19)
 
 ### Added
