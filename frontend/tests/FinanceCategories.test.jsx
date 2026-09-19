@@ -129,6 +129,35 @@ describe('FinancialCategoryModal', () => {
     expect(within(expenses).getByText('Viagens')).toBeInTheDocument();
   });
 
+  it('uses a wide modal and renders the full category name without truncation', async () => {
+    const longName = 'Compra de produtos dōTERRA e materiais de escritório';
+    mockGet.mockResolvedValue({
+      data: [
+        {
+          id: 'cat-longa',
+          name: longName,
+          type: 'DESPESA',
+          isDefault: false,
+          active: true,
+        },
+      ],
+    });
+
+    renderHarness();
+    await openModal();
+
+    const name = screen.getByTestId('category-name-cat-longa');
+    expect(name).toHaveTextContent(longName);
+    expect(name).toHaveAttribute('title', longName);
+    expect(name.className).not.toContain('truncate');
+    expect(name.className).toContain('break-words');
+
+    const panel = screen
+      .getByTestId('finance-category-modal')
+      .querySelector(':scope > div');
+    expect(panel.className).toContain('max-w-4xl');
+  });
+
   it('marks default and inactive categories', async () => {
     mockGet.mockResolvedValue({
       data: [

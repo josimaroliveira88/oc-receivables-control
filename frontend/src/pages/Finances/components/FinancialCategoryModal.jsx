@@ -12,11 +12,13 @@ const secondaryButtonClass =
 const CategoryRow = ({ category, onEdit, onToggle }) => (
   <li
     data-testid={`category-row-${category.id}`}
-    className="flex items-center justify-between gap-2 px-3 py-2 border-b border-line last:border-b-0"
+    className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between px-3 py-2.5 border-b border-line last:border-b-0"
   >
-    <div className="flex items-center gap-2 min-w-0">
+    <div className="flex flex-wrap items-center gap-2 min-w-0">
       <span
-        className={`text-sm truncate ${
+        data-testid={`category-name-${category.id}`}
+        title={category.name}
+        className={`text-sm break-words ${
           category.active ? 'text-ink' : 'text-ink-faint line-through'
         }`}
       >
@@ -39,7 +41,7 @@ const CategoryRow = ({ category, onEdit, onToggle }) => (
         </span>
       )}
     </div>
-    <div className="flex items-center gap-1 shrink-0">
+    <div className="flex items-center gap-1 shrink-0 sm:pt-0.5">
       <button
         type="button"
         data-testid={`category-edit-${category.id}`}
@@ -117,7 +119,7 @@ const FinancialCategoryModal = ({
       isDirty={isDirty}
       submitting={submitting}
       testId="finance-category-modal"
-      maxWidth="max-w-2xl"
+      maxWidth="max-w-4xl"
       closeAriaLabel="Fechar"
     >
       {(requestClose) => (
@@ -215,7 +217,7 @@ const FinancialCategoryModal = ({
           {loading ? (
             <p className="text-sm text-ink-faint">Carregando categorias...</p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-4">
               <CategorySection
                 type="RECEITA"
                 title="Receitas"
