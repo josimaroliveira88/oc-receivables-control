@@ -8,6 +8,7 @@ const paymentTypeSchema = z.enum([
   'BOLETO',
   'CARTAO_CREDITO',
   'INFINITE_PAY',
+  'DINHEIRO',
 ]);
 
 export { paymentTypeSchema };

@@ -3,6 +3,8 @@ import { formatBRL } from '../../../utils/money';
 import { formatDateBR } from '../../../utils/dates';
 import CurrencyInput from '../../../components/CurrencyInput';
 import Modal from '../../../components/Modal';
+import { PAYMENT_TYPE_OPTIONS } from '../utils/saleHelpers';
+import { paymentTypeLabel } from '../../Orders/utils/orderHelpers';
 
 const SaleEditPaymentModal = ({
   sale,
@@ -25,6 +27,12 @@ const SaleEditPaymentModal = ({
   onChangePaymentType,
   onSubmit,
 }) => {
+  // Legacy payments recorded before the Sales screen was limited to PIX,
+  // InfinitePay and Dinheiro (e.g. Boleto) keep their current type selectable.
+  const isLegacyPaymentType =
+    paymentType &&
+    !PAYMENT_TYPE_OPTIONS.some((option) => option.value === paymentType);
+
   return (
     <Modal
       title={`Editar Pagamento — ${sale.orderNumber}`}
@@ -125,11 +133,16 @@ const SaleEditPaymentModal = ({
               onChange={(e) => onChangePaymentType(e.target.value)}
               className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
             >
-              <option value="">Não informada</option>
-              <option value="PIX">PIX</option>
-              <option value="BOLETO">Boleto</option>
-              <option value="CARTAO_CREDITO">Cartão de Crédito</option>
-              <option value="INFINITE_PAY">InfinitePay</option>
+              {PAYMENT_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+              {isLegacyPaymentType && (
+                <option value={paymentType}>
+                  {paymentTypeLabel(paymentType)}
+                </option>
+              )}
             </select>
           </div>
 

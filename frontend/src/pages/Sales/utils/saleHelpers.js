@@ -163,11 +163,12 @@ export const SALE_DELIVERY_FILTER_OPTIONS = [
   { value: 'false', label: 'Somente pendentes de entrega' },
 ];
 
-// Options for the per-payment "Forma de Pagamento" select.
+// Options for the per-payment "Forma de Pagamento" select on the Sales screen.
+// The Orders screen keeps the full list (PIX, Boleto, Crédito, InfinitePay);
+// sales receipts are recorded only as PIX, InfinitePay or Dinheiro.
 export const PAYMENT_TYPE_OPTIONS = [
   { value: '', label: 'Não informada' },
   { value: 'PIX', label: 'PIX' },
-  { value: 'BOLETO', label: 'Boleto' },
-  { value: 'CARTAO_CREDITO', label: 'Cartão de Crédito' },
   { value: 'INFINITE_PAY', label: 'InfinitePay' },
+  { value: 'DINHEIRO', label: 'Dinheiro' },
 ];

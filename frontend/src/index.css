@@ -19,6 +19,8 @@
 
     --badge-boleto-bg: #fce9d6;
     --badge-boleto-fg: #9c5306;
+    --badge-dinheiro-bg: #d8eef7;
+    --badge-dinheiro-fg: #0f6b87;
     --badge-infinitepay-bg: #f6dce6;
     --badge-infinitepay-fg: #a32e5c;
     --badge-pix-bg: #dcf3e4;
@@ -52,6 +54,8 @@
 
     --badge-boleto-bg: rgba(255, 184, 108, 0.16);
     --badge-boleto-fg: #ffb86c;
+    --badge-dinheiro-bg: rgba(139, 233, 253, 0.16);
+    --badge-dinheiro-fg: #8be9fd;
     --badge-infinitepay-bg: rgba(255, 121, 198, 0.16);
     --badge-infinitepay-fg: #ff92d0;
     --badge-pix-bg: rgba(80, 250, 123, 0.14);

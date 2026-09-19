@@ -96,6 +96,7 @@ enum PaymentType {
   BOLETO
   CARTAO_CREDITO
   INFINITE_PAY
+  DINHEIRO
 }
 
 model Item {

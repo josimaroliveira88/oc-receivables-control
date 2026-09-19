@@ -84,6 +84,7 @@ const TEXT_PAIRS = [
   ['--accent-text-on', '--accent'],
   ['--accent-text-on', '--accent-hover'],
   ['--badge-boleto-fg', '--badge-boleto-bg'],
+  ['--badge-dinheiro-fg', '--badge-dinheiro-bg'],
   ['--badge-infinitepay-fg', '--badge-infinitepay-bg'],
   ['--badge-pix-fg', '--badge-pix-bg'],
   ['--success-fg', '--success-bg'],

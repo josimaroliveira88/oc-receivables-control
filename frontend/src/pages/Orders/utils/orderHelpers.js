@@ -51,6 +51,7 @@ export const paymentTypeLabel = (type) => {
     BOLETO: 'Boleto',
     CARTAO_CREDITO: 'Crédito',
     INFINITE_PAY: 'InfinitePay',
+    DINHEIRO: 'Dinheiro',
   };
   return map[type] || type;
 };

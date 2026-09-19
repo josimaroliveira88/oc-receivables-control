@@ -54,6 +54,10 @@ export default {
             bg: cssVar('--badge-boleto-bg'),
             fg: cssVar('--badge-boleto-fg'),
           },
+          dinheiro: {
+            bg: cssVar('--badge-dinheiro-bg'),
+            fg: cssVar('--badge-dinheiro-fg'),
+          },
           infinitepay: {
             bg: cssVar('--badge-infinitepay-bg'),
             fg: cssVar('--badge-infinitepay-fg'),

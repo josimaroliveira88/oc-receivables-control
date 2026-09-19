@@ -2,7 +2,7 @@ import React from 'react';
 import { formatBRL, fromCents } from '../../../utils/money';
 import { formatDateBR } from '../../../utils/dates';
 import CurrencyInput from '../../../components/CurrencyInput';
-import { lineValueCents } from '../utils/saleHelpers';
+import { lineValueCents, PAYMENT_TYPE_OPTIONS } from '../utils/saleHelpers';
 import Modal from '../../../components/Modal';
 
 const SalePaymentModal = ({
@@ -191,11 +191,11 @@ const SalePaymentModal = ({
               onChange={(e) => onChangePaymentType(e.target.value)}
               className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
             >
-              <option value="">Não informada</option>
-              <option value="PIX">PIX</option>
-              <option value="BOLETO">Boleto</option>
-              <option value="CARTAO_CREDITO">Cartão de Crédito</option>
-              <option value="INFINITE_PAY">InfinitePay</option>
+              {PAYMENT_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
 

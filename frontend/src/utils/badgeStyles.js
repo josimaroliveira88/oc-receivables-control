@@ -32,6 +32,7 @@ export const PAYMENT_TYPE_CLASSES = {
   BOLETO: 'bg-badge-boleto-bg text-badge-boleto-fg',
   CARTAO_CREDITO: 'bg-mystic-soft text-mystic-fg',
   INFINITE_PAY: 'bg-badge-infinitepay-bg text-badge-infinitepay-fg',
+  DINHEIRO: 'bg-badge-dinheiro-bg text-badge-dinheiro-fg',
 };
 
 export const PAYMENT_TYPE_FALLBACK = 'bg-base text-ink-soft';
