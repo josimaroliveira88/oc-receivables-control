@@ -1,4 +1,5 @@
 import React from 'react';
+import NumericInput from '../../../components/NumericInput';
 import ProductCombobox from '../../../components/ProductCombobox';
 import Modal from '../../../components/Modal';
 import { MOVEMENT_TYPE_OPTIONS } from '../utils/stockHelpers';
@@ -86,14 +87,11 @@ const MovementDialog = ({
             <label className="block text-sm font-medium text-ink-soft mb-1">
               Quantidade
             </label>
-            <input
-              type="number"
-              min="0"
-              step="1"
+            <NumericInput
               value={form.quantity}
               onChange={(e) => onChange('quantity', e.target.value)}
               required
-              className={inputClass}
+              className="w-full"
               placeholder="Digite a quantidade"
               aria-label="Quantidade"
               disabled={submitting}

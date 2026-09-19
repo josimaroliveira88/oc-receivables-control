@@ -1,6 +1,7 @@
 import React from 'react';
 import { formatBRL, fromCents } from '../../../utils/money';
 import CurrencyInput from '../../../components/CurrencyInput';
+import NumericInput from '../../../components/NumericInput';
 import ProductCombobox from '../../../components/ProductCombobox';
 import {
   SELF_PERSON_ID,
@@ -136,14 +137,11 @@ const OrderItemFields = ({
           <label className="block text-xs font-medium text-ink-faint mb-1">
             Quantidade
           </label>
-          <input
-            type="number"
-            min="1"
-            step="1"
+          <NumericInput
             data-testid={`order-item-quantity-${index}`}
             value={item.quantity}
             onChange={(e) => onUpdateField('quantity', e.target.value)}
-            className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors text-sm"
+            className="w-full text-sm"
             placeholder="1"
           />
         </div>

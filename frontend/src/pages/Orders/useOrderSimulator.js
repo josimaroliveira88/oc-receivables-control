@@ -6,15 +6,18 @@ import { createEmptyRow } from './utils/simulatorHelpers';
 export function useOrderSimulator() {
   const [isOpen, setIsOpen] = useState(false);
   const [rows, setRows] = useState([]);
+  const [shippingValue, setShippingValue] = useState('');
 
   const openSimulator = () => {
     setRows([]);
+    setShippingValue('');
     setIsOpen(true);
   };
 
   const closeSimulator = () => {
     setIsOpen(false);
     setRows([]);
+    setShippingValue('');
   };
 
   const addRow = () => setRows((prev) => [...prev, createEmptyRow()]);
@@ -27,16 +30,23 @@ export function useOrderSimulator() {
       prev.map((row) => (row.id === id ? { ...row, [field]: value } : row)),
     );
 
-  const clearAll = () => setRows([]);
+  const updateShipping = (value) => setShippingValue(value);
+
+  const clearAll = () => {
+    setRows([]);
+    setShippingValue('');
+  };
 
   return {
     isOpen,
     rows,
+    shippingValue,
     openSimulator,
     closeSimulator,
     addRow,
     removeRow,
     updateRowField,
+    updateShipping,
     clearAll,
   };
 }

@@ -2,6 +2,7 @@ import React from 'react';
 import { Plus } from 'lucide-react';
 import { inputClass, emptyComponent } from '../utils/productHelpers';
 import CurrencyInput from '../../../components/CurrencyInput';
+import NumericInput from '../../../components/NumericInput';
 import ProductCombobox from '../../../components/ProductCombobox';
 
 const ProductForm = ({
@@ -174,14 +175,12 @@ const ProductForm = ({
           <label className="block text-sm font-medium text-ink-soft mb-1">
             PV
           </label>
-          <input
-            type="number"
-            step="0.01"
-            min="0"
+          <NumericInput
+            decimal
             value={values.pv}
             onChange={(e) => onChangeField('pv', e.target.value)}
             required
-            className={inputClass}
+            className="w-full"
             placeholder="Digite o PV"
           />
         </div>
@@ -226,17 +225,14 @@ const ProductForm = ({
                   }
                 />
               </div>
-              <input
-                type="number"
-                min="1"
-                step="1"
+              <NumericInput
                 aria-label="Quantidade no kit"
                 data-testid={`kit-component-quantity-${index}`}
                 value={comp.quantity}
                 onChange={(e) =>
                   updateComponent(index, 'quantity', e.target.value)
                 }
-                className="w-20 px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors text-sm"
+                className="w-20 text-sm"
               />
               <button
                 type="button"

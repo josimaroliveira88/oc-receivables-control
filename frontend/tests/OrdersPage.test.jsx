@@ -3245,20 +3245,33 @@ describe('OrdersPage', () => {
       expect(screen.getByTestId('order-item-price-mode-0').value).toBe('TOTAL');
     });
 
-    it('should block submit when PV doTERRA is negative', async () => {
+    it('should strip the minus sign so PV doTERRA cannot be typed negative', async () => {
       mockGetImplementation([], mockPeople);
       renderPage();
       await openCreateModal();
-      fireEvent.change(screen.getByLabelText('PV doTERRA'), {
-        target: { value: '-5' },
+
+      const pvInput = screen.getByLabelText('PV doTERRA');
+      fireEvent.change(pvInput, { target: { value: '-5' } });
+
+      expect(pvInput.value).toBe('5');
+      expect(
+        screen.queryByTestId('order-doterra-pv-error'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should block submit when a loaded order has a negative PV doTERRA', async () => {
+      mockGetImplementation([{ ...mockOrders[0], doterraPv: '-5.00' }]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ORD-001')).toBeInTheDocument();
       });
-      fireEvent.change(
-        screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
-        { target: { value: 'ORD-NEGPV' } },
-      );
-      fireEvent.change(screen.getByPlaceholderText('0,00'), {
-        target: { value: '5000' },
+
+      await clickOrderAction('1', 'Editar');
+      await waitFor(() => {
+        expect(screen.getByText('Editar Pedido')).toBeInTheDocument();
       });
+      expect(screen.getByLabelText('PV doTERRA').value).toBe('-5');
 
       const form = screen
         .getByPlaceholderText('Informe o número do pedido da dōTERRA')
@@ -3270,7 +3283,7 @@ describe('OrdersPage', () => {
           'PV doTERRA não pode ser negativo',
         );
       });
-      expect(mockPost).not.toHaveBeenCalled();
+      expect(mockPut).not.toHaveBeenCalled();
     });
 
     it('should not render a Valor doTERRA input on the order form', async () => {
@@ -3792,7 +3805,7 @@ describe('OrdersPage', () => {
           screen.getByPlaceholderText('Informe o número do pedido da dōTERRA'),
         ).toBeInTheDocument();
       });
-      expect(screen.getByTestId('order-item-quantity-0')).toHaveValue(1);
+      expect(screen.getByTestId('order-item-quantity-0')).toHaveValue('1');
     });
   });
 });

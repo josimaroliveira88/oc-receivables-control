@@ -6,6 +6,7 @@ import {
   personSelectLabel,
   SELF_PERSON_ID,
 } from '../utils/orderHelpers';
+import NumericInput from '../../../components/NumericInput';
 import OrderItemFields from './OrderItemFields';
 import OrderTotals from './OrderTotals';
 
@@ -236,14 +237,12 @@ const OrderForm = ({
         >
           PV doTERRA
         </label>
-        <input
+        <NumericInput
           id="doterraPv"
-          type="number"
-          step="0.01"
-          min="0"
+          decimal
           value={doterraPv}
           onChange={(e) => onChangeField('doterraPv', e.target.value)}
-          className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
+          className="w-full"
           placeholder="Ex.: 46.5"
         />
         {doterraPvError && (

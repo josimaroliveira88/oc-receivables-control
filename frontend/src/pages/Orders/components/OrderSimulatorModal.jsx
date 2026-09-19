@@ -1,10 +1,13 @@
 import React from 'react';
 import { Plus } from 'lucide-react';
 import Modal from '../../../components/Modal';
+import CurrencyInput from '../../../components/CurrencyInput';
+import { formatBRL, fromCents } from '../../../utils/money';
 import OrderSimulatorRow from './OrderSimulatorRow';
 import {
   formatMemberCents,
   formatPv,
+  shippingCentsFromValue,
   totalsFor,
 } from '../utils/simulatorHelpers';
 
@@ -18,13 +21,17 @@ const OrderSimulatorModal = ({
   isOpen,
   rows,
   products,
+  shippingValue,
   onClose,
   onAddRow,
   onUpdateField,
   onRemoveRow,
+  onChangeShipping,
   onClearAll,
 }) => {
   const totals = totalsFor(rows, products);
+  const orderTotalCents =
+    totals.totalMemberCents + shippingCentsFromValue(shippingValue);
 
   return (
     <Modal
@@ -64,11 +71,12 @@ const OrderSimulatorModal = ({
             </div>
           ) : (
             <div className="border border-line rounded-md">
-              <table className="w-full min-w-[820px] text-sm">
+              <table className="w-full min-w-[920px] text-sm">
                 <thead className="bg-base border-b border-line">
                   <tr>
                     <th className={headerCellClass}>Produto</th>
                     <th className={headerCellClass}>Qtd</th>
+                    <th className={headerCellClass}>% Promo</th>
                     <th className={headerCellClass}>PV unit.</th>
                     <th className={headerCellClass}>PV total</th>
                     <th className={headerCellClass}>V. Membro unit.</th>
@@ -109,6 +117,32 @@ const OrderSimulatorModal = ({
                 className="text-lg font-medium text-ink"
               >
                 {formatMemberCents(totals.totalMemberCents)}
+              </div>
+            </div>
+            <div className="bg-base rounded-md p-3">
+              <label
+                htmlFor="simulator-shipping"
+                className="block text-xs text-ink-faint"
+              >
+                Frete (R$)
+              </label>
+              <CurrencyInput
+                id="simulator-shipping"
+                data-testid="simulator-shipping"
+                value={shippingValue}
+                onChange={(e) => onChangeShipping(e.target.value)}
+                className="mt-1 text-sm"
+              />
+            </div>
+            <div className="bg-base rounded-md p-3">
+              <div className="text-xs text-ink-faint">
+                Valor Total do Pedido
+              </div>
+              <div
+                data-testid="simulator-order-total"
+                className="text-lg font-medium text-ink"
+              >
+                {formatBRL(fromCents(orderTotalCents))}
               </div>
             </div>
           </div>

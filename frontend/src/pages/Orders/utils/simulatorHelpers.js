@@ -4,12 +4,14 @@ import { fromCents, formatBRL, toCents } from '../../../utils/money';
 // several rows are created within the same millisecond.
 let rowSequence = 0;
 
-// A simulator row is ephemeral: it only references a catalog product and a
-// quantity. PV and member values are always derived from the catalog on render.
+// A simulator row is ephemeral: it only references a catalog product, a
+// quantity and an optional promotion percentage. PV and member values are
+// always derived from the catalog on render.
 export const createEmptyRow = () => ({
   id: `sim-${Date.now()}-${rowSequence++}`,
   productId: '',
   quantity: 1,
+  discountPercent: 0,
 });
 
 const findProduct = (products, productId) =>
@@ -31,11 +33,23 @@ export const normalizeQuantity = (quantity) => {
   return Math.floor(parsed);
 };
 
-// Per-line totals derived from the selected product, in integer cents for the
-// member price (financial correctness) and two-decimal PV for the points.
+// Promotion percentage is clamped to 0..100. Empty, invalid or negative input
+// falls back to 0 so the derived totals never break while typing.
+export const normalizeDiscountPercent = (value) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+  return Math.min(parsed, 100);
+};
+
+// Per-line totals derived from the selected product, in integer cents. The
+// promotion percentage is applied to the unit values first, so the displayed
+// unit and total always reflect the discounted amounts and unit × quantity
+// stays consistent.
 export const rowTotals = (row, products) => {
   const product = findProduct(products, row.productId);
   const quantity = normalizeQuantity(row.quantity);
+  const discountFactor =
+    1 - normalizeDiscountPercent(row.discountPercent) / 100;
 
   if (!product) {
     return {
@@ -47,9 +61,11 @@ export const rowTotals = (row, products) => {
     };
   }
 
-  const pvUnitCents = toCents(numberOrZero(product.pv));
+  const pvUnitCents = Math.round(
+    toCents(numberOrZero(product.pv)) * discountFactor,
+  );
   const memberUnitCents = hasPrice(product.memberPrice)
-    ? toCents(numberOrZero(product.memberPrice))
+    ? Math.round(toCents(numberOrZero(product.memberPrice)) * discountFactor)
     : null;
 
   return {
@@ -74,6 +90,15 @@ export const totalsFor = (rows, products) =>
     },
     { totalPv: 0, totalMemberCents: 0 },
   );
+
+// Shipping is optional and entered as BRL. Empty or invalid input is treated
+// as zero so the order total stays a valid amount while typing.
+export const shippingCentsFromValue = (value) => {
+  if (value === null || value === undefined || value === '') return 0;
+  const parsed = typeof value === 'number' ? value : parseFloat(value);
+  if (!Number.isFinite(parsed)) return 0;
+  return toCents(parsed);
+};
 
 export const formatPv = (value) => {
   if (value === null || value === undefined || value === '') return '—';

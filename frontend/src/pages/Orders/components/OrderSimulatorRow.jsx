@@ -1,5 +1,6 @@
 import React from 'react';
 import { Trash2 } from 'lucide-react';
+import NumericInput from '../../../components/NumericInput';
 import ProductCombobox from '../../../components/ProductCombobox';
 import {
   formatMemberCents,
@@ -36,15 +37,24 @@ const OrderSimulatorRow = ({
         />
       </td>
       <td className="px-3 py-2 align-middle w-24">
-        <input
-          type="number"
-          min="1"
-          step="1"
+        <NumericInput
           data-testid={`simulator-quantity-${index}`}
           value={row.quantity}
           onChange={(e) => onUpdateField(row.id, 'quantity', e.target.value)}
-          className="w-20 px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors text-sm"
+          className="w-20 text-sm"
           placeholder="1"
+        />
+      </td>
+      <td className="px-3 py-2 align-middle w-24">
+        <NumericInput
+          data-testid={`simulator-discount-${index}`}
+          value={row.discountPercent}
+          max={100}
+          onChange={(e) =>
+            onUpdateField(row.id, 'discountPercent', e.target.value)
+          }
+          className="w-20 text-sm"
+          placeholder="0"
         />
       </td>
       <td

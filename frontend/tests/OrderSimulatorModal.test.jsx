@@ -24,11 +24,13 @@ const Harness = () => {
   const {
     isOpen,
     rows,
+    shippingValue,
     openSimulator,
     closeSimulator,
     addRow,
     removeRow,
     updateRowField,
+    updateShipping,
     clearAll,
   } = useOrderSimulator();
   return (
@@ -40,10 +42,12 @@ const Harness = () => {
         isOpen={isOpen}
         rows={rows}
         products={products}
+        shippingValue={shippingValue}
         onClose={closeSimulator}
         onAddRow={addRow}
         onUpdateField={updateRowField}
         onRemoveRow={removeRow}
+        onChangeShipping={updateShipping}
         onClearAll={clearAll}
       />
     </>
@@ -88,7 +92,7 @@ describe('OrderSimulatorModal', () => {
 
     expect(screen.getByTestId('simulator-row-0')).toBeInTheDocument();
     expect(screen.queryByTestId('simulator-empty')).not.toBeInTheDocument();
-    expect(screen.getByTestId('simulator-quantity-0')).toHaveValue(1);
+    expect(screen.getByTestId('simulator-quantity-0')).toHaveValue('1');
     expect(screen.getByTestId('simulator-pv-unit-0')).toHaveTextContent('—');
     expect(screen.getByTestId('simulator-member-unit-0')).toHaveTextContent(
       '—',
@@ -176,16 +180,91 @@ describe('OrderSimulatorModal', () => {
     );
   });
 
-  it('clears every row but keeps the simulator open', () => {
+  it('applies the promotion percentage to the line and footer totals', () => {
     render(<Harness />);
     openSimulator();
     addRow();
     selectProduct(0, 'Adaptiv Pastilhas');
 
+    fireEvent.change(screen.getByTestId('simulator-discount-0'), {
+      target: { value: '10' },
+    });
+
+    expect(screen.getByTestId('simulator-pv-unit-0')).toHaveTextContent(
+      '27,90',
+    );
+    expect(screen.getByTestId('simulator-pv-total-0')).toHaveTextContent(
+      '27,90',
+    );
+    expect(screen.getByTestId('simulator-member-unit-0')).toHaveTextContent(
+      /R\$\s*208,13/,
+    );
+    expect(screen.getByTestId('simulator-member-total-0')).toHaveTextContent(
+      /R\$\s*208,13/,
+    );
+    expect(screen.getByTestId('simulator-total-pv')).toHaveTextContent('27,90');
+    expect(screen.getByTestId('simulator-total-member')).toHaveTextContent(
+      /R\$\s*208,13/,
+    );
+  });
+
+  it('caps the promotion percentage at 100%', () => {
+    render(<Harness />);
+    openSimulator();
+    addRow();
+    selectProduct(0, 'Adaptiv Pastilhas');
+
+    const discountInput = screen.getByTestId('simulator-discount-0');
+    fireEvent.change(discountInput, { target: { value: '150' } });
+
+    expect(discountInput).toHaveValue('100');
+    expect(screen.getByTestId('simulator-total-pv')).toHaveTextContent('0,00');
+    expect(screen.getByTestId('simulator-total-member')).toHaveTextContent(
+      /R\$\s*0,00/,
+    );
+  });
+
+  it('adds the shipping value to the order total while keeping the member sum', () => {
+    render(<Harness />);
+    openSimulator();
+    addRow();
+    selectProduct(0, 'Adaptiv Pastilhas');
+
+    expect(screen.getByTestId('simulator-total-member')).toHaveTextContent(
+      /R\$\s*231,25/,
+    );
+    expect(screen.getByTestId('simulator-order-total')).toHaveTextContent(
+      /R\$\s*231,25/,
+    );
+
+    fireEvent.change(screen.getByTestId('simulator-shipping'), {
+      target: { value: '2550' },
+    });
+
+    expect(screen.getByTestId('simulator-total-member')).toHaveTextContent(
+      /R\$\s*231,25/,
+    );
+    expect(screen.getByTestId('simulator-order-total')).toHaveTextContent(
+      /R\$\s*256,75/,
+    );
+  });
+
+  it('clears every row but keeps the simulator open', () => {
+    render(<Harness />);
+    openSimulator();
+    addRow();
+    selectProduct(0, 'Adaptiv Pastilhas');
+    fireEvent.change(screen.getByTestId('simulator-shipping'), {
+      target: { value: '2550' },
+    });
+
     fireEvent.click(screen.getByTestId('simulator-clear'));
 
     expect(screen.getByTestId('simulator-empty')).toBeInTheDocument();
     expect(screen.getByTestId('simulator-total-pv')).toHaveTextContent('0,00');
+    expect(screen.getByTestId('simulator-order-total')).toHaveTextContent(
+      /R\$\s*0,00/,
+    );
     expect(screen.getByText('Simulador de Pedido')).toBeInTheDocument();
   });
 

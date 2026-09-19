@@ -144,11 +144,13 @@ const OrdersPage = () => {
   const {
     isOpen: simulatorOpen,
     rows: simulatorRows,
+    shippingValue: simulatorShippingValue,
     openSimulator,
     closeSimulator,
     addRow: addSimulatorRow,
     removeRow: removeSimulatorRow,
     updateRowField: updateSimulatorRowField,
+    updateShipping: updateSimulatorShipping,
     clearAll: clearSimulator,
   } = useOrderSimulator();
 
@@ -216,10 +218,12 @@ const OrdersPage = () => {
         isOpen={simulatorOpen}
         rows={simulatorRows}
         products={products}
+        shippingValue={simulatorShippingValue}
         onClose={closeSimulator}
         onAddRow={addSimulatorRow}
         onUpdateField={updateSimulatorRowField}
         onRemoveRow={removeSimulatorRow}
+        onChangeShipping={updateSimulatorShipping}
         onClearAll={clearSimulator}
       />
 

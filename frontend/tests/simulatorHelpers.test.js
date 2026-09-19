@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
   createEmptyRow,
+  normalizeDiscountPercent,
   rowTotals,
   totalsFor,
+  shippingCentsFromValue,
   formatPv,
   formatMemberCents,
 } from '../src/pages/Orders/utils/simulatorHelpers';
@@ -45,6 +47,31 @@ describe('createEmptyRow', () => {
   it('generates unique ids across calls', () => {
     const ids = new Set(Array.from({ length: 50 }, () => createEmptyRow().id));
     expect(ids.size).toBe(50);
+  });
+
+  it('starts with no promotion discount', () => {
+    expect(createEmptyRow().discountPercent).toBe(0);
+  });
+});
+
+describe('normalizeDiscountPercent', () => {
+  it('keeps percentages within 0 and 100', () => {
+    expect(normalizeDiscountPercent(0)).toBe(0);
+    expect(normalizeDiscountPercent(15)).toBe(15);
+    expect(normalizeDiscountPercent(100)).toBe(100);
+  });
+
+  it('clamps values above 100 to 100', () => {
+    expect(normalizeDiscountPercent(150)).toBe(100);
+    expect(normalizeDiscountPercent('250')).toBe(100);
+  });
+
+  it('treats invalid, empty or negative values as 0', () => {
+    expect(normalizeDiscountPercent('')).toBe(0);
+    expect(normalizeDiscountPercent('abc')).toBe(0);
+    expect(normalizeDiscountPercent(-10)).toBe(0);
+    expect(normalizeDiscountPercent(null)).toBe(0);
+    expect(normalizeDiscountPercent(undefined)).toBe(0);
   });
 });
 
@@ -100,6 +127,43 @@ describe('rowTotals', () => {
     expect(result.pvTotal).toBe(0.3);
     expect(result.memberTotalCents).toBe(30);
   });
+
+  it('applies the promotion discount to the PV and member values', () => {
+    const result = rowTotals(
+      { productId: 'p1', quantity: 2, discountPercent: 10 },
+      products,
+    );
+    expect(result.pvUnit).toBe(27.9);
+    expect(result.pvTotal).toBe(55.8);
+    expect(result.memberUnitCents).toBe(20813);
+    expect(result.memberTotalCents).toBe(41626);
+  });
+
+  it('zeroes the values when the discount reaches 100%', () => {
+    const result = rowTotals(
+      { productId: 'p1', quantity: 4, discountPercent: 100 },
+      products,
+    );
+    expect(result.pvTotal).toBe(0);
+    expect(result.memberUnitCents).toBe(0);
+    expect(result.memberTotalCents).toBe(0);
+  });
+
+  it('ignores invalid discounts and clamps values above 100', () => {
+    const invalid = rowTotals(
+      { productId: 'p1', quantity: 1, discountPercent: 'abc' },
+      products,
+    );
+    expect(invalid.pvTotal).toBe(31);
+    expect(invalid.memberTotalCents).toBe(23125);
+
+    const clamped = rowTotals(
+      { productId: 'p1', quantity: 1, discountPercent: 150 },
+      products,
+    );
+    expect(clamped.pvTotal).toBe(0);
+    expect(clamped.memberTotalCents).toBe(0);
+  });
 });
 
 describe('totalsFor', () => {
@@ -129,6 +193,31 @@ describe('totalsFor', () => {
     const result = totalsFor(rows, products);
     expect(result.totalPv).toBe(62);
     expect(result.totalMemberCents).toBe(46250);
+  });
+
+  it('combines discounted and non-discounted rows', () => {
+    const rows = [
+      { productId: 'p1', quantity: 1, discountPercent: 10 },
+      { productId: 'kit1', quantity: 1 },
+    ];
+    const result = totalsFor(rows, products);
+    expect(result.totalPv).toBe(77.9);
+    expect(result.totalMemberCents).toBe(50813);
+  });
+});
+
+describe('shippingCentsFromValue', () => {
+  it('returns zero for empty or invalid values', () => {
+    expect(shippingCentsFromValue('')).toBe(0);
+    expect(shippingCentsFromValue(null)).toBe(0);
+    expect(shippingCentsFromValue(undefined)).toBe(0);
+    expect(shippingCentsFromValue('abc')).toBe(0);
+  });
+
+  it('converts a BRL value to integer cents', () => {
+    expect(shippingCentsFromValue('25.5')).toBe(2550);
+    expect(shippingCentsFromValue(12)).toBe(1200);
+    expect(shippingCentsFromValue('0')).toBe(0);
   });
 });
 
