@@ -3,6 +3,7 @@ frontend/node_modules
 .tool-versions
 backend/backend.log
 backend/uploads/
+backend/backups/
 backend/.env
 frontend/dist
 backend/dist
