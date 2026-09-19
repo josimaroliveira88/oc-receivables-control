@@ -25,6 +25,7 @@ const OrderItemFields = ({
   onCashbackToggle,
   onRemove,
   isTeamOrder = false,
+  showPersonSelect = false,
 }) => {
   const selfPerson = findSelfPerson(people);
   const isSelfItem = isItemForSelf(item, people);
@@ -64,12 +65,13 @@ const OrderItemFields = ({
         </div>
       )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        {isTeamOrder && (
+        {showPersonSelect && (
           <div className="md:col-span-3">
             <label className="block text-xs font-medium text-ink-faint mb-1">
               Pessoa
             </label>
             <select
+              data-testid={`order-item-person-${index}`}
               value={item.personId}
               onChange={(e) => onPersonSelect(index, e.target.value)}
               className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors text-sm"

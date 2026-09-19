@@ -13,6 +13,7 @@ import {
   prefilledChargedValue,
   SELF_PERSON_ID,
   findSelfPerson,
+  deriveTeamClientFromItems,
 } from './utils/orderHelpers';
 
 export function useOrders() {
@@ -50,6 +51,11 @@ export function useOrders() {
   const [shippingValueError, setShippingValueError] = useState('');
   const [doterraPvError, setDoterraPvError] = useState('');
   const [items, setItems] = useState([emptyItem()]);
+  const [teamPersonId, setTeamPersonId] = useState('');
+  const [usesOrderLevelClient, setUsesOrderLevelClient] = useState(true);
+  const [teamPersonIdError, setTeamPersonIdError] = useState('');
+  const [pendingTeamPersonId, setPendingTeamPersonId] = useState('');
+  const [showTeamPersonConfirm, setShowTeamPersonConfirm] = useState(false);
   const [orderNumberError, setOrderNumberError] = useState('');
   const [itemErrors, setItemErrors] = useState({});
   const addItemBtnRef = useRef(null);
@@ -119,7 +125,13 @@ export function useOrders() {
   };
 
   const addItem = () => {
-    setItems([...items, emptyItem()]);
+    setItems((prev) => {
+      const newItem = emptyItem();
+      if (isTeamOrder && usesOrderLevelClient && teamPersonId) {
+        newItem.personId = teamPersonId;
+      }
+      return [...prev, newItem];
+    });
     setItemErrors({});
     setTimeout(() => {
       if (
@@ -209,58 +221,112 @@ export function useOrders() {
   const selfPersonRequestRef = useRef(null);
   const deepLinkHandledRef = useRef(false);
 
-  const onPersonSelect = async (index, value) => {
-    if (value !== SELF_PERSON_ID) {
-      // When leaving the self person, the "for stock" toggle no longer applies.
-      // Apply both changes (personId + forStock reset) in a single state update
-      // so that React doesn't lose the personId change to a stale closure.
-      const target = items[index];
-      setItems(
-        items.map((item, i) => {
-          if (i !== index) return item;
-          const updated = { ...item, personId: value };
-          if (updated.forStock) updated.forStock = false;
-          if (updated.kitStockMode) updated.kitStockMode = '';
-          return updated;
-        }),
-      );
-      if (target && itemErrors[target.id]) {
-        setItemErrors((prev) => {
-          const next = { ...prev };
-          delete next[target.id];
-          return next;
+  // Resolves the logged-in user's Person record, creating it through the API
+  // when it does not exist yet. Shared by the per-item and order-level selects.
+  const ensureSelfPersonId = async () => {
+    const existingSelf = findSelfPerson(people);
+    if (existingSelf) return existingSelf.id;
+
+    if (!selfPersonRequestRef.current) {
+      selfPersonRequestRef.current = api
+        .post('/people/self')
+        .then((res) => {
+          const person = res.data;
+          setPeople((prev) =>
+            prev.some((p) => p.id === person.id) ? prev : [...prev, person],
+          );
+          return person;
+        })
+        .finally(() => {
+          selfPersonRequestRef.current = null;
         });
+    }
+
+    const person = await selfPersonRequestRef.current;
+    return person.id;
+  };
+
+  const onPersonSelect = async (index, value) => {
+    if (value === SELF_PERSON_ID) {
+      try {
+        const selfPersonId = await ensureSelfPersonId();
+        updateItemField(index, 'personId', selfPersonId);
+      } catch (_err) {
+        addToast('Não foi possível vincular você a este item.', 'error');
       }
       return;
     }
 
-    try {
-      const existingSelf = findSelfPerson(people);
-      if (existingSelf) {
-        updateItemField(index, 'personId', existingSelf.id);
+    // When leaving the self person, the "for stock" toggle no longer applies.
+    // Apply both changes (personId + forStock reset) in a single state update
+    // so that React doesn't lose the personId change to a stale closure.
+    const target = items[index];
+    setItems(
+      items.map((item, i) => {
+        if (i !== index) return item;
+        const updated = { ...item, personId: value };
+        if (updated.forStock) updated.forStock = false;
+        if (updated.kitStockMode) updated.kitStockMode = '';
+        return updated;
+      }),
+    );
+    if (target && itemErrors[target.id]) {
+      setItemErrors((prev) => {
+        const next = { ...prev };
+        delete next[target.id];
+        return next;
+      });
+    }
+  };
+
+  // Applies an order-level client to every item, switching the order to the
+  // new order-level client mode. Team orders never affect stock.
+  const applyTeamPerson = (personId) => {
+    setTeamPersonId(personId);
+    setUsesOrderLevelClient(true);
+    setTeamPersonIdError('');
+    setItemErrors({});
+    setItems((prev) =>
+      prev.map((item) => ({
+        ...item,
+        personId,
+        forStock: false,
+        kitStockMode: '',
+      })),
+    );
+  };
+
+  const onTeamPersonSelect = async (value) => {
+    let personId = value;
+    if (value === SELF_PERSON_ID) {
+      try {
+        personId = await ensureSelfPersonId();
+      } catch (_err) {
+        addToast('Não foi possível vincular você a este pedido.', 'error');
         return;
       }
-
-      if (!selfPersonRequestRef.current) {
-        selfPersonRequestRef.current = api
-          .post('/people/self')
-          .then((res) => {
-            const person = res.data;
-            setPeople((prev) =>
-              prev.some((p) => p.id === person.id) ? prev : [...prev, person],
-            );
-            return person;
-          })
-          .finally(() => {
-            selfPersonRequestRef.current = null;
-          });
-      }
-
-      const person = await selfPersonRequestRef.current;
-      updateItemField(index, 'personId', person.id);
-    } catch (_err) {
-      addToast('Não foi possível vincular você a este item.', 'error');
     }
+
+    // Legacy team orders (items with divergent persons) require confirmation
+    // before unifying every item under the chosen client.
+    if (isTeamOrder && !usesOrderLevelClient) {
+      setPendingTeamPersonId(personId);
+      setShowTeamPersonConfirm(true);
+      return;
+    }
+
+    applyTeamPerson(personId);
+  };
+
+  const confirmTeamPersonChange = () => {
+    applyTeamPerson(pendingTeamPersonId);
+    setPendingTeamPersonId('');
+    setShowTeamPersonConfirm(false);
+  };
+
+  const cancelTeamPersonChange = () => {
+    setPendingTeamPersonId('');
+    setShowTeamPersonConfirm(false);
   };
 
   const resetForm = () => {
@@ -278,6 +344,11 @@ export function useOrders() {
     setShippingValueError('');
     setDoterraPvError('');
     setItems([emptyItem()]);
+    setTeamPersonId('');
+    setUsesOrderLevelClient(true);
+    setTeamPersonIdError('');
+    setPendingTeamPersonId('');
+    setShowTeamPersonConfirm(false);
     setOrderNumberError('');
     setItemErrors({});
     setOrderFormInitial(null);
@@ -289,6 +360,7 @@ export function useOrders() {
 
   const openCreateOrder = () => {
     setShowCreateModal(true);
+    setUsesOrderLevelClient(true);
     setOrderFormInitial({
       orderNumber,
       orderDate,
@@ -298,6 +370,7 @@ export function useOrders() {
       orderNotes,
       doterraPv,
       shippingValue,
+      teamPersonId,
       items,
     });
     setError('');
@@ -317,6 +390,12 @@ export function useOrders() {
         break;
       case 'isTeamOrder':
         setIsTeamOrder(value);
+        setTeamPersonIdError('');
+        if (value) {
+          setUsesOrderLevelClient(true);
+        } else {
+          setTeamPersonId('');
+        }
         break;
       case 'accountOwner':
         setAccountOwner(value);
@@ -367,6 +446,12 @@ export function useOrders() {
         : '';
     setDoterraPvError(newDoterraPvError);
 
+    const newTeamPersonIdError =
+      isTeamOrder && usesOrderLevelClient && !teamPersonId
+        ? 'Cliente é obrigatório'
+        : '';
+    setTeamPersonIdError(newTeamPersonIdError);
+
     const newItemErrors = {};
     items.forEach((item) => {
       if (
@@ -381,7 +466,7 @@ export function useOrders() {
         (!Number.isInteger(Number(item.quantity)) || Number(item.quantity) < 1)
       ) {
         newItemErrors[item.id] = 'Quantidade deve ser maior ou igual a 1';
-      } else if (isTeamOrder && !item.personId) {
+      } else if (isTeamOrder && !usesOrderLevelClient && !item.personId) {
         newItemErrors[item.id] = 'Pessoa é obrigatória';
       } else if (
         item.forStock &&
@@ -396,6 +481,7 @@ export function useOrders() {
     if (newOrderNumberError) return false;
     if (newShippingValueError) return false;
     if (newDoterraPvError) return false;
+    if (newTeamPersonIdError) return false;
     return Object.keys(newItemErrors).length === 0;
   };
 
@@ -464,6 +550,18 @@ export function useOrders() {
     setShippingValueError('');
     const items = order.items.map(editItemFromApi);
     setItems(items);
+    // Team orders created before the order-level client existed keep their
+    // per-item persons when those differ; when every item shares the same
+    // person (or none), the form adopts the new order-level client mode.
+    const {
+      usesOrderLevelClient: orderLevelClient,
+      teamPersonId: orderClientId,
+    } = order.isTeamOrder
+      ? deriveTeamClientFromItems(order.items)
+      : { usesOrderLevelClient: true, teamPersonId: '' };
+    setUsesOrderLevelClient(orderLevelClient);
+    setTeamPersonId(orderClientId);
+    setTeamPersonIdError('');
     setOrderFormInitial({
       orderNumber: order.orderNumber,
       orderDate,
@@ -474,6 +572,7 @@ export function useOrders() {
       doterraPv:
         order.doterraPv != null ? String(parseFloat(order.doterraPv)) : '',
       shippingValue,
+      teamPersonId: orderClientId,
       items,
     });
     setShowEditModal(true);
@@ -554,6 +653,7 @@ export function useOrders() {
     orderNotes,
     doterraPv,
     shippingValue,
+    teamPersonId,
     items,
   };
   const orderFormDirty = useDirtyForm(
@@ -603,6 +703,10 @@ export function useOrders() {
     orderNumberBlurred,
     orderDate,
     isTeamOrder,
+    teamPersonId,
+    usesOrderLevelClient,
+    teamPersonIdError,
+    showTeamPersonConfirm,
     accountOwner,
     paymentType,
     orderNotes,
@@ -626,6 +730,9 @@ export function useOrders() {
     onProductSelect,
     onCashbackToggle,
     onPersonSelect,
+    onTeamPersonSelect,
+    confirmTeamPersonChange,
+    cancelTeamPersonChange,
     resetForm,
     handleCreateOrder,
     handleEditOrder,

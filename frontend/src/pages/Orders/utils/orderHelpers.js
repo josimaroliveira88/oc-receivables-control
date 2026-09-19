@@ -135,6 +135,41 @@ export const editItemFromApi = (item) => ({
   kitStockMode: item.kitStockMode || '',
 });
 
+// Derives the order-level client state for a team order from its items:
+// - every item without a person (all empty) or every item sharing the same
+//   person maps to the new order-level client mode;
+// - items with divergent persons stay in the legacy per-item mode.
+export const deriveTeamClientFromItems = (items = []) => {
+  const personIds = items.map((item) => item.personId).filter(Boolean);
+  const allEmpty = items.length > 0 && personIds.length === 0;
+  const allSameNonEmpty =
+    items.length > 0 &&
+    personIds.length === items.length &&
+    new Set(personIds).size === 1;
+  const usesOrderLevelClient = allEmpty || allSameNonEmpty;
+  return {
+    usesOrderLevelClient,
+    teamPersonId: allSameNonEmpty ? personIds[0] : '',
+  };
+};
+
+// Human-readable client for the orders table:
+// - team orders show the single client, "Vários" when items diverge, or "—";
+// - regular orders show the logged-in user when the self person is present.
+export const getOrderClientLabel = (order) => {
+  const people = (order?.items || [])
+    .map((item) => item.person)
+    .filter(Boolean);
+  if (!order?.isTeamOrder) {
+    const self = people.find((person) => person.isSelf);
+    return self ? `${self.name} (Você)` : '—';
+  }
+  const names = [...new Set(people.map((person) => person.name))];
+  if (names.length === 0) return '—';
+  if (names.length === 1) return names[0];
+  return 'Vários';
+};
+
 // Whether an order item references a KIT product from the loaded catalog.
 export const isKitItem = (item, products) => {
   if (!item.productId) return false;

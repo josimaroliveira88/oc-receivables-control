@@ -38,6 +38,10 @@ const OrdersPage = () => {
     orderNumberBlurred,
     orderDate,
     isTeamOrder,
+    teamPersonId,
+    usesOrderLevelClient,
+    teamPersonIdError,
+    showTeamPersonConfirm,
     accountOwner,
     paymentType,
     orderNotes,
@@ -61,6 +65,9 @@ const OrdersPage = () => {
     onProductSelect,
     onCashbackToggle,
     onPersonSelect,
+    onTeamPersonSelect,
+    confirmTeamPersonChange,
+    cancelTeamPersonChange,
     resetForm,
     handleCreateOrder,
     handleEditOrder,
@@ -230,6 +237,9 @@ const OrdersPage = () => {
             orderNumberBlurred={orderNumberBlurred}
             orderDate={orderDate}
             isTeamOrder={isTeamOrder}
+            teamPersonId={teamPersonId}
+            teamPersonIdError={teamPersonIdError}
+            usesOrderLevelClient={usesOrderLevelClient}
             accountOwner={accountOwner}
             paymentType={paymentType}
             orderNotes={orderNotes}
@@ -249,6 +259,7 @@ const OrdersPage = () => {
             onChangeField={setFormField}
             onItemUpdate={updateItemField}
             onItemPersonSelect={onPersonSelect}
+            onTeamPersonSelect={onTeamPersonSelect}
             onItemProductSelect={onProductSelect}
             onItemCashbackToggle={onCashbackToggle}
             onAddItem={addItem}
@@ -383,6 +394,16 @@ const OrdersPage = () => {
         loading={deleting}
         onConfirm={confirmDeleteOrder}
         onCancel={cancelDeleteOrder}
+      />
+
+      <ConfirmDialog
+        open={showTeamPersonConfirm}
+        title="Vincular cliente ao pedido"
+        message="Ao escolher um cliente para todo o pedido, todos os itens serão vinculados a essa pessoa. Deseja continuar?"
+        confirmLabel="Continuar"
+        cancelLabel="Cancelar"
+        onConfirm={confirmTeamPersonChange}
+        onCancel={cancelTeamPersonChange}
       />
     </>
   );

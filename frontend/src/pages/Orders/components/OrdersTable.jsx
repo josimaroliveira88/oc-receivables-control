@@ -9,7 +9,11 @@ import {
 } from 'lucide-react';
 import { formatBRL } from '../../../utils/money';
 import { formatDateBR } from '../../../utils/dates';
-import { getOrderNumberTooltip, trackingUrl } from '../utils/orderHelpers';
+import {
+  getOrderClientLabel,
+  getOrderNumberTooltip,
+  trackingUrl,
+} from '../utils/orderHelpers';
 import {
   getPaymentActionLabel,
   shouldShowPaymentAction,
@@ -85,6 +89,12 @@ const OrdersTable = ({
                   onSort={onSort}
                   width="w-[9%]"
                 />
+                <th
+                  scope="col"
+                  className="w-[12%] px-6 py-3 text-left text-xs font-medium text-ink-faint tracking-wider"
+                >
+                  Cliente
+                </th>
                 <SortableHeader
                   label="Pagamento"
                   field="paymentType"
@@ -124,7 +134,7 @@ const OrdersTable = ({
                 />
                 <th
                   scope="col"
-                  className="w-[32%] px-6 py-3 text-left text-xs font-medium text-ink-faint tracking-wider"
+                  className="w-[20%] px-6 py-3 text-left text-xs font-medium text-ink-faint tracking-wider"
                 >
                   Descrição
                 </th>
@@ -173,6 +183,12 @@ const OrdersTable = ({
                       className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 break-words text-sm text-ink before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
                     >
                       {order.accountOwner || '—'}
+                    </td>
+                    <td
+                      data-label="Cliente"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 break-words text-sm text-ink before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
+                    >
+                      {getOrderClientLabel(order)}
                     </td>
                     <td
                       data-label="Pagamento"

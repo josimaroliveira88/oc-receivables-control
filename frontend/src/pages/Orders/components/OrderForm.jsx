@@ -1,6 +1,11 @@
 import React, { useEffect, useMemo } from 'react';
 import { ExternalLink, Image as ImageIcon, Plus, X } from 'lucide-react';
-import { trackingUrl, lineValueCents } from '../utils/orderHelpers';
+import {
+  trackingUrl,
+  lineValueCents,
+  personSelectLabel,
+  SELF_PERSON_ID,
+} from '../utils/orderHelpers';
 import OrderItemFields from './OrderItemFields';
 import OrderTotals from './OrderTotals';
 
@@ -9,6 +14,9 @@ const OrderForm = ({
   orderNumberBlurred,
   orderDate,
   isTeamOrder,
+  teamPersonId,
+  teamPersonIdError,
+  usesOrderLevelClient,
   accountOwner,
   paymentType,
   orderNotes,
@@ -28,6 +36,7 @@ const OrderForm = ({
   onChangeField,
   onItemUpdate,
   onItemPersonSelect,
+  onTeamPersonSelect,
   onItemProductSelect,
   onItemCashbackToggle,
   onAddItem,
@@ -130,13 +139,57 @@ const OrderForm = ({
           </span>
         </label>
         {isTeamOrder && (
-          <p
-            data-testid="order-team-notice"
-            className="mt-1 ml-7 text-xs text-ink-faint"
-          >
-            Este pedido é apenas um registro: não entra no controle de
-            recebimento, nos seus gastos nem no estoque.
-          </p>
+          <>
+            <p
+              data-testid="order-team-notice"
+              className="mt-1 ml-7 text-xs text-ink-faint"
+            >
+              Este pedido é apenas um registro: não entra no controle de
+              recebimento, nos seus gastos nem no estoque.
+            </p>
+            <div className="mt-3">
+              <label
+                htmlFor="teamPersonId"
+                className="block text-sm font-medium text-ink-soft mb-1"
+              >
+                Cliente
+              </label>
+              <select
+                id="teamPersonId"
+                data-testid="order-team-person"
+                value={teamPersonId}
+                onChange={(e) => onTeamPersonSelect(e.target.value)}
+                className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
+              >
+                <option value="">Selecione uma pessoa</option>
+                {people
+                  .filter((person) => person.isSelf)
+                  .map((person) => (
+                    <option key={person.id} value={person.id}>
+                      {personSelectLabel(person)}
+                    </option>
+                  ))}
+                {!people.some((person) => person.isSelf) && (
+                  <option value={SELF_PERSON_ID}>Eu (você)</option>
+                )}
+                {people
+                  .filter((person) => !person.isSelf)
+                  .map((person) => (
+                    <option key={person.id} value={person.id}>
+                      {personSelectLabel(person)}
+                    </option>
+                  ))}
+              </select>
+              {teamPersonIdError && (
+                <div
+                  data-testid="order-team-person-error"
+                  className="mt-1 p-2 bg-danger-soft rounded-md"
+                >
+                  <p className="text-sm text-danger-fg">{teamPersonIdError}</p>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
 
@@ -294,6 +347,7 @@ const OrderForm = ({
             products={products}
             canRemove={items.length > 1}
             isTeamOrder={isTeamOrder}
+            showPersonSelect={isTeamOrder && !usesOrderLevelClient}
             onUpdateField={(field, value) => onItemUpdate(index, field, value)}
             onPersonSelect={onItemPersonSelect}
             onProductSelect={(productId) =>
