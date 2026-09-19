@@ -13,6 +13,7 @@ import ToastProvider from './components/Toast';
 import Header from './components/Header';
 import MobileDrawer from './components/MobileDrawer';
 import OnboardingTour from './components/OnboardingTour';
+import FinancesAnnouncement from './components/FinancesAnnouncement';
 
 const AppLayout = () => {
   return (
@@ -23,6 +24,7 @@ const AppLayout = () => {
       </main>
       <MobileDrawer />
       <OnboardingTour />
+      <FinancesAnnouncement />
     </div>
   );
 };
