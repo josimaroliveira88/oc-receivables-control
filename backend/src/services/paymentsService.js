@@ -74,6 +74,7 @@ const createPayment = async (client, { userId, orderId, payload }) => {
         { personId: payload.personId, amount: payload.amount },
       ],
       shippingCents: toCents(order.shippingValue ?? 0),
+      additionalCents: toCents(order.additionalValue ?? 0),
     });
 
     if (newStatus !== order.status) {
@@ -158,6 +159,7 @@ const updatePayment = async (client, { id, userId, payload }) => {
         p.id === id ? { personId: p.personId, amount: payment.amount } : p,
       ),
       shippingCents: toCents(order.shippingValue ?? 0),
+      additionalCents: toCents(order.additionalValue ?? 0),
     });
 
     if (newStatus !== order.status) {
