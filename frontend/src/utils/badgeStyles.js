@@ -77,3 +77,8 @@ export const BOOL_BADGE_CLASSES = {
   true: 'bg-success-soft text-success-fg',
   false: 'bg-base text-ink-soft',
 };
+
+export const CATEGORY_BADGE_CLASSES = {
+  default: 'bg-info-soft text-info-fg',
+  inactive: 'bg-base text-ink-soft',
+};
