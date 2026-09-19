@@ -117,6 +117,19 @@ const listTransactionsQuerySchema = z.object({
   q: z.string().trim().optional(),
 });
 
+// InfinitePay redemption: the user informs the amount and date of the money
+// that actually entered the account. Multiple partial redemptions are allowed.
+const settlementSchema = z.object({
+  orderId: z.string().uuid('Order ID must be a valid UUID'),
+  amount: z.number().positive('Amount must be greater than zero'),
+  transactionDate: dateSchema,
+  notes: z
+    .string()
+    .max(MAX_NOTES, `Notes must be at most ${MAX_NOTES} characters`)
+    .nullable()
+    .optional(),
+});
+
 export {
   MAX_CATEGORY_NAME,
   MAX_DESCRIPTION,
@@ -129,4 +142,5 @@ export {
   createTransactionSchema,
   updateTransactionSchema,
   listTransactionsQuerySchema,
+  settlementSchema,
 };

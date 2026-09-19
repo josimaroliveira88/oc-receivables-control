@@ -6,6 +6,7 @@ import {
   createTransactionSchema,
   updateTransactionSchema,
   listTransactionsQuerySchema,
+  settlementSchema,
 } from '../validators/financesValidator.js';
 import {
   listCategories,
@@ -18,6 +19,7 @@ import {
   createManualTransaction,
   updateManualTransaction,
   deleteManualTransaction,
+  createSettlement,
   getSummary,
 } from '../services/financeTransactionsService.js';
 
@@ -120,6 +122,19 @@ const deleteTransactionHandler = async (req, res) => {
   }
 };
 
+const createSettlementHandler = async (req, res) => {
+  try {
+    const payload = settlementSchema.parse(req.body);
+    const transaction = await createSettlement(prisma, {
+      userId: req.user.userId,
+      payload,
+    });
+    res.status(201).json(transaction);
+  } catch (error) {
+    handleError(res, error, { label: 'Error creating InfinitePay settlement' });
+  }
+};
+
 const getSummaryHandler = async (req, res) => {
   try {
     const query = listTransactionsQuerySchema.parse(req.query);
@@ -142,5 +157,6 @@ export {
   createTransactionHandler,
   updateTransactionHandler,
   deleteTransactionHandler,
+  createSettlementHandler,
   getSummaryHandler,
 };

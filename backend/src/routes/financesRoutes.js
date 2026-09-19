@@ -262,6 +262,36 @@ router.delete('/transactions/:id', financesController.deleteTransactionHandler);
 
 /**
  * @openapi
+ * /api/finances/settlements:
+ *   post:
+ *     tags: [Finances]
+ *     summary: Registra um resgate InfinitePay de uma venda
+ *     description: Cria uma receita vinculada à venda. Várias retiradas parciais são permitidas.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/FinancialSettlementInput'
+ *     responses:
+ *       201:
+ *         description: Resgate registrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FinancialTransaction'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+// POST /api/finances/settlements
+router.post('/settlements', financesController.createSettlementHandler);
+
+/**
+ * @openapi
  * /api/finances/summary:
  *   get:
  *     tags: [Finances]

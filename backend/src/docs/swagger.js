@@ -227,6 +227,16 @@ const options = {
             balance: { type: 'string', example: '900.25' },
           },
         },
+        FinancialSettlementInput: {
+          type: 'object',
+          required: ['orderId', 'amount', 'transactionDate'],
+          properties: {
+            orderId: { type: 'string', format: 'uuid' },
+            amount: { type: 'number', exclusiveMinimum: 0, example: 613.12 },
+            transactionDate: { type: 'string', format: 'date' },
+            notes: { type: 'string', maxLength: 2000, nullable: true },
+          },
+        },
         PaymentType: {
           type: 'string',
           enum: ['PIX', 'BOLETO', 'CARTAO_CREDITO', 'INFINITE_PAY'],
