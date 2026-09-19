@@ -54,7 +54,7 @@ For a database with existing data, apply migrations with `npx prisma migrate dep
 │   │   ├── schema.prisma
 │   │   ├── migrations/
 │   │   └── seed.js
-│   ├── scripts/loadProducts.js
+│   ├── scripts/ (loadProducts, resyncOrderStatuses, backfillFinanceCategories)
 │   ├── src/
 │   │   ├── app.js, server.js, config.js
 │   │   ├── config/database.js               # single PrismaClient instance reused by every controller/service
@@ -63,7 +63,7 @@ For a database with existing data, apply migrations with `npx prisma migrate dep
 │   │   ├── validators/                      # pure Zod schemas per domain (auth, people, orders, sales, payments, product, stock)
 │   │   ├── middlewares/auth.js, upload.js, errorResponse.js   # upload.js: multer disk storage for order attachments (validated types/size); errorResponse.js: shared controller error mapper (ZodError/status/fallback)
 │   │   ├── routes/
-│   │   └── utils/ (money, CSV parsing, catalog loading, receivables, stockDiff, httpError error factories)
+│   │   └── utils/ (money, CSV parsing, catalog loading, receivables, stockDiff, financeDefaults category seeding, httpError error factories)
 │   └── tests/
 └── frontend/
     ├── src/
@@ -97,6 +97,7 @@ For a database with existing data, apply migrations with `npx prisma migrate dep
 - `ProductPrice` stores historical regular price, member price, PV, and validity intervals.
 - `Inventory` stores the current stock balance per user+product (`@@unique([userId, productId])`).
 - `StockMovement` records the signed-quantity history (`ENTRADA`/`SAIDA`/`AJUSTE`) for each user+product. It optionally links to the originating `Order` and `Item` via nullable `orderId` / `itemId` (`ON DELETE SET NULL`) so that order-generated movements can be distinguished from manual ones and survive order/item deletion while preserving audit history. Each movement carries an `effectiveDate` (defaults to `now()`) representing the date the entry/exit actually happened, distinct from `createdAt` (insertion time); the history screen shows both columns. Manual movements default to today and are user-editable; movements generated from an order always use the order's `orderDate` (the controller rejects with `400` if that date is missing).
+- `FinancialCategory` and `FinancialTransaction` back the finances ledger (migration `20260919150000_add_finances_module`). `FinancialCategory` is per user (`@@unique([userId, type, name])`), with `type` (`FinancialTransactionType`: `RECEITA` | `DESPESA`), `isDefault`, and `active` (soft-deactivation keeps history). `FinancialTransaction` is a single **settled** cash-flow row — `amount` (`Decimal(10,2)`), `description`, `transactionDate` (`DATE`, the settlement date), optional `notes` — carrying `type`, `origin` (`FinancialOrigin`: `VENDA` | `RESGATE_INFINITEPAY` | `PEDIDO_DOTERRA` | `MANUAL`), an optional `categoryId` (`ON DELETE SET NULL`), and nullable `orderId` / unique `paymentId` (both `ON DELETE CASCADE`, so automatic rows are derived data and disappear with their source). Default categories are seeded idempotently per user by `backend/src/utils/financeDefaults.js` (`DEFAULT_CATEGORIES`, the `ORIGIN_CATEGORY_NAMES` origin→category map, and `ensureDefaultCategories`, which uses `createMany` + `skipDuplicates`); registration calls it inside the same Prisma `$transaction` as the user create, and existing users are backfilled with `npm run backfill:finance-categories`.
 
 ## API Areas
 

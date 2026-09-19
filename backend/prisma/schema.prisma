@@ -16,6 +16,8 @@ model User {
   inventory      Inventory[]
   stockMovements StockMovement[]
   saleCounter    SaleCounter?
+  financialCategories   FinancialCategory[]
+  financialTransactions FinancialTransaction[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 }
@@ -66,6 +68,7 @@ model Order {
   items        Item[]
   payments     Payment[]
   stockMovements StockMovement[]
+  financialTransactions FinancialTransaction[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -154,6 +157,7 @@ model Payment {
   orderId     String
   person      Person?     @relation(fields: [personId], references: [id], onDelete: SetNull)
   personId    String?
+  financialTransactions FinancialTransaction[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 }
@@ -268,4 +272,58 @@ model StockMovement {
   @@index([orderId])
   @@index([itemId])
   @@index([userId, effectiveDate])
+}
+
+enum FinancialTransactionType {
+  RECEITA
+  DESPESA
+}
+
+enum FinancialOrigin {
+  VENDA
+  RESGATE_INFINITEPAY
+  PEDIDO_DOTERRA
+  MANUAL
+}
+
+model FinancialCategory {
+  id        String                   @id @default(uuid())
+  userId    String
+  name      String
+  type      FinancialTransactionType
+  isDefault Boolean                  @default(false)
+  active    Boolean                  @default(true)
+  user      User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions FinancialTransaction[]
+  createdAt DateTime                 @default(now())
+  updatedAt DateTime                 @updatedAt
+
+  @@unique([userId, type, name])
+  @@index([userId])
+}
+
+model FinancialTransaction {
+  id              String                   @id @default(uuid())
+  userId          String
+  type            FinancialTransactionType
+  origin          FinancialOrigin
+  amount          Decimal                  @db.Decimal(10, 2)
+  description     String                   @db.VarChar(255)
+  transactionDate DateTime                 @db.Date
+  notes           String?                  @db.VarChar(2000)
+  categoryId      String?
+  orderId         String?
+  paymentId       String?
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  FinancialCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  order     Order?              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  payment   Payment?            @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+
+  @@unique([paymentId])
+  @@index([userId, transactionDate])
+  @@index([userId, type])
+  @@index([userId, categoryId])
+  @@index([orderId])
 }

@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { JWT_SECRET, JWT_EXPIRES_IN } from '../config.js';
 import prisma from '../config/database.js';
 import { handleError } from '../middlewares/errorResponse.js';
+import { ensureDefaultCategories } from '../utils/financeDefaults.js';
 import { loginSchema, registerSchema } from '../validators/authValidator.js';
 
 const login = async (req, res) => {
@@ -57,16 +58,22 @@ const register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await prisma.user.create({
-      data: {
-        username,
-        password: hashedPassword,
-      },
-      select: {
-        id: true,
-        username: true,
-        createdAt: true,
-      },
+    const user = await prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: {
+          username,
+          password: hashedPassword,
+        },
+        select: {
+          id: true,
+          username: true,
+          createdAt: true,
+        },
+      });
+
+      await ensureDefaultCategories(created.id, tx);
+
+      return created;
     });
 
     res.status(201).json(user);

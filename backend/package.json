@@ -14,6 +14,7 @@
     "prisma": "prisma",
     "load:products": "node scripts/loadProducts.js",
     "fix:order-status": "node scripts/resyncOrderStatuses.js",
+    "backfill:finance-categories": "node scripts/backfillFinanceCategories.js",
     "postinstall": "prisma generate",
     "test": "vitest run",
     "test:watch": "vitest",
