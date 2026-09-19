@@ -15,6 +15,9 @@ vi.mock('../src/context/AuthContext', () => ({
 vi.mock('../src/components/Header', () => ({ default: () => null }));
 vi.mock('../src/components/MobileDrawer', () => ({ default: () => null }));
 vi.mock('../src/components/OnboardingTour', () => ({ default: () => null }));
+vi.mock('../src/components/FinancesAnnouncement', () => ({
+  default: () => null,
+}));
 
 vi.mock('../src/pages/PeoplePage', () => ({
   default: () => <div data-testid="people-page" />,
