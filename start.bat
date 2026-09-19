@@ -53,23 +53,12 @@ REM ============================================================
 :check_update
 echo [3/5] Verificando atualizacoes no repositorio...
 
-where git >nul 2>nul
-if errorlevel 1 goto :check_deps
-
-REM Tenta buscar as atualizacoes; falhas silenciosas seguem o fluxo normal
-call git fetch --quiet
+call "%~dp0check-updates.bat"
 if errorlevel 1 (
     echo       Nao foi possivel verificar atualizacoes. Continuando...
     goto :check_deps
 )
 
-set CURRENT_BRANCH=
-set COMMITS_BEHIND=0
-for /f "tokens=*" %%b in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set CURRENT_BRANCH=%%b
-for /f "tokens=*" %%c in ('git rev-list --count HEAD..origin/%CURRENT_BRANCH% 2^>nul') do set COMMITS_BEHIND=%%c
-
-if "%CURRENT_BRANCH%"=="" goto :check_deps
-if "%COMMITS_BEHIND%"=="" goto :check_deps
 if "%COMMITS_BEHIND%"=="0" goto :update_none
 
 echo.

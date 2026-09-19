@@ -11,9 +11,9 @@ echo.
 cd /d "%~dp0"
 
 REM ============================================================
-REM 0. Verificacoes iniciais
+REM 1. Verificacoes iniciais
 REM ============================================================
-echo [0/9] Verificando dependencias basicas...
+echo [1/10] Verificando dependencias basicas...
 
 where node >nul 2>nul
 if %ERRORLEVEL% neq 0 goto :no_node
@@ -44,10 +44,10 @@ pause
 exit /b 1
 
 REM ============================================================
-REM 1. Verifica se o projeto esta em execucao
+REM 2. Verifica se o projeto esta em execucao
 REM ============================================================
 :check_running
-echo [1/9] Verificando se o projeto esta em execucao...
+echo [2/10] Verificando se o projeto esta em execucao...
 
 set RUNNING=0
 
@@ -78,15 +78,40 @@ if %RUNNING% equ 1 (
 echo       Nenhum servico detectado nas portas 3000/4000. OK.
 
 REM ============================================================
-REM 2. Confirma backup do banco de dados
+REM 3. Verifica se ha atualizacoes antes de executar os comandos
+REM ============================================================
+:check_updates_available
+echo [3/10] Verificando atualizacoes disponiveis...
+
+call "%~dp0check-updates.bat"
+if errorlevel 1 (
+    echo       Nao foi possivel verificar atualizacoes. Prosseguindo com a atualizacao...
+    goto :confirm_backup
+)
+
+if "%COMMITS_BEHIND%"=="0" goto :no_update
+
+echo       %COMMITS_BEHIND% atualizacoes pendentes no branch '%CURRENT_BRANCH%'. Prosseguindo...
+goto :confirm_backup
+
+:no_update
+echo.
+echo ============================================================
+echo            PROJETO JA ESTA ATUALIZADO
+echo ============================================================
+echo.
+goto :offer_start
+
+REM ============================================================
+REM 4. Confirma backup do banco de dados
 REM ============================================================
 :confirm_backup
-echo [2/9] Confirmacao de backup do banco de dados
+echo [4/10] Confirmacao de backup do banco de dados
 echo.
 echo ATENCAO: antes de atualizar, faca backup do banco "receivables".
 echo Consulte docs/DEPLOYMENT.md para o comando completo de pg_dump.
 echo.
-set /p BACKUP_OK="Ja realizou o backup do banco? (S/N): "
+set /p BACKUP_OK="Ja realizou o backup do banco? S/N: "
 if /i not "%BACKUP_OK%"=="S" goto :backup_not_confirmed
 echo       Backup confirmado. Continuando...
 goto :git_pull
@@ -99,55 +124,55 @@ pause
 exit /b 1
 
 REM ============================================================
-REM 3. Atualiza o codigo-fonte
+REM 5. Atualiza o codigo-fonte
 REM ============================================================
 :git_pull
-echo [3/9] Atualizando codigo-fonte (git pull)...
+echo [5/10] Atualizando codigo-fonte (git pull)...
 call git pull
 if %ERRORLEVEL% neq 0 goto :error
 echo       git pull concluido. OK.
 
 REM ============================================================
-REM 4. Instala dependencias do backend
+REM 6. Instala dependencias do backend
 REM ============================================================
 :backend_deps
-echo [4/9] Instalando dependencias do backend (npm ci)...
+echo [6/10] Instalando dependencias do backend (npm ci)...
 call npm --prefix backend ci
 if %ERRORLEVEL% neq 0 goto :error
 echo       Dependencias do backend OK.
 
 REM ============================================================
-REM 5. Aplica migrations do Prisma
+REM 7. Aplica migrations do Prisma
 REM ============================================================
 :prisma_migrate
-echo [5/9] Aplicando migrations do Prisma (migrate deploy)...
+echo [7/10] Aplicando migrations do Prisma (migrate deploy)...
 call npm --prefix backend run prisma:migrate:deploy
 if %ERRORLEVEL% neq 0 goto :error
 echo       Migrations aplicadas. OK.
 
 REM ============================================================
-REM 6. Gera Prisma Client
+REM 8. Gera Prisma Client
 REM ============================================================
 :prisma_generate
-echo [6/9] Gerando Prisma Client...
+echo [8/10] Gerando Prisma Client...
 call npm --prefix backend run prisma:generate
 if %ERRORLEVEL% neq 0 goto :error
 echo       Prisma Client gerado. OK.
 
 REM ============================================================
-REM 7. Instala dependencias do frontend
+REM 9. Instala dependencias do frontend
 REM ============================================================
 :frontend_deps
-echo [7/9] Instalando dependencias do frontend (npm ci)...
+echo [9/10] Instalando dependencias do frontend (npm ci)...
 call npm --prefix frontend ci
 if %ERRORLEVEL% neq 0 goto :error
 echo       Dependencias do frontend OK.
 
 REM ============================================================
-REM 8. Build do frontend
+REM 10. Build do frontend
 REM ============================================================
 :frontend_build
-echo [8/9] Construindo frontend (npm run build)...
+echo [10/10] Construindo frontend (npm run build)...
 call npm --prefix frontend run build
 if %ERRORLEVEL% neq 0 goto :error
 echo       Build do frontend concluido. OK.
@@ -157,24 +182,25 @@ echo ============================================================
 echo            ATUALIZACAO CONCLUIDA COM SUCESSO
 echo ============================================================
 echo.
+goto :offer_start
 
 REM ============================================================
-REM 9. Pergunta se deseja iniciar o projeto
+REM Inicia o projeto, se desejado
 REM ============================================================
+:offer_start
 if /I "%~1"=="--from-start" (
-    echo.
     echo Atualizacao concluida. Retornando ao start.bat...
     exit /b 0
 )
 
-set /p START_PROJECT="Deseja iniciar o projeto agora? (S/N): "
+set /p START_PROJECT="Deseja iniciar o projeto agora? S/N: "
 if /i "%START_PROJECT%"=="S" (
     echo.
     echo Iniciando projeto...
     call "%~dp0start.bat"
 ) else (
     echo.
-    echo Projeto atualizado. Execute start.bat quando desejar iniciar.
+    echo Execute start.bat quando desejar iniciar.
     pause
 )
 
