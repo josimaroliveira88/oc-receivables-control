@@ -1570,6 +1570,117 @@ describe('Shipping value status transitions', () => {
   });
 });
 
+describe('Additional value status transitions', () => {
+  let authToken;
+  let userId;
+  let createdOrderIds = [];
+  let createdPersonIds = [];
+
+  beforeAll(async () => {
+    await prisma.$connect();
+    const username = `payments_additional_${Date.now()}`;
+    const regRes = await request(app)
+      .post('/api/auth/register')
+      .send({ username, password: 'testpass123' });
+    userId = regRes.body.id;
+
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ username, password: 'testpass123' });
+    authToken = loginRes.body.token;
+  });
+
+  afterAll(async () => {
+    if (userId) {
+      await prisma.user.delete({ where: { id: userId } }).catch(() => {});
+    }
+    await prisma.$disconnect();
+  });
+
+  afterEach(async () => {
+    for (const id of createdOrderIds) {
+      await prisma.order.delete({ where: { id } }).catch(() => {});
+    }
+    createdOrderIds = [];
+    for (const id of createdPersonIds) {
+      await prisma.person.delete({ where: { id } }).catch(() => {});
+    }
+    createdPersonIds = [];
+  });
+
+  // Creates an order directly (bypassing the purchase-order endpoint, which
+  // does not accept additionalValue) so the payment service can be exercised
+  // with an order-level additional charge, as sales produce.
+  const makeOrderWithAdditional = async ({ itemCents, additionalCents }) => {
+    const person = await prisma.person.create({
+      data: { name: 'Cliente Adicional', whatsapp: 'add@test.com', userId },
+    });
+    createdPersonIds.push(person.id);
+
+    const order = await prisma.order.create({
+      data: {
+        orderNumber: uniqueOrderNumber('ADD-PAY'),
+        totalValue: itemCents + additionalCents,
+        additionalValue: additionalCents,
+        userId,
+        items: {
+          create: [
+            {
+              description: 'Item com adicional',
+              chargedValue: itemCents,
+              personId: person.id,
+            },
+          ],
+        },
+      },
+    });
+    createdOrderIds.push(order.id);
+    return { order, personId: person.id };
+  };
+
+  it('should stay PARCIAL when the item is paid but the additional value is not', async () => {
+    const { order, personId } = await makeOrderWithAdditional({
+      itemCents: 100,
+      additionalCents: 50,
+    });
+
+    const response = await request(app)
+      .post(`/api/orders/${order.id}/payments`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ amount: 100, personId });
+
+    expect(response.status).toBe(201);
+    expect(response.body.order.status).toBe('PARCIAL');
+  });
+
+  it('should transition QUITADO back to PARCIAL when an edit drops below the additional value', async () => {
+    const { order, personId } = await makeOrderWithAdditional({
+      itemCents: 485,
+      additionalCents: 5,
+    });
+
+    const fullPayment = await request(app)
+      .post(`/api/orders/${order.id}/payments`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ amount: 490, personId });
+    expect(fullPayment.status).toBe(201);
+    expect(fullPayment.body.order.status).toBe('QUITADO');
+
+    const response = await request(app)
+      .put(`/api/orders/payments/${fullPayment.body.payment.id}`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ amount: 485 });
+
+    expect(response.status).toBe(200);
+    expect(response.body.order.status).toBe('PARCIAL');
+
+    const orderRecord = await prisma.order.findUnique({
+      where: { id: order.id },
+    });
+    expect(orderRecord.status).toBe('PARCIAL');
+  });
+});
+
 describe('Team order payments rejection', () => {
   let authToken;
   let userId;
