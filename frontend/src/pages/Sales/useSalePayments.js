@@ -32,7 +32,6 @@ export function useSalePayments({ refreshSales }) {
   const [detailSale, setDetailSale] = useState(null);
   const [detailBalances, setDetailBalances] = useState([]);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [expandedPersonId, setExpandedPersonId] = useState('');
   const [showEditPaymentModal, setShowEditPaymentModal] = useState(false);
   const [editingPayment, setEditingPayment] = useState(null);
   const [editPaymentAmount, setEditPaymentAmount] = useState('');
@@ -349,7 +348,6 @@ export function useSalePayments({ refreshSales }) {
   const openDetailsModal = async (sale) => {
     setDetailSale(sale);
     setDetailBalances([]);
-    setExpandedPersonId('');
     setDetailLoading(true);
     setShowDetailsModal(true);
 
@@ -368,11 +366,6 @@ export function useSalePayments({ refreshSales }) {
     setShowDetailsModal(false);
     setDetailSale(null);
     setDetailBalances([]);
-    setExpandedPersonId('');
-  };
-
-  const toggleDetailPerson = (personId) => {
-    setExpandedPersonId((prev) => (prev === personId ? '' : personId));
   };
 
   const getDetailPersonItems = (personId) =>
@@ -444,9 +437,7 @@ export function useSalePayments({ refreshSales }) {
     clientName,
     showDetailsModal,
     detailSale,
-    detailBalances,
     detailLoading,
-    expandedPersonId,
     openPaymentModal,
     closePaymentModal,
     handleChangeAmount,
@@ -458,7 +449,6 @@ export function useSalePayments({ refreshSales }) {
     cancelOverpay,
     openDetailsModal,
     closeDetailsModal,
-    toggleDetailPerson,
     getDetailPersonItems,
     getDetailPersonPayments,
     showEditPaymentModal,

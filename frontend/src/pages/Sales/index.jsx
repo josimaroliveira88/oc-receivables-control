@@ -84,9 +84,7 @@ const SalesPage = () => {
     clientName,
     showDetailsModal,
     detailSale,
-    detailBalances,
     detailLoading,
-    expandedPersonId,
     openPaymentModal,
     closePaymentModal,
     handleChangeAmount,
@@ -98,7 +96,6 @@ const SalesPage = () => {
     cancelOverpay,
     openDetailsModal,
     closeDetailsModal,
-    toggleDetailPerson,
     getDetailPersonItems,
     getDetailPersonPayments,
     showEditPaymentModal,
@@ -245,11 +242,8 @@ const SalesPage = () => {
       {showDetailsModal && detailSale && (
         <SaleDetailsModal
           sale={detailSale}
-          balances={detailBalances}
           loading={detailLoading}
-          expandedPersonId={expandedPersonId}
           onClose={closeDetailsModal}
-          onTogglePerson={toggleDetailPerson}
           personItems={getDetailPersonItems}
           personPayments={getDetailPersonPayments}
           onEditPayment={openEditPaymentModal}
