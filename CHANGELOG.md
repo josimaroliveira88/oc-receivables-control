@@ -9,6 +9,25 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 93 — Simulador de Pedido: promoção, frete e campos numéricos (2026-09-19)
+
+### Added
+- **Promoção por produto no Simulador de Pedido**: nova coluna **`% Promo`** (`simulator-discount-N`) entre Qtd e PV unit. em `frontend/src/pages/Orders/components/OrderSimulatorRow.jsx`. O percentual é limitado a **0–100 no próprio campo** (`max={100}` do `NumericInput`, via `clampToMax`) e reforçado no cálculo por `normalizeDiscountPercent`; o desconto é aplicado ao PV e ao Valor Membro de cada linha, e as colunas unitário/total já exibem os valores descontados. `createEmptyRow` passa a iniciar com `discountPercent: 0`.
+- **Frete e Valor Total do Pedido no simulador**: rodapé reformulado em quatro cards (`OrderSimulatorModal.jsx`) — "Soma dos PV", "Soma do Valor Membro" (mantida), "Frete (R$)" editável (`simulator-shipping`, `CurrencyInput`) e "Valor Total do Pedido" (`simulator-order-total` = soma do Valor Membro + frete, em centavos). O frete é efêmero (`shippingValue`/`updateShipping` em `useOrderSimulator.js`, com `shippingCentsFromValue`) e é zerado ao abrir, fechar ou limpar o simulador.
+- **Campo numérico compartilhado `NumericInput`** (`frontend/src/components/NumericInput.jsx`): input de texto com semântica numérica (`inputMode` `numeric`/`decimal`) que elimina as setas do `type="number"`. Sanitiza a digitação (`sanitizeIntegerInput`/`sanitizeDecimalInput`, com vírgula normalizada para ponto) e aceita `max` opcional (`clampToMax`).
+
+### Changed
+- **Campos numéricos migrados de `type="number"` para `NumericInput`** em toda a aplicação: PV doTERRA e Quantidade do item em Pedidos, Quantidade do item em Vendas, PV e Quantidade do componente do kit em Produtos, Quantidade em Estoque e Qtd/% Promo no Simulador. Apenas números são aceitos e valores negativos deixam de ser digitáveis; a validação "PV doTERRA não pode ser negativo" permanece como salvaguarda para pedidos carregados com valor negativo.
+- **`ARCHITECTURE.md`**: `NumericInput` adicionado à lista de widgets compartilhados de `src/components/`.
+
+### Fixed
+- O campo **`% Promo`** aceitava valores acima de 100 durante a digitação (ex.: 150) e apenas o cálculo truncava; agora o próprio campo limita o valor a 100.
+
+### Tests
+- **Simulador**: `simulatorHelpers.test.js` (+10: desconto por linha e nos totais, limite de 100%, valores inválidos/negativos e frete) e `OrderSimulatorModal.test.jsx` (+3: promoção aplicada, limite de 100% no campo e frete no Valor Total).
+- **`NumericInput.test.jsx`** (novo, 12 testes): sanitização inteira/decimal, normalização de vírgula, ausência de setas, `max`/`clampToMax` e estado desabilitado; `OrdersPage.test.jsx` ajustado (digitar valor negativo apenas remove o sinal; dados carregados negativos continuam bloqueando o envio).
+- **840 frontend tests passing** (backend inalterado); `npm run lint` sem erros (5 warnings preexistentes), `npm run build` limpo e `npm run format:check` limpo.
+
 ## Phase 92 — Cliente no nível do pedido de equipe e ajustes de Vendas/pagamentos (2026-09-19)
 
 ### Added

@@ -68,7 +68,7 @@ For a database with existing data, apply migrations with `npx prisma migrate dep
 └── frontend/
     ├── src/
     │   ├── App.jsx, main.jsx, index.css
-    │   ├── components/ (layout, auth, dialogs, menus, toast, onboarding; shared widgets such as `ActionMenu`, `ConfirmDialog`, `CurrencyInput`, `ProductCombobox`, `SearchInput`, `SortableHeader`)
+    │   ├── components/ (layout, auth, dialogs, menus, toast, onboarding; shared widgets such as `ActionMenu`, `ConfirmDialog`, `CurrencyInput`, `NumericInput`, `ProductCombobox`, `SearchInput`, `SortableHeader`)
     │   ├── context/ (auth and theme)
     │   ├── pages/
     │   │   ├── LoginPage.jsx, RegisterPage.jsx                # Small pages kept as single files
