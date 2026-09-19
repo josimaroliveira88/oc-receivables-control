@@ -9,6 +9,21 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 98 — Módulo Financeiro: modelo de dados e categorias (F1–F2) (2026-09-19)
+
+### Added
+- **Modelo de dados financeiro (F1)**: enums `FinancialTransactionType` (`RECEITA` | `DESPESA`) e `FinancialOrigin` (`VENDA` | `RESGATE_INFINITEPAY` | `PEDIDO_DOTERRA` | `MANUAL`), models `FinancialCategory` (por usuário, `@@unique([userId, type, name])`, `isDefault`, `active` com desativação lógica) e `FinancialTransaction` (lançamento de caixa já **compensado**: `amount` `Decimal(10,2)`, `description`, `transactionDate` `DATE`, `notes` opcional, `categoryId` `ON DELETE SET NULL`, `orderId`/`paymentId` nulos com `ON DELETE CASCADE`, `paymentId` único). Migration `20260919150000_add_finances_module`; relações reversas em `User`, `Order` e `Payment`.
+- **Categorias padrão por usuário (F1)**: `backend/src/utils/financeDefaults.js` com `DEFAULT_CATEGORIES` (4 receitas, 7 despesas), o mapa `ORIGIN_CATEGORY_NAMES`/`getDefaultCategoryName` (`VENDA`/`RESGATE_INFINITEPAY` → "Vendas"; `PEDIDO_DOTERRA` → "Compra de produtos dōTERRA"; `MANUAL` → sem padrão) e `ensureDefaultCategories` idempotente (`createMany` + `skipDuplicates`). O registro (`authController.register`) cria as categorias na mesma transação do usuário; usuários existentes são preenchidos por `backend/scripts/backfillFinanceCategories.js` (`npm run backfill:finance-categories`, com `--dry-run`).
+- **Endpoints de categorias financeiras (F2, `/api/finances`)**: `GET /api/finances/categories` (lista ativas e inativas, garantindo as padrão no primeiro acesso), `POST /api/finances/categories` (categoria personalizada; `name` com trim; conflito `[userId, type, name]` → `409`), `PUT /api/finances/categories/:id` (renomear e/ou ativar/desativar; `type` imutável) e `DELETE /api/finances/categories/:id` (desativação lógica, preserva histórico). Implementação em `financeCategoriesService.js`, `financesController.js`, `financesValidator.js` e `financesRoutes.js`, montada em `app.js`. Todas as rotas são protegidas por JWT e escopadas por `userId` (categoria de outro usuário → `404`). O seed é protegido pela contagem de categorias `isDefault`, então renomear uma categoria padrão não a recria no próximo acesso.
+- **`conflict` (409)** em `backend/src/utils/httpError.js`.
+- **Swagger**: tag `Finances` e schemas `FinancialTransactionType`, `FinancialCategory`, `FinancialCategoryInput` e `FinancialCategoryUpdateInput`.
+
+### Changed
+- **`ARCHITECTURE.md`**: modelo de dados financeiro, estrutura de services/validators e a área de API `/api/finances`.
+
+### Tests
+- Backend: `financeDefaults.test.js` (9) e `financeCategories.test.js` (24) cobrindo o conjunto padrão, idempotência, isolamento por usuário, uso em transação, integração com o registro, CRUD, validação, conflitos `409`, desativação lógica, `404` para categoria alheia/inexistente e não-recriação de default renomeada; `httpError.test.js` ganhou o caso `conflict`. **695 backend passing**; `npm run lint` (backend) e `npm run format:check` limpos. Teste funcional manual dos 8 endpoints (27 verificações: defaults no primeiro acesso, criação, conflitos, validação, rename, desativação/reativação, isolamento e não-recriação de default renomeada) validado contra o backend em execução.
+
 ## Phase 97 — Script de atualização para máquina do cliente (Windows) (2026-09-19)
 
 ### Added
