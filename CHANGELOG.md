@@ -17,6 +17,7 @@ Guidance for maintainers:
 
 ### Fixed
 - **Frete e Valores Adicionais agora entram no saldo pendente da venda**: o `GET /api/orders/:id/balance` calculava o pendente por pessoa apenas como itens − pagamentos, ignorando o frete e os adicionais da venda. Como o cliente da venda é sempre não-self, `buildOrderBalances` (`backend/src/utils/orderBalances.js`) passou a distribuir `shippingValue + additionalValue` entre as pessoas não-self (na prática o cliente único) e somá-los ao `pending`; `itemTotal` permanece a soma dos itens. Isso corrige o modal de pagamento/detalhamento que mostrava R$ 100,00 de saldo numa venda de R$ 100,00 + R$ 14,70 de frete e disparava o aviso de valor acima do saldo ao registrar R$ 114,70. Pedidos de compra (`COMPRA`) mantêm o comportamento anterior.
+- **Valor Pendente invisível no detalhamento da venda**: o realce usava a classe `text-base`, que o tema resolve como a **cor** `base` (`--bg`, o próprio fundo) e não como tamanho de fonte. O valor pendente passou a seguir o mesmo padrão do valor do produto na lista de itens (`text-sm font-semibold text-accent whitespace-nowrap`), permanecendo `text-ink-faint` quando zerado.
 
 ### Tests
 - Backend: `orderBalances.test.js` (+5: venda soma frete + adicionais sem alterar `itemTotal`, subtrai pagamentos, rateia entre não-self, ignora self e ignora frete em `COMPRA`) e `salesPayments.test.js` (pendente 200 + 10 + 5 − 150 = 65; quitação só após pagar o frete). **649 backend passing**.
