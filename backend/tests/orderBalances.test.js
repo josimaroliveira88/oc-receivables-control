@@ -180,4 +180,99 @@ describe('orderBalances util', () => {
       expect(balances.map((b) => b.personName)).toEqual(['Ana', 'Zeca']);
     });
   });
+
+  describe('buildOrderBalances for sales (VENDA)', () => {
+    const saleOrder = (overrides) => ({
+      orderType: 'VENDA',
+      shippingValue: '0',
+      additionalValue: '0',
+      items: [],
+      payments: [],
+      ...overrides,
+    });
+
+    it('adds shipping and additional charges to the client pending without changing itemTotal', () => {
+      const order = saleOrder({
+        shippingValue: '14.70',
+        additionalValue: '5.30',
+        items: [
+          item('client', '100.00', {
+            person: { name: 'Cliente', isSelf: false },
+          }),
+        ],
+      });
+
+      const balances = buildOrderBalances(order);
+
+      expect(balances).toHaveLength(1);
+      expect(balances[0].itemTotal).toBe(100);
+      expect(balances[0].pending).toBe(120);
+    });
+
+    it('subtracts payments from the total including the charges', () => {
+      const order = saleOrder({
+        shippingValue: '10.00',
+        items: [
+          item('client', '200.00', {
+            person: { name: 'Cliente', isSelf: false },
+          }),
+        ],
+        payments: [
+          payment('client', '150.00', {
+            person: { name: 'Cliente', isSelf: false },
+          }),
+        ],
+      });
+
+      const balances = buildOrderBalances(order);
+
+      expect(balances[0].itemTotal).toBe(200);
+      expect(balances[0].paymentTotal).toBe(150);
+      expect(balances[0].pending).toBe(60);
+    });
+
+    it('distributes the charges proportionally across non-self persons', () => {
+      const order = saleOrder({
+        shippingValue: '10.00',
+        items: [
+          item('p1', '100.00', { person: { name: 'Ana', isSelf: false } }),
+          item('p2', '300.00', { person: { name: 'Bruno', isSelf: false } }),
+        ],
+      });
+
+      const balances = buildOrderBalances(order);
+
+      expect(balances.find((b) => b.personId === 'p1').pending).toBe(102.5);
+      expect(balances.find((b) => b.personId === 'p2').pending).toBe(307.5);
+    });
+
+    it('does not add the charges to self persons', () => {
+      const order = saleOrder({
+        shippingValue: '10.00',
+        items: [
+          item('self', '100.00', { person: { name: 'Me', isSelf: true } }),
+        ],
+      });
+
+      const balances = buildOrderBalances(order);
+
+      expect(balances[0].pending).toBe(0);
+    });
+
+    it('ignores shipping on purchase orders (COMPRA)', () => {
+      const order = {
+        orderType: 'COMPRA',
+        shippingValue: '10.00',
+        additionalValue: '5.00',
+        items: [
+          item('p1', '100.00', { person: { name: 'Alice', isSelf: false } }),
+        ],
+        payments: [],
+      };
+
+      const balances = buildOrderBalances(order);
+
+      expect(balances[0].pending).toBe(100);
+    });
+  });
 });

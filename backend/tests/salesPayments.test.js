@@ -251,10 +251,10 @@ describe('Sales <-> Payments', () => {
   });
 
   describe('GET /api/orders/:orderId/balance on a sale', () => {
-    it('returns per-person balances for the client', async () => {
+    it('includes shipping and additional charges in the client pending', async () => {
       const created = await createSale(
         [{ productId: product.id, chargedValue: 100, quantity: 2 }],
-        { shippingValue: 10 },
+        { shippingValue: 10, additionalValue: 5 },
       );
       await pay(created.body.id, 150, client.id);
       const res = await request(app)
@@ -265,7 +265,25 @@ describe('Sales <-> Payments', () => {
       expect(res.body.balances[0].personId).toBe(client.id);
       expect(res.body.balances[0].itemTotal).toBe(200);
       expect(res.body.balances[0].paymentTotal).toBe(150);
-      expect(res.body.balances[0].pending).toBe(50);
+      expect(res.body.balances[0].pending).toBe(65);
+    });
+
+    it('reaches pending zero only after the client pays the charges too', async () => {
+      const created = await createSale(
+        [{ productId: product.id, chargedValue: 100, quantity: 1 }],
+        { shippingValue: 14.7 },
+      );
+      await pay(created.body.id, 100, client.id);
+      const afterItems = await request(app)
+        .get(`/api/orders/${created.body.id}/balance`)
+        .set('Authorization', `Bearer ${user.token}`);
+      expect(afterItems.body.balances[0].pending).toBe(14.7);
+
+      await pay(created.body.id, 14.7, client.id);
+      const settled = await request(app)
+        .get(`/api/orders/${created.body.id}/balance`)
+        .set('Authorization', `Bearer ${user.token}`);
+      expect(settled.body.balances[0].pending).toBe(0);
     });
   });
 });

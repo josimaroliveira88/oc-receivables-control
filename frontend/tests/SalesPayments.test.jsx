@@ -131,7 +131,7 @@ const mockBalances = {
         personId: 'p1',
         personName: 'João Silva',
         isSelf: false,
-        itemTotal: '300.00',
+        itemTotal: '285.00',
         paymentTotal: '0.00',
         pending: '300.00',
       },
@@ -155,7 +155,7 @@ const mockBalances = {
         personId: 'p1',
         personName: 'João Silva',
         isSelf: false,
-        itemTotal: '300.00',
+        itemTotal: '285.00',
         paymentTotal: '100.00',
         pending: '200.00',
       },
@@ -462,9 +462,12 @@ describe('SalesPayments', () => {
       expect(
         modal.getByTestId('sale-details-summary-pending'),
       ).toHaveTextContent(/R\$\s*200,00/);
-      expect(modal.getByTestId('detail-person-p1')).toHaveTextContent(
-        'João Silva',
+      expect(modal.getByTestId('sale-details-summary-pending')).toHaveClass(
+        'text-accent',
       );
+      expect(modal.queryByTestId('detail-person-p1')).not.toBeInTheDocument();
+      expect(modal.getByText('Adaptiv Pastilhas')).toBeInTheDocument();
+      expect(modal.getByText('Pagamentos recebidos')).toBeInTheDocument();
     });
 
     it('should show the payment type badge on the payment row', async () => {
@@ -472,8 +475,6 @@ describe('SalesPayments', () => {
       renderPage();
       await openDetailsAction('sale-detail');
       const modal = within(screen.getByTestId('sale-details-modal'));
-      fireEvent.click(modal.getByTestId('detail-person-p1'));
-      expect(modal.getByTestId('detail-panel-p1')).toBeInTheDocument();
       expect(modal.getByText('Pagamentos recebidos')).toBeInTheDocument();
       expect(modal.getByTestId('payment-badge-pay-1')).toHaveTextContent('PIX');
     });
@@ -485,7 +486,6 @@ describe('SalesPayments', () => {
       renderPage();
       await openDetailsAction('sale-detail');
       const modal = within(screen.getByTestId('sale-details-modal'));
-      fireEvent.click(modal.getByTestId('detail-person-p1'));
       fireEvent.click(modal.getByTestId('edit-payment-pay-1'));
       await waitFor(() => {
         expect(
@@ -570,7 +570,6 @@ describe('SalesPayments', () => {
       renderPage();
       await openDetailsAction('sale-detail');
       const detailsModal = within(screen.getByTestId('sale-details-modal'));
-      fireEvent.click(detailsModal.getByTestId('detail-person-p1'));
       fireEvent.click(detailsModal.getByTestId('edit-payment-pay-1'));
       const editModal = within(
         await screen.findByTestId('sale-edit-payment-modal'),
