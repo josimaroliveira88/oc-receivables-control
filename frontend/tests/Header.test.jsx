@@ -43,6 +43,7 @@ describe('Header', () => {
     expect(screen.getByText('Vendas')).toBeInTheDocument();
     expect(screen.getByText('Produtos')).toBeInTheDocument();
     expect(screen.getByText('Estoque')).toBeInTheDocument();
+    expect(screen.getByText('Finanças')).toBeInTheDocument();
   });
 
   it('should link Vendas to /sales', () => {
@@ -62,6 +63,7 @@ describe('Header', () => {
       'Vendas',
       'Produtos',
       'Estoque',
+      'Finanças',
       'Dashboard',
     ]);
   });
