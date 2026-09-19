@@ -71,6 +71,8 @@ const SalesPage = () => {
     balances,
     selectedPersonId,
     paymentAmount,
+    paymentNetAmount,
+    paymentPassesGatewayFeeToClient,
     paymentNotes,
     paymentDate,
     paymentType,
@@ -88,6 +90,8 @@ const SalesPage = () => {
     openPaymentModal,
     closePaymentModal,
     handleChangeAmount,
+    handleChangeNetAmount,
+    handleChangePassesGatewayFeeToClient,
     handleChangeNotes,
     handleChangeDate,
     handleChangePaymentType,
@@ -103,6 +107,8 @@ const SalesPage = () => {
     paymentDirty,
     editPaymentDirty,
     editPaymentAmount,
+    editPaymentNetAmount,
+    editPaymentPassesGatewayFeeToClient,
     editPaymentNotes,
     editPaymentDate,
     editPaymentType,
@@ -115,6 +121,8 @@ const SalesPage = () => {
     openEditPaymentModal,
     closeEditPaymentModal,
     handleChangeEditAmount,
+    handleChangeEditNetAmount,
+    handleChangeEditPassesGatewayFeeToClient,
     handleChangeEditNotes,
     handleChangeEditDate,
     handleChangeEditPaymentType,
@@ -220,6 +228,7 @@ const SalesPage = () => {
           balances={balances}
           clientName={clientName}
           paymentAmount={paymentAmount}
+          paymentNetAmount={paymentNetAmount}
           paymentNotes={paymentNotes}
           paymentDate={paymentDate}
           paymentType={paymentType}
@@ -229,9 +238,14 @@ const SalesPage = () => {
           selectedPendingCents={selectedPendingCents}
           selectedIsZeroItem={selectedIsZeroItem}
           selectedPersonItems={selectedPersonItems}
+          passesGatewayFeeToClient={paymentPassesGatewayFeeToClient}
           isDirty={paymentDirty}
           onClose={closePaymentModal}
           onChangeAmount={handleChangeAmount}
+          onChangeNetAmount={handleChangeNetAmount}
+          onChangePassesGatewayFeeToClient={
+            handleChangePassesGatewayFeeToClient
+          }
           onChangeNotes={handleChangeNotes}
           onChangeDate={handleChangeDate}
           onChangePaymentType={handleChangePaymentType}
@@ -259,14 +273,20 @@ const SalesPage = () => {
           isZeroItem={editIsZeroItem}
           pendingCents={editPendingCents}
           paymentAmount={editPaymentAmount}
+          paymentNetAmount={editPaymentNetAmount}
           paymentNotes={editPaymentNotes}
           paymentDate={editPaymentDate}
           paymentType={editPaymentType}
+          passesGatewayFeeToClient={editPaymentPassesGatewayFeeToClient}
           paymentError={editPaymentError}
           submitting={editSubmitting}
           isDirty={editPaymentDirty}
           onClose={closeEditPaymentModal}
           onChangeAmount={handleChangeEditAmount}
+          onChangeNetAmount={handleChangeEditNetAmount}
+          onChangePassesGatewayFeeToClient={
+            handleChangeEditPassesGatewayFeeToClient
+          }
           onChangeNotes={handleChangeEditNotes}
           onChangeDate={handleChangeEditDate}
           onChangePaymentType={handleChangeEditPaymentType}

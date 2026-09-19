@@ -4,6 +4,7 @@ import { formatBRL, fromCents } from '../../../utils/money';
 import { formatDateBR } from '../../../utils/dates';
 import { getSalePendingCents } from '../utils/saleHelpers';
 import { lineValueCents } from '../utils/saleHelpers';
+import { hasNetAmount, paymentFeeCents } from '../../../utils/paymentFee';
 import { PaymentTypeBadge } from '../../Orders/components/Badges';
 import Modal from '../../../components/Modal';
 
@@ -142,38 +143,56 @@ const SaleDetailsModal = ({
                 </p>
               ) : (
                 <div className="rounded-md border border-line divide-y divide-line overflow-hidden">
-                  {payments.map((payment) => (
-                    <div key={payment.id} className="px-3 py-2 bg-surface">
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="text-sm text-ink">
-                          {formatDateBR(payment.paidAt)}
-                        </span>
-                        <span className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-success-fg whitespace-nowrap">
-                            {formatBRL(parseFloat(payment.amount))}
+                  {payments.map((payment) => {
+                    const netProvided = hasNetAmount(payment.netAmount);
+                    const feeCents = netProvided
+                      ? paymentFeeCents({
+                          amount: payment.amount,
+                          netAmount: payment.netAmount,
+                        })
+                      : 0;
+                    return (
+                      <div key={payment.id} className="px-3 py-2 bg-surface">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-sm text-ink">
+                            {formatDateBR(payment.paidAt)}
                           </span>
-                          {payment.paymentType && (
-                            <PaymentTypeBadge
-                              type={payment.paymentType}
-                              testId={`payment-badge-${payment.id}`}
-                            />
-                          )}
-                          <button
-                            type="button"
-                            data-testid={`edit-payment-${payment.id}`}
-                            aria-label="Editar pagamento"
-                            onClick={() => onEditPayment(payment)}
-                            className="text-ink-faint hover:text-ink transition-colors"
+                          <span className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-success-fg whitespace-nowrap">
+                              {formatBRL(parseFloat(payment.amount))}
+                            </span>
+                            {payment.paymentType && (
+                              <PaymentTypeBadge
+                                type={payment.paymentType}
+                                testId={`payment-badge-${payment.id}`}
+                              />
+                            )}
+                            <button
+                              type="button"
+                              data-testid={`edit-payment-${payment.id}`}
+                              aria-label="Editar pagamento"
+                              onClick={() => onEditPayment(payment)}
+                              className="text-ink-faint hover:text-ink transition-colors"
+                            >
+                              <Pencil size={16} aria-hidden="true" />
+                            </button>
+                          </span>
+                        </div>
+                        {netProvided && (
+                          <p
+                            data-testid={`payment-fee-${payment.id}`}
+                            className="text-xs text-ink-faint mt-0.5"
                           >
-                            <Pencil size={16} aria-hidden="true" />
-                          </button>
-                        </span>
+                            Taxa: {formatBRL(feeCents / 100)} · Líquido:{' '}
+                            {formatBRL(parseFloat(payment.netAmount))}
+                          </p>
+                        )}
+                        <p className="text-xs text-ink-faint mt-0.5">
+                          Observação: {payment.notes || '—'}
+                        </p>
                       </div>
-                      <p className="text-xs text-ink-faint mt-0.5">
-                        Observação: {payment.notes || '—'}
-                      </p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </>

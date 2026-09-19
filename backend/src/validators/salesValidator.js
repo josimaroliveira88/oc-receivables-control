@@ -49,6 +49,8 @@ const createSaleSchema = z.object({
     .optional()
     .nullable(),
   deliveredAt: z.string().optional().nullable(),
+  // Whether the payment-gateway fee is passed on to the client (InfinitePay).
+  passesGatewayFeeToClient: z.boolean().optional(),
   items: z.array(saleItemSchema).min(1, 'At least one item is required'),
 });
 
@@ -71,6 +73,8 @@ const updateSaleSchema = z.object({
     .optional()
     .nullable(),
   deliveredAt: z.string().optional().nullable(),
+  // Whether the payment-gateway fee is passed on to the client (InfinitePay).
+  passesGatewayFeeToClient: z.boolean().optional(),
   items: z
     .array(saleItemSchema)
     .min(1, 'At least one item is required')

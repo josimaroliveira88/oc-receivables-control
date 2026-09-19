@@ -3,16 +3,34 @@
 // `$transaction` (payments are the outermost operation). Business rejections
 // are thrown as HTTP-mapped errors (via utils/httpError.js) which the
 // controller maps to the HTTP response.
-import { toCents, lineValueCents } from '../utils/money.js';
+import { toCents, fromCents, lineValueCents } from '../utils/money.js';
 import { computeOrderStatus } from '../utils/receivables.js';
+import { paymentFeeCents } from '../utils/paymentFee.js';
 import { parseLocalDate } from '../utils/date.js';
 import { badRequest, notFound } from '../utils/httpError.js';
 
 const TEAM_ORDER_MESSAGE =
   'Pedidos da equipe não aceitam pagamentos (a equipe já realizou o pagamento)';
 
+// Adds the derived gateway fee to a payment returned to the client. The fee is
+// never persisted: it is always `amount - netAmount` (0 when no net informed).
+const withFeeAmount = (payment) => ({
+  ...payment,
+  feeAmount: fromCents(paymentFeeCents(payment)).toFixed(2),
+});
+
+// Rejects a net amount greater than the charged amount (the fee cannot be
+// negative). No-op when no net amount was informed.
+const assertValidNetAmount = ({ amountCents, netAmount }) => {
+  if (netAmount === null || netAmount === undefined) return;
+  if (Math.round(netAmount * 100) > amountCents) {
+    throw badRequest('Net amount cannot be greater than the charged amount');
+  }
+};
+
 const createPayment = async (client, { userId, orderId, payload }) => {
   const amountCents = Math.round(payload.amount * 100);
+  assertValidNetAmount({ amountCents, netAmount: payload.netAmount });
 
   return client.$transaction(async (tx) => {
     const order = await tx.order.findFirst({
@@ -56,6 +74,7 @@ const createPayment = async (client, { userId, orderId, payload }) => {
     const payment = await tx.payment.create({
       data: {
         amount: payload.amount,
+        netAmount: payload.netAmount ?? null,
         orderId: orderId,
         personId: payload.personId,
         paidAt: payload.paidAt ? parseLocalDate(payload.paidAt) : undefined,
@@ -77,19 +96,25 @@ const createPayment = async (client, { userId, orderId, payload }) => {
       additionalCents: toCents(order.additionalValue ?? 0),
     });
 
-    if (newStatus !== order.status) {
-      await tx.order.update({
-        where: { id: orderId },
-        data: { status: newStatus },
-      });
+    const orderData = {};
+    if (newStatus !== order.status) orderData.status = newStatus;
+    // The fee-passthrough flag lives on the order (a sale-level setting), so it
+    // is persisted here when the payment form sends it.
+    if (payload.passesGatewayFeeToClient !== undefined) {
+      orderData.passesGatewayFeeToClient = payload.passesGatewayFeeToClient;
+    }
+    if (Object.keys(orderData).length > 0) {
+      await tx.order.update({ where: { id: orderId }, data: orderData });
     }
 
     return {
-      payment,
+      payment: withFeeAmount(payment),
       order: {
         id: order.id,
         orderNumber: order.orderNumber,
         status: newStatus,
+        passesGatewayFeeToClient:
+          payload.passesGatewayFeeToClient ?? order.passesGatewayFeeToClient,
       },
     };
   });
@@ -109,6 +134,12 @@ const updatePayment = async (client, { id, userId, payload }) => {
     if (!existingPayment || existingPayment.order.userId !== userId) {
       throw notFound('Payment not found');
     }
+
+    const effectiveNetAmount =
+      payload.netAmount !== undefined
+        ? payload.netAmount
+        : existingPayment.netAmount;
+    assertValidNetAmount({ amountCents, netAmount: effectiveNetAmount });
 
     const order = await tx.order.findFirst({
       where: { id: existingPayment.orderId, userId },
@@ -144,6 +175,8 @@ const updatePayment = async (client, { id, userId, payload }) => {
       where: { id },
       data: {
         amount: payload.amount,
+        netAmount:
+          payload.netAmount !== undefined ? payload.netAmount : undefined,
         paidAt: payload.paidAt ? parseLocalDate(payload.paidAt) : undefined,
         paymentType:
           payload.paymentType !== undefined ? payload.paymentType : undefined,
@@ -162,19 +195,23 @@ const updatePayment = async (client, { id, userId, payload }) => {
       additionalCents: toCents(order.additionalValue ?? 0),
     });
 
-    if (newStatus !== order.status) {
-      await tx.order.update({
-        where: { id: order.id },
-        data: { status: newStatus },
-      });
+    const orderData = {};
+    if (newStatus !== order.status) orderData.status = newStatus;
+    if (payload.passesGatewayFeeToClient !== undefined) {
+      orderData.passesGatewayFeeToClient = payload.passesGatewayFeeToClient;
+    }
+    if (Object.keys(orderData).length > 0) {
+      await tx.order.update({ where: { id: order.id }, data: orderData });
     }
 
     return {
-      payment,
+      payment: withFeeAmount(payment),
       order: {
         id: order.id,
         orderNumber: order.orderNumber,
         status: newStatus,
+        passesGatewayFeeToClient:
+          payload.passesGatewayFeeToClient ?? order.passesGatewayFeeToClient,
       },
     };
   });

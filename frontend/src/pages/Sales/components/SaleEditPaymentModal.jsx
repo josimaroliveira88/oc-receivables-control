@@ -5,6 +5,7 @@ import CurrencyInput from '../../../components/CurrencyInput';
 import Modal from '../../../components/Modal';
 import { PAYMENT_TYPE_OPTIONS } from '../utils/saleHelpers';
 import { paymentTypeLabel } from '../../Orders/utils/orderHelpers';
+import { hasNetAmount, paymentFeeCents } from '../../../utils/paymentFee';
 
 const SaleEditPaymentModal = ({
   sale,
@@ -14,14 +15,18 @@ const SaleEditPaymentModal = ({
   isZeroItem,
   pendingCents,
   paymentAmount,
+  paymentNetAmount,
   paymentNotes,
   paymentDate,
   paymentType,
+  passesGatewayFeeToClient = false,
   paymentError,
   submitting,
   isDirty = false,
   onClose,
   onChangeAmount,
+  onChangeNetAmount,
+  onChangePassesGatewayFeeToClient,
   onChangeNotes,
   onChangeDate,
   onChangePaymentType,
@@ -32,6 +37,12 @@ const SaleEditPaymentModal = ({
   const isLegacyPaymentType =
     paymentType &&
     !PAYMENT_TYPE_OPTIONS.some((option) => option.value === paymentType);
+
+  const isInfinitePay = paymentType === 'INFINITE_PAY';
+  const netProvided = hasNetAmount(paymentNetAmount);
+  const feeCents = netProvided
+    ? paymentFeeCents({ amount: paymentAmount, netAmount: paymentNetAmount })
+    : 0;
 
   return (
     <Modal
@@ -145,6 +156,58 @@ const SaleEditPaymentModal = ({
               )}
             </select>
           </div>
+
+          {isInfinitePay && (
+            <div className="mb-4 space-y-3">
+              <div className="flex items-start gap-2 rounded-md border border-line bg-base px-3 py-2">
+                <input
+                  id="saleEditPaymentPassesFee"
+                  type="checkbox"
+                  checked={!!passesGatewayFeeToClient}
+                  onChange={(e) =>
+                    onChangePassesGatewayFeeToClient(e.target.checked)
+                  }
+                  className="mt-0.5 h-4 w-4 rounded border-line text-accent focus:ring-accent"
+                />
+                <label
+                  htmlFor="saleEditPaymentPassesFee"
+                  className="text-sm text-ink-soft cursor-pointer"
+                >
+                  Repassar taxa do InfinitePay ao cliente
+                  <span className="block text-xs text-ink-faint">
+                    Marque quando o cliente paga a taxa junto com a venda.
+                  </span>
+                </label>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="saleEditPaymentNetAmount"
+                  className="block text-sm font-medium text-ink-soft mb-1"
+                >
+                  Valor líquido recebido (R$)
+                </label>
+                <CurrencyInput
+                  id="saleEditPaymentNetAmount"
+                  value={paymentNetAmount}
+                  onChange={(e) => onChangeNetAmount(e.target.value)}
+                  placeholder="Igual ao valor cobrado"
+                />
+                <p className="mt-1 text-xs text-ink-faint">
+                  Informe o valor recebido após a taxa. Deixe vazio se não
+                  houver taxa.
+                </p>
+                {netProvided && feeCents > 0 && (
+                  <p
+                    data-testid="sale-edit-payment-fee"
+                    className="mt-1 text-sm font-medium text-warning-fg"
+                  >
+                    Taxa InfinitePay: {formatBRL(feeCents / 100)}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="mb-4">
             <label

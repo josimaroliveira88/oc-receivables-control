@@ -107,8 +107,17 @@ export const getPaymentActionLabel = (order) =>
     ? 'Dar baixa'
     : 'Registrar Pagamento';
 
+// Converts an optional net-amount input into the payload value: '' or
+// null/undefined becomes null (no fee); a filled value becomes a number.
+const netAmountValue = (value) =>
+  value === '' || value === null || value === undefined
+    ? null
+    : parseFloat(value);
+
 export const paymentPayload = ({
   paymentAmount,
+  paymentNetAmount,
+  paymentPassesGatewayFeeToClient,
   selectedPersonId,
   paymentDate,
   paymentNotes,
@@ -121,11 +130,21 @@ export const paymentPayload = ({
     notes: paymentNotes.trim() || undefined,
   };
   if (paymentType) payload.paymentType = paymentType;
+  // On create, an empty net field means "no fee": omit it (the backend stores
+  // null). On edit the field is always sent so an existing net can be cleared.
+  const net =
+    paymentNetAmount === undefined ? null : netAmountValue(paymentNetAmount);
+  if (net !== null) payload.netAmount = net;
+  if (paymentPassesGatewayFeeToClient !== undefined) {
+    payload.passesGatewayFeeToClient = paymentPassesGatewayFeeToClient;
+  }
   return payload;
 };
 
 export const editPaymentPayload = ({
   paymentAmount,
+  paymentNetAmount,
+  paymentPassesGatewayFeeToClient,
   paymentDate,
   paymentNotes,
   paymentType,
@@ -136,5 +155,11 @@ export const editPaymentPayload = ({
     notes: paymentNotes.trim() || null,
   };
   if (paymentType !== undefined) payload.paymentType = paymentType || null;
+  if (paymentNetAmount !== undefined) {
+    payload.netAmount = netAmountValue(paymentNetAmount);
+  }
+  if (paymentPassesGatewayFeeToClient !== undefined) {
+    payload.passesGatewayFeeToClient = paymentPassesGatewayFeeToClient;
+  }
   return payload;
 };

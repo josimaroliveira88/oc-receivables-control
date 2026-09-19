@@ -3,6 +3,7 @@ import api from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { useDirtyForm } from '../../hooks/useDirtyForm';
 import { toCents } from '../../utils/money';
+import { hasNetAmount } from '../../utils/paymentFee';
 import {
   getTodayString,
   toLocalDateInput,
@@ -22,6 +23,9 @@ export function useSalePayments({ refreshSales }) {
   const [balances, setBalances] = useState([]);
   const [selectedPersonId, setSelectedPersonId] = useState('');
   const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentNetAmount, setPaymentNetAmount] = useState('');
+  const [paymentPassesGatewayFeeToClient, setPaymentPassesGatewayFeeToClient] =
+    useState(false);
   const [paymentNotes, setPaymentNotes] = useState('');
   const [paymentDate, setPaymentDate] = useState(getTodayString());
   const [paymentType, setPaymentType] = useState('');
@@ -35,6 +39,11 @@ export function useSalePayments({ refreshSales }) {
   const [showEditPaymentModal, setShowEditPaymentModal] = useState(false);
   const [editingPayment, setEditingPayment] = useState(null);
   const [editPaymentAmount, setEditPaymentAmount] = useState('');
+  const [editPaymentNetAmount, setEditPaymentNetAmount] = useState('');
+  const [
+    editPaymentPassesGatewayFeeToClient,
+    setEditPaymentPassesGatewayFeeToClient,
+  ] = useState(false);
   const [editPaymentNotes, setEditPaymentNotes] = useState('');
   const [editPaymentDate, setEditPaymentDate] = useState(getTodayString());
   const [editPaymentType, setEditPaymentType] = useState('');
@@ -50,6 +59,8 @@ export function useSalePayments({ refreshSales }) {
     setSelectedSale(sale);
     setSelectedPersonId('');
     setPaymentAmount('');
+    setPaymentNetAmount('');
+    setPaymentPassesGatewayFeeToClient(!!sale?.passesGatewayFeeToClient);
     setPaymentNotes('');
     setPaymentDate(getTodayString());
     setPaymentType('');
@@ -72,6 +83,8 @@ export function useSalePayments({ refreshSales }) {
       setPaymentInitial({
         selectedPersonId,
         paymentAmount,
+        paymentNetAmount: '',
+        paymentPassesGatewayFeeToClient: !!sale?.passesGatewayFeeToClient,
         paymentNotes: '',
         paymentDate: getTodayString(),
         paymentType: '',
@@ -88,6 +101,8 @@ export function useSalePayments({ refreshSales }) {
     setBalances([]);
     setSelectedPersonId('');
     setPaymentAmount('');
+    setPaymentNetAmount('');
+    setPaymentPassesGatewayFeeToClient(false);
     setPaymentNotes('');
     setPaymentDate(getTodayString());
     setPaymentType('');
@@ -100,6 +115,15 @@ export function useSalePayments({ refreshSales }) {
     setPaymentError('');
   };
 
+  const handleChangeNetAmount = (value) => {
+    setPaymentNetAmount(value);
+    setPaymentError('');
+  };
+
+  const handleChangePassesGatewayFeeToClient = (value) => {
+    setPaymentPassesGatewayFeeToClient(value);
+  };
+
   const handleChangeNotes = (value) => {
     setPaymentNotes(value);
   };
@@ -110,6 +134,9 @@ export function useSalePayments({ refreshSales }) {
 
   const handleChangePaymentType = (value) => {
     setPaymentType(value);
+    // The net field is only meaningful for InfinitePay; clear it otherwise so
+    // a previously typed value is not submitted with another payment type.
+    if (value !== 'INFINITE_PAY') setPaymentNetAmount('');
   };
 
   const submitPayment = async () => {
@@ -119,6 +146,11 @@ export function useSalePayments({ refreshSales }) {
         `/orders/${selectedSale.id}/payments`,
         paymentPayload({
           paymentAmount,
+          paymentNetAmount,
+          paymentPassesGatewayFeeToClient:
+            paymentType === 'INFINITE_PAY'
+              ? paymentPassesGatewayFeeToClient
+              : undefined,
           selectedPersonId,
           paymentDate,
           paymentNotes,
@@ -155,6 +187,17 @@ export function useSalePayments({ refreshSales }) {
       return;
     }
 
+    // The net amount cannot exceed the charged amount (the fee cannot be
+    // negative). When no net is informed there is no fee, so it equals amount.
+    const netProvided = hasNetAmount(paymentNetAmount);
+    const netCents = netProvided
+      ? toCents(parseFloat(paymentNetAmount || '0'))
+      : amountCents;
+    if (netProvided && netCents > amountCents) {
+      setPaymentError('Valor líquido não pode ser maior que o valor cobrado');
+      return;
+    }
+
     if (!selectedPersonId) {
       setPaymentError('Selecione uma pessoa');
       return;
@@ -177,7 +220,10 @@ export function useSalePayments({ refreshSales }) {
 
     const pendingCents = getSelectedPendingCents(balances, selectedPersonId);
 
-    if (amountCents > pendingCents) {
+    // The overpayment guard compares what settles the debt (the net received)
+    // against the pending balance, so an intentional gateway fee passed on to
+    // the client (charged > pending, net == pending) does not warn.
+    if (netCents > pendingCents) {
       setShowOverpayConfirm(true);
       return;
     }
@@ -196,11 +242,16 @@ export function useSalePayments({ refreshSales }) {
 
   const openEditPaymentModal = (payment) => {
     const paymentAmount = String(parseFloat(payment.amount));
+    const paymentNetAmount =
+      payment.netAmount != null ? String(parseFloat(payment.netAmount)) : '';
     const paymentNotes = payment.notes || '';
     const paymentDate = toLocalDateInput(payment.paidAt);
     const paymentType = payment.paymentType || '';
+    const passesGatewayFeeToClient = !!detailSale?.passesGatewayFeeToClient;
     setEditingPayment(payment);
     setEditPaymentAmount(paymentAmount);
+    setEditPaymentNetAmount(paymentNetAmount);
+    setEditPaymentPassesGatewayFeeToClient(passesGatewayFeeToClient);
     setEditPaymentNotes(paymentNotes);
     setEditPaymentDate(paymentDate);
     setEditPaymentType(paymentType);
@@ -208,6 +259,8 @@ export function useSalePayments({ refreshSales }) {
     setShowEditOverpayConfirm(false);
     setEditPaymentInitial({
       paymentAmount,
+      paymentNetAmount,
+      paymentPassesGatewayFeeToClient: passesGatewayFeeToClient,
       paymentNotes,
       paymentDate,
       paymentType,
@@ -219,6 +272,8 @@ export function useSalePayments({ refreshSales }) {
     setShowEditPaymentModal(false);
     setEditingPayment(null);
     setEditPaymentAmount('');
+    setEditPaymentNetAmount('');
+    setEditPaymentPassesGatewayFeeToClient(false);
     setEditPaymentNotes('');
     setEditPaymentDate(getTodayString());
     setEditPaymentType('');
@@ -232,6 +287,15 @@ export function useSalePayments({ refreshSales }) {
     setEditPaymentError('');
   };
 
+  const handleChangeEditNetAmount = (value) => {
+    setEditPaymentNetAmount(value);
+    setEditPaymentError('');
+  };
+
+  const handleChangeEditPassesGatewayFeeToClient = (value) => {
+    setEditPaymentPassesGatewayFeeToClient(value);
+  };
+
   const handleChangeEditNotes = (value) => {
     setEditPaymentNotes(value);
   };
@@ -242,6 +306,7 @@ export function useSalePayments({ refreshSales }) {
 
   const handleChangeEditPaymentType = (value) => {
     setEditPaymentType(value);
+    if (value !== 'INFINITE_PAY') setEditPaymentNetAmount('');
   };
 
   const refreshDetailBalance = async () => {
@@ -262,6 +327,11 @@ export function useSalePayments({ refreshSales }) {
         `/orders/payments/${editedPayment.id}`,
         editPaymentPayload({
           paymentAmount: editPaymentAmount,
+          paymentNetAmount: editPaymentNetAmount,
+          paymentPassesGatewayFeeToClient:
+            editPaymentType === 'INFINITE_PAY'
+              ? editPaymentPassesGatewayFeeToClient
+              : undefined,
           paymentDate: editPaymentDate,
           paymentNotes: editPaymentNotes,
           paymentType: editPaymentType,
@@ -272,11 +342,18 @@ export function useSalePayments({ refreshSales }) {
       if (detailSale) {
         setDetailSale({
           ...detailSale,
+          passesGatewayFeeToClient:
+            editPaymentType === 'INFINITE_PAY'
+              ? editPaymentPassesGatewayFeeToClient
+              : detailSale.passesGatewayFeeToClient,
           payments: (detailSale.payments || []).map((p) =>
             p.id === editedPayment.id
               ? {
                   ...p,
                   amount: editPaymentAmount,
+                  netAmount: hasNetAmount(editPaymentNetAmount)
+                    ? parseFloat(editPaymentNetAmount)
+                    : null,
                   paidAt: editPaymentDate
                     ? new Date(`${editPaymentDate}T12:00:00`).toISOString()
                     : p.paidAt,
@@ -316,6 +393,17 @@ export function useSalePayments({ refreshSales }) {
       return;
     }
 
+    const netProvided = hasNetAmount(editPaymentNetAmount);
+    const netCents = netProvided
+      ? toCents(parseFloat(editPaymentNetAmount || '0'))
+      : amountCents;
+    if (netProvided && netCents > amountCents) {
+      setEditPaymentError(
+        'Valor líquido não pode ser maior que o valor cobrado',
+      );
+      return;
+    }
+
     const isSelf = !!(editBalance && editBalance.isSelf);
 
     if (
@@ -328,7 +416,7 @@ export function useSalePayments({ refreshSales }) {
       return;
     }
 
-    if (!isSelf && amountCents > editPendingCents) {
+    if (!isSelf && netCents > editPendingCents) {
       setShowEditOverpayConfirm(true);
       return;
     }
@@ -401,6 +489,8 @@ export function useSalePayments({ refreshSales }) {
     {
       selectedPersonId,
       paymentAmount,
+      paymentNetAmount,
+      paymentPassesGatewayFeeToClient,
       paymentNotes,
       paymentDate,
       paymentType,
@@ -411,6 +501,8 @@ export function useSalePayments({ refreshSales }) {
   const editPaymentDirty = useDirtyForm(
     {
       paymentAmount: editPaymentAmount,
+      paymentNetAmount: editPaymentNetAmount,
+      paymentPassesGatewayFeeToClient: editPaymentPassesGatewayFeeToClient,
       paymentNotes: editPaymentNotes,
       paymentDate: editPaymentDate,
       paymentType: editPaymentType,
@@ -424,6 +516,8 @@ export function useSalePayments({ refreshSales }) {
     balances,
     selectedPersonId,
     paymentAmount,
+    paymentNetAmount,
+    paymentPassesGatewayFeeToClient,
     paymentNotes,
     paymentDate,
     paymentType,
@@ -441,6 +535,8 @@ export function useSalePayments({ refreshSales }) {
     openPaymentModal,
     closePaymentModal,
     handleChangeAmount,
+    handleChangeNetAmount,
+    handleChangePassesGatewayFeeToClient,
     handleChangeNotes,
     handleChangeDate,
     handleChangePaymentType,
@@ -456,6 +552,8 @@ export function useSalePayments({ refreshSales }) {
     paymentDirty,
     editPaymentDirty,
     editPaymentAmount,
+    editPaymentNetAmount,
+    editPaymentPassesGatewayFeeToClient,
     editPaymentNotes,
     editPaymentDate,
     editPaymentType,
@@ -468,6 +566,8 @@ export function useSalePayments({ refreshSales }) {
     openEditPaymentModal,
     closeEditPaymentModal,
     handleChangeEditAmount,
+    handleChangeEditNetAmount,
+    handleChangeEditPassesGatewayFeeToClient,
     handleChangeEditNotes,
     handleChangeEditDate,
     handleChangeEditPaymentType,

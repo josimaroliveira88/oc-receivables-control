@@ -54,6 +54,9 @@ model Order {
   deliveredAt  DateTime?
   accountOwner String?      @db.VarChar(120)
   paymentType  PaymentType?
+  // Sales only: the seller passes the payment-gateway fee (e.g. InfinitePay)
+  // on to the client, so the amount charged is higher than the sale total.
+  passesGatewayFeeToClient Boolean @default(false)
   orderNotes   String?      @db.VarChar(2000)
   doterraPv    Decimal?     @db.Decimal(10, 2)
   doterraValue Decimal?     @db.Decimal(10, 2)
@@ -140,6 +143,10 @@ enum KitStockMode {
 model Payment {
   id          String      @id @default(uuid())
   amount      Decimal     @db.Decimal(10, 2)
+  // Net amount the user actually received after the gateway fee. NULL means no
+  // fee (or not informed), so the net equals `amount`. The fee is always
+  // derived (`amount - netAmount`) and never persisted.
+  netAmount   Decimal?    @db.Decimal(10, 2)
   paidAt      DateTime    @default(now())
   paymentType PaymentType?
   notes       String?

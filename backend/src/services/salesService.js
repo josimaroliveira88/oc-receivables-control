@@ -314,6 +314,7 @@ const createSale = async (client, { userId, payload }) => {
           ? parseLocalDate(payload.deliveredAt)
           : null,
         orderNotes: payload.description ?? null,
+        passesGatewayFeeToClient: payload.passesGatewayFeeToClient ?? false,
         status,
         userId,
         items: {
@@ -400,6 +401,9 @@ const updateSale = async (client, { id, userId, payload }) => {
         }),
         ...(payload.description !== undefined && {
           orderNotes: payload.description,
+        }),
+        ...(payload.passesGatewayFeeToClient !== undefined && {
+          passesGatewayFeeToClient: payload.passesGatewayFeeToClient,
         }),
       };
       if (shippingChanged || additionalChanged) {
@@ -525,6 +529,9 @@ const updateSale = async (client, { id, userId, payload }) => {
             : undefined,
         ...(payload.description !== undefined && {
           orderNotes: payload.description,
+        }),
+        ...(payload.passesGatewayFeeToClient !== undefined && {
+          passesGatewayFeeToClient: payload.passesGatewayFeeToClient,
         }),
       },
     });

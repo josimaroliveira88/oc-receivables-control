@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import { isDigitsOnly, maskWhatsApp } from './whatsapp';
+import { paymentFeeCents, paymentNetCents } from './paymentFee';
 
 const BRL_FORMAT = '#,##0.00';
 
@@ -41,15 +42,45 @@ const buildPedidosSheet = (orders) => {
   return ws;
 };
 
+// Sums the gateway fee and net received across a sale's payments.
+const saleFeeAndNet = (sale) => {
+  let feeCents = 0;
+  let netCents = 0;
+  for (const payment of sale.payments || []) {
+    feeCents += paymentFeeCents({
+      amount: payment.amount,
+      netAmount: payment.netAmount,
+    });
+    netCents += paymentNetCents({
+      amount: payment.amount,
+      netAmount: payment.netAmount,
+    });
+  }
+  return { feeCents, netCents };
+};
+
 const buildVendasSheet = (sales) => {
-  const headers = ['Número', 'Data', 'Cliente', 'Valor Total (R$)', 'Status'];
-  const rows = (sales || []).map((sale) => ({
-    Número: sale.orderNumber,
-    Data: formatDate(sale.orderDate || sale.createdAt),
-    Cliente: sale.items?.[0]?.person?.name || '—',
-    'Valor Total (R$)': parseFloat(sale.totalValue) || 0,
-    Status: sale.status,
-  }));
+  const headers = [
+    'Número',
+    'Data',
+    'Cliente',
+    'Valor Total (R$)',
+    'Taxa (R$)',
+    'Líquido (R$)',
+    'Status',
+  ];
+  const rows = (sales || []).map((sale) => {
+    const { feeCents, netCents } = saleFeeAndNet(sale);
+    return {
+      Número: sale.orderNumber,
+      Data: formatDate(sale.orderDate || sale.createdAt),
+      Cliente: sale.items?.[0]?.person?.name || '—',
+      'Valor Total (R$)': parseFloat(sale.totalValue) || 0,
+      'Taxa (R$)': feeCents / 100,
+      'Líquido (R$)': netCents / 100,
+      Status: sale.status,
+    };
+  });
 
   const ws = XLSX.utils.json_to_sheet(rows, { header: headers });
   ws['!cols'] = [
@@ -57,11 +88,15 @@ const buildVendasSheet = (sales) => {
     { wch: 12 },
     { wch: 30 },
     { wch: 18 },
+    { wch: 14 },
+    { wch: 16 },
     { wch: 12 },
   ];
 
   for (let i = 1; i <= rows.length; i++) {
     setMonetaryCell(ws, i, 3, rows[i - 1]['Valor Total (R$)']);
+    setMonetaryCell(ws, i, 4, rows[i - 1]['Taxa (R$)']);
+    setMonetaryCell(ws, i, 5, rows[i - 1]['Líquido (R$)']);
   }
 
   return ws;
@@ -110,17 +145,35 @@ const buildClientesSheet = (people) => {
 };
 
 const buildHistoricoSheet = (orders, sales) => {
-  const headers = ['Pedido', 'Pessoa', 'Valor (R$)', 'Data', 'Notas'];
+  const headers = [
+    'Pedido',
+    'Pessoa',
+    'Valor (R$)',
+    'Taxa (R$)',
+    'Valor Líquido (R$)',
+    'Data',
+    'Notas',
+  ];
   const rows = [];
 
   const sources = [...(orders || []), ...(sales || [])];
   for (const order of sources) {
     if (!order.payments || order.payments.length === 0) continue;
     for (const payment of order.payments) {
+      const feeCents = paymentFeeCents({
+        amount: payment.amount,
+        netAmount: payment.netAmount,
+      });
+      const netCents = paymentNetCents({
+        amount: payment.amount,
+        netAmount: payment.netAmount,
+      });
       rows.push({
         Pedido: order.orderNumber,
         Pessoa: payment.person ? payment.person.name : 'Sem pessoa',
         'Valor (R$)': parseFloat(payment.amount) || 0,
+        'Taxa (R$)': feeCents / 100,
+        'Valor Líquido (R$)': netCents / 100,
         Data: formatDate(payment.paidAt || payment.createdAt),
         Notas: payment.notes || '',
       });
@@ -132,12 +185,16 @@ const buildHistoricoSheet = (orders, sales) => {
     { wch: 20 },
     { wch: 30 },
     { wch: 15 },
+    { wch: 14 },
+    { wch: 18 },
     { wch: 12 },
     { wch: 30 },
   ];
 
   for (let i = 1; i <= rows.length; i++) {
     setMonetaryCell(ws, i, 2, rows[i - 1]['Valor (R$)']);
+    setMonetaryCell(ws, i, 3, rows[i - 1]['Taxa (R$)']);
+    setMonetaryCell(ws, i, 4, rows[i - 1]['Valor Líquido (R$)']);
   }
 
   return ws;

@@ -3,6 +3,7 @@ import { formatBRL, fromCents } from '../../../utils/money';
 import { formatDateBR } from '../../../utils/dates';
 import CurrencyInput from '../../../components/CurrencyInput';
 import { lineValueCents, PAYMENT_TYPE_OPTIONS } from '../utils/saleHelpers';
+import { hasNetAmount, paymentFeeCents } from '../../../utils/paymentFee';
 import Modal from '../../../components/Modal';
 
 const SalePaymentModal = ({
@@ -10,6 +11,7 @@ const SalePaymentModal = ({
   balances,
   clientName,
   paymentAmount,
+  paymentNetAmount,
   paymentNotes,
   paymentDate,
   paymentType,
@@ -19,14 +21,23 @@ const SalePaymentModal = ({
   selectedPendingCents,
   selectedIsZeroItem,
   selectedPersonItems,
+  passesGatewayFeeToClient = false,
   isDirty = false,
   onClose,
   onChangeAmount,
+  onChangeNetAmount,
+  onChangePassesGatewayFeeToClient,
   onChangeNotes,
   onChangeDate,
   onChangePaymentType,
   onSubmit,
 }) => {
+  const isInfinitePay = paymentType === 'INFINITE_PAY';
+  const netProvided = hasNetAmount(paymentNetAmount);
+  const feeCents = netProvided
+    ? paymentFeeCents({ amount: paymentAmount, netAmount: paymentNetAmount })
+    : 0;
+
   return (
     <Modal
       title={`Registrar Pagamento — ${sale.orderNumber}`}
@@ -198,6 +209,58 @@ const SalePaymentModal = ({
               ))}
             </select>
           </div>
+
+          {isInfinitePay && (
+            <div className="mb-4 space-y-3">
+              <div className="flex items-start gap-2 rounded-md border border-line bg-base px-3 py-2">
+                <input
+                  id="salePaymentPassesFee"
+                  type="checkbox"
+                  checked={!!passesGatewayFeeToClient}
+                  onChange={(e) =>
+                    onChangePassesGatewayFeeToClient(e.target.checked)
+                  }
+                  className="mt-0.5 h-4 w-4 rounded border-line text-accent focus:ring-accent"
+                />
+                <label
+                  htmlFor="salePaymentPassesFee"
+                  className="text-sm text-ink-soft cursor-pointer"
+                >
+                  Repassar taxa do InfinitePay ao cliente
+                  <span className="block text-xs text-ink-faint">
+                    Marque quando o cliente paga a taxa junto com a venda.
+                  </span>
+                </label>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="salePaymentNetAmount"
+                  className="block text-sm font-medium text-ink-soft mb-1"
+                >
+                  Valor líquido recebido (R$)
+                </label>
+                <CurrencyInput
+                  id="salePaymentNetAmount"
+                  value={paymentNetAmount}
+                  onChange={(e) => onChangeNetAmount(e.target.value)}
+                  placeholder="Igual ao valor cobrado"
+                />
+                <p className="mt-1 text-xs text-ink-faint">
+                  Informe o valor recebido após a taxa. Deixe vazio se não
+                  houver taxa.
+                </p>
+                {netProvided && feeCents > 0 && (
+                  <p
+                    data-testid="sale-payment-fee"
+                    className="mt-1 text-sm font-medium text-warning-fg"
+                  >
+                    Taxa InfinitePay: {formatBRL(feeCents / 100)}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="mb-4">
             <label className="block text-sm font-medium text-ink-soft mb-1">
