@@ -18,7 +18,7 @@ const options = {
       title: 'Receivables Control API',
       version: '1.0.0',
       description:
-        'API do sistema de controle de recebíveis: clientes, pedidos dōTERRA, vendas, pagamentos, finanças, dashboard, catálogo e estoque.',
+        'API do sistema de controle de recebíveis: clientes, pedidos dōTERRA, vendas, pagamentos, finanças, catálogo e estoque.',
     },
     servers: [
       {
@@ -47,10 +47,6 @@ const options = {
         name: 'Finances',
         description:
           'Fluxo de caixa: categorias e lançamentos financeiros manuais e automáticos',
-      },
-      {
-        name: 'Dashboard',
-        description: 'KPIs, saldos por cliente e fechamento anual',
       },
       {
         name: 'Products',
@@ -532,29 +528,6 @@ const options = {
               type: 'array',
               minItems: 1,
               items: { $ref: '#/components/schemas/SaleItemInput' },
-            },
-          },
-        },
-        DashboardSummary: {
-          type: 'object',
-          properties: {
-            totalPending: { type: 'number' },
-            totalPaid: { type: 'number' },
-            currentMonthReceipts: { type: 'number' },
-            personBalances: {
-              type: 'array',
-              items: { $ref: '#/components/schemas/PersonBalance' },
-            },
-            yearlyBreakdown: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  year: { type: 'integer' },
-                  totalPending: { type: 'number' },
-                  totalQuitado: { type: 'number' },
-                },
-              },
             },
           },
         },

@@ -71,10 +71,6 @@ app.use('/api/sales', salesRoutes);
 import financesRoutes from './routes/financesRoutes.js';
 app.use('/api/finances', financesRoutes);
 
-// Dashboard routes
-import dashboardRoutes from './routes/dashboardRoutes.js';
-app.use('/api/dashboard', dashboardRoutes);
-
 // Product routes
 import productRoutes from './routes/productRoutes.js';
 app.use('/api/products', productRoutes);

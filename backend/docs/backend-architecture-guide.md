@@ -72,7 +72,7 @@ Shared infrastructure notes:
 - **Prisma client:** instantiate once via `config/database.js` and reuse it. Do not create `new PrismaClient()` in every controller.
 - **HTTP errors:** use the shared `utils/httpError.js` helpers (`badRequest`, `notFound`, `forbidden`, â€¦) instead of the inline `const e = new Error(...); e.status = 400; throw e` pattern.
 - **Money:** all monetary arithmetic uses integer cents via `utils/money.js` (`toCents`, `fromCents`, `lineValueCents`, `pricePerPv`). Never sum BRL with raw floats.
-- **Receivables/status:** `utils/receivables.js` is the single home for `computeOrderStatus`, `personPendingCents`, person-balance computation, and status syncing. Dashboard and payments must not re-implement these loops.
+- **Receivables/status:** `utils/receivables.js` is the single home for `computeOrderStatus`, `personPendingCents`, person-balance computation, and status syncing. Order-balance and payment flows must not re-implement these loops.
 
 ## 4. Rules for any request
 
@@ -138,7 +138,7 @@ Controllers keep exporting the same handler names (`getOrders`, `createOrder`, â
 | Inline `badRequest`/`notFound` helpers in each file | Use shared `utils/httpError.js`. |
 | `new PrismaClient()` in every controller | Reuse `config/database.js`; avoids connection leaks. |
 | Stock movement logic hardcoded in `ordersController` | Call `services/stockService.js` (`applyMovement`). |
-| `getOrderBalance` / dashboard `personBalances` loops re-implemented in two controllers | Centralize in `utils/receivables.js`. |
+| `getOrderBalance` person-balance loops re-implemented across controllers | Centralize in `utils/receivables.js`. |
 | `EQUIPE`/`PENDENTE`/`PARCIAL`/`QUITADO` strings scattered | Centralize in `utils/receivables.js`. |
 | Validator doing DB `find` calls | Keep validators pure Zod; move DB-dependent validation to the service. |
 | Controllers calling `res` deep inside a service | Services return values/throw; the controller maps them to responses. |

@@ -2,7 +2,7 @@ import { toCents, fromCents, lineValueCents } from './money.js';
 import { personPendingCents } from './receivables.js';
 
 // Projects a person's accumulated cents into the balance shape shared by the
-// order-balance endpoint and the dashboard. Self persons always have a
+// order-balance endpoint and person summaries. Self persons always have a
 // pending of 0; any other negative balance is clamped to 0 (overpayment).
 // `extraCents` are order-level charges assignable to this person (currently
 // only for sales) that count toward pending but never toward itemTotal.
