@@ -12,7 +12,7 @@ const headerCellClass =
 
 // Spreadsheet entry mode: the same order-level fields as the detailed form,
 // followed by a simulator-style table. Rows are the order items; the charged
-// value is derived from the catalog member price after promotion and cashback.
+// value is derived from the catalog member price after the promotion.
 const OrderSpreadsheetForm = ({
   orderNumber,
   orderNumberBlurred,
@@ -123,7 +123,6 @@ const OrderSpreadsheetForm = ({
                   <th className={headerCellClass}>% Promo</th>
                   <th className={headerCellClass}>Valor Pago</th>
                   <th className={headerCellClass}>V. Pago total</th>
-                  <th className={headerCellClass}>Cashback</th>
                   <th className={headerCellClass}>V. Membro unit.</th>
                   <th className={headerCellClass}>V. Membro total</th>
                   <th className={headerCellClass}>PV total</th>

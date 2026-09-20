@@ -1,8 +1,9 @@
 import { toCents, fromCents, formatBRL } from '../../../utils/money';
+import { normalizeDiscountPercent } from './simulatorHelpers';
 
-// Cashback points grant a 70% discount, so the payable amount is 30% of the
-// member price.
-export const CASHBACK_DISCOUNT_RATE = 0.3;
+// Legacy cashback items granted a 70% discount; they are represented as a
+// promotion percentage when hydrating the order forms.
+export const CASHBACK_PROMOTION_PERCENT = 70;
 
 export const emptyItem = () => ({
   id: Date.now(),
@@ -17,7 +18,7 @@ export const emptyItem = () => ({
   details: '',
   quantity: 1,
   forStock: false,
-  useCashback: false,
+  discountPercent: 0,
   chargedValueMode: 'UNIT',
   kitStockMode: '',
 });
@@ -92,6 +93,35 @@ export const SEARCH_FIELD_OPTIONS = [
   { value: 'orderNotes', label: 'Descrição' },
 ];
 
+// Reconstructs the promotion percentage shown in the order forms from a
+// persisted item. Legacy cashback items map to the equivalent 70% promotion;
+// UNIT items derive the percentage from the member price, while TOTAL items
+// keep 0% because the percentage is not meaningful there.
+export const reconstructDiscountPercent = (item) => {
+  if (item.useCashback) return CASHBACK_PROMOTION_PERCENT;
+
+  const memberPrice = parseFloat(item.memberPrice);
+  const chargedValue = parseFloat(item.chargedValue);
+  const quantity = Math.max(1, Number(item.quantity) || 1);
+  const mode = item.chargedValueMode || 'UNIT';
+  const unitCharged =
+    mode === 'TOTAL'
+      ? (Number.isFinite(chargedValue) ? chargedValue : 0) / quantity
+      : chargedValue;
+
+  if (
+    mode !== 'UNIT' ||
+    !Number.isFinite(memberPrice) ||
+    memberPrice <= 0 ||
+    !Number.isFinite(unitCharged) ||
+    unitCharged >= memberPrice
+  ) {
+    return 0;
+  }
+
+  return Math.round((1 - unitCharged / memberPrice) * 10000) / 100;
+};
+
 export const itemPayload = (item) => ({
   ...(typeof item.id === 'string' && item.id ? { id: item.id } : {}),
   description: item.description.trim() || null,
@@ -110,7 +140,6 @@ export const itemPayload = (item) => ({
   details: item.details.trim() || null,
   quantity: Number(item.quantity) || 1,
   forStock: !!item.forStock,
-  useCashback: !!item.useCashback,
   chargedValueMode: item.chargedValueMode || 'UNIT',
   kitStockMode: item.kitStockMode || null,
 });
@@ -130,7 +159,7 @@ export const editItemFromApi = (item) => ({
   details: item.details || '',
   quantity: item.quantity != null ? Number(item.quantity) : 1,
   forStock: !!item.forStock,
-  useCashback: !!item.useCashback,
+  discountPercent: reconstructDiscountPercent(item),
   chargedValueMode: item.chargedValueMode || 'UNIT',
   kitStockMode: item.kitStockMode || '',
 });
@@ -199,14 +228,15 @@ export const memberLineTotal = (item) => {
   return member * Math.max(1, Number(item.quantity) || 1);
 };
 
-// Prefilled "Valor Pago" for an item: the member price by default, or 30% of
-// it when the item was paid with cashback points (70% discount). Returns ''
-// when there is no member price so the user can type a value freely.
+// Prefilled "Valor Pago" for an item: the member price discounted by the
+// promotion percentage. Returns '' when there is no member price so the user
+// can type a value freely.
 export const prefilledChargedValue = (item) => {
   const member = parseFloat(item.memberPrice);
   if (!Number.isFinite(member) || member <= 0) return '';
-  const base = item.useCashback ? member * CASHBACK_DISCOUNT_RATE : member;
-  return base.toFixed(2);
+  const discountFactor =
+    1 - normalizeDiscountPercent(item.discountPercent) / 100;
+  return (member * discountFactor).toFixed(2);
 };
 
 // Display the line total (chargedValue respecting mode) as a BRL string.

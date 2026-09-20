@@ -71,7 +71,6 @@ const OrdersPage = () => {
     removeItem,
     updateItemField,
     onProductSelect,
-    onCashbackToggle,
     onPersonSelect,
     onTeamPersonSelect,
     confirmTeamPersonChange,
@@ -324,7 +323,6 @@ const OrdersPage = () => {
               onItemPersonSelect={onPersonSelect}
               onTeamPersonSelect={onTeamPersonSelect}
               onItemProductSelect={onProductSelect}
-              onItemCashbackToggle={onCashbackToggle}
               onAddItem={addItem}
               onRemoveItem={removeItem}
               addItemBtnRef={addItemBtnRef}

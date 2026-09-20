@@ -13,9 +13,9 @@ const compactSelectClass =
   'w-full px-2 py-1.5 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors text-sm';
 
 // One line of the order-entry spreadsheet. It carries every field of the
-// detailed item card: product, quantity, paid value (with its UNIT/TOTAL
-// mode), cashback, member/PV columns, the stock flag (plus the KIT mode) and
-// the item details.
+// detailed item card: product, quantity, promotion percentage, paid value,
+// member/PV columns, the stock flag (plus the KIT mode) and the item
+// details.
 const OrderSpreadsheetRow = ({
   row,
   index,
@@ -81,36 +81,12 @@ const OrderSpreadsheetRow = ({
           className="text-sm"
           placeholder="0,00"
         />
-        <select
-          data-testid={`order-spreadsheet-mode-${index}`}
-          value={row.chargedValueMode}
-          onChange={(e) =>
-            onUpdateField(row.id, 'chargedValueMode', e.target.value)
-          }
-          aria-label={`Como o valor é cobrado na linha ${index + 1}`}
-          className={`${compactSelectClass} mt-1`}
-        >
-          <option value="UNIT">Por unidade</option>
-          <option value="TOTAL">Valor total</option>
-        </select>
       </td>
       <td
         data-testid={`order-spreadsheet-charged-total-${index}`}
         className={`${readOnlyCellClass} font-medium text-ink`}
       >
         {formatBRL(fromCents(totals.chargedLineCents))}
-      </td>
-      <td className="px-3 py-2 align-top text-center">
-        <input
-          type="checkbox"
-          data-testid={`order-spreadsheet-cashback-${index}`}
-          checked={row.useCashback}
-          onChange={(e) =>
-            onUpdateField(row.id, 'useCashback', e.target.checked)
-          }
-          aria-label={`Usar cashback na linha ${index + 1}`}
-          className="h-4 w-4 rounded border-line text-accent focus:ring-accent"
-        />
       </td>
       <td
         data-testid={`order-spreadsheet-member-unit-${index}`}

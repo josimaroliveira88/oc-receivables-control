@@ -23,7 +23,6 @@ const OrderItemFields = ({
   onUpdateField,
   onPersonSelect,
   onProductSelect,
-  onCashbackToggle,
   onRemove,
   isTeamOrder = false,
   showPersonSelect = false,
@@ -124,6 +123,20 @@ const OrderItemFields = ({
         </div>
         <div>
           <label className="block text-xs font-medium text-ink-faint mb-1">
+            % Promoção
+          </label>
+          <NumericInput
+            data-testid={`order-item-discount-${index}`}
+            value={item.discountPercent}
+            max={100}
+            decimal
+            onChange={(e) => onUpdateField('discountPercent', e.target.value)}
+            className="w-full text-sm"
+            placeholder="0"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-ink-faint mb-1">
             Valor Pago (R$)
           </label>
           <CurrencyInput
@@ -172,41 +185,6 @@ const OrderItemFields = ({
             className="w-full px-3 py-2 border border-line bg-base text-ink-soft rounded-md shadow-sm cursor-not-allowed text-sm"
             placeholder="—"
           />
-        </div>
-
-        <div className="md:col-span-3">
-          <label className="block text-xs font-medium text-ink-faint mb-1">
-            O valor cobrado é
-          </label>
-          <select
-            data-testid={`order-item-price-mode-${index}`}
-            value={item.chargedValueMode}
-            onChange={(e) => onUpdateField('chargedValueMode', e.target.value)}
-            className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors text-sm"
-          >
-            <option value="UNIT">Preço por unidade</option>
-            <option value="TOTAL">Valor total da linha</option>
-          </select>
-        </div>
-
-        <div className="md:col-span-3">
-          <label className="flex items-start gap-2 text-sm text-ink-soft cursor-pointer">
-            <input
-              type="checkbox"
-              data-testid={`order-item-cashback-${index}`}
-              checked={item.useCashback}
-              onChange={(e) => onCashbackToggle(index, e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-line text-accent focus:ring-accent"
-            />
-            <span>
-              Usei pontos de cashback e ganhei 70% de desconto
-              <span className="block text-xs text-ink-faint">
-                Marca: preenche o valor pago com 30% do preço de membro.
-                Desmarca: preenche com o preço de membro. Você ainda pode
-                editar.
-              </span>
-            </span>
-          </label>
         </div>
 
         {canManageStock && (

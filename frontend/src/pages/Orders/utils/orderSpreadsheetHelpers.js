@@ -1,5 +1,5 @@
 import { toCents, fromCents } from '../../../utils/money';
-import { CASHBACK_DISCOUNT_RATE } from './orderHelpers';
+import { reconstructDiscountPercent } from './orderHelpers';
 import {
   normalizeDiscountPercent,
   normalizeQuantity,
@@ -7,10 +7,10 @@ import {
 
 // Spreadsheet order-entry ("Planilha") helpers. A spreadsheet row mirrors a
 // simulator row but carries every order-item concern from the detailed form:
-// the editable paid value (with its UNIT/TOTAL mode), cashback, the stock
-// flag, the KIT stock mode, the item details and the original item id when
-// editing. Every monetary value stays in integer cents; conversion back to
-// BRL happens only at the boundary (payload / display).
+// the editable paid value (with its UNIT/TOTAL mode), the promotion
+// percentage, the stock flag, the KIT stock mode, the item details and the
+// original item id when editing. Every monetary value stays in integer cents;
+// conversion back to BRL happens only at the boundary (payload / display).
 let rowSequence = 0;
 
 const findProduct = (products, productId) =>
@@ -38,7 +38,6 @@ export const createEmptySpreadsheetRow = () => ({
   productId: '',
   quantity: 1,
   discountPercent: 0,
-  useCashback: false,
   chargedValue: '',
   chargedValueMode: 'UNIT',
   forStock: false,
@@ -47,21 +46,20 @@ export const createEmptySpreadsheetRow = () => ({
 });
 
 // Derived charged unit value (integer cents) from the catalog member price
-// after the promotion percentage and the cashback discount (30% of the member
-// value). Returns null when the row has no priced product.
+// after the promotion percentage. Returns null when the row has no priced
+// product.
 export const derivedChargedUnitCents = (row, products) => {
   const product = findProduct(products, row.productId);
   const memberPrice = product ? numberOrNull(product.memberPrice) : null;
   if (memberPrice === null || memberPrice <= 0) return null;
   const discountFactor =
     1 - normalizeDiscountPercent(row.discountPercent) / 100;
-  const cashbackFactor = row.useCashback ? CASHBACK_DISCOUNT_RATE : 1;
-  return Math.round(toCents(memberPrice) * discountFactor * cashbackFactor);
+  return Math.round(toCents(memberPrice) * discountFactor);
 };
 
 // BRL string for the derived value, or '' when it cannot be derived. Used to
-// prefill the editable "Valor Pago" field whenever the product, promotion or
-// cashback changes, mirroring the detailed form behavior.
+// prefill the editable "Valor Pago" field whenever the product or promotion
+// changes, mirroring the detailed form behavior.
 export const derivedChargedValueString = (row, products) => {
   const cents = derivedChargedUnitCents(row, products);
   return cents === null ? '' : String(fromCents(cents));
@@ -75,8 +73,7 @@ export const effectiveChargedValue = (row, products) =>
     : derivedChargedValueString(row, products);
 
 // Per-row derived totals in integer cents. PV and member values reflect the
-// promotion only; the charged line value respects the UNIT/TOTAL mode and the
-// cashback discount.
+// promotion only; the charged line value respects the UNIT/TOTAL mode.
 export const spreadsheetRowTotals = (row, products) => {
   const product = findProduct(products, row.productId);
   const quantity = normalizeQuantity(row.quantity);
@@ -124,7 +121,7 @@ export const spreadsheetRowTotals = (row, products) => {
 };
 
 // Grand totals across every row: PV, member value and the amount actually
-// charged (per-line values already honor mode, promotion and cashback).
+// charged (per-line values already honor mode and promotion).
 export const spreadsheetTotals = (rows, products) =>
   (rows || []).reduce(
     (acc, row) => {
@@ -160,7 +157,6 @@ export const itemFromSpreadsheetRow = (row, products, options = {}) => {
     details: row.details || '',
     quantity: Math.max(1, Number(row.quantity) || 1),
     forStock,
-    useCashback: !!row.useCashback,
     chargedValueMode: row.chargedValueMode || 'UNIT',
     kitStockMode: isKit && forStock ? row.kitStockMode || '' : '',
   };
@@ -176,40 +172,22 @@ export const itemsFromSpreadsheetRows = (rows, products, options = {}) =>
 
 // Hydrates a spreadsheet row from an existing order item (edit mode). When the
 // item used a UNIT promotion, the percentage is reconstructed from the member
-// price so the row shows the same value. Cashback items keep the flag.
+// price so the row shows the same value. Legacy cashback items are converted
+// into an equivalent 70% promotion.
 export const spreadsheetRowFromItem = (item) => {
-  const memberPrice = numberOrNull(item.memberPrice);
-  const rawCharged = numberOrNull(item.chargedValue);
   const quantity = Math.max(1, Number(item.quantity) || 1);
-  const mode = item.chargedValueMode || 'UNIT';
-  const unitCharged =
-    mode === 'TOTAL' ? (rawCharged ?? 0) / quantity : rawCharged;
-  const useCashback = !!item.useCashback;
-
-  let discountPercent = 0;
-  if (
-    !useCashback &&
-    mode === 'UNIT' &&
-    memberPrice !== null &&
-    memberPrice > 0 &&
-    unitCharged !== null &&
-    unitCharged < memberPrice
-  ) {
-    discountPercent = Math.round((1 - unitCharged / memberPrice) * 10000) / 100;
-  }
 
   return {
     id: `srow-${Date.now()}-${rowSequence++}`,
     itemId: typeof item.id === 'string' && item.id ? item.id : null,
     productId: item.productId || '',
     quantity,
-    discountPercent,
-    useCashback,
+    discountPercent: reconstructDiscountPercent(item),
     chargedValue:
       item.chargedValue !== '' && item.chargedValue != null
         ? String(item.chargedValue)
         : '',
-    chargedValueMode: mode,
+    chargedValueMode: item.chargedValueMode || 'UNIT',
     forStock: !!item.forStock,
     kitStockMode: item.kitStockMode || '',
     details: item.details || '',

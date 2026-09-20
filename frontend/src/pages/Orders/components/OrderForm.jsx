@@ -37,7 +37,6 @@ const OrderForm = ({
   onItemPersonSelect,
   onTeamPersonSelect,
   onItemProductSelect,
-  onItemCashbackToggle,
   onAddItem,
   onRemoveItem,
   addItemBtnRef,
@@ -110,7 +109,6 @@ const OrderForm = ({
             onProductSelect={(productId) =>
               onItemProductSelect(index, productId)
             }
-            onCashbackToggle={onItemCashbackToggle}
             onRemove={() => onRemoveItem(index)}
           />
         ))}

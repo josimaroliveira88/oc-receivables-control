@@ -186,9 +186,16 @@ export function useOrders() {
       });
     }
     setItems(
-      items.map((item, i) =>
-        i === index ? { ...item, [field]: value } : item,
-      ),
+      items.map((item, i) => {
+        if (i !== index) return item;
+        const next = { ...item, [field]: value };
+        // Changing the promotion recomputes the paid value from the member
+        // price, mirroring the spreadsheet behavior.
+        if (field === 'discountPercent') {
+          next.chargedValue = prefilledChargedValue(next);
+        }
+        return next;
+      }),
     );
   };
 
@@ -221,21 +228,8 @@ export function useOrders() {
         // Clearing the product means there is nothing to stock.
         if (!productId) next.forStock = false;
         else next.forStock = true;
-        // Prefill "Valor Pago" from the member price, honoring the cashback
-        // checkbox. The user can still edit it afterwards.
-        next.chargedValue = prefilledChargedValue(next);
-        return next;
-      }),
-    );
-  };
-
-  const onCashbackToggle = (index, checked) => {
-    const target = items[index];
-    if (!target) return;
-    setItems(
-      items.map((item, i) => {
-        if (i !== index) return item;
-        const next = { ...item, useCashback: checked };
+        // Prefill "Valor Pago" from the member price, honoring the current
+        // promotion percentage. The user can still edit it afterwards.
         next.chargedValue = prefilledChargedValue(next);
         return next;
       }),
@@ -380,7 +374,7 @@ export function useOrders() {
           next.forStock = !isTeamOrder && !!product;
           if (!product) next.kitStockMode = '';
           next.chargedValue = derivedChargedValueString(next, products);
-        } else if (field === 'discountPercent' || field === 'useCashback') {
+        } else if (field === 'discountPercent') {
           next.chargedValue = derivedChargedValueString(next, products);
         }
         return next;
@@ -929,7 +923,6 @@ export function useOrders() {
     removeItem,
     updateItemField,
     onProductSelect,
-    onCashbackToggle,
     onPersonSelect,
     onTeamPersonSelect,
     confirmTeamPersonChange,
