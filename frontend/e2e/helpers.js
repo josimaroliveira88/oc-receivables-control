@@ -29,6 +29,21 @@ export async function login(page, baseURL, username, password) {
   await page.waitForURL((url) => !/\/login$/.test(url.toString()), {
     timeout: 15_000,
   });
+  await dismissFinancesAnnouncement(page);
+}
+
+// The finances announcement is a one-time welcome modal rendered for every
+// fresh user on any protected route. It overlays the page and intercepts
+// clicks, so E2E flows dismiss it right after login. No-op when it never shows.
+export async function dismissFinancesAnnouncement(page) {
+  const announcement = page.getByTestId('finances-announcement');
+  try {
+    await announcement.waitFor({ state: 'visible', timeout: 3_000 });
+  } catch {
+    return;
+  }
+  await announcement.getByRole('button', { name: 'Entendi' }).click();
+  await announcement.waitFor({ state: 'hidden' });
 }
 
 export async function createPersonViaApi(api, token, name) {
@@ -121,6 +136,39 @@ export async function stockInViaApi(api, token, productId, quantity = 100) {
 
 export async function createSaleViaApi(api, token, payload) {
   const res = await apiRequest(api, 'post', '/api/sales', token, payload);
+  return await res.json();
+}
+
+export async function updateSaleViaApi(api, token, saleId, payload) {
+  const res = await apiRequest(
+    api,
+    'put',
+    `/api/sales/${saleId}`,
+    token,
+    payload,
+  );
+  return await res.json();
+}
+
+export async function getSaleViaApi(api, token, saleId) {
+  const res = await apiRequest(api, 'get', `/api/sales/${saleId}`, token);
+  return await res.json();
+}
+
+export async function listSalesViaApi(api, token, params = {}) {
+  const query = new URLSearchParams(params).toString();
+  const path = `/api/sales${query ? `?${query}` : ''}`;
+  const res = await apiRequest(api, 'get', path, token);
+  return await res.json();
+}
+
+export async function deleteSaleViaApi(api, token, saleId) {
+  const res = await apiRequest(api, 'delete', `/api/sales/${saleId}`, token);
+  return await res.json();
+}
+
+export async function listFinanceCategoriesViaApi(api, token) {
+  const res = await apiRequest(api, 'get', '/api/finances/categories', token);
   return await res.json();
 }
 

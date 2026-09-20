@@ -71,6 +71,8 @@ const mockSales = [
     totalValue: '500.00',
     shippingValue: '10.00',
     additionalValue: '5.00',
+    additionalExpenseCategoryId: 'cat-frete',
+    additionalExpenseDescription: 'Frete da venda',
     deliveredAt: '2026-06-25T00:00:00.000Z',
     status: 'QUITADO',
     orderNotes: null,
@@ -187,12 +189,21 @@ const kitSale = {
   payments: [],
 };
 
+const mockExpenseCategories = [
+  { id: 'cat-frete', name: 'Frete', type: 'DESPESA', active: true },
+  { id: 'cat-marketing', name: 'Marketing', type: 'DESPESA', active: true },
+  { id: 'cat-eventos', name: 'Eventos', type: 'DESPESA', active: false },
+  { id: 'cat-vendas', name: 'Vendas', type: 'RECEITA', active: true },
+];
+
 const mockGetImplementation = (salesData = [], peopleData = mockPeople) => {
   mockGet.mockImplementation((url) => {
     if (url === '/sales') return Promise.resolve({ data: salesData });
     if (url === '/people') return Promise.resolve({ data: peopleData });
     if (url.startsWith('/products'))
       return Promise.resolve({ data: { data: mockProducts } });
+    if (url === '/finances/categories')
+      return Promise.resolve({ data: mockExpenseCategories });
     return Promise.resolve({ data: [] });
   });
 };
@@ -694,6 +705,13 @@ describe('SalesPage', () => {
       fireEvent.change(screen.getByTestId('sale-additional'), {
         target: { value: '1000' },
       });
+      fireEvent.change(screen.getByTestId('sale-additional-expense-category'), {
+        target: { value: 'cat-frete' },
+      });
+      fireEvent.change(
+        screen.getByTestId('sale-additional-expense-description'),
+        { target: { value: 'Frete da venda' } },
+      );
       fireEvent.change(screen.getByLabelText('Descrição da Venda'), {
         target: { value: 'Descrição da venda' },
       });
@@ -719,6 +737,8 @@ describe('SalesPage', () => {
             orderDate: '2026-03-10',
             shippingValue: 25.5,
             additionalValue: 10,
+            additionalExpenseCategoryId: 'cat-frete',
+            additionalExpenseDescription: 'Frete da venda',
             description: 'Descrição da venda',
             deliveredAt: '2026-03-20',
             items: [
@@ -803,6 +823,107 @@ describe('SalesPage', () => {
           ),
         ).toBeInTheDocument();
       });
+    });
+  });
+
+  describe('Additional value expense', () => {
+    const fillItemAndAdditional = () => {
+      fireEvent.change(screen.getByLabelText('Cliente'), {
+        target: { value: 'p1' },
+      });
+      const combobox = screen.getByPlaceholderText('Busque um produto...');
+      fireEvent.change(combobox, { target: { value: 'Lavanda' } });
+      fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '10000' },
+      });
+      fireEvent.change(screen.getByTestId('sale-additional'), {
+        target: { value: '500' },
+      });
+    };
+
+    it('should show the expense fields only when the additional value is filled', async () => {
+      mockGetImplementation([]);
+      renderPage();
+      await openCreateModal();
+
+      expect(
+        screen.queryByTestId('sale-additional-expense-category'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('sale-additional-expense-description'),
+      ).not.toBeInTheDocument();
+
+      fireEvent.change(screen.getByTestId('sale-additional'), {
+        target: { value: '500' },
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('sale-additional-expense-category'),
+        ).toBeInTheDocument();
+      });
+      expect(
+        screen.getByTestId('sale-additional-expense-description'),
+      ).toBeInTheDocument();
+    });
+
+    it('should only offer active DESPESA categories', async () => {
+      mockGetImplementation([]);
+      renderPage();
+      await openCreateModal();
+      fireEvent.change(screen.getByTestId('sale-additional'), {
+        target: { value: '500' },
+      });
+
+      const select = await screen.findByTestId(
+        'sale-additional-expense-category',
+      );
+      const optionLabels = within(select)
+        .getAllByRole('option')
+        .map((option) => option.textContent);
+      expect(optionLabels).toContain('Frete');
+      expect(optionLabels).toContain('Marketing');
+      expect(optionLabels).not.toContain('Eventos');
+      expect(optionLabels).not.toContain('Vendas');
+    });
+
+    it('should block submit when the expense category and description are missing', async () => {
+      mockGetImplementation([]);
+      renderPage();
+      await openCreateModal();
+      fillItemAndAdditional();
+
+      const form = screen.getByTestId('sale-freight').closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('sale-additional-expense-category-error'),
+        ).toHaveTextContent('Categoria da despesa é obrigatória');
+      });
+      expect(
+        screen.getByTestId('sale-additional-expense-description-error'),
+      ).toHaveTextContent('Descrição da despesa é obrigatória');
+      expect(mockPost).not.toHaveBeenCalled();
+    });
+
+    it('should pre-fill the expense fields when editing a sale', async () => {
+      mockGetImplementation(mockSales);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getAllByText('Maria Santos').length).toBeGreaterThan(0);
+      });
+      await clickSaleAction('2', 'Editar');
+      await waitFor(() => {
+        expect(screen.getByText('Editar Venda')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('sale-additional-expense-category').value).toBe(
+        'cat-frete',
+      );
+      expect(
+        screen.getByTestId('sale-additional-expense-description').value,
+      ).toBe('Frete da venda');
     });
   });
 

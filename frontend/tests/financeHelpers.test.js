@@ -31,6 +31,7 @@ describe('financeHelpers labels', () => {
       'VENDA',
       'RESGATE_INFINITEPAY',
       'PEDIDO_DOTERRA',
+      'VENDA_ADICIONAL',
       'MANUAL',
     ]);
   });
@@ -45,12 +46,14 @@ describe('financeHelpers labels', () => {
     expect(originLabel('VENDA')).toBe('Venda');
     expect(originLabel('RESGATE_INFINITEPAY')).toBe('Resgate InfinitePay');
     expect(originLabel('PEDIDO_DOTERRA')).toBe('Pedido dōTERRA');
+    expect(originLabel('VENDA_ADICIONAL')).toBe('Adicional de venda');
     expect(originLabel('MANUAL')).toBe('Manual');
     expect(originLabel('NOPE')).toBe('—');
   });
 
   it('provides the origin label map', () => {
     expect(ORIGIN_LABELS.MANUAL).toBe('Manual');
+    expect(ORIGIN_LABELS.VENDA_ADICIONAL).toBe('Adicional de venda');
   });
 
   it('maps types to badge classes', () => {
