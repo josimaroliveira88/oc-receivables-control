@@ -49,6 +49,10 @@ model Order {
   totalValue   Decimal      @db.Decimal(10, 2)
   shippingValue Decimal     @db.Decimal(10, 2) @default(0)
   additionalValue Decimal   @db.Decimal(10, 2) @default(0)
+  // Sales only: whether "Valores Adicionais" are charged to the client. When
+  // false the seller absorbs the cost, so it does not count toward totalValue,
+  // pending balance or QUITADO, even though it still generates a ledger expense.
+  additionalValueChargedToClient Boolean @default(true)
   orderDate    DateTime     @default(now())
   status       OrderStatus  @default(PENDENTE)
   orderType    OrderType    @default(COMPRA)

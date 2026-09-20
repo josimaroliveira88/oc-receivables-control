@@ -3,7 +3,10 @@
 // write function owns its own `$transaction`. Business rejections are thrown
 // as HTTP-mapped errors (via utils/httpError.js) which the controller maps to
 // the HTTP response.
-import { computeOrderStatus } from '../utils/receivables.js';
+import {
+  computeOrderStatus,
+  chargeableAdditionalCents,
+} from '../utils/receivables.js';
 import { lineValueCents, fromCents, toCents } from '../utils/money.js';
 import { applyMovement } from './stockService.js';
 import { computeSaleStockDiff } from '../utils/stockDiff.js';
@@ -317,8 +320,12 @@ const createSale = async (client, { userId, payload }) => {
 
     const shippingCents = toCents(payload.shippingValue ?? 0);
     const additionalCents = toCents(payload.additionalValue ?? 0);
+    const additionalChargedToClient =
+      payload.additionalValueChargedToClient ?? true;
     const totalCents =
-      saleLineTotalCents(items) + shippingCents + additionalCents;
+      saleLineTotalCents(items) +
+      shippingCents +
+      (additionalChargedToClient ? additionalCents : 0);
     const orderNumber = await nextSaleNumber(tx, userId);
 
     const status = computeOrderStatus({
@@ -331,7 +338,7 @@ const createSale = async (client, { userId, payload }) => {
       })),
       payments: [],
       shippingCents,
-      additionalCents,
+      additionalCents: additionalChargedToClient ? additionalCents : 0,
     });
 
     const order = await tx.order.create({
@@ -341,6 +348,7 @@ const createSale = async (client, { userId, payload }) => {
         totalValue: fromCents(totalCents).toFixed(2),
         shippingValue: fromCents(shippingCents).toFixed(2),
         additionalValue: fromCents(additionalCents).toFixed(2),
+        additionalValueChargedToClient: additionalChargedToClient,
         orderDate: payload.orderDate
           ? parseLocalDate(payload.orderDate)
           : undefined,
@@ -432,6 +440,8 @@ const updateSale = async (client, { id, userId, payload }) => {
 
       const shippingChanged = payload.shippingValue !== undefined;
       const additionalChanged = payload.additionalValue !== undefined;
+      const chargedChanged =
+        payload.additionalValueChargedToClient !== undefined;
       const orderData = {
         ...(payload.orderDate && {
           orderDate: parseLocalDate(payload.orderDate),
@@ -448,21 +458,29 @@ const updateSale = async (client, { id, userId, payload }) => {
           passesGatewayFeeToClient: payload.passesGatewayFeeToClient,
         }),
       };
-      if (shippingChanged || additionalChanged) {
+      if (shippingChanged || additionalChanged || chargedChanged) {
         const newShipping =
           payload.shippingValue ?? existingOrder.shippingValue ?? 0;
         const newAdditional =
           payload.additionalValue ?? existingOrder.additionalValue ?? 0;
+        const newChargedToClient =
+          payload.additionalValueChargedToClient ??
+          existingOrder.additionalValueChargedToClient;
+        // totalValue always equals items + shipping + chargeable additional, so
+        // the item sum is recovered by subtracting what was previously charged.
+        const itemsBaseCents =
+          toCents(existingOrder.totalValue) -
+          toCents(existingOrder.shippingValue ?? 0) -
+          chargeableAdditionalCents(existingOrder);
         orderData.shippingValue = fromCents(toCents(newShipping)).toFixed(2);
         orderData.additionalValue = fromCents(toCents(newAdditional)).toFixed(
           2,
         );
+        orderData.additionalValueChargedToClient = newChargedToClient;
         orderData.totalValue = fromCents(
-          toCents(existingOrder.totalValue) -
-            toCents(existingOrder.shippingValue ?? 0) -
-            toCents(existingOrder.additionalValue ?? 0) +
+          itemsBaseCents +
             toCents(newShipping) +
-            toCents(newAdditional),
+            (newChargedToClient ? toCents(newAdditional) : 0),
         ).toFixed(2);
       }
 
@@ -479,13 +497,13 @@ const updateSale = async (client, { id, userId, payload }) => {
         },
       });
 
-      if (shippingChanged || additionalChanged) {
+      if (shippingChanged || additionalChanged || chargedChanged) {
         const payments = await tx.payment.findMany({ where: { orderId: id } });
         const newStatus = computeOrderStatus({
           items: order.items,
           payments,
           shippingCents: toCents(order.shippingValue ?? 0),
-          additionalCents: toCents(order.additionalValue ?? 0),
+          additionalCents: chargeableAdditionalCents(order),
         });
         if (newStatus !== order.status) {
           await tx.order.update({ where: { id }, data: { status: newStatus } });
@@ -497,7 +515,7 @@ const updateSale = async (client, { id, userId, payload }) => {
         payload.additionalExpenseCategoryId !== undefined ||
         payload.additionalExpenseDescription !== undefined;
 
-      if (additionalChanged || expenseFieldsProvided) {
+      if (additionalChanged || expenseFieldsProvided || chargedChanged) {
         const expense = await syncAdditionalExpenseFromSale(tx, {
           userId,
           order,
@@ -540,8 +558,13 @@ const updateSale = async (client, { id, userId, payload }) => {
     const additionalCents = toCents(
       payload.additionalValue ?? existingOrder.additionalValue ?? 0,
     );
+    const additionalChargedToClient =
+      payload.additionalValueChargedToClient ??
+      existingOrder.additionalValueChargedToClient;
     const totalCents =
-      saleLineTotalCents(resolvedItems) + shippingCents + additionalCents;
+      saleLineTotalCents(resolvedItems) +
+      shippingCents +
+      (additionalChargedToClient ? additionalCents : 0);
 
     const effectiveOrderDate = payload.orderDate
       ? parseLocalDate(payload.orderDate)
@@ -574,6 +597,7 @@ const updateSale = async (client, { id, userId, payload }) => {
         totalValue: fromCents(totalCents).toFixed(2),
         shippingValue: fromCents(shippingCents).toFixed(2),
         additionalValue: fromCents(additionalCents).toFixed(2),
+        additionalValueChargedToClient: additionalChargedToClient,
         orderDate: payload.orderDate
           ? parseLocalDate(payload.orderDate)
           : undefined,
@@ -630,7 +654,7 @@ const updateSale = async (client, { id, userId, payload }) => {
       items: order.items,
       payments,
       shippingCents: toCents(order.shippingValue ?? 0),
-      additionalCents: toCents(order.additionalValue ?? 0),
+      additionalCents: chargeableAdditionalCents(order),
     });
     if (newStatus !== order.status) {
       const updated = await tx.order.update({
@@ -643,7 +667,11 @@ const updateSale = async (client, { id, userId, payload }) => {
     const expenseFieldsProvided =
       payload.additionalExpenseCategoryId !== undefined ||
       payload.additionalExpenseDescription !== undefined;
-    if (payload.additionalValue !== undefined || expenseFieldsProvided) {
+    if (
+      payload.additionalValue !== undefined ||
+      payload.additionalValueChargedToClient !== undefined ||
+      expenseFieldsProvided
+    ) {
       const expense = await syncAdditionalExpenseFromSale(tx, {
         userId,
         order,

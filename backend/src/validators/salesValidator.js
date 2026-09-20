@@ -43,6 +43,8 @@ const createSaleSchema = z.object({
     .optional()
     .nullable()
     .default(0),
+  // Whether "Valores Adicionais" are charged to the client (default true).
+  additionalValueChargedToClient: z.boolean().optional(),
   // Expense generated from "Valores Adicionais". Both are required by the
   // service whenever the additional value is greater than zero.
   additionalExpenseCategoryId: z
@@ -80,6 +82,8 @@ const updateSaleSchema = z.object({
     .min(0, 'Additional value must not be negative')
     .optional()
     .nullable(),
+  // Whether "Valores Adicionais" are charged to the client.
+  additionalValueChargedToClient: z.boolean().optional(),
   // Expense generated from "Valores Adicionais". Both are required by the
   // service whenever the effective additional value is greater than zero.
   additionalExpenseCategoryId: z

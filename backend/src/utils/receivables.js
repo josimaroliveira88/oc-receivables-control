@@ -19,6 +19,15 @@ const personPendingCents = ({ itemCents, paymentCents, isSelf }) => {
   return Math.max(0, itemCents - paymentCents);
 };
 
+// "Valores Adicionais" on a sale are charged to the client by default. When the
+// sale carries `additionalValueChargedToClient === false` the seller absorbs the
+// cost, so it never counts toward the client's total, pending balance or
+// QUITADO — although it still produces a VENDA_ADICIONAL ledger expense.
+const chargeableAdditionalCents = (order) =>
+  order?.additionalValueChargedToClient === false
+    ? 0
+    : toCents(order?.additionalValue ?? 0);
+
 // Computes the order status from its items and payments.
 // - items: [{ personId, chargedValue, person?: { isSelf } }]
 // - payments: [{ personId, amount }]
@@ -112,7 +121,7 @@ const syncOrderStatuses = async (db, orderIds, { dryRun = false } = {}) => {
       items: order.items,
       payments: order.payments,
       shippingCents: toCents(order.shippingValue ?? 0),
-      additionalCents: toCents(order.additionalValue ?? 0),
+      additionalCents: chargeableAdditionalCents(order),
       isTeamOrder: order.isTeamOrder,
     });
     if (nextStatus !== order.status) {
@@ -177,6 +186,7 @@ const personFinancialSummary = (items, payments, { isSelf = false } = {}) => {
 export {
   collectSelfPersonIds,
   personPendingCents,
+  chargeableAdditionalCents,
   computeOrderStatus,
   syncOrderStatuses,
   syncOrderStatusesForPersons,

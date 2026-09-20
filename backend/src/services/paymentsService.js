@@ -4,7 +4,10 @@
 // are thrown as HTTP-mapped errors (via utils/httpError.js) which the
 // controller maps to the HTTP response.
 import { toCents, fromCents, lineValueCents } from '../utils/money.js';
-import { computeOrderStatus } from '../utils/receivables.js';
+import {
+  computeOrderStatus,
+  chargeableAdditionalCents,
+} from '../utils/receivables.js';
 import { paymentFeeCents } from '../utils/paymentFee.js';
 import { parseLocalDate } from '../utils/date.js';
 import { badRequest, notFound } from '../utils/httpError.js';
@@ -94,7 +97,7 @@ const createPayment = async (client, { userId, orderId, payload }) => {
         { personId: payload.personId, amount: payload.amount },
       ],
       shippingCents: toCents(order.shippingValue ?? 0),
-      additionalCents: toCents(order.additionalValue ?? 0),
+      additionalCents: chargeableAdditionalCents(order),
     });
 
     const orderData = {};
@@ -197,7 +200,7 @@ const updatePayment = async (client, { id, userId, payload }) => {
         p.id === id ? { personId: p.personId, amount: payment.amount } : p,
       ),
       shippingCents: toCents(order.shippingValue ?? 0),
-      additionalCents: toCents(order.additionalValue ?? 0),
+      additionalCents: chargeableAdditionalCents(order),
     });
 
     const orderData = {};

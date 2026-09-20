@@ -1,5 +1,8 @@
 import { toCents, fromCents, lineValueCents } from './money.js';
-import { personPendingCents } from './receivables.js';
+import {
+  personPendingCents,
+  chargeableAdditionalCents,
+} from './receivables.js';
 
 // Projects a person's accumulated cents into the balance shape shared by the
 // order-balance endpoint and person summaries. Self persons always have a
@@ -39,7 +42,7 @@ const saleChargesByPerson = (order, personMap) => {
   if (order.orderType !== 'VENDA') return charges;
 
   const chargeCents =
-    toCents(order.shippingValue ?? 0) + toCents(order.additionalValue ?? 0);
+    toCents(order.shippingValue ?? 0) + chargeableAdditionalCents(order);
   if (chargeCents === 0) return charges;
 
   const entries = Array.from(personMap.values()).filter((p) => !p.isSelf);
