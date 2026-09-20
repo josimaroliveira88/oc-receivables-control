@@ -1870,4 +1870,103 @@ describe('SalesPage', () => {
       });
     });
   });
+
+  describe('InfinitePay import', () => {
+    beforeEach(() => {
+      mockGet.mockImplementation((url) => {
+        if (url === '/sales') return Promise.resolve({ data: mockSales });
+        if (url === '/sales/1') return Promise.resolve({ data: mockSales[0] });
+        if (url === '/orders/1/balance')
+          return Promise.resolve({
+            data: {
+              balances: [
+                {
+                  personId: 'p1',
+                  personName: 'João Silva',
+                  isSelf: false,
+                  itemTotal: '300.00',
+                  paid: '0.00',
+                  pending: '300.00',
+                },
+              ],
+            },
+          });
+        if (url === '/people') return Promise.resolve({ data: mockPeople });
+        if (url.startsWith('/products'))
+          return Promise.resolve({ data: { data: mockProducts } });
+        if (url === '/finances/categories')
+          return Promise.resolve({ data: mockExpenseCategories });
+        return Promise.resolve({ data: [] });
+      });
+      mockPost.mockResolvedValue({
+        data: {
+          ignoredCount: 1,
+          rows: [
+            {
+              line: 2,
+              date: '2026-09-16',
+              time: '08:47',
+              valorCents: 30000,
+              liquidoCents: 28500,
+              taxaCents: -1500,
+              origemNome: 'João Silva',
+              matches: [
+                {
+                  saleId: '1',
+                  orderNumber: 'V-0001',
+                  totalCents: 28500,
+                  clientName: 'João Silva',
+                  pendingCents: 28500,
+                  matchType: 'net',
+                },
+              ],
+            },
+          ],
+        },
+      });
+    });
+
+    it('imports a statement, suggests a sale and opens the pre-filled payment form', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('Gestão de Vendas')).toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByTestId('infinitepay-file-input'), {
+        target: {
+          files: [new File(['x'], 'extrato.csv', { type: 'text/csv' })],
+        },
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('infinitepay-import-modal'),
+        ).toBeInTheDocument();
+      });
+      expect(
+        screen.getByTestId('infinitepay-import-ignored'),
+      ).toHaveTextContent('1 ignorado(s)');
+      expect(mockPost).toHaveBeenCalledWith(
+        '/sales/infinitepay/import',
+        expect.any(FormData),
+      );
+
+      fireEvent.click(screen.getByText('1 venda(s)'));
+      fireEvent.click(screen.getByText('Usar esta venda'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('sale-payment-modal')).toBeInTheDocument();
+      });
+      expect(screen.getByLabelText('Forma de Pagamento').value).toBe(
+        'INFINITE_PAY',
+      );
+      expect(screen.getByPlaceholderText('0,00').value).toBe('300,00');
+      expect(screen.getByPlaceholderText('Igual ao valor cobrado').value).toBe(
+        '285,00',
+      );
+      expect(
+        screen.getByLabelText(/Repassar taxa do InfinitePay ao cliente/),
+      ).toBeChecked();
+    });
+  });
 });
