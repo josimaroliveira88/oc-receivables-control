@@ -9,6 +9,18 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 107 — Correção do cleanup de produtos de teste no `productLoader.test.js` (2026-09-20)
+
+### Fixed
+- **13 falhas da suíte backend em `productLoader.test.js`**: a limpeza usava `prisma.product.deleteMany({ where: { code: { startsWith: 'TEST' } } })`, um `deleteMany` atômico e amplo. Como `Inventory`, `StockMovement` e `KitComposition` referenciam `Product` com `ON DELETE RESTRICT`, **uma única linha órfã** deixada por outra suíte (ou por uma execução interrompida) abortava o `deleteMany` inteiro com `Foreign key constraint violated: Inventory_productId_fkey`. Os produtos `TEST0001/2/3` nunca eram removidos, então cada `loadProductCatalog` empilhava um novo `ProductPrice` e as asserções `toHaveLength` viravam 93/96/99 itens. A origem concreta foi o produto `TESTSALE7524` + 2 linhas de `Inventory` deixados por uma execução interrompida de `sales.test.js` em 2026-09-20 ~12:14 (local). A suíte voltou a **799/799 passing**.
+
+### Changed
+- **`backend/tests/productLoader.test.js`**: novo helper `removeTestProducts()` que apaga os dependentes (`KitComposition`, `Inventory`, `StockMovement`) antes dos produtos, e é chamado no `beforeEach` e no `afterEach`. O cleanup deixou de ser bloqueável por FKs `Restrict`.
+- **`AGENTS.md`**: o pitfall de cleanup de produtos de teste foi generalizado — antes só citava `KitComposition`; agora cobre também `Inventory`/`StockMovement`, o efeito do `deleteMany` amplo e a poluição cruzada entre suítes.
+
+### Notes
+- A base da suíte de testes (`receivables`) é separada da base da aplicação (`receivables_cliente`), ambas no mesmo Postgres. Nenhum dado de teste é visível na tela nem afeta pedidos/vendas reais.
+
 ## Phase 106 — Correção de pagamento InfinitePay existente pela importação (2026-09-20)
 
 ### Added
