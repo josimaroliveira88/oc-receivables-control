@@ -6,9 +6,9 @@ import multer from 'multer';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Allowed image formats for order attachments (screenshots of the dōTERRA
-// order). The extension is derived from the whitelisted mimetype, never from
-// the client-supplied filename.
+// Allowed image formats for order/sale attachments (dōTERRA order screenshots
+// and sale photos). The extension is derived from the whitelisted mimetype,
+// never from the client-supplied filename.
 const ALLOWED_TYPES = {
   'image/png': '.png',
   'image/jpeg': '.jpg',
@@ -45,9 +45,24 @@ const upload = multer({
   },
 });
 
+// Wraps multer's `single('file')` so the fileFilter rejection becomes a clean
+// 400 instead of a generic error. Shared by the order and sale attachment
+// routes (both store the file on the `Order.attachmentFilename` column).
+const uploadSingleAttachment = (req, res, next) => {
+  upload.single('file')(req, res, (err) => {
+    if (err) {
+      if (err.code === 'INVALID_FILE_TYPE') {
+        return res.status(400).json({ error: 'Invalid file type' });
+      }
+      return next(err);
+    }
+    next();
+  });
+};
+
 // The stored filename is always a server-generated UUID + whitelisted
 // extension, so resolving it never involves user-supplied path segments.
 const resolveAttachmentPath = (filename) =>
   path.join(resolveUploadsDir(), filename);
 
-export { upload, resolveAttachmentPath };
+export { upload, uploadSingleAttachment, resolveAttachmentPath };

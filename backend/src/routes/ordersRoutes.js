@@ -2,7 +2,7 @@ import express from 'express';
 import * as ordersController from '../controllers/ordersController.js';
 import * as paymentsController from '../controllers/paymentsController.js';
 import * as attachmentsController from '../controllers/orderAttachmentsController.js';
-import { upload } from '../middlewares/upload.js';
+import { uploadSingleAttachment } from '../middlewares/upload.js';
 import { authenticateToken } from '../middlewares/auth.js';
 
 const router = express.Router();
@@ -421,17 +421,7 @@ router.get('/:orderId/balance', paymentsController.getOrderBalance);
 // POST /api/orders/:id/attachment
 router.post(
   '/:id/attachment',
-  (req, res, next) => {
-    upload.single('file')(req, res, (err) => {
-      if (err) {
-        if (err.code === 'INVALID_FILE_TYPE') {
-          return res.status(400).json({ error: 'Invalid file type' });
-        }
-        return next(err);
-      }
-      next();
-    });
-  },
+  uploadSingleAttachment,
   attachmentsController.uploadAttachment,
 );
 

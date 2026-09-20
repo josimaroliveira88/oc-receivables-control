@@ -725,7 +725,10 @@ const deleteSale = async (client, { id, userId }) => {
     }
 
     await tx.order.delete({ where: { id } });
-    return { message: 'Sale order deleted successfully' };
+    return {
+      message: 'Sale order deleted successfully',
+      attachmentFilename: existingOrder.attachmentFilename,
+    };
   });
 };
 

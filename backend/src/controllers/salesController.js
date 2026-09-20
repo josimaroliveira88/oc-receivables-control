@@ -1,5 +1,6 @@
 import prisma from '../config/database.js';
 import { handleError } from '../middlewares/errorResponse.js';
+import { removeAttachmentFile } from '../utils/attachmentStorage.js';
 import {
   createSaleSchema,
   updateSaleSchema,
@@ -67,12 +68,16 @@ const deleteSale = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const result = await salesService.deleteSale(prisma, {
-      id,
-      userId: req.user.userId,
-    });
+    const { message, attachmentFilename } = await salesService.deleteSale(
+      prisma,
+      { id, userId: req.user.userId },
+    );
 
-    res.status(200).json(result);
+    if (attachmentFilename) {
+      removeAttachmentFile(attachmentFilename);
+    }
+
+    res.status(200).json({ message });
   } catch (error) {
     handleError(res, error, { label: 'Error deleting sale' });
   }

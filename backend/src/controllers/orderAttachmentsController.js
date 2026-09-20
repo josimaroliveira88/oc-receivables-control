@@ -9,13 +9,16 @@ import {
 } from '../utils/attachmentStorage.js';
 import { badRequest, notFound } from '../utils/httpError.js';
 
+// Orders of any type (COMPRA purchase screenshots and VENDA sale photos) may
+// hold one attachment, stored on the shared `Order.attachmentFilename` column.
+// Ownership is always scoped to the authenticated user, so the controller can
+// be mounted under both `/api/orders` and `/api/sales`.
 const findOwnedOrder = async (req) => {
   const { id } = req.params;
   const order = await prisma.order.findFirst({
     where: { id, userId: req.user.userId },
   });
-  // Sale orders have no dōTERRA screenshot attachment; treat them as absent.
-  if (!order || order.orderType !== 'COMPRA') {
+  if (!order) {
     throw notFound('Order not found');
   }
   return order;
