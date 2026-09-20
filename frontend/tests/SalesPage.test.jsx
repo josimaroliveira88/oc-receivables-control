@@ -1909,6 +1909,7 @@ describe('SalesPage', () => {
               valorCents: 30000,
               liquidoCents: 28500,
               taxaCents: -1500,
+              nsu: 'YEYXH9',
               origemNome: 'João Silva',
               matches: [
                 {
@@ -1967,6 +1968,93 @@ describe('SalesPage', () => {
       expect(
         screen.getByLabelText(/Repassar taxa do InfinitePay ao cliente/),
       ).toBeChecked();
+    });
+
+    it('opens the edit form when the matched sale already has an InfinitePay payment', async () => {
+      const saleWithInfinitePay = {
+        ...mockSales[0],
+        passesGatewayFeeToClient: false,
+        payments: [
+          {
+            id: 'pay-ip',
+            personId: 'p1',
+            person: { id: 'p1', name: 'João Silva' },
+            amount: '285.00',
+            netAmount: null,
+            paymentType: 'INFINITE_PAY',
+            notes: 'Recebido no gateway',
+            paidAt: '2026-09-15T12:00:00.000Z',
+            createdAt: '2026-09-15T12:00:00.000Z',
+          },
+        ],
+      };
+      mockGet.mockImplementation((url) => {
+        if (url === '/sales') return Promise.resolve({ data: mockSales });
+        if (url === '/sales/1')
+          return Promise.resolve({ data: saleWithInfinitePay });
+        if (url === '/orders/1/balance')
+          return Promise.resolve({
+            data: {
+              balances: [
+                {
+                  personId: 'p1',
+                  personName: 'João Silva',
+                  isSelf: false,
+                  itemTotal: '300.00',
+                  paid: '285.00',
+                  pending: '15.00',
+                },
+              ],
+            },
+          });
+        if (url === '/people') return Promise.resolve({ data: mockPeople });
+        if (url.startsWith('/products'))
+          return Promise.resolve({ data: { data: mockProducts } });
+        return Promise.resolve({ data: [] });
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('Gestão de Vendas')).toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByTestId('infinitepay-file-input'), {
+        target: {
+          files: [new File(['x'], 'extrato.csv', { type: 'text/csv' })],
+        },
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('infinitepay-import-modal'),
+        ).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByText('1 venda(s)'));
+      fireEvent.click(screen.getByText('Usar esta venda'));
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('sale-edit-payment-modal'),
+        ).toBeInTheDocument();
+      });
+      expect(
+        screen.queryByTestId('sale-payment-modal'),
+      ).not.toBeInTheDocument();
+
+      const editModal = within(screen.getByTestId('sale-edit-payment-modal'));
+      expect(editModal.getByLabelText('Forma de Pagamento').value).toBe(
+        'INFINITE_PAY',
+      );
+      expect(editModal.getByPlaceholderText('0,00')).toHaveValue('300,00');
+      expect(
+        editModal.getByPlaceholderText('Igual ao valor cobrado'),
+      ).toHaveValue('285,00');
+      expect(
+        editModal.getByDisplayValue(
+          'Recebido no gateway · InfinitePay · NSU YEYXH9',
+        ),
+      ).toBeInTheDocument();
+      expect(mockPut).not.toHaveBeenCalled();
     });
   });
 });

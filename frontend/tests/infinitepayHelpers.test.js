@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  buildEditPaymentPrefill,
   buildPaymentPrefill,
   formatStatementCents,
   matchTypeColumnLabel,
@@ -62,6 +63,57 @@ describe('infinitepayHelpers', () => {
       expect(
         buildPaymentPrefill(row, { matchType: 'net' }).passesGatewayFeeToClient,
       ).toBe(true);
+    });
+  });
+
+  describe('buildEditPaymentPrefill', () => {
+    const row = {
+      valorCents: 64000,
+      liquidoCents: 61312,
+      date: '2026-09-13',
+      nsu: 'YEYXH9',
+    };
+
+    it('derives the CSV values and keeps the payment on InfinitePay', () => {
+      const prefill = buildEditPaymentPrefill(
+        row,
+        { matchType: 'gross' },
+        { amount: '613.12', netAmount: null, notes: null },
+      );
+      expect(prefill.paymentAmount).toBe('640.00');
+      expect(prefill.paymentNetAmount).toBe('613.12');
+      expect(prefill.paymentDate).toBe('2026-09-13');
+      expect(prefill.paymentType).toBe('INFINITE_PAY');
+      expect(prefill.passesGatewayFeeToClient).toBe(false);
+    });
+
+    it('passes the fee to the client on a net match', () => {
+      const prefill = buildEditPaymentPrefill(
+        row,
+        { matchType: 'net' },
+        { amount: '613.12', netAmount: null, notes: null },
+      );
+      expect(prefill.passesGatewayFeeToClient).toBe(true);
+    });
+
+    it('appends the NSU to the existing notes', () => {
+      const prefill = buildEditPaymentPrefill(
+        row,
+        { matchType: 'gross' },
+        { amount: '613.12', netAmount: null, notes: 'Pix recebido' },
+      );
+      expect(prefill.paymentNotes).toBe(
+        'Pix recebido · InfinitePay · NSU YEYXH9',
+      );
+    });
+
+    it('uses the NSU note alone when the payment has no notes', () => {
+      const prefill = buildEditPaymentPrefill(
+        row,
+        { matchType: 'gross' },
+        { amount: '613.12', netAmount: null, notes: '   ' },
+      );
+      expect(prefill.paymentNotes).toBe('InfinitePay · NSU YEYXH9');
     });
   });
 });

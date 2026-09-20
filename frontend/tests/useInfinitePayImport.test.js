@@ -113,6 +113,137 @@ describe('useInfinitePayImport', () => {
     expect(result.current.isOpen).toBe(true);
   });
 
+  it('opens the edit form when the matched sale already has an InfinitePay payment', async () => {
+    const infinitePayPayment = {
+      id: 'pay-1',
+      paymentType: 'INFINITE_PAY',
+      amount: '220.01',
+      netAmount: null,
+      notes: 'Pix recebido',
+      createdAt: '2026-09-10T12:00:00.000Z',
+    };
+    const sale = {
+      id: 's1',
+      orderNumber: 'V-0001',
+      payments: [infinitePayPayment],
+    };
+    mockGet.mockResolvedValue({ data: sale });
+    const openPrefilled = vi.fn();
+    const openEditPrefilled = vi.fn();
+    const { result } = renderHook(() =>
+      useInfinitePayImport({ openPrefilled, openEditPrefilled }),
+    );
+
+    await act(async () => {
+      await result.current.selectSale(csvRow(), {
+        saleId: 's1',
+        matchType: 'gross',
+      });
+    });
+
+    expect(openPrefilled).not.toHaveBeenCalled();
+    expect(openEditPrefilled).toHaveBeenCalledTimes(1);
+    const [editSale, payment, prefill] = openEditPrefilled.mock.calls[0];
+    expect(editSale).toBe(sale);
+    expect(payment).toBe(infinitePayPayment);
+    expect(prefill.paymentType).toBe('INFINITE_PAY');
+    expect(prefill.paymentAmount).toBe('234.02');
+    expect(prefill.paymentNetAmount).toBe('220.01');
+    expect(prefill.paymentDate).toBe('2026-09-16');
+    expect(prefill.passesGatewayFeeToClient).toBe(false);
+    expect(prefill.paymentNotes).toBe(
+      'Pix recebido · InfinitePay · NSU abc-123',
+    );
+    expect(result.current.isOpen).toBe(false);
+  });
+
+  it('keeps the create form when the sale has no InfinitePay payment', async () => {
+    const sale = {
+      id: 's1',
+      orderNumber: 'V-0001',
+      payments: [{ id: 'pay-1', paymentType: 'PIX', amount: '220.01' }],
+    };
+    mockGet.mockResolvedValue({ data: sale });
+    const openPrefilled = vi.fn();
+    const openEditPrefilled = vi.fn();
+    const { result } = renderHook(() =>
+      useInfinitePayImport({ openPrefilled, openEditPrefilled }),
+    );
+
+    await act(async () => {
+      await result.current.selectSale(csvRow(), {
+        saleId: 's1',
+        matchType: 'gross',
+      });
+    });
+
+    expect(openPrefilled).toHaveBeenCalledTimes(1);
+    expect(openEditPrefilled).not.toHaveBeenCalled();
+  });
+
+  it('edits the most recent InfinitePay payment', async () => {
+    const older = {
+      id: 'pay-old',
+      paymentType: 'INFINITE_PAY',
+      amount: '100.00',
+      createdAt: '2026-09-01T10:00:00.000Z',
+    };
+    const newer = {
+      id: 'pay-new',
+      paymentType: 'INFINITE_PAY',
+      amount: '120.00',
+      createdAt: '2026-09-10T10:00:00.000Z',
+    };
+    const sale = { id: 's1', orderNumber: 'V-0001', payments: [older, newer] };
+    mockGet.mockResolvedValue({ data: sale });
+    const openEditPrefilled = vi.fn();
+    const { result } = renderHook(() =>
+      useInfinitePayImport({ openEditPrefilled }),
+    );
+
+    await act(async () => {
+      await result.current.selectSale(csvRow(), {
+        saleId: 's1',
+        matchType: 'gross',
+      });
+    });
+
+    const [, payment] = openEditPrefilled.mock.calls[0];
+    expect(payment).toBe(newer);
+  });
+
+  it('marks the row used when the edit is confirmed', async () => {
+    const sale = {
+      id: 's1',
+      orderNumber: 'V-0001',
+      payments: [
+        {
+          id: 'pay-1',
+          paymentType: 'INFINITE_PAY',
+          createdAt: '2026-09-10T10:00:00.000Z',
+        },
+      ],
+    };
+    mockGet.mockResolvedValue({ data: sale });
+    const openEditPrefilled = vi.fn();
+    const { result } = renderHook(() =>
+      useInfinitePayImport({ openEditPrefilled }),
+    );
+
+    await act(async () => {
+      await result.current.selectSale(csvRow(), {
+        saleId: 's1',
+        matchType: 'gross',
+      });
+    });
+
+    const [, , prefill] = openEditPrefilled.mock.calls[0];
+    act(() => prefill.onDone(true));
+
+    expect(result.current.usedLines.has(2)).toBe(true);
+    expect(result.current.isOpen).toBe(true);
+  });
+
   it('keeps the row unused when the payment is cancelled', async () => {
     const sale = { id: 's1', orderNumber: 'V-0001' };
     mockGet.mockResolvedValue({ data: sale });
