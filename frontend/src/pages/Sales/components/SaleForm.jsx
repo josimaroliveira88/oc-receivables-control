@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { Plus } from 'lucide-react';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { Image as ImageIcon, Plus, X } from 'lucide-react';
 import { lineValueCents } from '../utils/saleHelpers';
 import SaleItemFields from './SaleItemFields';
 import SaleTotals from './SaleTotals';
@@ -21,6 +21,9 @@ const SaleForm = ({
   description,
   deliveredAt,
   items,
+  attachmentFile,
+  attachmentRemoved,
+  hasExistingAttachment,
   people,
   products,
   isEdit,
@@ -58,6 +61,11 @@ const SaleForm = ({
   const totalChargedCents = items.reduce(
     (total, item) => total + lineValueCents(item),
     0,
+  );
+
+  const attachmentPreviewUrl = useMemo(
+    () => (attachmentFile ? URL.createObjectURL(attachmentFile) : null),
+    [attachmentFile],
   );
 
   return (
@@ -146,6 +154,61 @@ const SaleForm = ({
         <div className="mt-1 text-right text-xs text-ink-faint">
           {description.length}/2000
         </div>
+      </div>
+
+      <div className="mb-4">
+        <label
+          htmlFor="saleAttachment"
+          className="block text-sm font-medium text-ink-soft mb-1"
+        >
+          Foto da Venda (opcional)
+        </label>
+        {isEdit &&
+        hasExistingAttachment &&
+        !attachmentFile &&
+        !attachmentRemoved ? (
+          <div
+            data-testid="sale-attachment-existing"
+            className="flex flex-wrap items-center gap-2"
+          >
+            <span className="inline-flex items-center gap-1.5 text-sm text-ink-soft">
+              <ImageIcon className="w-4 h-4 text-ink-faint" />
+              Foto existente
+            </span>
+            <button
+              type="button"
+              data-testid="sale-attachment-remove"
+              onClick={() => onChangeField('attachmentRemoved', true)}
+              className="inline-flex items-center gap-1 text-sm text-danger-fg transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+              Remover
+            </button>
+          </div>
+        ) : (
+          <div>
+            <input
+              id="saleAttachment"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              data-testid="sale-attachment-input"
+              onChange={(e) =>
+                onChangeField('attachmentFile', e.target.files?.[0] || null)
+              }
+              className="block w-full text-sm text-ink-faint file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-accent-soft file:text-accent-on-soft hover:file:bg-accent-soft transition-colors"
+            />
+            {attachmentPreviewUrl && (
+              <div className="mt-2">
+                <img
+                  data-testid="sale-attachment-preview"
+                  src={attachmentPreviewUrl}
+                  alt="Prévia da foto da venda"
+                  className="max-h-40 rounded-md border border-line"
+                />
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="mb-4">

@@ -11,6 +11,7 @@ import {
   shouldShowSalePaymentAction,
 } from '../utils/saleHelpers';
 import { StatusBadge, DeliveryBadge } from './SaleBadges';
+import SaleAttachmentThumbnail from './SaleAttachmentThumbnail';
 import ActionMenu from '../../../components/ActionMenu';
 import SortableHeader from '../../../components/SortableHeader';
 import SalesTableToolbar from './SalesTableToolbar';
@@ -36,6 +37,7 @@ const SalesTable = ({
   onDetails,
   onToggleDelivery,
   onSettlement,
+  onViewAttachment,
 }) => {
   return (
     <div>
@@ -78,7 +80,7 @@ const SalesTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[13%]"
+                  width="w-[11%]"
                 />
                 <SortableHeader
                   label="Valor (R$)"
@@ -117,8 +119,14 @@ const SalesTable = ({
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}
-                  width="w-[23%]"
+                  width="w-[19%]"
                 />
+                <th
+                  scope="col"
+                  className="w-[6%] px-6 py-3 text-left text-xs font-medium text-ink-faint"
+                >
+                  Anexo
+                </th>
                 <SortableHeader
                   label="Status"
                   field="status"
@@ -201,6 +209,19 @@ const SalesTable = ({
                         >
                           {sale.orderNotes}
                         </span>
+                      ) : (
+                        <span className="text-sm text-ink-faint">—</span>
+                      )}
+                    </td>
+                    <td
+                      data-label="Anexo"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
+                    >
+                      {sale.attachmentFilename ? (
+                        <SaleAttachmentThumbnail
+                          saleId={sale.id}
+                          onOpen={() => onViewAttachment(sale)}
+                        />
                       ) : (
                         <span className="text-sm text-ink-faint">—</span>
                       )}

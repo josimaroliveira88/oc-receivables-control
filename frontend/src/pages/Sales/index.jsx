@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { formatBRL, toCents } from '../../utils/money';
 import { useSales } from './useSales';
 import { useSalePayments } from './useSalePayments';
 import { useSaleSettlements } from '../Finances/useSaleSettlements';
 import SalesTable from './components/SalesTable';
 import Modal from '../../components/Modal';
+import AttachmentPreviewModal from '../../components/AttachmentPreviewModal';
 import SaleForm from './components/SaleForm';
 import SalePaymentModal from './components/SalePaymentModal';
 import SaleDetailsModal from './components/SaleDetailsModal';
@@ -51,6 +52,9 @@ const SalesPage = () => {
     expenseCategories,
     description,
     deliveredAt,
+    attachmentFile,
+    attachmentRemoved,
+    hasExistingAttachment,
     items,
     itemErrors,
     addItemBtnRef,
@@ -151,6 +155,8 @@ const SalesPage = () => {
     handleSubmit: handleSettlementSubmit,
   } = useSaleSettlements({ onSettled: refreshSales });
 
+  const [viewAttachmentSale, setViewAttachmentSale] = useState(null);
+
   const editSale = sales.find((s) => s.id === editSaleId);
 
   if (loading) {
@@ -203,6 +209,7 @@ const SalesPage = () => {
             onDetails={openDetailsModal}
             onToggleDelivery={toggleDelivery}
             onSettlement={openSettlement}
+            onViewAttachment={setViewAttachmentSale}
           />
         </div>
       </div>
@@ -234,6 +241,9 @@ const SalesPage = () => {
             expenseCategories={expenseCategories}
             description={description}
             deliveredAt={deliveredAt}
+            attachmentFile={attachmentFile}
+            attachmentRemoved={attachmentRemoved}
+            hasExistingAttachment={hasExistingAttachment}
             items={items}
             people={people}
             products={products}
@@ -290,6 +300,16 @@ const SalesPage = () => {
           personItems={getDetailPersonItems}
           personPayments={getDetailPersonPayments}
           onEditPayment={openEditPaymentModal}
+        />
+      )}
+
+      {viewAttachmentSale && (
+        <AttachmentPreviewModal
+          order={viewAttachmentSale}
+          endpoint={`/sales/${viewAttachmentSale.id}/attachment`}
+          title={`Anexo da Venda ${viewAttachmentSale.orderNumber}`}
+          imageAlt={`Foto da venda ${viewAttachmentSale.orderNumber}`}
+          onClose={() => setViewAttachmentSale(null)}
         />
       )}
 

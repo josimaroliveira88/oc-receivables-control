@@ -1,17 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import { Maximize2, Minimize2 } from 'lucide-react';
-import api from '../../../services/api';
-import Modal from '../../../components/Modal';
+import api from '../services/api';
+import Modal from './Modal';
 
-// Read-only modal that fetches and displays the order's dōTERRA order
-// screenshot. The image is fetched with the authenticated axios instance
-// (blob) and shown via an object URL, so no system path is ever exposed.
-// The expand toggle widens the modal so the user can inspect details.
-const AttachmentPreviewModal = ({ order, onClose }) => {
+// Read-only modal that fetches and displays an order/sale attachment image.
+// The image is fetched with the authenticated axios instance (blob) and shown
+// via an object URL, so no system path is ever exposed. The image itself is
+// clickable to toggle between the compact and expanded sizes; the button keeps
+// the same behavior available to keyboard users.
+const AttachmentPreviewModal = ({
+  order,
+  endpoint,
+  title,
+  imageAlt,
+  onClose,
+}) => {
   const [imageUrl, setImageUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState(false);
+
+  const resolvedEndpoint = endpoint || `/orders/${order.id}/attachment`;
+  const resolvedTitle = title || `Anexo do Pedido ${order.orderNumber}`;
+  const resolvedAlt = imageAlt || `Print do pedido ${order.orderNumber}`;
 
   useEffect(() => {
     let objectUrl = '';
@@ -21,7 +32,7 @@ const AttachmentPreviewModal = ({ order, onClose }) => {
       setLoading(true);
       setError('');
       try {
-        const response = await api.get(`/orders/${order.id}/attachment`, {
+        const response = await api.get(resolvedEndpoint, {
           responseType: 'blob',
         });
         if (!active) return;
@@ -40,12 +51,14 @@ const AttachmentPreviewModal = ({ order, onClose }) => {
       active = false;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [order.id]);
+  }, [resolvedEndpoint]);
+
+  const toggleExpanded = () => setExpanded((prev) => !prev);
 
   return (
     <Modal
       isOpen
-      title={`Anexo do Pedido ${order.orderNumber}`}
+      title={resolvedTitle}
       onClose={onClose}
       maxWidth={expanded ? 'max-w-[95vw]' : 'max-w-2xl'}
       closeAriaLabel="Fechar anexo"
@@ -57,7 +70,7 @@ const AttachmentPreviewModal = ({ order, onClose }) => {
               type="button"
               data-testid="attachment-preview-expand"
               aria-pressed={expanded}
-              onClick={() => setExpanded((prev) => !prev)}
+              onClick={toggleExpanded}
               className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-ink-soft bg-base hover:bg-elevated rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-accent"
             >
               {expanded ? (
@@ -87,11 +100,22 @@ const AttachmentPreviewModal = ({ order, onClose }) => {
           <img
             data-testid="attachment-preview-image"
             src={imageUrl}
-            alt={`Print do pedido ${order.orderNumber}`}
+            alt={resolvedAlt}
+            role="button"
+            tabIndex={0}
+            aria-label={expanded ? 'Reduzir imagem' : 'Ampliar imagem'}
+            onClick={toggleExpanded}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                toggleExpanded();
+              }
+            }}
             className={
-              expanded
+              (expanded
                 ? 'mx-auto w-full max-h-[85vh] object-contain rounded-md border border-line'
-                : 'mx-auto max-h-[70vh] rounded-md border border-line'
+                : 'mx-auto max-h-[70vh] rounded-md border border-line') +
+              (expanded ? ' cursor-zoom-out' : ' cursor-zoom-in')
             }
           />
         )}

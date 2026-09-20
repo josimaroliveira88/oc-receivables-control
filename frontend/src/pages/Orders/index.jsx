@@ -8,7 +8,7 @@ import OrderForm from './components/OrderForm';
 import PaymentModal from './components/PaymentModal';
 import DetailsModal from './components/DetailsModal';
 import EditPaymentModal from './components/EditPaymentModal';
-import AttachmentPreviewModal from './components/AttachmentPreviewModal';
+import AttachmentPreviewModal from '../../components/AttachmentPreviewModal';
 import OrderSimulatorModal from './components/OrderSimulatorModal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { useOrderSimulator } from './useOrderSimulator';

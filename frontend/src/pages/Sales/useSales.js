@@ -65,6 +65,8 @@ export function useSales() {
   const [expenseCategories, setExpenseCategories] = useState([]);
   const [description, setDescription] = useState('');
   const [deliveredAt, setDeliveredAt] = useState('');
+  const [attachmentFile, setAttachmentFile] = useState(null);
+  const [attachmentRemoved, setAttachmentRemoved] = useState(false);
   const [items, setItems] = useState([emptySaleItem()]);
   const [itemErrors, setItemErrors] = useState({});
   const addItemBtnRef = useRef(null);
@@ -223,6 +225,8 @@ export function useSales() {
     setAdditionalExpenseDescriptionError('');
     setDescription('');
     setDeliveredAt('');
+    setAttachmentFile(null);
+    setAttachmentRemoved(false);
     setItems([emptySaleItem()]);
     setItemErrors({});
     setSaleFormInitial(null);
@@ -244,6 +248,8 @@ export function useSales() {
       additionalExpenseDescription,
       description,
       deliveredAt,
+      attachmentFile,
+      attachmentRemoved,
       items,
     });
     setError('');
@@ -282,6 +288,12 @@ export function useSales() {
         break;
       case 'deliveredAt':
         setDeliveredAt(value);
+        break;
+      case 'attachmentFile':
+        setAttachmentFile(value);
+        break;
+      case 'attachmentRemoved':
+        setAttachmentRemoved(value);
         break;
       default:
         break;
@@ -377,11 +389,20 @@ export function useSales() {
     ),
   });
 
+  const uploadSaleAttachment = async (saleId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    await api.post(`/sales/${saleId}/attachment`, formData);
+  };
+
   const handleCreateSale = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
     try {
-      await api.post('/sales', buildPayload());
+      const response = await api.post('/sales', buildPayload());
+      if (attachmentFile && response.data?.id) {
+        await uploadSaleAttachment(response.data.id, attachmentFile);
+      }
       addToast('Venda criada com sucesso!', 'success');
       resetForm();
       fetchData();
@@ -422,6 +443,8 @@ export function useSales() {
     setAdditionalExpenseDescriptionError('');
     setDescription(sale.orderNotes || '');
     setDeliveredAt(sale.deliveredAt ? sale.deliveredAt.split('T')[0] : '');
+    setAttachmentFile(null);
+    setAttachmentRemoved(false);
     const items = (sale.items || []).map(editSaleItemFromApi);
     setItems(items);
     setSaleFormInitial({
@@ -435,6 +458,8 @@ export function useSales() {
       additionalExpenseDescription: sale.additionalExpenseDescription || '',
       description: sale.orderNotes || '',
       deliveredAt: sale.deliveredAt ? sale.deliveredAt.split('T')[0] : '',
+      attachmentFile: null,
+      attachmentRemoved: false,
       items,
     });
     setShowEditModal(true);
@@ -445,6 +470,11 @@ export function useSales() {
     if (!validateForm()) return;
     try {
       await api.put(`/sales/${editSaleId}`, buildPayload());
+      if (attachmentFile) {
+        await uploadSaleAttachment(editSaleId, attachmentFile);
+      } else if (attachmentRemoved) {
+        await api.delete(`/sales/${editSaleId}/attachment`);
+      }
       addToast('Venda atualizada com sucesso!', 'success');
       resetForm();
       fetchData();
@@ -528,9 +558,16 @@ export function useSales() {
     additionalExpenseDescription,
     description,
     deliveredAt,
+    attachmentFile,
+    attachmentRemoved,
     items,
   };
   const saleFormDirty = useDirtyForm(saleFormValues, saleFormInitial).isDirty;
+
+  const hasExistingAttachment = Boolean(
+    editSaleId &&
+    sales.find((sale) => sale.id === editSaleId)?.attachmentFilename,
+  );
 
   // Auto-refetch when a filter or the sort changes. Search text is excluded on
   // purpose: the search term is only committed when the user presses Enter or
@@ -589,6 +626,9 @@ export function useSales() {
     expenseCategories,
     description,
     deliveredAt,
+    attachmentFile,
+    attachmentRemoved,
+    hasExistingAttachment,
     items,
     itemErrors,
     addItemBtnRef,
