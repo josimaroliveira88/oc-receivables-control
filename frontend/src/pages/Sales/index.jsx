@@ -1,5 +1,4 @@
 import React, { useRef, useState } from 'react';
-import { Upload } from 'lucide-react';
 import { formatBRL, toCents } from '../../utils/money';
 import { useSales } from './useSales';
 import { useSalePayments } from './useSalePayments';
@@ -13,6 +12,8 @@ import SalePaymentModal from './components/SalePaymentModal';
 import SaleDetailsModal from './components/SaleDetailsModal';
 import SaleEditPaymentModal from './components/SaleEditPaymentModal';
 import InfinitePayImportModal from './components/InfinitePayImportModal';
+import InfinitePayRescueImport from './components/InfinitePayRescueImport';
+import SalesToolbar from './components/SalesToolbar';
 import GatewaySettlementModal from '../Finances/components/GatewaySettlementModal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 
@@ -168,12 +169,6 @@ const SalesPage = () => {
 
   const importFileInputRef = useRef(null);
 
-  const handleImportFileChange = (event) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (file) importFile(file);
-  };
-
   const {
     settlementSale,
     form: settlementForm,
@@ -202,34 +197,13 @@ const SalesPage = () => {
   return (
     <>
       <div className="bg-surface border border-line rounded-lg shadow-md">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-line px-6 py-4">
-          <h2 className="text-xl font-semibold text-ink">Gestão de Vendas</h2>
-          <div className="mt-3 flex items-center gap-2 sm:mt-0">
-            <button
-              type="button"
-              onClick={() => importFileInputRef.current?.click()}
-              disabled={importSubmitting}
-              className="inline-flex items-center gap-1.5 px-4 py-2 border border-line text-ink-soft hover:text-ink hover:bg-elevated font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Upload className="h-4 w-4" aria-hidden="true" />
-              Importar InfinitePay
-            </button>
-            <button
-              onClick={() => openCreateSale()}
-              className="px-4 py-2 bg-accent hover:bg-accent-hover text-accent-on font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
-            >
-              Nova Venda
-            </button>
-            <input
-              ref={importFileInputRef}
-              type="file"
-              accept=".csv,text/csv"
-              className="hidden"
-              data-testid="infinitepay-file-input"
-              onChange={handleImportFileChange}
-            />
-          </div>
-        </div>
+        <SalesToolbar
+          importSubmitting={importSubmitting}
+          importInputRef={importFileInputRef}
+          onImportFile={importFile}
+          onCreateSale={() => openCreateSale()}
+          rescueImport={<InfinitePayRescueImport onCommitted={refreshSales} />}
+        />
 
         <div className="px-6 py-4">
           {error && !(showCreateModal || showEditModal) && (

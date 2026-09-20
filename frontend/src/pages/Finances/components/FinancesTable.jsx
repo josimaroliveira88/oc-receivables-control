@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ExternalLink, Pencil, Trash } from 'lucide-react';
+import { ExternalLink, Pencil, RotateCcw, Trash } from 'lucide-react';
 import { formatBRL, toCents } from '../../../utils/money';
 import { formatDateBR } from '../../../utils/dates';
 import ActionMenu from '../../../components/ActionMenu';
@@ -34,6 +34,7 @@ const FinancesTable = ({
   hasActiveFilters,
   onEdit,
   onDelete,
+  onUndoRescue,
 }) => {
   if (transactions.length === 0) {
     return (
@@ -100,6 +101,7 @@ const FinancesTable = ({
           {transactions.map((transaction) => {
             const link = originLink(transaction);
             const isManual = transaction.origin === 'MANUAL';
+            const isRescue = transaction.origin === 'RESGATE_INFINITEPAY';
             const feeCents = transaction.feeAmount
               ? toCents(parseFloat(transaction.feeAmount))
               : 0;
@@ -212,6 +214,21 @@ const FinancesTable = ({
                           },
                         ]}
                         ariaLabel="Ações do lançamento"
+                        testIdPrefix={`transaction-actions-${transaction.id}`}
+                      />
+                    </div>
+                  ) : isRescue ? (
+                    <div className="flex justify-end">
+                      <ActionMenu
+                        actions={[
+                          {
+                            label: 'Desfazer resgate',
+                            icon: RotateCcw,
+                            onClick: () => onUndoRescue(transaction),
+                            variant: 'danger',
+                          },
+                        ]}
+                        ariaLabel="Ações do resgate"
                         testIdPrefix={`transaction-actions-${transaction.id}`}
                       />
                     </div>

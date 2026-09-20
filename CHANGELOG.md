@@ -9,6 +9,22 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 108 — Importação de resgates InfinitePay pelo extrato bancário (2026-09-20)
+
+### Added
+- **Importação de resgates InfinitePay a partir do extrato bancário**: novo botão **"Importar resgates"** na tela de Vendas lê o extrato da conta (CSV de 6 colunas `Data,Hora,Tipo de transação,Nome,Detalhe,Valor`) e apresenta cada **Pix Enviado** (o resgate de fato) pareado com os **Depósito de vendas** contíguos cuja soma bate com o valor resgatado (tolerância de **até 2 centavos**). Cada resgate pode ser de **uma venda ou de n vendas**: o sistema sugere as vendas por valor (líquido/valor do pagamento InfinitePay, total, pendente ou saldo ainda resgatável) e o usuário confirma; quando mais de uma venda casa, ele escolhe a correta; quando nenhuma casa pelo valor, ele seleciona manualmente uma ou mais vendas, com **totalizador** que só libera a confirmação quando a soma fecha. O preview (`POST /api/sales/infinitepay-rescues/import`) não persiste nada; a confirmação (`POST /api/sales/infinitepay-rescues/commit`) cria os lançamentos `RESGATE_INFINITEPAY` reutilizando as regras do resgate manual (venda própria, tipo `VENDA`, não-equipe, com pagamento `INFINITE_PAY`), numa única `$transaction`, e aborta o lote inteiro se houver resgate duplicado (mesma venda/data/valor). Parsers/serviços novos: `backend/src/utils/bankStatementParser.js` (reusa o leitor RFC 4180 de `csvParser.js`, agora exportado) e `backend/src/services/infinitepayRescueService.js`; matcher puro em `backend/src/utils/rescueHelpers.js`.
+- **Desfazer o resgate**: cada resgate pode ser desfeito depois, caso a identificação tenha sido incorreta. Na tabela de Finanças, as linhas `RESGATE_INFINITEPAY` ganharam a ação **"Desfazer resgate"** (com diálogo de confirmação) via `DELETE /api/finances/settlements/:id`; a importação inteira é marcada com um **lote** (`importBatchId` em `FinancialTransaction`, migração `20260920140000_add_settlement_import_batch`) e pode ser desfeita de uma vez pelo banner de sucesso do modal (`DELETE /api/finances/settlements/batch/:batchId`, idempotente). Desfazer remove apenas o lançamento do financeiro — o pagamento da venda e seu status ficam intactos.
+- **`backend/src/validators/rescueValidator.js`**: schemas do preview e do commit (todas as parcelas em centavos inteiros).
+
+### Changed
+- **`financeTransactionsService.js`**: `assertSettleableOrder` e `buildSettlementData` extraídos de `createSettlement`, agora compartilhados com a importação; novos `deleteRescue` e `deleteRescueBatch`.
+- **`csvParser.js`**: `parseCsvRecords` exportado para reuso pelo parser do extrato bancário.
+- **Frontend**: header da tela de Vendas extraído para `SalesToolbar.jsx`; o fluxo de resgates é autocontido em `components/InfinitePayRescueImport.jsx` (input oculto + hook + modal), com `useInfinitePayRescueImport.js`, `components/InfinitePayRescueImportModal.jsx`, `components/InfinitePayRescueRow.jsx` e `utils/infinitepayRescueHelpers.js`. `useFinances`/`FinancesTable`/`Finances/index.jsx` ganharam a ação "Desfazer resgate". Badges de match/balance adicionados em `utils/badgeStyles.js`.
+- **`ARCHITECTURE.md`**: modelo do `importBatchId`, novas rotas de `/api/sales` e `/api/finances`, feature de importação de resgates e árvore de arquivos atualizadas.
+
+### Tests
+- Backend: `bankStatementParser.test.js` (15), `rescueHelpers.test.js` (12) e `infinitepayRescueImport.test.js` (16, cobre preview sem persistir, pareamento de depósitos, commit de um e de vários resgates, soma divergente, venda de outro usuário/sem InfinitePay, duplicidade, undo por linha e por lote, e isolamento por usuário). Frontend: `infinitepayRescueHelpers.test.js` (8), `useInfinitePayRescueImport.test.js` (12), `InfinitePayRescueImportModal.test.jsx` (7) e `FinancesRescueUndo.test.jsx` (3). **842 backend + 1021 frontend passing**; `npm run lint` sem erros, `npm run build`, `npm run format:check` e `node scripts/contrast-check.mjs` (AA) limpos.
+
 ## Phase 107 — Correção do cleanup de produtos de teste no `productLoader.test.js` (2026-09-20)
 
 ### Fixed

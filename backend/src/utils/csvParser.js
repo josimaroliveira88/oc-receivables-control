@@ -300,6 +300,7 @@ function parseInfinitePayCsvFile(filePath) {
 export {
   parseProductCsv,
   parseProductCsvFile,
+  parseCsvRecords,
   parseInfinitePayCsv,
   parseInfinitePayCsvFile,
   InfinitePayCsvError,

@@ -44,6 +44,23 @@ export const INFINITEPAY_MATCH_CLASSES = {
   net: 'bg-mystic-soft text-mystic-fg',
 };
 
+// InfinitePay redemption import: how a sale matched a redemption or one of its
+// source deposits.
+export const RESCUE_MATCH_CLASSES = {
+  net: 'bg-mystic-soft text-mystic-fg',
+  gross: 'bg-info-soft text-info-fg',
+  total: 'bg-info-soft text-info-fg',
+  pending: 'bg-warning-soft text-warning-fg',
+  rescuable: 'bg-base text-ink-soft',
+};
+
+// Whether the sales picked for a redemption sum to the redeemed amount.
+export const RESCUE_BALANCE_CLASSES = {
+  balanced: 'bg-success-soft text-success-fg',
+  unbalanced: 'bg-warning-soft text-warning-fg',
+  empty: 'bg-base text-ink-soft',
+};
+
 export const ORDER_ORIGIN_CLASSES = {
   user: 'bg-base text-ink-soft',
   team: 'bg-mystic-soft text-mystic-fg',

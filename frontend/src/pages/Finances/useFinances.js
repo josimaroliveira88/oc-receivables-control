@@ -58,6 +58,8 @@ export function useFinances() {
   const [submitting, setSubmitting] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [confirmUndoRescueId, setConfirmUndoRescueId] = useState(null);
+  const [undoingRescue, setUndoingRescue] = useState(false);
   const { addToast } = useToast();
 
   const loadTransactions = useCallback(
@@ -223,6 +225,30 @@ export function useFinances() {
     }
   };
 
+  // Undoing an InfinitePay redemption deletes the automatic ledger row. The
+  // source sale (and its payment) is untouched.
+  const requestUndoRescue = (transaction) => {
+    setConfirmUndoRescueId(transaction.id);
+  };
+
+  const cancelUndoRescue = () => {
+    setConfirmUndoRescueId(null);
+  };
+
+  const confirmUndoRescue = async () => {
+    try {
+      setUndoingRescue(true);
+      await api.delete(`/finances/settlements/${confirmUndoRescueId}`);
+      addToast('Resgate desfeito com sucesso!', 'success');
+      loadTransactions(filters);
+    } catch (_err) {
+      addToast('Erro ao desfazer resgate. Tente novamente.', 'error');
+    } finally {
+      setUndoingRescue(false);
+      setConfirmUndoRescueId(null);
+    }
+  };
+
   const formDirty = useDirtyForm(form, formInitial).isDirty;
 
   return {
@@ -250,5 +276,10 @@ export function useFinances() {
     requestDelete,
     cancelDelete,
     confirmDelete,
+    confirmUndoRescueId,
+    undoingRescue,
+    requestUndoRescue,
+    cancelUndoRescue,
+    confirmUndoRescue,
   };
 }

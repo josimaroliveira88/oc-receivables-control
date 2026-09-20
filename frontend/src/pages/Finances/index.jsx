@@ -35,6 +35,11 @@ const FinancesPage = () => {
     requestDelete,
     cancelDelete,
     confirmDelete,
+    confirmUndoRescueId,
+    undoingRescue,
+    requestUndoRescue,
+    cancelUndoRescue,
+    confirmUndoRescue,
   } = useFinances();
 
   const categories = useFinanceCategories();
@@ -99,6 +104,7 @@ const FinancesPage = () => {
             hasActiveFilters={hasActiveFilters}
             onEdit={openEdit}
             onDelete={requestDelete}
+            onUndoRescue={requestUndoRescue}
           />
         </div>
       </div>
@@ -141,6 +147,17 @@ const FinancesPage = () => {
         loading={deleting}
         onConfirm={confirmDelete}
         onCancel={cancelDelete}
+      />
+
+      <ConfirmDialog
+        open={!!confirmUndoRescueId}
+        title="Desfazer resgate"
+        message="Tem certeza que deseja desfazer este resgate InfinitePay? O lançamento será removido do financeiro e você poderá registrá-lo novamente."
+        confirmLabel="Desfazer resgate"
+        cancelLabel="Cancelar"
+        loading={undoingRescue}
+        onConfirm={confirmUndoRescue}
+        onCancel={cancelUndoRescue}
       />
     </>
   );

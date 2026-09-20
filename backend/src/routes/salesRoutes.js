@@ -2,6 +2,7 @@ import express from 'express';
 import * as salesController from '../controllers/salesController.js';
 import * as attachmentsController from '../controllers/orderAttachmentsController.js';
 import * as infinitepayController from '../controllers/salesInfinitepayImportController.js';
+import * as infinitepayRescueController from '../controllers/salesInfinitepayRescueController.js';
 import {
   uploadSingleAttachment,
   uploadSingleInfinitePayCsv,
@@ -147,6 +148,61 @@ router.post(
   '/infinitepay/import',
   uploadSingleInfinitePayCsv,
   infinitepayController.importInfinitePayStatement,
+);
+
+/**
+ * @openapi
+ * /api/sales/infinitepay-rescues/import:
+ *   post:
+ *     tags: [Sales]
+ *     summary: Importa o extrato bancário do InfinitePay e sugere vendas por resgate
+ *     description: Faz o preview dos resgates pareados com as vendas por valor, sem persistir nada.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Resgates com as vendas sugeridas e o lote
+ *       400:
+ *         description: CSV fora do padrão ou arquivo ausente
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+// POST /api/sales/infinitepay-rescues/import
+router.post(
+  '/infinitepay-rescues/import',
+  uploadSingleInfinitePayCsv,
+  infinitepayRescueController.importInfinitePayRescues,
+);
+
+/**
+ * @openapi
+ * /api/sales/infinitepay-rescues/commit:
+ *   post:
+ *     tags: [Sales]
+ *     summary: Confirma os resgates de uma importação
+ *     description: Cria os lançamentos RESGATE_INFINITEPAY marcados com o lote da importação.
+ *     responses:
+ *       201:
+ *         description: Resgates criados
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+// POST /api/sales/infinitepay-rescues/commit
+router.post(
+  '/infinitepay-rescues/commit',
+  infinitepayRescueController.commitInfinitePayRescues,
 );
 
 /**

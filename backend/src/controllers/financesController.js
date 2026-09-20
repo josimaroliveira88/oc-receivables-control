@@ -20,8 +20,11 @@ import {
   updateManualTransaction,
   deleteManualTransaction,
   createSettlement,
+  deleteRescue,
+  deleteRescueBatch,
   getSummary,
 } from '../services/financeTransactionsService.js';
+import { batchIdParamSchema } from '../validators/rescueValidator.js';
 
 const getCategories = async (req, res) => {
   try {
@@ -135,6 +138,36 @@ const createSettlementHandler = async (req, res) => {
   }
 };
 
+// Undoes a single InfinitePay redemption. Only RESGATE_INFINITEPAY rows are
+// accepted; the ownership check lives in the service.
+const deleteSettlementHandler = async (req, res) => {
+  try {
+    await deleteRescue(prisma, {
+      userId: req.user.userId,
+      id: req.params.id,
+    });
+    res.status(200).json({ message: 'InfinitePay settlement undone' });
+  } catch (error) {
+    handleError(res, error, { label: 'Error undoing InfinitePay settlement' });
+  }
+};
+
+// Undoes every redemption created by one statement import. Idempotent.
+const deleteSettlementBatchHandler = async (req, res) => {
+  try {
+    const { batchId } = batchIdParamSchema.parse(req.params);
+    const deleted = await deleteRescueBatch(prisma, {
+      userId: req.user.userId,
+      batchId,
+    });
+    res.status(200).json({ deleted });
+  } catch (error) {
+    handleError(res, error, {
+      label: 'Error undoing InfinitePay settlement batch',
+    });
+  }
+};
+
 const getSummaryHandler = async (req, res) => {
   try {
     const query = listTransactionsQuerySchema.parse(req.query);
@@ -158,5 +191,7 @@ export {
   updateTransactionHandler,
   deleteTransactionHandler,
   createSettlementHandler,
+  deleteSettlementHandler,
+  deleteSettlementBatchHandler,
   getSummaryHandler,
 };

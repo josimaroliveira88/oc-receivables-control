@@ -292,6 +292,58 @@ router.post('/settlements', financesController.createSettlementHandler);
 
 /**
  * @openapi
+ * /api/finances/settlements/batch/{batchId}:
+ *   delete:
+ *     tags: [Finances]
+ *     summary: Desfaz todos os resgates de uma importação
+ *     description: Remove os resgates InfinitePay criados por uma importação de extrato. Idempotente.
+ *     parameters:
+ *       - in: path
+ *         name: batchId
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Quantidade de resgates removidos
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+// DELETE /api/finances/settlements/batch/:batchId
+// Registered before `/:id` so the literal segment wins.
+router.delete(
+  '/settlements/batch/:batchId',
+  financesController.deleteSettlementBatchHandler,
+);
+
+/**
+ * @openapi
+ * /api/finances/settlements/{id}:
+ *   delete:
+ *     tags: [Finances]
+ *     summary: Desfaz um resgate InfinitePay
+ *     description: Remove um lançamento com origem RESGATE_INFINITEPAY do usuário.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Resgate desfeito
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+// DELETE /api/finances/settlements/:id
+router.delete('/settlements/:id', financesController.deleteSettlementHandler);
+
+/**
+ * @openapi
  * /api/finances/summary:
  *   get:
  *     tags: [Finances]

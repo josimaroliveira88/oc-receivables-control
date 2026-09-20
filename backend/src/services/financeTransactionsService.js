@@ -139,14 +139,12 @@ const deleteManualTransaction = async (client, { userId, id }) => {
   await client.financialTransaction.delete({ where: { id } });
 };
 
-// Registers an InfinitePay redemption for a sale. The money only enters the
-// ledger when the user redeems it in the InfinitePay portal, so this explicit
-// action creates a linked income row (multiple partial redemptions allowed).
-// The gross charged value stays on the sale payments; the implicit gateway fee
-// is informative only and is never persisted.
-const createSettlement = async (client, { userId, payload }) => {
+// Validates that an order can receive an InfinitePay redemption and returns it.
+// Shared by the single-settlement action and the bulk statement import so both
+// enforce the same ownership and sale-only rules.
+const assertSettleableOrder = async (client, userId, orderId) => {
   const order = await client.order.findFirst({
-    where: { id: payload.orderId, userId },
+    where: { id: orderId, userId },
     include: { payments: { select: { paymentType: true } } },
   });
 
@@ -170,27 +168,75 @@ const createSettlement = async (client, { userId, payload }) => {
     throw badRequest('Sale has no InfinitePay payment to settle');
   }
 
+  return order;
+};
+
+// Builds the ledger row for an InfinitePay redemption of a sale. The money only
+// enters the ledger when the user redeems it in the InfinitePay portal, so the
+// explicit action creates a linked income row (multiple partial redemptions are
+// allowed). The gross charged value stays on the sale payments; the implicit
+// gateway fee is informative only and is never persisted.
+const buildSettlementData = async (
+  client,
+  { userId, order, amountCents, transactionDate, notes, importBatchId },
+) => ({
+  userId,
+  type: 'RECEITA',
+  origin: 'RESGATE_INFINITEPAY',
+  amount: fromCents(amountCents),
+  description: `Resgate InfinitePay — Venda ${order.orderNumber}`,
+  transactionDate: parseLocalDate(transactionDate),
+  notes: notes ?? null,
+  categoryId: await resolveCategoryId(client, userId, 'RESGATE_INFINITEPAY'),
+  orderId: order.id,
+  paymentId: null,
+  importBatchId: importBatchId ?? null,
+});
+
+// Registers a single InfinitePay redemption for a sale.
+const createSettlement = async (client, { userId, payload }) => {
+  const order = await assertSettleableOrder(client, userId, payload.orderId);
+
   const transaction = await client.financialTransaction.create({
-    data: {
+    data: await buildSettlementData(client, {
       userId,
-      type: 'RECEITA',
-      origin: 'RESGATE_INFINITEPAY',
-      amount: payload.amount,
-      description: `Resgate InfinitePay — Venda ${order.orderNumber}`,
-      transactionDate: parseLocalDate(payload.transactionDate),
-      notes: payload.notes ?? null,
-      categoryId: await resolveCategoryId(
-        client,
-        userId,
-        'RESGATE_INFINITEPAY',
-      ),
-      orderId: order.id,
-      paymentId: null,
-    },
+      order,
+      amountCents: Math.round(payload.amount * 100),
+      transactionDate: payload.transactionDate,
+      notes: payload.notes,
+      importBatchId: payload.importBatchId,
+    }),
     include: { category: true, payment: true },
   });
 
   return decorateTransaction(transaction);
+};
+
+// Undoes a redemption created from a statement import (or a manual one). Only
+// RESGATE_INFINITEPAY rows can be undone here; automatic rows are owned by
+// their source and manual rows use the generic delete.
+const deleteRescue = async (client, { userId, id }) => {
+  const existing = await findOwnedTransaction(client, userId, id);
+
+  if (existing.origin !== 'RESGATE_INFINITEPAY') {
+    throw badRequest('Only InfinitePay redemptions can be undone');
+  }
+
+  await client.financialTransaction.delete({ where: { id } });
+};
+
+// Undoes every redemption created by a single statement import. Idempotent: an
+// already-cleared batch deletes nothing and returns 0.
+const deleteRescueBatch = async (client, { userId, batchId }) => {
+  const result = await client.financialTransaction.deleteMany({
+    where: {
+      userId,
+      origin: 'RESGATE_INFINITEPAY',
+      importBatchId: batchId,
+    },
+  });
+
+  return result.count;
 };
 
 // Totals for the whole filtered set (never a page), computed in integer cents.
@@ -219,10 +265,15 @@ const getSummary = async (client, { userId, query }) => {
 
 export {
   buildWhere,
+  findOwnedTransaction,
   listTransactions,
   createManualTransaction,
   updateManualTransaction,
   deleteManualTransaction,
+  assertSettleableOrder,
+  buildSettlementData,
   createSettlement,
+  deleteRescue,
+  deleteRescueBatch,
   getSummary,
 };
