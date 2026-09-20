@@ -513,6 +513,19 @@ describe('Finances automatic sync', () => {
       );
     });
 
+    it('creates the DESPESA row even when the additional is not charged to the client', async () => {
+      const sale = await saleWithAdditional({
+        additionalValueChargedToClient: false,
+      });
+      expect(sale.status).toBe(201);
+
+      const rows = await getRows({ origin: 'VENDA_ADICIONAL' });
+      expect(rows).toHaveLength(1);
+      expect(rows[0].type).toBe('DESPESA');
+      expect(Number(rows[0].amount)).toBe(20);
+      expect(rows[0].orderId).toBe(sale.body.id);
+    });
+
     it('rejects a sale with additional value and no category', async () => {
       const res = await createSale(
         [{ productId: product.id, chargedValue: 100, quantity: 1 }],

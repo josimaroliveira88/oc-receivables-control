@@ -927,6 +927,108 @@ describe('SalesPage', () => {
     });
   });
 
+  describe('Non-chargeable additional value', () => {
+    const fillItemAndAdditional = () => {
+      fireEvent.change(screen.getByLabelText('Cliente'), {
+        target: { value: 'p1' },
+      });
+      const combobox = screen.getByPlaceholderText('Busque um produto...');
+      fireEvent.change(combobox, { target: { value: 'Lavanda' } });
+      fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '10000' },
+      });
+      fireEvent.change(screen.getByTestId('sale-additional'), {
+        target: { value: '500' },
+      });
+    };
+
+    it('should offer the checkbox only with an additional value and keep it checked by default', async () => {
+      mockGetImplementation([]);
+      renderPage();
+      await openCreateModal();
+
+      expect(
+        screen.queryByTestId('sale-additional-charged'),
+      ).not.toBeInTheDocument();
+
+      fireEvent.change(screen.getByTestId('sale-additional'), {
+        target: { value: '500' },
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('sale-additional-charged')).toBeChecked();
+      });
+    });
+
+    it('should drop the additional value from the total when it is not charged', async () => {
+      mockGetImplementation([]);
+      renderPage();
+      await openCreateModal();
+      fillItemAndAdditional();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('sale-totals-total')).toHaveTextContent(
+          /105,00/,
+        );
+      });
+
+      fireEvent.click(screen.getByTestId('sale-additional-charged'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('sale-totals-total')).toHaveTextContent(
+          /100,00/,
+        );
+      });
+    });
+
+    it('should send additionalValueChargedToClient false when unchecked', async () => {
+      mockPost.mockResolvedValue({
+        data: { id: '9', orderNumber: 'V-0009' },
+      });
+      mockGetImplementation([]);
+      renderPage();
+      await openCreateModal();
+      fillItemAndAdditional();
+      fireEvent.change(screen.getByTestId('sale-additional-expense-category'), {
+        target: { value: 'cat-frete' },
+      });
+      fireEvent.change(
+        screen.getByTestId('sale-additional-expense-description'),
+        { target: { value: 'Custo absorvido' } },
+      );
+      fireEvent.click(screen.getByTestId('sale-additional-charged'));
+
+      const form = screen.getByTestId('sale-freight').closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith(
+          '/sales',
+          expect.objectContaining({ additionalValueChargedToClient: false }),
+        );
+      });
+    });
+
+    it('should pre-fill the checkbox as unchecked when editing a non-chargeable sale', async () => {
+      const nonChargeable = {
+        ...mockSales[1],
+        totalValue: '495.00',
+        additionalValueChargedToClient: false,
+      };
+      mockGetImplementation([nonChargeable]);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getAllByText('Maria Santos').length).toBeGreaterThan(0);
+      });
+      await clickSaleAction('2', 'Editar');
+      await waitFor(() => {
+        expect(screen.getByText('Editar Venda')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('sale-additional-charged')).not.toBeChecked();
+    });
+  });
+
   describe('Polite close on create', () => {
     const typeDescription = () => {
       fireEvent.change(screen.getByLabelText('Descrição da Venda'), {

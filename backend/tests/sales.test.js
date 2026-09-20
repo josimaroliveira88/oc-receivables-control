@@ -195,7 +195,29 @@ describe('Sales orders CRUD', () => {
       expect(res.status).toBe(201);
       expect(parseFloat(res.body.shippingValue)).toBe(0);
       expect(parseFloat(res.body.additionalValue)).toBe(0);
+      expect(res.body.additionalValueChargedToClient).toBe(true);
       expect(parseFloat(res.body.totalValue)).toBe(200);
+      createdSaleIds.push(res.body.id);
+    });
+
+    it('excludes a non-chargeable additional value from the client total', async () => {
+      const res = await request(app)
+        .post('/api/sales')
+        .set('Authorization', `Bearer ${user.token}`)
+        .send(
+          salePayload({
+            shippingValue: 15,
+            additionalValue: 5,
+            additionalValueChargedToClient: false,
+            additionalExpenseCategoryId: expenseCategoryId,
+            additionalExpenseDescription: 'Custo absorvido',
+          }),
+        );
+
+      expect(res.status).toBe(201);
+      expect(res.body.additionalValueChargedToClient).toBe(false);
+      expect(parseFloat(res.body.additionalValue)).toBe(5);
+      expect(parseFloat(res.body.totalValue)).toBe(215);
       createdSaleIds.push(res.body.id);
     });
 
@@ -547,6 +569,66 @@ describe('Sales orders CRUD', () => {
       expect(parseFloat(res.body.shippingValue)).toBe(20);
       expect(parseFloat(res.body.additionalValue)).toBe(4);
       expect(res.body.orderNotes).toBe('Nova');
+      createdSaleIds.push(created.body.id);
+    });
+
+    it('toggles additionalValueChargedToClient and recomputes the total both ways', async () => {
+      const created = await request(app)
+        .post('/api/sales')
+        .set('Authorization', `Bearer ${user.token}`)
+        .send(
+          salePayload({
+            additionalValue: 5,
+            additionalExpenseCategoryId: expenseCategoryId,
+            additionalExpenseDescription: 'Frete adicional',
+          }),
+        );
+      expect(parseFloat(created.body.totalValue)).toBe(205);
+
+      const chargedOff = await request(app)
+        .put(`/api/sales/${created.body.id}`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({ additionalValueChargedToClient: false });
+      expect(chargedOff.status).toBe(200);
+      expect(chargedOff.body.additionalValueChargedToClient).toBe(false);
+      expect(parseFloat(chargedOff.body.totalValue)).toBe(200);
+
+      const chargedOn = await request(app)
+        .put(`/api/sales/${created.body.id}`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({ additionalValueChargedToClient: true });
+      expect(chargedOn.status).toBe(200);
+      expect(chargedOn.body.additionalValueChargedToClient).toBe(true);
+      expect(parseFloat(chargedOn.body.totalValue)).toBe(205);
+      createdSaleIds.push(created.body.id);
+    });
+
+    it('recomputes the total with items and a non-chargeable additional value', async () => {
+      const created = await request(app)
+        .post('/api/sales')
+        .set('Authorization', `Bearer ${user.token}`)
+        .send(salePayload());
+      const itemId = created.body.items[0].id;
+      const res = await request(app)
+        .put(`/api/sales/${created.body.id}`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({
+          additionalValue: 30,
+          additionalValueChargedToClient: false,
+          additionalExpenseCategoryId: expenseCategoryId,
+          additionalExpenseDescription: 'Custo absorvido',
+          items: [
+            {
+              id: itemId,
+              productId: product.id,
+              chargedValue: 100,
+              quantity: 2,
+            },
+          ],
+        });
+      expect(res.status).toBe(200);
+      expect(res.body.additionalValueChargedToClient).toBe(false);
+      expect(parseFloat(res.body.totalValue)).toBe(200);
       createdSaleIds.push(created.body.id);
     });
 

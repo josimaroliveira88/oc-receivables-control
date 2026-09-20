@@ -141,6 +141,49 @@ describe('Sales <-> Payments', () => {
       expect(full.body.order.status).toBe('QUITADO');
     });
 
+    it('ignores a non-chargeable additional value for QUITADO', async () => {
+      const created = await createSale(
+        [{ productId: product.id, chargedValue: 100, quantity: 1 }],
+        {
+          shippingValue: 10,
+          additionalValue: 5,
+          additionalValueChargedToClient: false,
+          additionalExpenseCategoryId: expenseCategoryId,
+          additionalExpenseDescription: 'Custo absorvido',
+        },
+      );
+      expect(parseFloat(created.body.totalValue)).toBe(110);
+      const partial = await pay(created.body.id, 100, client.id);
+      expect(partial.body.order.status).toBe('PARCIAL');
+      const full = await pay(created.body.id, 10, client.id);
+      expect(full.body.order.status).toBe('QUITADO');
+    });
+
+    it('recomputes the status in both directions when the charge flag changes', async () => {
+      const created = await createSale(
+        [{ productId: product.id, chargedValue: 100, quantity: 1 }],
+        {
+          additionalValue: 5,
+          additionalExpenseCategoryId: expenseCategoryId,
+          additionalExpenseDescription: 'Frete adicional',
+        },
+      );
+      const paid = await pay(created.body.id, 100, client.id);
+      expect(paid.body.order.status).toBe('PARCIAL');
+
+      const absorbed = await request(app)
+        .put(`/api/sales/${created.body.id}`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({ additionalValueChargedToClient: false });
+      expect(absorbed.body.status).toBe('QUITADO');
+
+      const chargedAgain = await request(app)
+        .put(`/api/sales/${created.body.id}`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({ additionalValueChargedToClient: true });
+      expect(chargedAgain.body.status).toBe('PARCIAL');
+    });
+
     it('accepts overpayments and clamps pending to zero in the balance', async () => {
       const created = await createSale([
         { productId: product.id, chargedValue: 50, quantity: 1 },
@@ -481,6 +524,27 @@ describe('Sales <-> Payments', () => {
       expect(res.body.balances[0].itemTotal).toBe(200);
       expect(res.body.balances[0].paymentTotal).toBe(150);
       expect(res.body.balances[0].pending).toBe(65);
+    });
+
+    it('excludes a non-chargeable additional value from the client pending', async () => {
+      const created = await createSale(
+        [{ productId: product.id, chargedValue: 100, quantity: 2 }],
+        {
+          shippingValue: 10,
+          additionalValue: 5,
+          additionalValueChargedToClient: false,
+          additionalExpenseCategoryId: expenseCategoryId,
+          additionalExpenseDescription: 'Custo absorvido',
+        },
+      );
+      await pay(created.body.id, 150, client.id);
+      const res = await request(app)
+        .get(`/api/orders/${created.body.id}/balance`)
+        .set('Authorization', `Bearer ${user.token}`);
+      expect(res.status).toBe(200);
+      expect(res.body.balances[0].itemTotal).toBe(200);
+      expect(res.body.balances[0].paymentTotal).toBe(150);
+      expect(res.body.balances[0].pending).toBe(60);
     });
 
     it('reaches pending zero only after the client pays the charges too', async () => {

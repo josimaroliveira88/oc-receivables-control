@@ -49,6 +49,7 @@ describe('order status backfill', () => {
     status,
     itemCents,
     additionalCents = 0,
+    additionalValueChargedToClient = true,
     paymentCents = null,
   }) => {
     const personId = await makePerson();
@@ -58,6 +59,7 @@ describe('order status backfill', () => {
         orderType: 'VENDA',
         totalValue: itemCents + additionalCents,
         additionalValue: additionalCents,
+        additionalValueChargedToClient,
         status,
         userId,
         items: {
@@ -87,6 +89,22 @@ describe('order status backfill', () => {
     expect(changes).toEqual([{ id: order.id, from: 'QUITADO', to: 'PARCIAL' }]);
     const updated = await prisma.order.findUnique({ where: { id: order.id } });
     expect(updated.status).toBe('PARCIAL');
+  });
+
+  it('does not require a non-chargeable additional value for QUITADO', async () => {
+    const order = await makeStaleOrder({
+      status: 'QUITADO',
+      itemCents: 304.76,
+      additionalCents: 2.0,
+      additionalValueChargedToClient: false,
+      paymentCents: 304.76,
+    });
+
+    const changes = await syncOrderStatuses(prisma, [order.id]);
+
+    expect(changes).toEqual([]);
+    const updated = await prisma.order.findUnique({ where: { id: order.id } });
+    expect(updated.status).toBe('QUITADO');
   });
 
   it('reports divergences without persisting when dryRun is true', async () => {
