@@ -1691,4 +1691,183 @@ describe('SalesPage', () => {
       });
     });
   });
+
+  describe('Sale attachment', () => {
+    const saleWithAttachment = {
+      ...mockSales[0],
+      id: 'att-1',
+      orderNumber: 'V-ATT1',
+      attachmentFilename: 'foto.png',
+    };
+
+    const mockGetWithAttachment = (salesData = [saleWithAttachment]) => {
+      mockGet.mockImplementation((url) => {
+        if (url === '/sales') return Promise.resolve({ data: salesData });
+        if (url === '/people') return Promise.resolve({ data: mockPeople });
+        if (url.startsWith('/products'))
+          return Promise.resolve({ data: { data: mockProducts } });
+        if (url === '/finances/categories')
+          return Promise.resolve({ data: mockExpenseCategories });
+        if (url.endsWith('/attachment'))
+          return Promise.resolve({
+            data: new Blob(['foto'], { type: 'image/png' }),
+          });
+        return Promise.resolve({ data: [] });
+      });
+    };
+
+    const makePngFile = () =>
+      new File(['foto'], 'foto.png', { type: 'image/png' });
+
+    const fillMinimalSale = () => {
+      fireEvent.change(screen.getByLabelText('Cliente'), {
+        target: { value: 'p1' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('Busque um produto...'), {
+        target: { value: 'Adaptiv' },
+      });
+      fireEvent.mouseDown(screen.getByText(/Adaptiv Pastilhas/));
+      fireEvent.change(screen.getByPlaceholderText('0,00'), {
+        target: { value: '10000' },
+      });
+    };
+
+    it('should render a thumbnail for a sale with an attachment', async () => {
+      mockGetWithAttachment();
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('sale-thumbnail-att-1')).toBeInTheDocument();
+    });
+
+    it('should not render a thumbnail for a sale without an attachment', async () => {
+      mockGetImplementation(mockSales);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+      expect(screen.queryByTestId('sale-thumbnail-1')).not.toBeInTheDocument();
+    });
+
+    it('should open the expanded preview when the thumbnail is clicked', async () => {
+      mockGetWithAttachment();
+      renderPage();
+      const thumbnail = await screen.findByTestId('sale-thumbnail-att-1');
+      fireEvent.click(thumbnail);
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('attachment-preview-image'),
+        ).toBeInTheDocument();
+      });
+      expect(screen.getByText('Anexo da Venda V-ATT1')).toBeInTheDocument();
+    });
+
+    it('should toggle the size when the preview image itself is clicked', async () => {
+      mockGetWithAttachment();
+      renderPage();
+      fireEvent.click(await screen.findByTestId('sale-thumbnail-att-1'));
+      const image = await screen.findByTestId('attachment-preview-image');
+      const expandButton = screen.getByTestId('attachment-preview-expand');
+
+      expect(expandButton).toHaveAttribute('aria-pressed', 'false');
+      expect(image.className).toContain('max-h-[70vh]');
+
+      fireEvent.click(image);
+
+      expect(expandButton).toHaveAttribute('aria-pressed', 'true');
+      expect(image.className).toContain('max-h-[85vh]');
+
+      fireEvent.click(image);
+
+      expect(expandButton).toHaveAttribute('aria-pressed', 'false');
+      expect(image.className).toContain('max-h-[70vh]');
+    });
+
+    it('should display the photo input in the create modal', async () => {
+      mockGetImplementation(mockSales);
+      renderPage();
+      await openCreateModal();
+      expect(screen.getByTestId('sale-attachment-input')).toBeInTheDocument();
+    });
+
+    it('should upload the photo after creating a sale with an attachment', async () => {
+      mockGetImplementation(mockSales);
+      mockPost.mockResolvedValue({
+        data: { id: 'new-sale', orderNumber: 'V-0009' },
+      });
+      renderPage();
+      await openCreateModal();
+      fillMinimalSale();
+      fireEvent.change(screen.getByTestId('sale-attachment-input'), {
+        target: { files: [makePngFile()] },
+      });
+      fireEvent.submit(screen.getByTestId('sale-freight').closest('form'));
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith(
+          '/sales/new-sale/attachment',
+          expect.any(FormData),
+        );
+      });
+    });
+
+    it('should show the existing photo with a remove option when editing', async () => {
+      mockGetWithAttachment();
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+      await clickSaleAction('att-1', 'Editar');
+      await waitFor(() => {
+        expect(screen.getByText('Editar Venda')).toBeInTheDocument();
+      });
+      expect(
+        screen.getByTestId('sale-attachment-existing'),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('sale-attachment-remove')).toBeInTheDocument();
+    });
+
+    it('should delete the photo when removing it and updating the sale', async () => {
+      mockGetWithAttachment();
+      mockPut.mockResolvedValue({ data: { id: 'att-1' } });
+      mockDelete.mockResolvedValue({ data: { message: 'ok' } });
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+      await clickSaleAction('att-1', 'Editar');
+      await waitFor(() => {
+        expect(screen.getByText('Editar Venda')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByTestId('sale-attachment-remove'));
+      fireEvent.submit(screen.getByTestId('sale-freight').closest('form'));
+      await waitFor(() => {
+        expect(mockDelete).toHaveBeenCalledWith('/sales/att-1/attachment');
+      });
+    });
+
+    it('should upload a new photo after updating the sale', async () => {
+      mockGetImplementation(mockSales);
+      mockPut.mockResolvedValue({ data: { id: '1', orderNumber: 'V-0001' } });
+      mockPost.mockResolvedValue({ data: { attachmentFilename: 'new.png' } });
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+      await clickSaleAction('1', 'Editar');
+      await waitFor(() => {
+        expect(screen.getByText('Editar Venda')).toBeInTheDocument();
+      });
+      fireEvent.change(screen.getByTestId('sale-attachment-input'), {
+        target: { files: [makePngFile()] },
+      });
+      fireEvent.submit(screen.getByTestId('sale-freight').closest('form'));
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith(
+          '/sales/1/attachment',
+          expect.any(FormData),
+        );
+      });
+    });
+  });
 });
