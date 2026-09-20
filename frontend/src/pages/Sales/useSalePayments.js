@@ -21,6 +21,7 @@ import { getSaleClientName, getSalePendingCents } from './utils/saleHelpers';
 export function useSalePayments({ refreshSales, sales = [], loading = false }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const detailsDeepLinkRef = useRef(false);
+  const paymentDoneRef = useRef(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);
   const [balances, setBalances] = useState([]);
@@ -58,47 +59,66 @@ export function useSalePayments({ refreshSales, sales = [], loading = false }) {
   const { addToast } = useToast();
 
   // A sale has a single fixed client; the first balance is auto-selected.
-  const openPaymentModal = async (sale) => {
+  // `prefill` (used by the InfinitePay import) overrides the payment fields and
+  // registers `onDone(submitted)` to run when the payment form closes.
+  const openPaymentModal = async (sale, prefill = {}) => {
+    const resolvedDate = prefill.paymentDate ?? getTodayString();
+    const hasAmountPrefill = prefill.paymentAmount !== undefined;
+
     setSelectedSale(sale);
     setSelectedPersonId('');
-    setPaymentAmount('');
-    setPaymentNetAmount('');
-    setPaymentPassesGatewayFeeToClient(!!sale?.passesGatewayFeeToClient);
-    setPaymentNotes('');
-    setPaymentDate(getTodayString());
-    setPaymentType('');
+    setPaymentAmount(hasAmountPrefill ? prefill.paymentAmount : '');
+    setPaymentNetAmount(prefill.paymentNetAmount ?? '');
+    setPaymentPassesGatewayFeeToClient(
+      prefill.passesGatewayFeeToClient ?? !!sale?.passesGatewayFeeToClient,
+    );
+    setPaymentNotes(prefill.paymentNotes ?? '');
+    setPaymentDate(resolvedDate);
+    setPaymentType(prefill.paymentType ?? '');
     setPaymentError('');
     setBalances([]);
+    paymentDoneRef.current =
+      typeof prefill.onDone === 'function' ? prefill.onDone : null;
 
     try {
       const response = await api.get(`/orders/${sale.id}/balance`);
       const responseBalances = response.data.balances;
       setBalances(responseBalances);
       let selectedPersonId = '';
-      let paymentAmount = '';
+      let paymentAmount = hasAmountPrefill ? prefill.paymentAmount : '';
       if (responseBalances.length > 0) {
         selectedPersonId = responseBalances[0].personId;
-        const firstBalance = responseBalances[0];
-        paymentAmount = toCents(firstBalance.itemTotal) === 0 ? '0' : '';
+        if (!hasAmountPrefill) {
+          paymentAmount =
+            toCents(responseBalances[0].itemTotal) === 0 ? '0' : '';
+        }
         setSelectedPersonId(selectedPersonId);
         setPaymentAmount(paymentAmount);
       }
       setPaymentInitial({
         selectedPersonId,
         paymentAmount,
-        paymentNetAmount: '',
-        paymentPassesGatewayFeeToClient: !!sale?.passesGatewayFeeToClient,
-        paymentNotes: '',
-        paymentDate: getTodayString(),
-        paymentType: '',
+        paymentNetAmount: prefill.paymentNetAmount ?? '',
+        paymentPassesGatewayFeeToClient:
+          prefill.passesGatewayFeeToClient ?? !!sale?.passesGatewayFeeToClient,
+        paymentNotes: prefill.paymentNotes ?? '',
+        paymentDate: resolvedDate,
+        paymentType: prefill.paymentType ?? '',
       });
       setShowPaymentModal(true);
     } catch (_err) {
+      paymentDoneRef.current = null;
       addToast('Erro ao carregar saldo da venda.', 'error');
+      if (typeof prefill.onDone === 'function') prefill.onDone(false);
     }
   };
 
+  const openPaymentModalPrefilled = (sale, prefill) =>
+    openPaymentModal(sale, prefill);
+
   const closePaymentModal = () => {
+    const done = paymentDoneRef.current;
+    paymentDoneRef.current = null;
     setShowPaymentModal(false);
     setSelectedSale(null);
     setBalances([]);
@@ -111,6 +131,7 @@ export function useSalePayments({ refreshSales, sales = [], loading = false }) {
     setPaymentType('');
     setPaymentError('');
     setPaymentInitial(null);
+    if (done) done(false);
   };
 
   const handleChangeAmount = (value) => {
@@ -161,8 +182,11 @@ export function useSalePayments({ refreshSales, sales = [], loading = false }) {
         }),
       );
       addToast('Pagamento registrado com sucesso!', 'success');
+      const done = paymentDoneRef.current;
+      paymentDoneRef.current = null;
       closePaymentModal();
       refreshSales();
+      if (done) done(true);
     } catch (err) {
       const msg =
         err.response?.data?.error ||
@@ -549,6 +573,7 @@ export function useSalePayments({ refreshSales, sales = [], loading = false }) {
     detailSale,
     detailLoading,
     openPaymentModal,
+    openPaymentModalPrefilled,
     closePaymentModal,
     handleChangeAmount,
     handleChangeNetAmount,

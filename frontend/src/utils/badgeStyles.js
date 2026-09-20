@@ -37,6 +37,13 @@ export const PAYMENT_TYPE_CLASSES = {
 
 export const PAYMENT_TYPE_FALLBACK = 'bg-base text-ink-soft';
 
+// InfinitePay import: how a suggestion matched the statement row (gross value
+// charged vs net value received).
+export const INFINITEPAY_MATCH_CLASSES = {
+  gross: 'bg-info-soft text-info-fg',
+  net: 'bg-mystic-soft text-mystic-fg',
+};
+
 export const ORDER_ORIGIN_CLASSES = {
   user: 'bg-base text-ink-soft',
   team: 'bg-mystic-soft text-mystic-fg',
