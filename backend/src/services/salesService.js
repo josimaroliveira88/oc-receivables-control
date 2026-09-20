@@ -19,9 +19,32 @@ import {
   sortSalesInMemory,
 } from '../utils/salesHelpers.js';
 import { badRequest, notFound } from '../utils/httpError.js';
+import { syncAdditionalExpenseFromSale } from './financeSyncService.js';
 
 const saleLineTotalCents = (items) =>
   items.reduce((sum, item) => sum + lineValueCents(item), 0);
+
+// Flattens the linked "Valores Adicionais" expense (when the sale was loaded
+// with `financialTransactions`) into the two fields the sale form consumes.
+const decorateSale = (sale) => {
+  const { financialTransactions, ...rest } = sale;
+  const expense = financialTransactions?.find(
+    (transaction) => transaction.origin === 'VENDA_ADICIONAL',
+  );
+  return {
+    ...rest,
+    additionalExpenseCategoryId: expense?.categoryId ?? null,
+    additionalExpenseDescription: expense?.description ?? null,
+  };
+};
+
+// Same output shape for write responses, which carry the expense row returned
+// by the sync instead of an included relation.
+const attachAdditionalExpense = (sale, expense) => ({
+  ...sale,
+  additionalExpenseCategoryId: expense?.categoryId ?? null,
+  additionalExpenseDescription: expense?.description ?? null,
+});
 
 const saleItemCreateData = (item) => ({
   description: item.description || null,
@@ -230,11 +253,18 @@ const getSales = async (client, { userId, query }) => {
           person: true,
         },
       },
+      financialTransactions: {
+        where: { origin: 'VENDA_ADICIONAL' },
+        select: { origin: true, categoryId: true, description: true },
+      },
     },
     orderBy,
   });
 
-  return inMemorySort ? sortSalesInMemory(sales, sortBy, sortDir) : sales;
+  const decorated = sales.map(decorateSale);
+  return inMemorySort
+    ? sortSalesInMemory(decorated, sortBy, sortDir)
+    : decorated;
 };
 
 const getSaleById = async (client, { id, userId }) => {
@@ -252,6 +282,10 @@ const getSaleById = async (client, { id, userId }) => {
           person: true,
         },
       },
+      financialTransactions: {
+        where: { origin: 'VENDA_ADICIONAL' },
+        select: { origin: true, categoryId: true, description: true },
+      },
     },
   });
 
@@ -259,7 +293,7 @@ const getSaleById = async (client, { id, userId }) => {
     throw notFound('Sale order not found');
   }
 
-  return sale;
+  return decorateSale(sale);
 };
 
 const createSale = async (client, { userId, payload }) => {
@@ -355,7 +389,15 @@ const createSale = async (client, { userId, payload }) => {
       }
     }
 
-    return order;
+    // "Valores Adicionais" also become a linked DESPESA in the ledger.
+    const expense = await syncAdditionalExpenseFromSale(tx, {
+      userId,
+      order,
+      categoryId: payload.additionalExpenseCategoryId,
+      description: payload.additionalExpenseDescription,
+    });
+
+    return attachAdditionalExpense(order, expense);
   });
 };
 
@@ -449,6 +491,20 @@ const updateSale = async (client, { id, userId, payload }) => {
           await tx.order.update({ where: { id }, data: { status: newStatus } });
           order.status = newStatus;
         }
+      }
+
+      const expenseFieldsProvided =
+        payload.additionalExpenseCategoryId !== undefined ||
+        payload.additionalExpenseDescription !== undefined;
+
+      if (additionalChanged || expenseFieldsProvided) {
+        const expense = await syncAdditionalExpenseFromSale(tx, {
+          userId,
+          order,
+          categoryId: payload.additionalExpenseCategoryId,
+          description: payload.additionalExpenseDescription,
+        });
+        return attachAdditionalExpense(order, expense);
       }
 
       return order;
@@ -582,6 +638,19 @@ const updateSale = async (client, { id, userId, payload }) => {
         data: { status: newStatus },
       });
       order.status = updated.status;
+    }
+
+    const expenseFieldsProvided =
+      payload.additionalExpenseCategoryId !== undefined ||
+      payload.additionalExpenseDescription !== undefined;
+    if (payload.additionalValue !== undefined || expenseFieldsProvided) {
+      const expense = await syncAdditionalExpenseFromSale(tx, {
+        userId,
+        order,
+        categoryId: payload.additionalExpenseCategoryId,
+        description: payload.additionalExpenseDescription,
+      });
+      return attachAdditionalExpense(order, expense);
     }
 
     return order;

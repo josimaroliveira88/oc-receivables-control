@@ -9,6 +9,7 @@ const transactionOriginSchema = z.enum([
   'VENDA',
   'RESGATE_INFINITEPAY',
   'PEDIDO_DOTERRA',
+  'VENDA_ADICIONAL',
   'MANUAL',
 ]);
 

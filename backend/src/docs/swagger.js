@@ -155,7 +155,13 @@ const options = {
         },
         FinancialOrigin: {
           type: 'string',
-          enum: ['VENDA', 'RESGATE_INFINITEPAY', 'PEDIDO_DOTERRA', 'MANUAL'],
+          enum: [
+            'VENDA',
+            'RESGATE_INFINITEPAY',
+            'PEDIDO_DOTERRA',
+            'VENDA_ADICIONAL',
+            'MANUAL',
+          ],
         },
         FinancialTransaction: {
           type: 'object',
@@ -506,6 +512,16 @@ const options = {
             orderDate: { type: 'string', example: '2026-09-07' },
             shippingValue: { type: 'number', minimum: 0, nullable: true },
             additionalValue: { type: 'number', minimum: 0, nullable: true },
+            additionalExpenseCategoryId: {
+              type: 'string',
+              format: 'uuid',
+              nullable: true,
+            },
+            additionalExpenseDescription: {
+              type: 'string',
+              maxLength: 255,
+              nullable: true,
+            },
             description: { type: 'string', maxLength: 2000, nullable: true },
             deliveredAt: { type: 'string', nullable: true },
             items: {
@@ -522,6 +538,16 @@ const options = {
             orderDate: { type: 'string', example: '2026-09-07' },
             shippingValue: { type: 'number', minimum: 0, nullable: true },
             additionalValue: { type: 'number', minimum: 0, nullable: true },
+            additionalExpenseCategoryId: {
+              type: 'string',
+              format: 'uuid',
+              nullable: true,
+            },
+            additionalExpenseDescription: {
+              type: 'string',
+              maxLength: 255,
+              nullable: true,
+            },
             description: { type: 'string', maxLength: 2000, nullable: true },
             deliveredAt: { type: 'string', nullable: true },
             items: {

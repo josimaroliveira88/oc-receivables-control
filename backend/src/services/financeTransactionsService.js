@@ -9,6 +9,7 @@ import { fromCents, toCents } from '../utils/money.js';
 import { paymentFeeCents } from '../utils/paymentFee.js';
 import { parseLocalDate } from '../utils/date.js';
 import { badRequest, notFound } from '../utils/httpError.js';
+import { assertCategoryMatches } from '../utils/financeCategory.js';
 import { resolveCategoryId } from './financeSyncService.js';
 
 // Adds the derived gateway fee (informative only) when the row is linked to a
@@ -42,24 +43,6 @@ const buildWhere = (userId, query = {}) => {
   }
 
   return where;
-};
-
-// A category, when informed, must belong to the user and match the entry type.
-// `null` is valid and means "no category".
-const assertCategoryMatches = async (client, userId, { categoryId, type }) => {
-  if (categoryId === undefined || categoryId === null) return;
-
-  const category = await client.financialCategory.findFirst({
-    where: { id: categoryId, userId },
-  });
-
-  if (!category) {
-    throw badRequest('Category not found');
-  }
-
-  if (category.type !== type) {
-    throw badRequest('Category type does not match the transaction type');
-  }
 };
 
 const findOwnedTransaction = async (client, userId, id) => {

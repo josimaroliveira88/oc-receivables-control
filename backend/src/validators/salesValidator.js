@@ -43,6 +43,19 @@ const createSaleSchema = z.object({
     .optional()
     .nullable()
     .default(0),
+  // Expense generated from "Valores Adicionais". Both are required by the
+  // service whenever the additional value is greater than zero.
+  additionalExpenseCategoryId: z
+    .string()
+    .uuid('Expense category ID must be a valid UUID')
+    .optional()
+    .nullable(),
+  additionalExpenseDescription: z
+    .string()
+    .trim()
+    .max(255, 'Expense description must be at most 255 characters')
+    .optional()
+    .nullable(),
   description: z
     .string()
     .max(2000, 'Description must be at most 2000 characters')
@@ -65,6 +78,19 @@ const updateSaleSchema = z.object({
   additionalValue: z
     .number()
     .min(0, 'Additional value must not be negative')
+    .optional()
+    .nullable(),
+  // Expense generated from "Valores Adicionais". Both are required by the
+  // service whenever the effective additional value is greater than zero.
+  additionalExpenseCategoryId: z
+    .string()
+    .uuid('Expense category ID must be a valid UUID')
+    .optional()
+    .nullable(),
+  additionalExpenseDescription: z
+    .string()
+    .trim()
+    .max(255, 'Expense description must be at most 255 characters')
     .optional()
     .nullable(),
   description: z

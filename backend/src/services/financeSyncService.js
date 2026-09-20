@@ -8,6 +8,9 @@
 // and deleting it removes the row (also covered by the FK cascade). Only
 // MANUAL rows are editable through the finances endpoints.
 import { getDefaultCategoryName } from '../utils/financeDefaults.js';
+import { assertCategoryMatches } from '../utils/financeCategory.js';
+import { toCents } from '../utils/money.js';
+import { badRequest } from '../utils/httpError.js';
 
 // Looks up the user's default category for an automatic origin. Returns `null`
 // when no default applies (MANUAL) or when the category no longer exists, so
@@ -128,6 +131,68 @@ const syncExpenseFromOrder = async (client, { userId, order }) => {
   return client.financialTransaction.create({ data });
 };
 
+// Creates/updates the single expense row derived from a sale's "Valores
+// Adicionais" (extra charges the user also records as a cost), or removes it
+// when the sale carries no additional value or is a team order. The category
+// and description are user-provided, so they are required whenever the expense
+// exists; the category must be the user's and of type DESPESA.
+const syncAdditionalExpenseFromSale = async (
+  client,
+  { userId, order, categoryId, description },
+) => {
+  if (order.isTeamOrder || toCents(order.additionalValue ?? 0) <= 0) {
+    await client.financialTransaction.deleteMany({
+      where: { orderId: order.id, origin: 'VENDA_ADICIONAL' },
+    });
+    return null;
+  }
+
+  const existing = await client.financialTransaction.findFirst({
+    where: { orderId: order.id, origin: 'VENDA_ADICIONAL' },
+  });
+
+  // A scalar update that does not touch the expense (e.g. toggling delivery)
+  // keeps the stored category/description; the required-again rule only bites
+  // when there is nothing to fall back to.
+  const effectiveCategoryId = categoryId ?? existing?.categoryId ?? null;
+  const effectiveDescription =
+    description != null && String(description).trim()
+      ? String(description).trim()
+      : (existing?.description ?? '');
+
+  if (!effectiveCategoryId) {
+    throw badRequest('A categoria da despesa é obrigatória');
+  }
+  if (!effectiveDescription) {
+    throw badRequest('A descrição da despesa é obrigatória');
+  }
+
+  await assertCategoryMatches(client, userId, {
+    categoryId: effectiveCategoryId,
+    type: 'DESPESA',
+  });
+
+  const data = {
+    userId,
+    type: 'DESPESA',
+    origin: 'VENDA_ADICIONAL',
+    amount: order.additionalValue,
+    description: effectiveDescription,
+    transactionDate: order.orderDate,
+    categoryId: effectiveCategoryId,
+    orderId: order.id,
+  };
+
+  if (existing) {
+    return client.financialTransaction.update({
+      where: { id: existing.id },
+      data,
+    });
+  }
+
+  return client.financialTransaction.create({ data });
+};
+
 export {
   resolveCategoryId,
   removeIncomeForPayment,
@@ -136,4 +201,5 @@ export {
   orderHasMultipleClients,
   syncIncomeFromPayment,
   syncExpenseFromOrder,
+  syncAdditionalExpenseFromSale,
 };
