@@ -22,6 +22,7 @@ export function useSalePayments({ refreshSales, sales = [], loading = false }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const detailsDeepLinkRef = useRef(false);
   const paymentDoneRef = useRef(null);
+  const editPaymentDoneRef = useRef(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);
   const [balances, setBalances] = useState([]);
@@ -267,35 +268,84 @@ export function useSalePayments({ refreshSales, sales = [], loading = false }) {
     setShowOverpayConfirm(false);
   };
 
-  const openEditPaymentModal = (payment) => {
-    const paymentAmount = String(parseFloat(payment.amount));
-    const paymentNetAmount =
-      payment.netAmount != null ? String(parseFloat(payment.netAmount)) : '';
-    const paymentNotes = payment.notes || '';
-    const paymentDate = toLocalDateInput(payment.paidAt);
-    const paymentType = payment.paymentType || '';
-    const passesGatewayFeeToClient = !!detailSale?.passesGatewayFeeToClient;
+  // Seeds the edit-payment form from a payment. `overrides` replaces the
+  // statement-derived fields when the form is opened from the InfinitePay
+  // import (see `openEditPaymentModalPrefilled`); `sale` supplies the
+  // sale-level fee flag default without reading stale `detailSale` state.
+  const applyEditPaymentForm = (payment, overrides = {}, sale = detailSale) => {
+    const amount =
+      overrides.paymentAmount !== undefined
+        ? overrides.paymentAmount
+        : String(parseFloat(payment.amount));
+    const netAmount =
+      overrides.paymentNetAmount !== undefined
+        ? overrides.paymentNetAmount
+        : payment.netAmount != null
+          ? String(parseFloat(payment.netAmount))
+          : '';
+    const notes =
+      overrides.paymentNotes !== undefined
+        ? overrides.paymentNotes
+        : payment.notes || '';
+    const date =
+      overrides.paymentDate !== undefined
+        ? overrides.paymentDate
+        : toLocalDateInput(payment.paidAt);
+    const type =
+      overrides.paymentType !== undefined
+        ? overrides.paymentType
+        : payment.paymentType || '';
+    const passesGatewayFeeToClient =
+      overrides.passesGatewayFeeToClient !== undefined
+        ? overrides.passesGatewayFeeToClient
+        : !!sale?.passesGatewayFeeToClient;
+
     setEditingPayment(payment);
-    setEditPaymentAmount(paymentAmount);
-    setEditPaymentNetAmount(paymentNetAmount);
+    setEditPaymentAmount(amount);
+    setEditPaymentNetAmount(netAmount);
     setEditPaymentPassesGatewayFeeToClient(passesGatewayFeeToClient);
-    setEditPaymentNotes(paymentNotes);
-    setEditPaymentDate(paymentDate);
-    setEditPaymentType(paymentType);
+    setEditPaymentNotes(notes);
+    setEditPaymentDate(date);
+    setEditPaymentType(type);
     setEditPaymentError('');
     setShowEditOverpayConfirm(false);
     setEditPaymentInitial({
-      paymentAmount,
-      paymentNetAmount,
+      paymentAmount: amount,
+      paymentNetAmount: netAmount,
       paymentPassesGatewayFeeToClient: passesGatewayFeeToClient,
-      paymentNotes,
-      paymentDate,
-      paymentType,
+      paymentNotes: notes,
+      paymentDate: date,
+      paymentType: type,
     });
     setShowEditPaymentModal(true);
   };
 
+  const openEditPaymentModal = (payment) => applyEditPaymentForm(payment);
+
+  // Opens the edit form for an InfinitePay payment already on a sale, using the
+  // imported statement values (used when the pending balance is just the
+  // gateway fee). Loads the balance so the modal shows the pending total, and
+  // mirrors the creation callback through `prefill.onDone`.
+  const openEditPaymentModalPrefilled = async (sale, payment, prefill = {}) => {
+    editPaymentDoneRef.current =
+      typeof prefill.onDone === 'function' ? prefill.onDone : null;
+    setDetailSale(sale);
+    setDetailBalances([]);
+
+    try {
+      const response = await api.get(`/orders/${sale.id}/balance`);
+      setDetailBalances(response.data.balances || []);
+      applyEditPaymentForm(payment, prefill, sale);
+    } catch (_err) {
+      editPaymentDoneRef.current = null;
+      addToast('Erro ao carregar saldo da venda.', 'error');
+      if (typeof prefill.onDone === 'function') prefill.onDone(false);
+    }
+  };
+
   const closeEditPaymentModal = () => {
+    const done = editPaymentDoneRef.current;
+    editPaymentDoneRef.current = null;
     setShowEditPaymentModal(false);
     setEditingPayment(null);
     setEditPaymentAmount('');
@@ -307,6 +357,7 @@ export function useSalePayments({ refreshSales, sales = [], loading = false }) {
     setEditPaymentError('');
     setShowEditOverpayConfirm(false);
     setEditPaymentInitial(null);
+    if (done) done(false);
   };
 
   const handleChangeEditAmount = (value) => {
@@ -365,6 +416,8 @@ export function useSalePayments({ refreshSales, sales = [], loading = false }) {
         }),
       );
       addToast('Pagamento atualizado com sucesso!', 'success');
+      const done = editPaymentDoneRef.current;
+      editPaymentDoneRef.current = null;
       closeEditPaymentModal();
       if (detailSale) {
         setDetailSale({
@@ -393,6 +446,7 @@ export function useSalePayments({ refreshSales, sales = [], loading = false }) {
         await refreshDetailBalance();
       }
       refreshSales();
+      if (done) done(true);
     } catch (err) {
       const msg =
         err.response?.data?.error ||
@@ -605,6 +659,7 @@ export function useSalePayments({ refreshSales, sales = [], loading = false }) {
     editIsZeroItem,
     editPersonName,
     openEditPaymentModal,
+    openEditPaymentModalPrefilled,
     closeEditPaymentModal,
     handleChangeEditAmount,
     handleChangeEditNetAmount,

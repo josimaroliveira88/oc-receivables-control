@@ -1,12 +1,31 @@
 import { useCallback, useState } from 'react';
 import api from '../../services/api';
-import { buildPaymentPrefill } from './utils/infinitepayHelpers';
+import {
+  buildEditPaymentPrefill,
+  buildPaymentPrefill,
+} from './utils/infinitepayHelpers';
+
+// The payment the import should correct when the matched sale already carries
+// an InfinitePay charge: the most recently registered one (by `createdAt`).
+const findInfinitePayPayment = (sale) =>
+  [...(sale?.payments ?? [])]
+    .filter((payment) => payment.paymentType === 'INFINITE_PAY')
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt || 0).getTime() -
+        new Date(a.createdAt || 0).getTime(),
+    )[0] ?? null;
 
 // State and I/O for the InfinitePay statement import modal. Uploads the CSV,
 // keeps the suggested matches, and opens the payment form pre-filled when the
-// user picks a sale. Marking a row as used happens only after the payment is
-// actually registered (via the `onDone` callback handed to the payment hook).
-export function useInfinitePayImport({ openPrefilled } = {}) {
+// user picks a sale. When the sale already has an InfinitePay payment the edit
+// form is opened with the statement values, so the user corrects the existing
+// charge instead of creating a duplicate. Marking a row as used happens only
+// after the form is submitted (via the `onDone` callback handed to the hook).
+export function useInfinitePayImport({
+  openPrefilled,
+  openEditPrefilled,
+} = {}) {
   const [isOpen, setIsOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selecting, setSelecting] = useState(false);
@@ -62,26 +81,45 @@ export function useInfinitePayImport({ openPrefilled } = {}) {
     setExpandedLine((current) => (current === line ? null : line));
   }, []);
 
-  // Opens the pre-filled payment form for a suggested sale. The import modal is
-  // reopened when the payment form closes: on success the row is marked used,
-  // on cancel it stays available.
+  // Opens the pre-filled payment form for a suggested sale: the edit form when
+  // the sale already has an InfinitePay payment, the create form otherwise. The
+  // import modal is reopened when the form closes: on success the row is marked
+  // used, on cancel it stays available.
   const selectSale = useCallback(
     async (row, match) => {
-      if (typeof openPrefilled !== 'function') return;
+      if (
+        typeof openPrefilled !== 'function' &&
+        typeof openEditPrefilled !== 'function'
+      ) {
+        return;
+      }
 
       setSelecting(true);
       setError('');
       try {
         const response = await api.get(`/sales/${match.saleId}`);
+        const sale = response.data;
+        const existingInfinitePay = findInfinitePayPayment(sale);
         setIsOpen(false);
-        openPrefilled(response.data, {
+
+        const onDone = (submitted) => {
+          if (submitted) {
+            setUsedLines((previous) => new Set(previous).add(row.line));
+          }
+          setIsOpen(true);
+        };
+
+        if (existingInfinitePay && typeof openEditPrefilled === 'function') {
+          openEditPrefilled(sale, existingInfinitePay, {
+            ...buildEditPaymentPrefill(row, match, existingInfinitePay),
+            onDone,
+          });
+          return;
+        }
+
+        openPrefilled(sale, {
           ...buildPaymentPrefill(row, match),
-          onDone: (submitted) => {
-            if (submitted) {
-              setUsedLines((previous) => new Set(previous).add(row.line));
-            }
-            setIsOpen(true);
-          },
+          onDone,
         });
       } catch (err) {
         setError(
@@ -92,7 +130,7 @@ export function useInfinitePayImport({ openPrefilled } = {}) {
         setSelecting(false);
       }
     },
-    [openPrefilled],
+    [openPrefilled, openEditPrefilled],
   );
 
   return {

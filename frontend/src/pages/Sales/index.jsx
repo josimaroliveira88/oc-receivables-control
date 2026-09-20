@@ -135,6 +135,7 @@ const SalesPage = () => {
     editIsZeroItem,
     editPersonName,
     openEditPaymentModal,
+    openEditPaymentModalPrefilled,
     closeEditPaymentModal,
     handleChangeEditAmount,
     handleChangeEditNetAmount,
@@ -160,7 +161,10 @@ const SalesPage = () => {
     close: closeImport,
     toggleRow: toggleImportRow,
     selectSale: selectImportSale,
-  } = useInfinitePayImport({ openPrefilled: openPaymentModalPrefilled });
+  } = useInfinitePayImport({
+    openPrefilled: openPaymentModalPrefilled,
+    openEditPrefilled: openEditPaymentModalPrefilled,
+  });
 
   const importFileInputRef = useRef(null);
 

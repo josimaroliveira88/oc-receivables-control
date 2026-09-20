@@ -25,3 +25,21 @@ export const buildPaymentPrefill = (row, match) => ({
   paymentNotes: `InfinitePay · NSU ${row.nsu}`,
   passesGatewayFeeToClient: match.matchType === 'net',
 });
+
+// Edit-form prefill used when the matched sale already has an InfinitePay
+// payment that needs correcting (e.g. only the net was registered and the
+// pending balance is the gateway fee). It reuses the create prefill for the
+// statement-derived fields and appends the NSU to the notes the payment already
+// carries, so the original annotation is preserved.
+export const buildEditPaymentPrefill = (row, match, existingPayment = {}) => {
+  const baseNotes =
+    typeof existingPayment.notes === 'string'
+      ? existingPayment.notes.trim()
+      : '';
+  const nsuNote = `InfinitePay · NSU ${row.nsu}`;
+
+  return {
+    ...buildPaymentPrefill(row, match),
+    paymentNotes: baseNotes ? `${baseNotes} · ${nsuNote}` : nsuNote,
+  };
+};
