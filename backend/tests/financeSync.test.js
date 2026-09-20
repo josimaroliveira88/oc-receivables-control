@@ -472,4 +472,168 @@ describe('Finances automatic sync', () => {
       expect(await getRows({ origin: 'PEDIDO_DOTERRA' })).toHaveLength(0);
     });
   });
+
+  describe('sale additional value -> expense', () => {
+    let expenseCategory;
+    let receitaCategory;
+
+    beforeAll(async () => {
+      expenseCategory = await getCategory('DESPESA', 'Frete');
+      receitaCategory = await getCategory('RECEITA', 'Vendas');
+    });
+
+    const saleWithAdditional = (extra = {}) =>
+      createSale([{ productId: product.id, chargedValue: 100, quantity: 1 }], {
+        additionalValue: 20,
+        additionalExpenseCategoryId: expenseCategory.id,
+        additionalExpenseDescription: 'Frete extra',
+        ...extra,
+      });
+
+    const updateSale = (saleId, body) =>
+      request(app)
+        .put(`/api/sales/${saleId}`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .send(body);
+
+    it('creates one DESPESA row linked to the sale', async () => {
+      const sale = await saleWithAdditional();
+      expect(sale.status).toBe(201);
+
+      const rows = await getRows({ origin: 'VENDA_ADICIONAL' });
+      expect(rows).toHaveLength(1);
+      expect(rows[0].type).toBe('DESPESA');
+      expect(Number(rows[0].amount)).toBe(20);
+      expect(rows[0].orderId).toBe(sale.body.id);
+      expect(rows[0].paymentId).toBeNull();
+      expect(rows[0].description).toBe('Frete extra');
+      expect(rows[0].categoryId).toBe(expenseCategory.id);
+      expect(rows[0].transactionDate.toISOString().slice(0, 10)).toBe(
+        '2026-03-15',
+      );
+    });
+
+    it('rejects a sale with additional value and no category', async () => {
+      const res = await createSale(
+        [{ productId: product.id, chargedValue: 100, quantity: 1 }],
+        { additionalValue: 20, additionalExpenseDescription: 'Frete extra' },
+      );
+      expect(res.status).toBe(400);
+      expect(await getRows({ origin: 'VENDA_ADICIONAL' })).toHaveLength(0);
+    });
+
+    it('rejects a sale with additional value and no description', async () => {
+      const res = await createSale(
+        [{ productId: product.id, chargedValue: 100, quantity: 1 }],
+        {
+          additionalValue: 20,
+          additionalExpenseCategoryId: expenseCategory.id,
+        },
+      );
+      expect(res.status).toBe(400);
+      expect(await getRows({ origin: 'VENDA_ADICIONAL' })).toHaveLength(0);
+    });
+
+    it('rejects a category that is not a DESPESA', async () => {
+      const res = await createSale(
+        [{ productId: product.id, chargedValue: 100, quantity: 1 }],
+        {
+          additionalValue: 20,
+          additionalExpenseCategoryId: receitaCategory.id,
+          additionalExpenseDescription: 'Frete extra',
+        },
+      );
+      expect(res.status).toBe(400);
+      expect(await getRows({ origin: 'VENDA_ADICIONAL' })).toHaveLength(0);
+    });
+
+    it('creates no row when the additional value is zero', async () => {
+      const res = await createSale(
+        [{ productId: product.id, chargedValue: 100, quantity: 1 }],
+        { additionalValue: 0 },
+      );
+      expect(res.status).toBe(201);
+      expect(await getRows({ origin: 'VENDA_ADICIONAL' })).toHaveLength(0);
+    });
+
+    it('keeps the row in sync when the sale is updated', async () => {
+      const sale = await saleWithAdditional();
+      const updated = await updateSale(sale.body.id, {
+        additionalValue: 35,
+        additionalExpenseCategoryId: expenseCategory.id,
+        additionalExpenseDescription: 'Frete corrigido',
+      });
+      expect(updated.status).toBe(200);
+
+      const rows = await getRows({ origin: 'VENDA_ADICIONAL' });
+      expect(rows).toHaveLength(1);
+      expect(Number(rows[0].amount)).toBe(35);
+      expect(rows[0].description).toBe('Frete corrigido');
+    });
+
+    it('keeps the row when toggling delivery without touching the expense', async () => {
+      const sale = await saleWithAdditional();
+      const updated = await updateSale(sale.body.id, {
+        deliveredAt: '2026-03-20',
+      });
+      expect(updated.status).toBe(200);
+
+      const rows = await getRows({ origin: 'VENDA_ADICIONAL' });
+      expect(rows).toHaveLength(1);
+      expect(rows[0].description).toBe('Frete extra');
+      expect(Number(rows[0].amount)).toBe(20);
+    });
+
+    it('updates the row when editing through the full items payload', async () => {
+      const sale = await saleWithAdditional();
+      const updated = await updateSale(sale.body.id, {
+        items: [{ productId: product.id, chargedValue: 100, quantity: 1 }],
+        additionalValue: 20,
+        additionalExpenseCategoryId: expenseCategory.id,
+        additionalExpenseDescription: 'Frete via edição completa',
+      });
+      expect(updated.status).toBe(200);
+
+      const rows = await getRows({ origin: 'VENDA_ADICIONAL' });
+      expect(rows).toHaveLength(1);
+      expect(rows[0].description).toBe('Frete via edição completa');
+    });
+
+    it('removes the row when the additional value is zeroed', async () => {
+      const sale = await saleWithAdditional();
+      expect(await getRows({ origin: 'VENDA_ADICIONAL' })).toHaveLength(1);
+
+      const updated = await updateSale(sale.body.id, { additionalValue: 0 });
+      expect(updated.status).toBe(200);
+      expect(await getRows({ origin: 'VENDA_ADICIONAL' })).toHaveLength(0);
+    });
+
+    it('removes the row when the sale is deleted', async () => {
+      const sale = await saleWithAdditional();
+      expect(await getRows({ origin: 'VENDA_ADICIONAL' })).toHaveLength(1);
+
+      const deleted = await request(app)
+        .delete(`/api/sales/${sale.body.id}`)
+        .set('Authorization', `Bearer ${user.token}`);
+      expect(deleted.status).toBe(200);
+      expect(await getRows({ origin: 'VENDA_ADICIONAL' })).toHaveLength(0);
+    });
+
+    it('exposes the expense fields on the sale read endpoints', async () => {
+      const sale = await saleWithAdditional();
+
+      const list = await request(app)
+        .get('/api/sales')
+        .set('Authorization', `Bearer ${user.token}`);
+      const fromList = list.body.find((row) => row.id === sale.body.id);
+      expect(fromList.additionalExpenseCategoryId).toBe(expenseCategory.id);
+      expect(fromList.additionalExpenseDescription).toBe('Frete extra');
+
+      const detail = await request(app)
+        .get(`/api/sales/${sale.body.id}`)
+        .set('Authorization', `Bearer ${user.token}`);
+      expect(detail.body.additionalExpenseCategoryId).toBe(expenseCategory.id);
+      expect(detail.body.additionalExpenseDescription).toBe('Frete extra');
+    });
+  });
 });

@@ -39,6 +39,7 @@ describe('Sales <-> Payments', () => {
   let client;
   let product;
   let saleId;
+  let expenseCategoryId;
 
   const createSale = async (items, extra = {}) => {
     const res = await request(app)
@@ -65,6 +66,11 @@ describe('Sales <-> Payments', () => {
     });
     product = await createProduct(Math.floor(Math.random() * 100000));
     await seedStock(user.userId, product.id, 1000);
+    expenseCategoryId = (
+      await prisma.financialCategory.findFirst({
+        where: { userId: user.userId, type: 'DESPESA', name: 'Frete' },
+      })
+    ).id;
   });
 
   afterAll(async () => {
@@ -122,7 +128,12 @@ describe('Sales <-> Payments', () => {
     it('requires payments to cover shipping + additional for QUITADO', async () => {
       const created = await createSale(
         [{ productId: product.id, chargedValue: 100, quantity: 1 }],
-        { shippingValue: 10, additionalValue: 5 },
+        {
+          shippingValue: 10,
+          additionalValue: 5,
+          additionalExpenseCategoryId: expenseCategoryId,
+          additionalExpenseDescription: 'Frete adicional',
+        },
       );
       const partial = await pay(created.body.id, 100, client.id);
       expect(partial.body.order.status).toBe('PARCIAL');
@@ -453,7 +464,12 @@ describe('Sales <-> Payments', () => {
     it('includes shipping and additional charges in the client pending', async () => {
       const created = await createSale(
         [{ productId: product.id, chargedValue: 100, quantity: 2 }],
-        { shippingValue: 10, additionalValue: 5 },
+        {
+          shippingValue: 10,
+          additionalValue: 5,
+          additionalExpenseCategoryId: expenseCategoryId,
+          additionalExpenseDescription: 'Frete adicional',
+        },
       );
       await pay(created.body.id, 150, client.id);
       const res = await request(app)

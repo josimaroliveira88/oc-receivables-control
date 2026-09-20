@@ -338,6 +338,21 @@ describe('Finances transactions API', () => {
       expect(response.body[0].description).toBe('Pedido');
     });
 
+    it('filters by the sale additional expense origin', async () => {
+      await createUser();
+      await seedManual({ description: 'Manual' });
+      await seedAutomatic({ description: 'Adicional' });
+      await seedAutomatic({
+        origin: 'VENDA_ADICIONAL',
+        description: 'Adicional de venda',
+      });
+
+      const response = await listTransactions('?origin=VENDA_ADICIONAL');
+
+      expect(response.body).toHaveLength(1);
+      expect(response.body[0].description).toBe('Adicional de venda');
+    });
+
     it('filters by category', async () => {
       await createUser();
       const category = await getCategory('DESPESA', 'Eventos');

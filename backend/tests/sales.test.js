@@ -54,6 +54,7 @@ describe('Sales orders CRUD', () => {
   let selfPerson;
   let product;
   let createdSaleIds = [];
+  let expenseCategoryId;
 
   const salePayload = (overrides = {}) => ({
     clientPersonId: client.id,
@@ -73,6 +74,11 @@ describe('Sales orders CRUD', () => {
     user2 = await registerUser('sale2');
     client = await createPerson(user.userId, 'Cliente da Venda');
     selfPerson = await createPerson(user.userId, 'Eu Mesmo', { isSelf: true });
+    expenseCategoryId = (
+      await prisma.financialCategory.findFirst({
+        where: { userId: user.userId, type: 'DESPESA', name: 'Frete' },
+      })
+    ).id;
     product = await createTestProduct(Math.floor(Math.random() * 100000));
     await seedStock(user.userId, product.id, 1000);
     await seedStock(user2.userId, product.id, 1000);
@@ -124,6 +130,8 @@ describe('Sales orders CRUD', () => {
           salePayload({
             shippingValue: 15,
             additionalValue: 5,
+            additionalExpenseCategoryId: expenseCategoryId,
+            additionalExpenseDescription: 'Frete adicional',
             description: 'Venda de teste',
           }),
         );
@@ -134,6 +142,8 @@ describe('Sales orders CRUD', () => {
       expect(parseFloat(res.body.totalValue)).toBe(220);
       expect(parseFloat(res.body.shippingValue)).toBe(15);
       expect(parseFloat(res.body.additionalValue)).toBe(5);
+      expect(res.body.additionalExpenseCategoryId).toBe(expenseCategoryId);
+      expect(res.body.additionalExpenseDescription).toBe('Frete adicional');
       expect(res.body.orderNotes).toBe('Venda de teste');
       expect(res.body.status).toBe('PENDENTE');
       expect(res.body.items).toHaveLength(1);
@@ -270,6 +280,30 @@ describe('Sales orders CRUD', () => {
         .set('Authorization', `Bearer ${user.token}`)
         .send({ clientPersonId: client.id, items: [] });
       expect(res.status).toBe(400);
+    });
+
+    it('rejects additional value without an expense category or description', async () => {
+      const noCategory = await request(app)
+        .post('/api/sales')
+        .set('Authorization', `Bearer ${user.token}`)
+        .send(
+          salePayload({
+            additionalValue: 5,
+            additionalExpenseDescription: 'Frete adicional',
+          }),
+        );
+      expect(noCategory.status).toBe(400);
+
+      const noDescription = await request(app)
+        .post('/api/sales')
+        .set('Authorization', `Bearer ${user.token}`)
+        .send(
+          salePayload({
+            additionalValue: 5,
+            additionalExpenseCategoryId: expenseCategoryId,
+          }),
+        );
+      expect(noDescription.status).toBe(400);
     });
 
     it('sets deliveredAt when provided and null otherwise', async () => {
@@ -490,11 +524,24 @@ describe('Sales orders CRUD', () => {
       const created = await request(app)
         .post('/api/sales')
         .set('Authorization', `Bearer ${user.token}`)
-        .send(salePayload({ shippingValue: 10, additionalValue: 2 }));
+        .send(
+          salePayload({
+            shippingValue: 10,
+            additionalValue: 2,
+            additionalExpenseCategoryId: expenseCategoryId,
+            additionalExpenseDescription: 'Frete adicional',
+          }),
+        );
       const res = await request(app)
         .put(`/api/sales/${created.body.id}`)
         .set('Authorization', `Bearer ${user.token}`)
-        .send({ shippingValue: 20, additionalValue: 4, description: 'Nova' });
+        .send({
+          shippingValue: 20,
+          additionalValue: 4,
+          additionalExpenseCategoryId: expenseCategoryId,
+          additionalExpenseDescription: 'Frete adicional atualizado',
+          description: 'Nova',
+        });
       expect(res.status).toBe(200);
       expect(parseFloat(res.body.totalValue)).toBe(224);
       expect(parseFloat(res.body.shippingValue)).toBe(20);
