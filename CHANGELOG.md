@@ -9,6 +9,15 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 106 — Correção de pagamento InfinitePay existente pela importação (2026-09-20)
+
+### Added
+- **Edição pré-preenchida do pagamento InfinitePay existente**: quando a venda sugerida pela importação do extrato **já possui um pagamento `INFINITE_PAY`**, o botão "Usar esta venda" passa a abrir o **formulário de edição** desse pagamento (o mais recente, por `createdAt`) em vez do formulário de criação. O formulário vem preenchido com os dados da linha do extrato — valor cobrado (`valor`), líquido (`líquido`), data e **NSU anexado às notas já existentes** (`<notas> · InfinitePay · NSU <nsu>`) — permitindo corrigir a cobrança já lançada (caso em que o valor pendente é justamente a diferença da taxa) sem gerar um segundo pagamento e sem cair no aviso de sobrepagamento. Sem pagamento InfinitePay na venda, o comportamento anterior (criação pré-preenchida) é mantido. Novo helper `buildEditPaymentPrefill` em `frontend/src/pages/Sales/utils/infinitepayHelpers.js` e `openEditPaymentModalPrefilled` em `frontend/src/pages/Sales/useSalePayments.js`; o roteamento entre criação e edição fica em `frontend/src/pages/Sales/useInfinitePayImport.js` e a fiação em `frontend/src/pages/Sales/index.jsx`. Após salvar, a linha é marcada como **"Usada"** e o modal de importação reabre; cancelar mantém a linha disponível.
+- **Sem efeito no fluxo de caixa**: editar um pagamento `INFINITE_PAY` continua sendo no-op para o ledger (`shouldSyncIncome` exclui InfinitePay), então lançamentos `RESGATE_INFINITEPAY` existentes permanecem intactos e o resgate segue manual. O efeito observável da correção é apenas o status da venda (`PENDENTE` → `QUITADO` quando a taxa é reconhecida).
+
+### Tests
+- Frontend: `infinitepayHelpers.test.js` ganhou 4 casos de `buildEditPaymentPrefill` (valores derivados do extrato, repasse da taxa conforme o match, NSU anexado às notas existentes e nota isolada quando não há notas); `useInfinitePayImport.test.js` ganhou 4 casos (roteia para edição quando há pagamento InfinitePay, mantém a criação sem ele, escolhe o pagamento mais recente e marca a linha como usada no `onDone`); integração em `SalesPage.test.jsx` cobre o fluxo importação → edição pré-preenchida. **991 frontend passing**; `npm run lint` sem erros (6 warnings preexistentes), `npm run build` e `npm run format:check` limpos. Backend sem alterações (13 falhas pré-existentes em `productLoader.test.js`).
+
 ## Phase 105 — Importação do extrato InfinitePay e baixa de vendas por valor (2026-09-20)
 
 ### Added
