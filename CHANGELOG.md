@@ -9,6 +9,21 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 104 — Cashback e modo de cobrança absorvidos pela % de promoção nos pedidos (2026-09-20)
+
+### Changed
+- **Campo `% Promoção` no formulário detalhado de pedidos**: o modo Formulário detalhado passou a ter o mesmo campo de promoção já existente no modo Planilha (`frontend/src/pages/Orders/components/OrderItemFields.jsx`, `order-item-discount-<i>`), deixando os dois modos compatíveis. Digitar a porcentagem recalcula o **Valor Pago** a partir do preço de membro (`prefilledChargedValue`), e a edição manual do valor é preservada até o produto ou a promoção mudarem — mesmo comportamento da planilha (`frontend/src/pages/Orders/useOrders.js`, `utils/orderHelpers.js`).
+- **Pedidos antigos com cashback são exibidos como 70% de promoção**: novo helper `reconstructDiscountPercent` (`frontend/src/pages/Orders/utils/orderHelpers.js`) reconstrói a `% Promoção` de um item persistido — itens `UNIT` derivam a porcentagem de `chargedValue`/`memberPrice` e itens legados com `useCashback` viram 70%. O `chargedValue` salvo é mantido, então o valor cobrado não muda; a mesma conversão é usada ao hidratar as linhas da planilha (`utils/orderSpreadsheetHelpers.js`).
+- **`useOrders`**: `onCashbackToggle` removido; `updateItemField` passou a recalcular `chargedValue` ao mudar `discountPercent`, e `updateSpreadsheetRow` deixou de tratar `useCashback`.
+- **`ARCHITECTURE.md`**: atualizada a seção dos modos de inclusão de pedido (paridade de campos, `% Promoção` nos dois modos, conversão de cashback legado e remoção do select de modo).
+
+### Removed
+- **Campo de cashback dos pedidos**: removido o checkbox "Usei pontos de cashback e ganhei 70% de desconto" do Formulário detalhado e da Planilha (coluna/coluna do cabeçalho incluídas), e o frontend não envia mais `useCashback` no payload (`itemPayload`). O backend mantém a coluna `Item.useCashback` para dados históricos, sem migração.
+- **Select "Preço por unidade / Valor total da linha"**: removido dos dois modos; novos itens são sempre `UNIT` (`chargedValueMode`). Itens legados em `TOTAL` continuam com o valor e o cálculo corretos, apenas sem troca de modo pela tela.
+
+### Tests
+- Frontend: atualizados `frontend/tests/OrdersPage.test.jsx` (cashback → promoção, remoção do select de modo, item legado `TOTAL` preservado, ausência de `useCashback` no payload), `OrdersSpreadsheet.test.jsx` (promoção no lugar de cashback, remoção dos testes de modo) e `orderSpreadsheetHelpers.test.js` (conversão de cashback legado em 70%, remoção das expectativas de `useCashback`); e2e `frontend/e2e/order-entry-modes.spec.js` atualizado para os novos campos. **957 frontend passing**; `npm run build` e `npm run format:check` limpos e `npm run lint` sem erros (6 warnings preexistentes). Backend sem alterações (13 falhas pré-existentes em `productLoader.test.js`).
+
 ## Phase 103 — Modo de inclusão de pedidos (Formulário detalhado / Planilha) e deep-link de detalhes pelo financeiro (2026-09-20)
 
 ### Added
