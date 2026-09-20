@@ -9,6 +9,21 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 103 — Modo de inclusão de pedidos (Formulário detalhado / Planilha) e deep-link de detalhes pelo financeiro (2026-09-20)
+
+### Added
+- **Modo de inclusão Planilha na criação/edição de pedidos**: o modal de Novo/Editar Pedido ganhou a escolha **Modo de inclusão** em radio buttons — **Formulário detalhado** (padrão, comportamento atual preservado) e **Planilha**. O modo Planilha usa uma tabela no formato do simulador, porém gravável, cobrindo **todos os campos do item do formulário detalhado**: Produto, Qtd, % Promo, **Valor Pago** (editável, com modo **Por unidade** / **Valor total**), **V. Pago total**, **Cashback**, V. Membro unit./total, PV total, **Estoque** (checkbox; para KIT revela "Estocar o kit"/"Estocar componentes") e **Detalhes**. O Valor Pago é pré-preenchido a partir do preço membro após a promoção (×30% quando há cashback) e pode ser sobrescrito; pedidos da equipe continuam sem controle de estoque. A preferência é gravada em `localStorage` (`oc-order-entry-mode`, padrão `detailed`) por `frontend/src/pages/Orders/useOrderEntryMode.js`; ao trocar de modo o app pergunta se a escolha deve virar padrão ("Manter como padrão" / "Só desta vez").
+- **Conversão planilha ↔ item e hidratação na edição**: novo `frontend/src/pages/Orders/utils/orderSpreadsheetHelpers.js` converte linhas em itens (e vice-versa) reutilizando preço, modo, cashback, estoque e detalhes. Ao editar um pedido os itens são hidratados nos dois modos, e o payload enviado a `/api/orders` permanece idêntico ao do formulário detalhado. Trocar de modo com itens não salvos pede confirmação e descarta as alterações de itens do modo de origem; os campos de pedido (número, data, conta, cliente da equipe, frete etc.) são compartilhados e preservados.
+- **Deep-link de detalhes a partir do financeiro**: no fluxo de caixa, clicar no link de uma venda/pedido abre o respectivo modal de detalhes em vez de redirecionar para a raiz — vendas (`VENDA`, `RESGATE_INFINITEPAY`, `VENDA_ADICIONAL`) via `/sales?detailsSale=<id>` e pedidos dōTERRA via `/orders?detailsOrder=<id>`. O link "produtos comprados" nos detalhes do cliente passou a abrir os detalhes da venda (`/sales?detailsSale=<id>`), em vez do formulário de edição.
+
+### Changed
+- **`useOrders`/`OrderForm`**: `useOrders` concentra `entryMode`, o estado das linhas da planilha e a validação/build do payload conforme o modo ativo; os campos de pedido foram extraídos para `frontend/src/pages/Orders/components/OrderDetailsFields.jsx`, reutilizados pelos dois modos; `frontend/src/pages/Orders/index.jsx` renderiza `OrderForm` ou `OrderSpreadsheetForm` e os diálogos de confirmação (perda de dados ao trocar de modo e manutenção do modo como padrão). No modo Planilha o modal alarga para `max-w-[95vw]`. Novos componentes `OrderSpreadsheetForm.jsx`, `OrderSpreadsheetRow.jsx` e `OrderEntryModeSelector.jsx`.
+- **`useSalePayments`/Vendas**: o hook passou a receber `sales`/`loading` e a suportar `?detailsSale=<id>`, espelhando o `?detailsOrder=` já existente; `Sales/index.jsx` passa as novas props.
+- **`ARCHITECTURE.md`**: documentados os dois modos de inclusão de pedido (radio buttons, preferência em `localStorage`, helpers de conversão e paridade de campos) e o deep-link de detalhes a partir do financeiro.
+
+### Tests
+- Frontend: novos `frontend/tests/orderSpreadsheetHelpers.test.js` (36), `frontend/tests/useOrderEntryMode.test.jsx` (8) e `frontend/tests/OrdersSpreadsheet.test.jsx` (22: seleção de modo e padrão, aviso de perda de dados, campos da planilha, cashback, estoque/KIT, criação e edição); novo e2e `frontend/e2e/order-entry-modes.spec.js` (3: paridade de campos entre os modos, criação pelo modo Planilha e edição com hidratação). Atualizados `SalesPayments.test.jsx` (deep-link `?detailsSale`), `FinancesPage.test.jsx` (asserções de `href`) e `PeoplePage.test.jsx` (link da venda). **959 frontend passing + 3 e2e**; `npm run build` e `npm run format:check` limpos e ESLint 0 erros (6 warnings preexistentes). Backend sem alterações.
+
 ## Phase 102 — Foto anexa na venda e ajustes de valores adicionais/recebido (2026-09-20)
 
 ### Added
