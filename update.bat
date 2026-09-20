@@ -124,49 +124,90 @@ pause
 exit /b 1
 
 REM ============================================================
-REM 5. Atualiza o codigo-fonte
+REM 5. Atualiza o codigo-fonte e detecta mudancas relevantes
 REM ============================================================
 :git_pull
 echo [5/10] Atualizando codigo-fonte (git pull)...
+
+git rev-parse HEAD > "%TEMP%\update_old_head.txt"
+if %ERRORLEVEL% neq 0 goto :error
+set /p OLD_HEAD=<"%TEMP%\update_old_head.txt"
+
 call git pull
 if %ERRORLEVEL% neq 0 goto :error
 echo       git pull concluido. OK.
+
+git diff --name-only %OLD_HEAD% HEAD > "%TEMP%\update_changed_files.txt"
+if %ERRORLEVEL% neq 0 goto :error
+
+set BACKEND_LOCK_CHANGED=0
+set FRONTEND_LOCK_CHANGED=0
+set MIGRATIONS_CHANGED=0
+set PRISMA_SCHEMA_CHANGED=0
+
+findstr /I /C:"backend/package-lock.json" "%TEMP%\update_changed_files.txt" >nul
+if %ERRORLEVEL% equ 0 set BACKEND_LOCK_CHANGED=1
+
+findstr /I /C:"frontend/package-lock.json" "%TEMP%\update_changed_files.txt" >nul
+if %ERRORLEVEL% equ 0 set FRONTEND_LOCK_CHANGED=1
+
+findstr /I /C:"prisma/migrations/" "%TEMP%\update_changed_files.txt" >nul
+if %ERRORLEVEL% equ 0 set MIGRATIONS_CHANGED=1
+
+findstr /I /C:"prisma/schema.prisma" "%TEMP%\update_changed_files.txt" >nul
+if %ERRORLEVEL% equ 0 set PRISMA_SCHEMA_CHANGED=1
 
 REM ============================================================
 REM 6. Instala dependencias do backend
 REM ============================================================
 :backend_deps
-echo [6/10] Instalando dependencias do backend (npm ci)...
-call npm --prefix backend ci
-if %ERRORLEVEL% neq 0 goto :error
-echo       Dependencias do backend OK.
+if %BACKEND_LOCK_CHANGED% equ 1 (
+    echo [6/10] package-lock.json do backend alterado. Instalando dependencias (npm ci)...
+    call npm --prefix backend ci
+    if %ERRORLEVEL% neq 0 goto :error
+    echo       Dependencias do backend OK.
+) else (
+    echo [6/10] package-lock.json do backend NAO alterado. Pulando npm ci.
+)
 
 REM ============================================================
 REM 7. Aplica migrations do Prisma
 REM ============================================================
 :prisma_migrate
-echo [7/10] Aplicando migrations do Prisma (migrate deploy)...
-call npm --prefix backend run prisma:migrate:deploy
-if %ERRORLEVEL% neq 0 goto :error
-echo       Migrations aplicadas. OK.
+if %MIGRATIONS_CHANGED% equ 1 (
+    echo [7/10] Migrations novas detectadas. Aplicando (migrate deploy)...
+    call npm --prefix backend run prisma:migrate:deploy
+    if %ERRORLEVEL% neq 0 goto :error
+    echo       Migrations aplicadas. OK.
+) else (
+    echo [7/10] Nenhuma migration nova detectada. Pulando migrate deploy.
+)
 
 REM ============================================================
 REM 8. Gera Prisma Client
 REM ============================================================
 :prisma_generate
-echo [8/10] Gerando Prisma Client...
-call npm --prefix backend run prisma:generate
-if %ERRORLEVEL% neq 0 goto :error
-echo       Prisma Client gerado. OK.
+if %PRISMA_SCHEMA_CHANGED% equ 1 (
+    echo [8/10] schema.prisma alterado. Gerando Prisma Client...
+    call npm --prefix backend run prisma:generate
+    if %ERRORLEVEL% neq 0 goto :error
+    echo       Prisma Client gerado. OK.
+) else (
+    echo [8/10] schema.prisma NAO alterado. Pulando prisma generate.
+)
 
 REM ============================================================
 REM 9. Instala dependencias do frontend
 REM ============================================================
 :frontend_deps
-echo [9/10] Instalando dependencias do frontend (npm ci)...
-call npm --prefix frontend ci
-if %ERRORLEVEL% neq 0 goto :error
-echo       Dependencias do frontend OK.
+if %FRONTEND_LOCK_CHANGED% equ 1 (
+    echo [9/10] package-lock.json do frontend alterado. Instalando dependencias (npm ci)...
+    call npm --prefix frontend ci
+    if %ERRORLEVEL% neq 0 goto :error
+    echo       Dependencias do frontend OK.
+) else (
+    echo [9/10] package-lock.json do frontend NAO alterado. Pulando npm ci.
+)
 
 REM ============================================================
 REM 10. Build do frontend
