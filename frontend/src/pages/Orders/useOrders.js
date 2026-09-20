@@ -3,7 +3,9 @@ import { useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { useDirtyForm } from '../../hooks/useDirtyForm';
+import { hasFormChanges } from '../../utils/formChanges';
 import { useOrderFilters } from './useOrderFilters';
+import { useOrderEntryMode, ENTRY_MODES } from './useOrderEntryMode';
 import {
   emptyItem,
   getTodayString,
@@ -15,6 +17,13 @@ import {
   findSelfPerson,
   deriveTeamClientFromItems,
 } from './utils/orderHelpers';
+import {
+  createEmptySpreadsheetRow,
+  spreadsheetRowsFromItems,
+  itemsFromSpreadsheetRows,
+  derivedChargedValueString,
+  kitStockModeMissing,
+} from './utils/orderSpreadsheetHelpers';
 
 export function useOrders() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -64,6 +73,21 @@ export function useOrders() {
   const [orderFormInitial, setOrderFormInitial] = useState(null);
   const ordersAbortRef = useRef(null);
   const { addToast } = useToast();
+
+  const {
+    entryMode,
+    defaultEntryMode,
+    applyEntryMode,
+    saveEntryModeAsDefault,
+  } = useOrderEntryMode();
+  const [spreadsheetRows, setSpreadsheetRows] = useState([]);
+  const [spreadsheetInitial, setSpreadsheetInitial] = useState(null);
+  const [rowErrors, setRowErrors] = useState({});
+  const [rowsError, setRowsError] = useState('');
+  const [pendingEntryMode, setPendingEntryMode] = useState(null);
+  const [showEntryModeConfirm, setShowEntryModeConfirm] = useState(false);
+  const [showEntryModeDefaultPrompt, setShowEntryModeDefaultPrompt] =
+    useState(false);
 
   const fetchOrders = useCallback(
     async ({ showLoading = true } = {}) => {
@@ -329,6 +353,71 @@ export function useOrders() {
     setShowTeamPersonConfirm(false);
   };
 
+  // --- Spreadsheet (planilha) entry mode ---------------------------------
+
+  const addSpreadsheetRow = () => {
+    setSpreadsheetRows((prev) => [...prev, createEmptySpreadsheetRow()]);
+    setRowsError('');
+  };
+
+  const removeSpreadsheetRow = (id) => {
+    setSpreadsheetRows((prev) => prev.filter((row) => row.id !== id));
+    setRowErrors((prev) => {
+      if (!prev[id]) return prev;
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  };
+
+  const updateSpreadsheetRow = (id, field, value) => {
+    setSpreadsheetRows((prev) =>
+      prev.map((row) => {
+        if (row.id !== id) return row;
+        const next = { ...row, [field]: value };
+        if (field === 'productId') {
+          const product = products.find((p) => p.id === value) || null;
+          next.forStock = !isTeamOrder && !!product;
+          if (!product) next.kitStockMode = '';
+          next.chargedValue = derivedChargedValueString(next, products);
+        } else if (field === 'discountPercent' || field === 'useCashback') {
+          next.chargedValue = derivedChargedValueString(next, products);
+        }
+        return next;
+      }),
+    );
+    setRowErrors((prev) => {
+      if (!prev[id]) return prev;
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    setRowsError('');
+  };
+
+  const clearSpreadsheetRows = () => {
+    setSpreadsheetRows([]);
+    setRowErrors({});
+    setRowsError('');
+  };
+
+  // Switching mode discards the source mode's unsaved item edits (order-level
+  // fields are shared and are kept). The user always confirms whether the new
+  // mode becomes the default for future orders.
+  const proceedEntryModeChange = (mode) => {
+    if (entryMode === ENTRY_MODES.DETAILED) {
+      setItems(orderFormInitial?.items ?? [emptyItem()]);
+      setItemErrors({});
+    } else {
+      setSpreadsheetRows(spreadsheetInitial ?? []);
+      setRowErrors({});
+      setRowsError('');
+    }
+    applyEntryMode(mode);
+    setPendingEntryMode(mode);
+    setShowEntryModeDefaultPrompt(true);
+  };
+
   const resetForm = () => {
     setOrderNumber('');
     setOrderNumberBlurred(false);
@@ -352,6 +441,13 @@ export function useOrders() {
     setOrderNumberError('');
     setItemErrors({});
     setOrderFormInitial(null);
+    setSpreadsheetRows([]);
+    setSpreadsheetInitial(null);
+    setRowErrors({});
+    setRowsError('');
+    setPendingEntryMode(null);
+    setShowEntryModeConfirm(false);
+    setShowEntryModeDefaultPrompt(false);
     setError('');
     setShowCreateModal(false);
     setShowEditModal(false);
@@ -361,6 +457,12 @@ export function useOrders() {
   const openCreateOrder = () => {
     setShowCreateModal(true);
     setUsesOrderLevelClient(true);
+    applyEntryMode(defaultEntryMode);
+    const initialRows = [createEmptySpreadsheetRow()];
+    setSpreadsheetRows(initialRows);
+    setSpreadsheetInitial(initialRows);
+    setRowErrors({});
+    setRowsError('');
     setOrderFormInitial({
       orderNumber,
       orderDate,
@@ -447,10 +549,47 @@ export function useOrders() {
     setDoterraPvError(newDoterraPvError);
 
     const newTeamPersonIdError =
-      isTeamOrder && usesOrderLevelClient && !teamPersonId
+      isTeamOrder &&
+      (entryMode === ENTRY_MODES.SPREADSHEET || usesOrderLevelClient) &&
+      !teamPersonId
         ? 'Cliente é obrigatório'
         : '';
     setTeamPersonIdError(newTeamPersonIdError);
+
+    const hasOrderLevelError =
+      !!newOrderNumberError ||
+      !!newShippingValueError ||
+      !!newDoterraPvError ||
+      !!newTeamPersonIdError;
+
+    if (entryMode === ENTRY_MODES.SPREADSHEET) {
+      const newRowErrors = {};
+      spreadsheetRows.forEach((row) => {
+        if (!row.productId) return;
+        if (
+          row.chargedValue !== '' &&
+          row.chargedValue != null &&
+          parseFloat(row.chargedValue) < 0
+        ) {
+          newRowErrors[row.id] = 'Valor não pode ser negativo';
+        } else if (
+          row.quantity !== '' &&
+          row.quantity != null &&
+          (!Number.isInteger(Number(row.quantity)) || Number(row.quantity) < 1)
+        ) {
+          newRowErrors[row.id] = 'Quantidade deve ser maior ou igual a 1';
+        } else if (kitStockModeMissing(row, products)) {
+          newRowErrors[row.id] = 'Escolha como enviar o kit para o estoque';
+        }
+      });
+      setRowErrors(newRowErrors);
+      setItemErrors({});
+      const hasProduct = spreadsheetRows.some((row) => row.productId);
+      setRowsError(hasProduct ? '' : 'Adicione ao menos um produto ao pedido');
+      if (hasOrderLevelError) return false;
+      if (!hasProduct) return false;
+      return Object.keys(newRowErrors).length === 0;
+    }
 
     const newItemErrors = {};
     items.forEach((item) => {
@@ -477,29 +616,37 @@ export function useOrders() {
       }
     });
     setItemErrors(newItemErrors);
+    setRowErrors({});
+    setRowsError('');
 
-    if (newOrderNumberError) return false;
-    if (newShippingValueError) return false;
-    if (newDoterraPvError) return false;
-    if (newTeamPersonIdError) return false;
+    if (hasOrderLevelError) return false;
     return Object.keys(newItemErrors).length === 0;
   };
 
-  const buildPayload = () => ({
-    orderNumber: orderNumber.trim(),
-    orderDate: orderDate || undefined,
-    isTeamOrder,
-    accountOwner: accountOwner.trim() || null,
-    paymentType: paymentType || null,
-    orderNotes: orderNotes.trim() || null,
-    doterraPv:
-      doterraPv === '' || doterraPv == null ? null : parseFloat(doterraPv),
-    shippingValue:
-      shippingValue === '' || shippingValue == null
-        ? 0
-        : parseFloat(shippingValue),
-    items: items.map(itemPayload),
-  });
+  const buildPayload = () => {
+    const payloadItems =
+      entryMode === ENTRY_MODES.SPREADSHEET
+        ? itemsFromSpreadsheetRows(spreadsheetRows, products, {
+            isTeamOrder,
+            teamPersonId,
+          })
+        : items;
+    return {
+      orderNumber: orderNumber.trim(),
+      orderDate: orderDate || undefined,
+      isTeamOrder,
+      accountOwner: accountOwner.trim() || null,
+      paymentType: paymentType || null,
+      orderNotes: orderNotes.trim() || null,
+      doterraPv:
+        doterraPv === '' || doterraPv == null ? null : parseFloat(doterraPv),
+      shippingValue:
+        shippingValue === '' || shippingValue == null
+          ? 0
+          : parseFloat(shippingValue),
+      items: payloadItems.map(itemPayload),
+    };
+  };
 
   const handleCreateOrder = async (e) => {
     e.preventDefault();
@@ -550,6 +697,12 @@ export function useOrders() {
     setShippingValueError('');
     const items = order.items.map(editItemFromApi);
     setItems(items);
+    const rows = spreadsheetRowsFromItems(items);
+    setSpreadsheetRows(rows);
+    setSpreadsheetInitial(rows);
+    setRowErrors({});
+    setRowsError('');
+    applyEntryMode(defaultEntryMode);
     // Team orders created before the order-level client existed keep their
     // per-item persons when those differ; when every item shares the same
     // person (or none), the form adopts the new order-level client mode.
@@ -656,10 +809,52 @@ export function useOrders() {
     teamPersonId,
     items,
   };
-  const orderFormDirty = useDirtyForm(
-    orderFormValues,
-    orderFormInitial,
-  ).isDirty;
+  const detailsDirty = useDirtyForm(orderFormValues, orderFormInitial).isDirty;
+  const spreadsheetDirty = hasFormChanges(spreadsheetRows, spreadsheetInitial);
+  const formDirty = detailsDirty || spreadsheetDirty;
+  // Order-level fields are shared and survive a mode switch, so only the
+  // active mode's items decide whether there is data to warn about.
+  const detailedItemsDirty = hasFormChanges(
+    items,
+    orderFormInitial?.items ?? null,
+  );
+
+  const onChangeEntryMode = (mode) => {
+    if (mode === entryMode) return;
+    const hasUnsavedItems =
+      entryMode === ENTRY_MODES.SPREADSHEET
+        ? spreadsheetDirty
+        : detailedItemsDirty;
+    if (hasUnsavedItems) {
+      setPendingEntryMode(mode);
+      setShowEntryModeConfirm(true);
+      return;
+    }
+    proceedEntryModeChange(mode);
+  };
+
+  const cancelEntryModeChange = () => {
+    setShowEntryModeConfirm(false);
+    setPendingEntryMode(null);
+  };
+
+  const confirmEntryModeChange = () => {
+    const mode = pendingEntryMode;
+    setShowEntryModeConfirm(false);
+    setPendingEntryMode(null);
+    if (mode) proceedEntryModeChange(mode);
+  };
+
+  const confirmDefaultEntryMode = () => {
+    if (pendingEntryMode) saveEntryModeAsDefault(pendingEntryMode);
+    setShowEntryModeDefaultPrompt(false);
+    setPendingEntryMode(null);
+  };
+
+  const declineDefaultEntryMode = () => {
+    setShowEntryModeDefaultPrompt(false);
+    setPendingEntryMode(null);
+  };
 
   // Auto-refetch when a filter or the sort changes. Search text is excluded on
   // purpose: the search term is only committed when the user presses Enter or
@@ -722,7 +917,13 @@ export function useOrders() {
     addItemBtnRef,
     confirmDeleteId,
     deleting,
-    orderFormDirty,
+    orderFormDirty: formDirty,
+    entryMode,
+    spreadsheetRows,
+    rowErrors,
+    rowsError,
+    showEntryModeConfirm,
+    showEntryModeDefaultPrompt,
     setFormField,
     addItem,
     removeItem,
@@ -733,6 +934,15 @@ export function useOrders() {
     onTeamPersonSelect,
     confirmTeamPersonChange,
     cancelTeamPersonChange,
+    addSpreadsheetRow,
+    removeSpreadsheetRow,
+    updateSpreadsheetRow,
+    clearSpreadsheetRows,
+    onChangeEntryMode,
+    confirmEntryModeChange,
+    cancelEntryModeChange,
+    confirmDefaultEntryMode,
+    declineDefaultEntryMode,
     resetForm,
     handleCreateOrder,
     handleEditOrder,

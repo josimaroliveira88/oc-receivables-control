@@ -5,6 +5,7 @@ import { useOrderPayments } from './useOrderPayments';
 import OrdersTable from './components/OrdersTable';
 import Modal from '../../components/Modal';
 import OrderForm from './components/OrderForm';
+import OrderSpreadsheetForm from './components/OrderSpreadsheetForm';
 import PaymentModal from './components/PaymentModal';
 import DetailsModal from './components/DetailsModal';
 import EditPaymentModal from './components/EditPaymentModal';
@@ -12,6 +13,7 @@ import AttachmentPreviewModal from '../../components/AttachmentPreviewModal';
 import OrderSimulatorModal from './components/OrderSimulatorModal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { useOrderSimulator } from './useOrderSimulator';
+import { ENTRY_MODES } from './useOrderEntryMode';
 
 const OrdersPage = () => {
   const [viewAttachmentOrder, setViewAttachmentOrder] = useState(null);
@@ -58,6 +60,12 @@ const OrdersPage = () => {
     confirmDeleteId,
     deleting,
     orderFormDirty,
+    entryMode,
+    spreadsheetRows,
+    rowErrors,
+    rowsError,
+    showEntryModeConfirm,
+    showEntryModeDefaultPrompt,
     setFormField,
     addItem,
     removeItem,
@@ -68,6 +76,15 @@ const OrdersPage = () => {
     onTeamPersonSelect,
     confirmTeamPersonChange,
     cancelTeamPersonChange,
+    addSpreadsheetRow,
+    removeSpreadsheetRow,
+    updateSpreadsheetRow,
+    clearSpreadsheetRows,
+    onChangeEntryMode,
+    confirmEntryModeChange,
+    cancelEntryModeChange,
+    confirmDefaultEntryMode,
+    declineDefaultEntryMode,
     resetForm,
     handleCreateOrder,
     handleEditOrder,
@@ -232,47 +249,90 @@ const OrdersPage = () => {
         title={showEditModal ? 'Editar Pedido' : 'Novo Pedido'}
         onClose={resetForm}
         isDirty={orderFormDirty}
-        maxWidth="max-w-2xl"
+        maxWidth={
+          entryMode === ENTRY_MODES.SPREADSHEET ? 'max-w-[95vw]' : 'max-w-2xl'
+        }
         closeAriaLabel="Fechar pedido"
       >
-        {(requestClose) => (
-          <OrderForm
-            orderNumber={orderNumber}
-            orderNumberBlurred={orderNumberBlurred}
-            orderDate={orderDate}
-            isTeamOrder={isTeamOrder}
-            teamPersonId={teamPersonId}
-            teamPersonIdError={teamPersonIdError}
-            usesOrderLevelClient={usesOrderLevelClient}
-            accountOwner={accountOwner}
-            paymentType={paymentType}
-            orderNotes={orderNotes}
-            doterraPv={doterraPv}
-            doterraPvError={doterraPvError}
-            attachmentFile={attachmentFile}
-            attachmentRemoved={attachmentRemoved}
-            hasExistingAttachment={!!editOrder?.attachmentFilename}
-            shippingValue={shippingValue}
-            shippingValueError={shippingValueError}
-            items={items}
-            people={people}
-            products={products}
-            isEdit={showEditModal}
-            orderNumberError={orderNumberError}
-            itemErrors={itemErrors}
-            onChangeField={setFormField}
-            onItemUpdate={updateItemField}
-            onItemPersonSelect={onPersonSelect}
-            onTeamPersonSelect={onTeamPersonSelect}
-            onItemProductSelect={onProductSelect}
-            onItemCashbackToggle={onCashbackToggle}
-            onAddItem={addItem}
-            onRemoveItem={removeItem}
-            addItemBtnRef={addItemBtnRef}
-            onSubmit={showEditModal ? handleUpdateOrder : handleCreateOrder}
-            onCancel={requestClose}
-          />
-        )}
+        {(requestClose) =>
+          entryMode === ENTRY_MODES.SPREADSHEET ? (
+            <OrderSpreadsheetForm
+              orderNumber={orderNumber}
+              orderNumberBlurred={orderNumberBlurred}
+              orderNumberError={orderNumberError}
+              accountOwner={accountOwner}
+              isTeamOrder={isTeamOrder}
+              teamPersonId={teamPersonId}
+              teamPersonIdError={teamPersonIdError}
+              usesOrderLevelClient={usesOrderLevelClient}
+              people={people}
+              orderDate={orderDate}
+              paymentType={paymentType}
+              doterraPv={doterraPv}
+              doterraPvError={doterraPvError}
+              attachmentFile={attachmentFile}
+              attachmentRemoved={attachmentRemoved}
+              hasExistingAttachment={!!editOrder?.attachmentFilename}
+              orderNotes={orderNotes}
+              isEdit={showEditModal}
+              products={products}
+              rows={spreadsheetRows}
+              rowErrors={rowErrors}
+              rowsError={rowsError}
+              shippingValue={shippingValue}
+              shippingValueError={shippingValueError}
+              entryMode={entryMode}
+              onEntryModeChange={onChangeEntryMode}
+              onChangeField={setFormField}
+              onTeamPersonSelect={onTeamPersonSelect}
+              onAddRow={addSpreadsheetRow}
+              onRemoveRow={removeSpreadsheetRow}
+              onUpdateRow={updateSpreadsheetRow}
+              onClearRows={clearSpreadsheetRows}
+              onSubmit={showEditModal ? handleUpdateOrder : handleCreateOrder}
+              onCancel={requestClose}
+            />
+          ) : (
+            <OrderForm
+              orderNumber={orderNumber}
+              orderNumberBlurred={orderNumberBlurred}
+              orderDate={orderDate}
+              isTeamOrder={isTeamOrder}
+              teamPersonId={teamPersonId}
+              teamPersonIdError={teamPersonIdError}
+              usesOrderLevelClient={usesOrderLevelClient}
+              accountOwner={accountOwner}
+              paymentType={paymentType}
+              orderNotes={orderNotes}
+              doterraPv={doterraPv}
+              doterraPvError={doterraPvError}
+              attachmentFile={attachmentFile}
+              attachmentRemoved={attachmentRemoved}
+              hasExistingAttachment={!!editOrder?.attachmentFilename}
+              shippingValue={shippingValue}
+              shippingValueError={shippingValueError}
+              items={items}
+              people={people}
+              products={products}
+              isEdit={showEditModal}
+              orderNumberError={orderNumberError}
+              itemErrors={itemErrors}
+              entryMode={entryMode}
+              onEntryModeChange={onChangeEntryMode}
+              onChangeField={setFormField}
+              onItemUpdate={updateItemField}
+              onItemPersonSelect={onPersonSelect}
+              onTeamPersonSelect={onTeamPersonSelect}
+              onItemProductSelect={onProductSelect}
+              onItemCashbackToggle={onCashbackToggle}
+              onAddItem={addItem}
+              onRemoveItem={removeItem}
+              addItemBtnRef={addItemBtnRef}
+              onSubmit={showEditModal ? handleUpdateOrder : handleCreateOrder}
+              onCancel={requestClose}
+            />
+          )
+        }
       </Modal>
 
       {showPaymentModal && selectedOrder && (
@@ -408,6 +468,30 @@ const OrdersPage = () => {
         cancelLabel="Cancelar"
         onConfirm={confirmTeamPersonChange}
         onCancel={cancelTeamPersonChange}
+      />
+
+      <ConfirmDialog
+        open={showEntryModeConfirm}
+        title="Trocar o modo de inclusão"
+        message="Os dados preenchidos no modo atual serão descartados. Deseja continuar?"
+        confirmLabel="Trocar"
+        cancelLabel="Cancelar"
+        onConfirm={confirmEntryModeChange}
+        onCancel={cancelEntryModeChange}
+      />
+
+      <ConfirmDialog
+        open={showEntryModeDefaultPrompt}
+        title="Manter como padrão?"
+        message={`Deseja usar o modo "${
+          entryMode === ENTRY_MODES.SPREADSHEET
+            ? 'Planilha'
+            : 'Formulário detalhado'
+        }" como padrão nos próximos pedidos?`}
+        confirmLabel="Manter como padrão"
+        cancelLabel="Só desta vez"
+        onConfirm={confirmDefaultEntryMode}
+        onCancel={declineDefaultEntryMode}
       />
     </>
   );
