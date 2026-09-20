@@ -9,6 +9,24 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 102 — Foto anexa na venda e ajustes de valores adicionais/recebido (2026-09-20)
+
+### Added
+- **Foto anexa na venda (`VENDA`)**: cada venda passa a aceitar **uma foto opcional** (PNG/JPEG/WebP, máx. 10 MB), reutilizando o campo já existente `Order.attachmentFilename` e todo o pipeline de anexos dos pedidos (disco em `backend/uploads/orders/`, nome UUID gerado no servidor, validação por `ATTACHMENT_MAX_BYTES`). O controlador de anexos (`orderAttachmentsController.js`, antes restrito a `COMPRA`) foi generalizado/parametrizado e passou a ser montado também em `/api/sales/:id/attachment` (`POST`/`GET`/`DELETE`), com o wrapper `uploadSingleAttachment` extraído para `middlewares/upload.js` e compartilhado pelos dois roteadores. A exclusão da venda (`DELETE /api/sales/:id`) agora remove também o arquivo do anexo. No frontend, o formulário de venda ganhou o campo **Foto da Venda** (com prévia e opção de remover a foto existente ao editar) e a lista de vendas ganhou a coluna **Anexo**, que mostra uma miniatura clicável (carregada sob demanda ao entrar na viewport) e abre o preview em modal; o `AttachmentPreviewModal` foi promovido de `pages/Orders/components/` para `frontend/src/components/` (compartilhado pelas telas de Pedidos e Vendas) e agora alterna compacto/expandido **ao clicar na própria imagem** (o botão Expandir/Reduzir continua disponível para teclado).
+- **Despesa automática a partir de "Valores Adicionais" na venda**: ao salvar uma venda com **Valores Adicionais > 0**, o formulário revela os campos obrigatórios **Categoria da despesa** (somente categorias `DESPESA` ativas) e **Descrição da despesa**, e o backend cria/atualiza uma despesa automática vinculada à venda (nova origem `VENDA_ADICIONAL`, migração `20260920120000_add_sale_additional_expense_origin`); a despesa é removida quando o valor adicional é zerado ou a venda é excluída (cascade). A categoria/descrição são revalidadas a cada salvamento; a categoria precisa pertencer ao usuário e ser do tipo `DESPESA`. Os endpoints de leitura de vendas expõem `additionalExpenseCategoryId`/`additionalExpenseDescription` para preencher o formulário de edição.
+- **"Valores Adicionais" absorvidos pelo vendedor (não cobrados do cliente)**: novo campo `Order.additionalValueChargedToClient` (Boolean, default `true`, migração `20260920130000_add_additional_value_charged_flag`). Os Valores Adicionais continuam gerando a despesa `VENDA_ADICIONAL` no financeiro, mas quando a flag é `false` o valor sai do `totalValue`, do saldo pendente e da regra de `QUITADO`; a troca da flag a qualquer momento recalcula total e status nos dois sentidos.
+
+### Changed
+- **Coluna "Recebido" e detalhamento exibem o líquido recebido**: quando o vendedor repassa a taxa do InfinitePay ao cliente (cobra, por ex., R$ 349,72 para receber R$ 335,03 líquidos), a coluna **Recebido** da lista de vendas e o **Detalhamento de Pagamentos** passam a exibir o valor **líquido recebido** (`Payment.netAmount`), caindo no valor cobrado quando não há líquido informado. O status continua `QUITADO` (a regra de status/pendente segue usando o valor cobrado).
+- **`ARCHITECTURE.md`**: `Order.attachmentFilename` documentado como compartilhado por `COMPRA` (screenshot dōTERRA) e `VENDA` (foto da venda); novas rotas `/api/sales/:id/attachment` e limpeza do anexo na exclusão da venda; coluna **Anexo** e campo **Foto da Venda** descritos na UI de Vendas; `AttachmentPreviewModal` promovido a componente compartilhado.
+
+### Fixed
+- **Anexo de venda na lista**: a miniatura usa o mesmo endpoint autenticado do modal (blob com JWT), então a imagem nunca é exposta por caminho estático; o carregamento é adiado até a linha entrar na viewport para não disparar uma requisição por venda visível.
+
+### Tests
+- Backend: novo `backend/tests/salesAttachments.test.js` (9 casos: upload/substituição, tipo inválido, tamanho, isolamento por usuário, `GET`/`DELETE`, limpeza do arquivo na exclusão da venda, não autenticado); `ordersAttachments.test.js` mantido (14). **748 backend passing** (13 falhas pré-existentes em `productLoader.test.js`, confirmadas antes da mudança e reproduzidas isoladamente).
+- Frontend: `frontend/tests/SalesPage.test.jsx` ganhou 9 casos (miniatura presente/ausente, abertura do preview pela miniatura, alternância de tamanho ao clicar na imagem, input no criar, upload no criar, foto existente + remover, exclusão no editar e upload de nova foto no editar). **891 frontend passing**; `npm run build` e `npm run format:check` limpos e `npm run lint` sem erros (5 warnings preexistentes no frontend).
+
 ## Phase 101 — Aviso único do novo módulo de Finanças (2026-09-19)
 
 ### Added
