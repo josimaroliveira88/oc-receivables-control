@@ -82,7 +82,38 @@ describe('loadProductCatalog', () => {
     });
   });
 
+  // Remove every TEST product together with its dependent rows. Inventory,
+  // StockMovement and KitComposition reference Product with ON DELETE RESTRICT,
+  // so a single stray row (left by another suite or by an interrupted run)
+  // aborts a plain deleteMany and leaks the products, making prices accumulate
+  // across runs. Delete the dependents first so the cleanup can never be blocked.
+  async function removeTestProducts() {
+    const ids = (
+      await prisma.product.findMany({
+        where: { code: { startsWith: 'TEST' } },
+        select: { id: true },
+      })
+    ).map((product) => product.id);
+
+    if (ids.length === 0) return;
+
+    await prisma.kitComposition.deleteMany({
+      where: {
+        OR: [
+          { kitProductId: { in: ids } },
+          { componentProductId: { in: ids } },
+        ],
+      },
+    });
+    await prisma.inventory.deleteMany({ where: { productId: { in: ids } } });
+    await prisma.stockMovement.deleteMany({
+      where: { productId: { in: ids } },
+    });
+    await prisma.product.deleteMany({ where: { id: { in: ids } } });
+  }
+
   beforeEach(async () => {
+    await removeTestProducts();
     // Deactivate all non-test products so deactivation counts are deterministic
     // and only TEST products participate in assertions.
     await prisma.product.updateMany({
@@ -92,9 +123,7 @@ describe('loadProductCatalog', () => {
   });
 
   afterEach(async () => {
-    await prisma.product.deleteMany({
-      where: { code: { startsWith: 'TEST' } },
-    });
+    await removeTestProducts();
   });
 
   afterAll(async () => {
