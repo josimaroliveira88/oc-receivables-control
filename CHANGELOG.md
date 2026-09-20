@@ -9,6 +9,15 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 105 — Importação do extrato InfinitePay e baixa de vendas por valor (2026-09-20)
+
+### Added
+- **Importação do extrato CSV do InfinitePay (`POST /api/sales/infinitepay/import`)**: novo botão **"Importar InfinitePay"** na tela de Vendas abre um modal que lista os lançamentos aprovados do extrato (data, valor, líquido, taxa e `Origem - Nome`) e sugere, para cada linha, as vendas cujo total é igual ao **valor** ou ao **líquido** com tolerância de **até 2 centavos**. O parser (`parseInfinitePayCsv` em `backend/src/utils/csvParser.js`) é uma função pura sem dependências que valida o cabeçalho fixo de 15 colunas, converte os valores no formato brasileiro (`234,02`, `'- 14,01`) para centavos e valida a data `DD/MM/AAAA HH:MM`; qualquer linha fora do padrão rejeita o arquivo inteiro com `400` e o número da linha. Registros com status **Negada** são descartados e contados (`ignoredCount`). O cruzamento é feito por `backend/src/utils/infinitepayHelpers.js` (`matchRowToSales`), restrito às vendas do próprio usuário (`VENDA`, não-equipe, com pendência). Upload em memória via `middlewares/upload.js` (`INFINITEPAY_MAX_BYTES`, padrão 2 MB).
+- **Baixa pré-preenchida a partir do extrato**: ao escolher uma venda sugerida, o modal de pagamento abre preenchido com forma **InfinitePay**, valor cobrado = `valor`, valor líquido = `líquido`, data do extrato e nota com o NSU; a flag **"Repassar taxa do InfinitePay ao cliente"** é marcada automaticamente quando a venda casou pelo **líquido** (cliente pagou a taxa) e desmarcada quando casou pelo **valor**. Após registrar, a linha é marcada como **"Usada"** e o modal de importação reabre; cancelar mantém a linha disponível. Componentes: `frontend/src/pages/Sales/useInfinitePayImport.js`, `frontend/src/pages/Sales/components/InfinitePayImportModal.jsx` e `frontend/src/pages/Sales/utils/infinitepayHelpers.js`, com `openPaymentModalPrefilled` em `useSalePayments.js`.
+
+### Tests
+- Backend: `infinitepayCsvParser.test.js` (16), `infinitepayHelpers.test.js` (12) e `salesInfinitepayImport.test.js` (10, cobre isolamento por usuário, `QUITADO`/equipe fora dos matches, tolerância de 2 centavos e rejeição de cabeçalho, linha e tipo de arquivo). Frontend: `infinitepayHelpers.test.js` (8), `useInfinitePayImport.test.js` (8), `InfinitePayImportModal.test.jsx` (8) e integração em `SalesPage.test.jsx`. Suíte backend: 786 passando de 799 (as 13 falhas em `productLoader.test.js` são pré-existentes, confirmadas no baseline, por poluição do banco de testes compartilhado); **982 frontend** passando; `npm run lint` sem erros (apenas warnings pré-existentes), `npm run build` e `npm run format:check` limpos.
+
 ## Phase 104 — Cashback e modo de cobrança absorvidos pela % de promoção nos pedidos (2026-09-20)
 
 ### Changed
