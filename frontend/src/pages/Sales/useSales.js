@@ -50,6 +50,8 @@ export function useSales() {
   const [shippingValueError, setShippingValueError] = useState('');
   const [additionalValue, setAdditionalValue] = useState('');
   const [additionalValueError, setAdditionalValueError] = useState('');
+  const [additionalValueChargedToClient, setAdditionalValueChargedToClient] =
+    useState(true);
   const [additionalExpenseCategoryId, setAdditionalExpenseCategoryId] =
     useState('');
   const [additionalExpenseCategoryError, setAdditionalExpenseCategoryError] =
@@ -214,6 +216,7 @@ export function useSales() {
     setShippingValueError('');
     setAdditionalValue('');
     setAdditionalValueError('');
+    setAdditionalValueChargedToClient(true);
     setAdditionalExpenseCategoryId('');
     setAdditionalExpenseCategoryError('');
     setAdditionalExpenseDescription('');
@@ -236,6 +239,7 @@ export function useSales() {
       orderDate,
       shippingValue,
       additionalValue,
+      additionalValueChargedToClient,
       additionalExpenseCategoryId,
       additionalExpenseDescription,
       description,
@@ -261,6 +265,9 @@ export function useSales() {
       case 'additionalValue':
         setAdditionalValue(value);
         setAdditionalValueError('');
+        break;
+      case 'additionalValueChargedToClient':
+        setAdditionalValueChargedToClient(value);
         break;
       case 'additionalExpenseCategoryId':
         setAdditionalExpenseCategoryId(value);
@@ -356,6 +363,7 @@ export function useSales() {
       additionalValue === '' || additionalValue == null
         ? 0
         : parseFloat(additionalValue),
+    additionalValueChargedToClient,
     additionalExpenseCategoryId: additionalExpenseCategoryId || null,
     additionalExpenseDescription: additionalExpenseDescription.trim() || null,
     description: description.trim() || null,
@@ -405,6 +413,9 @@ export function useSales() {
         : '';
     setAdditionalValue(additionalValue);
     setAdditionalValueError('');
+    setAdditionalValueChargedToClient(
+      sale.additionalValueChargedToClient !== false,
+    );
     setAdditionalExpenseCategoryId(sale.additionalExpenseCategoryId || '');
     setAdditionalExpenseCategoryError('');
     setAdditionalExpenseDescription(sale.additionalExpenseDescription || '');
@@ -418,6 +429,8 @@ export function useSales() {
       orderDate,
       shippingValue,
       additionalValue,
+      additionalValueChargedToClient:
+        sale.additionalValueChargedToClient !== false,
       additionalExpenseCategoryId: sale.additionalExpenseCategoryId || '',
       additionalExpenseDescription: sale.additionalExpenseDescription || '',
       description: sale.orderNotes || '',
@@ -510,6 +523,7 @@ export function useSales() {
     orderDate,
     shippingValue,
     additionalValue,
+    additionalValueChargedToClient,
     additionalExpenseCategoryId,
     additionalExpenseDescription,
     description,
@@ -567,6 +581,7 @@ export function useSales() {
     shippingValueError,
     additionalValue,
     additionalValueError,
+    additionalValueChargedToClient,
     additionalExpenseCategoryId,
     additionalExpenseCategoryError,
     additionalExpenseDescription,

@@ -69,7 +69,11 @@ const SaleDetailsModal = ({
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-ink-faint">Valores Adicionais</dt>
+                <dt className="text-xs text-ink-faint">
+                  Valores Adicionais
+                  {sale.additionalValueChargedToClient === false &&
+                    ' (não repassado ao cliente)'}
+                </dt>
                 <dd
                   data-testid="sale-details-summary-additional"
                   className="text-sm font-medium text-ink"

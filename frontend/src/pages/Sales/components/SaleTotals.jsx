@@ -12,6 +12,7 @@ const SaleTotals = ({
   shippingValueError,
   additionalValue,
   additionalValueError,
+  additionalValueChargedToClient = true,
   additionalExpenseCategoryId,
   additionalExpenseCategoryError,
   additionalExpenseDescription,
@@ -27,7 +28,11 @@ const SaleTotals = ({
     additionalValue === '' || additionalValue == null
       ? 0
       : toCents(parseFloat(additionalValue));
-  const totalCents = totalChargedCents + shippingCents + additionalCents;
+  const additionalCharged = additionalValueChargedToClient !== false;
+  const totalCents =
+    totalChargedCents +
+    shippingCents +
+    (additionalCharged ? additionalCents : 0);
 
   return (
     <div className="mb-4">
@@ -81,9 +86,34 @@ const SaleTotals = ({
       </div>
       {additionalCents > 0 && (
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="sm:col-span-2 flex items-start gap-2 rounded-md border border-line bg-base px-3 py-2">
+            <input
+              id="saleAdditionalChargedToClient"
+              data-testid="sale-additional-charged"
+              type="checkbox"
+              checked={additionalCharged}
+              onChange={(e) =>
+                onChangeField(
+                  'additionalValueChargedToClient',
+                  e.target.checked,
+                )
+              }
+              className="mt-0.5 h-4 w-4 rounded border-line text-accent focus:ring-accent"
+            />
+            <label
+              htmlFor="saleAdditionalChargedToClient"
+              className="text-sm text-ink-soft cursor-pointer"
+            >
+              Repassar valor adicional ao cliente
+              <span className="block text-xs text-ink-faint">
+                Desmarque quando decidir não cobrar esse valor do cliente.
+              </span>
+            </label>
+          </div>
           <p className="sm:col-span-2 text-xs text-ink-faint">
-            Valores adicionais geram uma despesa automática no financeiro.
-            Informe a categoria e a descrição:
+            {additionalCharged
+              ? 'Valores adicionais geram uma despesa automática no financeiro. Informe a categoria e a descrição:'
+              : `${formatBRL(fromCents(additionalCents))} será registrado como despesa, mas não cobrado do cliente. Informe a categoria e a descrição:`}
           </p>
           <div className="bg-base rounded-md p-3">
             <label

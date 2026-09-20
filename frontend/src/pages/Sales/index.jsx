@@ -43,6 +43,7 @@ const SalesPage = () => {
     shippingValueError,
     additionalValue,
     additionalValueError,
+    additionalValueChargedToClient,
     additionalExpenseCategoryId,
     additionalExpenseCategoryError,
     additionalExpenseDescription,
@@ -223,6 +224,7 @@ const SalesPage = () => {
             shippingValueError={shippingValueError}
             additionalValue={additionalValue}
             additionalValueError={additionalValueError}
+            additionalValueChargedToClient={additionalValueChargedToClient}
             additionalExpenseCategoryId={additionalExpenseCategoryId}
             additionalExpenseCategoryError={additionalExpenseCategoryError}
             additionalExpenseDescription={additionalExpenseDescription}
