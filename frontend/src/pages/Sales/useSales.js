@@ -12,6 +12,12 @@ import {
   isKitItem,
 } from './utils/saleHelpers';
 
+// The additional-value expense can only use active DESPESA categories.
+const toExpenseCategories = (categories = []) =>
+  categories.filter(
+    (category) => category.type === 'DESPESA' && category.active,
+  );
+
 export function useSales() {
   const [searchParams, setSearchParams] = useSearchParams();
   const {
@@ -44,6 +50,17 @@ export function useSales() {
   const [shippingValueError, setShippingValueError] = useState('');
   const [additionalValue, setAdditionalValue] = useState('');
   const [additionalValueError, setAdditionalValueError] = useState('');
+  const [additionalExpenseCategoryId, setAdditionalExpenseCategoryId] =
+    useState('');
+  const [additionalExpenseCategoryError, setAdditionalExpenseCategoryError] =
+    useState('');
+  const [additionalExpenseDescription, setAdditionalExpenseDescription] =
+    useState('');
+  const [
+    additionalExpenseDescriptionError,
+    setAdditionalExpenseDescriptionError,
+  ] = useState('');
+  const [expenseCategories, setExpenseCategories] = useState([]);
   const [description, setDescription] = useState('');
   const [deliveredAt, setDeliveredAt] = useState('');
   const [items, setItems] = useState([emptySaleItem()]);
@@ -82,14 +99,17 @@ export function useSales() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [salesRes, peopleRes, productsRes] = await Promise.all([
-        api.get('/sales', { params: buildSaleParams() }),
-        api.get('/people'),
-        api.get('/products?available=true&inStock=true&pageSize=all'),
-      ]);
+      const [salesRes, peopleRes, productsRes, categoriesRes] =
+        await Promise.all([
+          api.get('/sales', { params: buildSaleParams() }),
+          api.get('/people'),
+          api.get('/products?available=true&inStock=true&pageSize=all'),
+          api.get('/finances/categories'),
+        ]);
       setSales(salesRes.data);
       setPeople(peopleRes.data);
       setProducts(productsRes.data.data);
+      setExpenseCategories(toExpenseCategories(categoriesRes.data));
       setError('');
     } catch (err) {
       if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') return;
@@ -194,6 +214,10 @@ export function useSales() {
     setShippingValueError('');
     setAdditionalValue('');
     setAdditionalValueError('');
+    setAdditionalExpenseCategoryId('');
+    setAdditionalExpenseCategoryError('');
+    setAdditionalExpenseDescription('');
+    setAdditionalExpenseDescriptionError('');
     setDescription('');
     setDeliveredAt('');
     setItems([emptySaleItem()]);
@@ -212,6 +236,8 @@ export function useSales() {
       orderDate,
       shippingValue,
       additionalValue,
+      additionalExpenseCategoryId,
+      additionalExpenseDescription,
       description,
       deliveredAt,
       items,
@@ -235,6 +261,14 @@ export function useSales() {
       case 'additionalValue':
         setAdditionalValue(value);
         setAdditionalValueError('');
+        break;
+      case 'additionalExpenseCategoryId':
+        setAdditionalExpenseCategoryId(value);
+        setAdditionalExpenseCategoryError('');
+        break;
+      case 'additionalExpenseDescription':
+        setAdditionalExpenseDescription(value);
+        setAdditionalExpenseDescriptionError('');
         break;
       case 'description':
         setDescription(value);
@@ -267,6 +301,22 @@ export function useSales() {
         : '';
     setAdditionalValueError(newAdditionalValueError);
 
+    const additionalFilled =
+      additionalValue !== '' &&
+      additionalValue != null &&
+      parseFloat(additionalValue) > 0;
+    const newAdditionalExpenseCategoryError =
+      additionalFilled && !additionalExpenseCategoryId
+        ? 'Categoria da despesa é obrigatória'
+        : '';
+    setAdditionalExpenseCategoryError(newAdditionalExpenseCategoryError);
+
+    const newAdditionalExpenseDescriptionError =
+      additionalFilled && !additionalExpenseDescription.trim()
+        ? 'Descrição da despesa é obrigatória'
+        : '';
+    setAdditionalExpenseDescriptionError(newAdditionalExpenseDescriptionError);
+
     const newItemErrors = {};
     items.forEach((item) => {
       if (
@@ -290,6 +340,8 @@ export function useSales() {
     if (newClientError) return false;
     if (newShippingValueError) return false;
     if (newAdditionalValueError) return false;
+    if (newAdditionalExpenseCategoryError) return false;
+    if (newAdditionalExpenseDescriptionError) return false;
     return Object.keys(newItemErrors).length === 0;
   };
 
@@ -304,6 +356,8 @@ export function useSales() {
       additionalValue === '' || additionalValue == null
         ? 0
         : parseFloat(additionalValue),
+    additionalExpenseCategoryId: additionalExpenseCategoryId || null,
+    additionalExpenseDescription: additionalExpenseDescription.trim() || null,
     description: description.trim() || null,
     deliveredAt: deliveredAt || null,
     // Every sale item deducts stock; KIT products always deduct the kit
@@ -351,6 +405,10 @@ export function useSales() {
         : '';
     setAdditionalValue(additionalValue);
     setAdditionalValueError('');
+    setAdditionalExpenseCategoryId(sale.additionalExpenseCategoryId || '');
+    setAdditionalExpenseCategoryError('');
+    setAdditionalExpenseDescription(sale.additionalExpenseDescription || '');
+    setAdditionalExpenseDescriptionError('');
     setDescription(sale.orderNotes || '');
     setDeliveredAt(sale.deliveredAt ? sale.deliveredAt.split('T')[0] : '');
     const items = (sale.items || []).map(editSaleItemFromApi);
@@ -360,6 +418,8 @@ export function useSales() {
       orderDate,
       shippingValue,
       additionalValue,
+      additionalExpenseCategoryId: sale.additionalExpenseCategoryId || '',
+      additionalExpenseDescription: sale.additionalExpenseDescription || '',
       description: sale.orderNotes || '',
       deliveredAt: sale.deliveredAt ? sale.deliveredAt.split('T')[0] : '',
       items,
@@ -425,12 +485,14 @@ export function useSales() {
 
   const loadSupportData = useCallback(async () => {
     try {
-      const [peopleRes, productsRes] = await Promise.all([
+      const [peopleRes, productsRes, categoriesRes] = await Promise.all([
         api.get('/people'),
         api.get('/products?available=true&inStock=true&pageSize=all'),
+        api.get('/finances/categories'),
       ]);
       setPeople(peopleRes.data);
       setProducts(productsRes.data.data);
+      setExpenseCategories(toExpenseCategories(categoriesRes.data));
     } catch (_err) {
       setError('Erro ao carregar dados. Tente novamente.');
     }
@@ -448,6 +510,8 @@ export function useSales() {
     orderDate,
     shippingValue,
     additionalValue,
+    additionalExpenseCategoryId,
+    additionalExpenseDescription,
     description,
     deliveredAt,
     items,
@@ -503,6 +567,11 @@ export function useSales() {
     shippingValueError,
     additionalValue,
     additionalValueError,
+    additionalExpenseCategoryId,
+    additionalExpenseCategoryError,
+    additionalExpenseDescription,
+    additionalExpenseDescriptionError,
+    expenseCategories,
     description,
     deliveredAt,
     items,

@@ -12,6 +12,11 @@ const SaleForm = ({
   shippingValueError,
   additionalValue,
   additionalValueError,
+  additionalExpenseCategoryId,
+  additionalExpenseCategoryError,
+  additionalExpenseDescription,
+  additionalExpenseDescriptionError,
+  expenseCategories,
   description,
   deliveredAt,
   items,
@@ -168,6 +173,11 @@ const SaleForm = ({
         shippingValueError={shippingValueError}
         additionalValue={additionalValue}
         additionalValueError={additionalValueError}
+        additionalExpenseCategoryId={additionalExpenseCategoryId}
+        additionalExpenseCategoryError={additionalExpenseCategoryError}
+        additionalExpenseDescription={additionalExpenseDescription}
+        additionalExpenseDescriptionError={additionalExpenseDescriptionError}
+        expenseCategories={expenseCategories}
         onChangeField={onChangeField}
       />
 

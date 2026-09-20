@@ -24,6 +24,7 @@ export const ORIGIN_FILTER_OPTIONS = [
   { value: 'VENDA', label: 'Venda' },
   { value: 'RESGATE_INFINITEPAY', label: 'Resgate InfinitePay' },
   { value: 'PEDIDO_DOTERRA', label: 'Pedido dōTERRA' },
+  { value: 'VENDA_ADICIONAL', label: 'Adicional de venda' },
   { value: 'MANUAL', label: 'Manual' },
 ];
 
@@ -31,6 +32,7 @@ export const ORIGIN_LABELS = {
   VENDA: 'Venda',
   RESGATE_INFINITEPAY: 'Resgate InfinitePay',
   PEDIDO_DOTERRA: 'Pedido dōTERRA',
+  VENDA_ADICIONAL: 'Adicional de venda',
   MANUAL: 'Manual',
 };
 

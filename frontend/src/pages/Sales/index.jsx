@@ -43,6 +43,11 @@ const SalesPage = () => {
     shippingValueError,
     additionalValue,
     additionalValueError,
+    additionalExpenseCategoryId,
+    additionalExpenseCategoryError,
+    additionalExpenseDescription,
+    additionalExpenseDescriptionError,
+    expenseCategories,
     description,
     deliveredAt,
     items,
@@ -218,6 +223,13 @@ const SalesPage = () => {
             shippingValueError={shippingValueError}
             additionalValue={additionalValue}
             additionalValueError={additionalValueError}
+            additionalExpenseCategoryId={additionalExpenseCategoryId}
+            additionalExpenseCategoryError={additionalExpenseCategoryError}
+            additionalExpenseDescription={additionalExpenseDescription}
+            additionalExpenseDescriptionError={
+              additionalExpenseDescriptionError
+            }
+            expenseCategories={expenseCategories}
             description={description}
             deliveredAt={deliveredAt}
             items={items}

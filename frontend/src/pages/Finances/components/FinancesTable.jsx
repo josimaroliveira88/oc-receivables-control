@@ -18,7 +18,8 @@ const originLink = (transaction) => {
   if (!transaction.orderId) return null;
   if (
     transaction.origin === 'VENDA' ||
-    transaction.origin === 'RESGATE_INFINITEPAY'
+    transaction.origin === 'RESGATE_INFINITEPAY' ||
+    transaction.origin === 'VENDA_ADICIONAL'
   ) {
     return `/sales?editSale=${transaction.orderId}`;
   }

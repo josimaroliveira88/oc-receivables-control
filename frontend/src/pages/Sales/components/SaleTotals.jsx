@@ -12,6 +12,11 @@ const SaleTotals = ({
   shippingValueError,
   additionalValue,
   additionalValueError,
+  additionalExpenseCategoryId,
+  additionalExpenseCategoryError,
+  additionalExpenseDescription,
+  additionalExpenseDescriptionError,
+  expenseCategories = [],
   onChangeField,
 }) => {
   const shippingCents =
@@ -74,6 +79,74 @@ const SaleTotals = ({
           )}
         </div>
       </div>
+      {additionalCents > 0 && (
+        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="bg-base rounded-md p-3">
+            <label
+              htmlFor="saleAdditionalExpenseCategory"
+              className="block text-xs text-ink-faint"
+            >
+              Categoria da despesa
+            </label>
+            <select
+              id="saleAdditionalExpenseCategory"
+              data-testid="sale-additional-expense-category"
+              value={additionalExpenseCategoryId}
+              onChange={(e) =>
+                onChangeField('additionalExpenseCategoryId', e.target.value)
+              }
+              className="mt-1 w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
+            >
+              <option value="">Selecione uma categoria</option>
+              {expenseCategories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+            {additionalExpenseCategoryError && (
+              <div
+                data-testid="sale-additional-expense-category-error"
+                className="mt-1 p-2 bg-danger-soft rounded-md"
+              >
+                <p className="text-sm text-danger-fg">
+                  {additionalExpenseCategoryError}
+                </p>
+              </div>
+            )}
+          </div>
+          <div className="bg-base rounded-md p-3">
+            <label
+              htmlFor="saleAdditionalExpenseDescription"
+              className="block text-xs text-ink-faint"
+            >
+              Descrição da despesa
+            </label>
+            <input
+              id="saleAdditionalExpenseDescription"
+              data-testid="sale-additional-expense-description"
+              type="text"
+              value={additionalExpenseDescription}
+              onChange={(e) =>
+                onChangeField('additionalExpenseDescription', e.target.value)
+              }
+              maxLength={255}
+              placeholder="Ex.: Frete da entrega"
+              className="mt-1 w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
+            />
+            {additionalExpenseDescriptionError && (
+              <div
+                data-testid="sale-additional-expense-description-error"
+                className="mt-1 p-2 bg-danger-soft rounded-md"
+              >
+                <p className="text-sm text-danger-fg">
+                  {additionalExpenseDescriptionError}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="bg-base rounded-md p-3">
           <div className="text-xs text-ink-faint">
