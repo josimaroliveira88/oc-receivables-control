@@ -434,5 +434,82 @@ test.describe('Valores Adicionais da venda geram despesa automática (e2e)', () 
 
       await saveScreenshot(page, 'f-additional-ct12-edit-prefill');
     });
+
+    test('CT13 - editar com valor adicional sem categoria bloqueia o envio', async ({
+      page,
+      request,
+    }) => {
+      // Sale without additional value (no expense yet).
+      const sale = await createSaleViaApi(request, token, {
+        clientPersonId: client.id,
+        orderDate: ORDER_DATE,
+        additionalValue: 0,
+        items: [{ productId: product.id, chargedValue: 100, quantity: 1 }],
+      });
+
+      const putCalls = [];
+      page.on('request', (req) => {
+        if (
+          req.method() === 'PUT' &&
+          req.url().includes(`/api/sales/${sale.id}`)
+        ) {
+          putCalls.push(req.postData());
+        }
+      });
+
+      await page.goto('/sales');
+      await expect(
+        page.getByRole('heading', { name: 'Gestão de Vendas' }),
+      ).toBeVisible({ timeout: 15_000 });
+      await page.getByTestId(`sale-actions-${sale.id}-trigger`).click();
+      await page.getByTestId(`sale-actions-${sale.id}-item-Editar`).click();
+      const modal = page.getByTestId('modal-backdrop');
+      await expect(modal.getByText('Editar Venda')).toBeVisible({
+        timeout: 10_000,
+      });
+
+      // Type an additional value; the required expense fields appear.
+      await modal.getByTestId('sale-additional').fill('30,00');
+      await expect(
+        modal.getByTestId('sale-additional-expense-category'),
+      ).toBeVisible();
+      await saveScreenshot(page, 'f-additional-ct13-update-fields');
+
+      // Submitting without category/description is blocked client-side.
+      await modal.getByRole('button', { name: 'Atualizar' }).click();
+      await expect(
+        modal.getByTestId('sale-additional-expense-category-error'),
+      ).toBeVisible();
+      await expect(
+        modal.getByTestId('sale-additional-expense-description-error'),
+      ).toBeVisible();
+      expect(putCalls).toHaveLength(0);
+      await expect(modal).toBeVisible();
+
+      // Filling both lets the update through and syncs the linked expense.
+      await modal
+        .getByTestId('sale-additional-expense-category')
+        .selectOption({ label: despesaCategory.name });
+      await modal
+        .getByTestId('sale-additional-expense-description')
+        .fill('Frete update e2e');
+      await saveScreenshot(page, 'f-additional-ct13-update-filled');
+      await modal.getByRole('button', { name: 'Atualizar' }).click();
+      await expect(modal).toHaveCount(0, { timeout: 10_000 });
+
+      await expect
+        .poll(async () => {
+          const rows = await listFinanceTransactionsViaApi(request, token, {
+            origin: 'VENDA_ADICIONAL',
+          });
+          return rows.some(
+            (row) =>
+              row.orderId === sale.id &&
+              Number(row.amount) === 30 &&
+              row.description === 'Frete update e2e',
+          );
+        })
+        .toBe(true);
+    });
   });
 });
