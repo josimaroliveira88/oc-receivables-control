@@ -65,4 +65,56 @@ const uploadSingleAttachment = (req, res, next) => {
 const resolveAttachmentPath = (filename) =>
   path.join(resolveUploadsDir(), filename);
 
-export { upload, uploadSingleAttachment, resolveAttachmentPath };
+// --- InfinitePay statement upload ------------------------------------------
+
+// The InfinitePay statement is parsed in memory and never persisted, so it is
+// accepted as text/CSV (browsers often report text/plain or octet-stream for
+// .csv files) with a bounded size.
+const INFINITEPAY_ALLOWED_TYPES = new Set([
+  'text/csv',
+  'text/plain',
+  'application/csv',
+  'application/vnd.ms-excel',
+  'application/octet-stream',
+]);
+
+const infinitePayMaxBytes = () =>
+  Number(process.env.INFINITEPAY_MAX_BYTES) || 2 * 1024 * 1024;
+
+const infinitePayUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: infinitePayMaxBytes() },
+  fileFilter(req, file, cb) {
+    if (!INFINITEPAY_ALLOWED_TYPES.has(file.mimetype)) {
+      const error = new Error('Invalid file type');
+      error.code = 'INVALID_FILE_TYPE';
+      return cb(error);
+    }
+    cb(null, true);
+  },
+});
+
+// Wraps the single-file upload so multer's errors become clean 400 responses.
+const uploadSingleInfinitePayCsv = (req, res, next) => {
+  infinitePayUpload.single('file')(req, res, (err) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res
+          .status(400)
+          .json({ error: 'Arquivo CSV excede o tamanho máximo' });
+      }
+      if (err.code === 'INVALID_FILE_TYPE') {
+        return res.status(400).json({ error: 'Tipo de arquivo inválido' });
+      }
+      return next(err);
+    }
+    next();
+  });
+};
+
+export {
+  upload,
+  uploadSingleAttachment,
+  resolveAttachmentPath,
+  uploadSingleInfinitePayCsv,
+};

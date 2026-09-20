@@ -1,7 +1,11 @@
 import express from 'express';
 import * as salesController from '../controllers/salesController.js';
 import * as attachmentsController from '../controllers/orderAttachmentsController.js';
-import { uploadSingleAttachment } from '../middlewares/upload.js';
+import * as infinitepayController from '../controllers/salesInfinitepayImportController.js';
+import {
+  uploadSingleAttachment,
+  uploadSingleInfinitePayCsv,
+} from '../middlewares/upload.js';
 import { authenticateToken } from '../middlewares/auth.js';
 
 const router = express.Router();
@@ -113,6 +117,37 @@ router.get('/:id', salesController.getSaleById);
  */
 // POST /api/sales
 router.post('/', salesController.createSale);
+
+/**
+ * @openapi
+ * /api/sales/infinitepay/import:
+ *   post:
+ *     tags: [Sales]
+ *     summary: Importa o extrato CSV do InfinitePay e sugere vendas por valor
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Linhas aprovadas com as vendas sugeridas
+ *       400:
+ *         description: CSV fora do padrão ou arquivo ausente
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+// POST /api/sales/infinitepay/import
+router.post(
+  '/infinitepay/import',
+  uploadSingleInfinitePayCsv,
+  infinitepayController.importInfinitePayStatement,
+);
 
 /**
  * @openapi
