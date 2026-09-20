@@ -137,12 +137,12 @@ const SalesTable = ({
             </thead>
             <tbody className="block lg:table-row-group bg-surface lg:divide-y divide-line">
               {sales.map((sale) => {
-                const { totalCents, paidCents, pendingCents } =
+                const { totalCents, paidCents, receivedCents, pendingCents } =
                   getSaleFinancials(sale);
                 const receivedColorClass =
-                  paidCents < totalCents
+                  receivedCents < totalCents
                     ? 'text-danger-fg'
-                    : paidCents === totalCents
+                    : receivedCents === totalCents
                       ? 'text-success-fg'
                       : 'text-info-fg';
                 const showPaymentAction = shouldShowSalePaymentAction(sale);
@@ -182,7 +182,7 @@ const SalesTable = ({
                       data-label="Recebido"
                       className={`block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm ${receivedColorClass} before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden`}
                     >
-                      {formatBRL(paidCents / 100)}
+                      {formatBRL(receivedCents / 100)}
                     </td>
                     <td
                       data-label="Entrega"

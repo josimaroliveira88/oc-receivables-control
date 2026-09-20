@@ -118,6 +118,40 @@ const mockSales = [
     ],
     payments: [{ amount: '600.00' }],
   },
+  {
+    id: '4',
+    orderNumber: 'V-0004',
+    orderDate: '2026-07-10T00:00:00.000Z',
+    totalValue: '335.03',
+    shippingValue: '0',
+    additionalValue: '0',
+    deliveredAt: null,
+    status: 'QUITADO',
+    orderNotes: 'Venda com taxa repassada',
+    passesGatewayFeeToClient: true,
+    items: [
+      {
+        id: 'i5',
+        description: 'Adaptiv Pastilhas',
+        chargedValue: '335.03',
+        quantity: 1,
+        chargedValueMode: 'UNIT',
+        personId: 'p1',
+        person: { name: 'Carlos Pereira' },
+        productId: 'prod-1',
+        product: { id: 'prod-1', name: 'Adaptiv Pastilhas', code: '60226006' },
+        memberPrice: '90.00',
+      },
+    ],
+    payments: [
+      {
+        id: 'pay-fee',
+        amount: '349.72',
+        netAmount: '335.03',
+        paymentType: 'INFINITE_PAY',
+      },
+    ],
+  },
 ];
 
 const mockPeople = [
@@ -352,6 +386,21 @@ describe('SalesPage', () => {
       expect(overpaidCell.className).toContain('text-info-fg');
     });
 
+    it('should display the net received amount when the gateway fee is passed to the client', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(
+          screen.getByText('Venda com taxa repassada'),
+        ).toBeInTheDocument();
+      });
+      const row = screen.getByText('Venda com taxa repassada').closest('tr');
+      const receivedCell = row.querySelector('td[data-label="Recebido"]');
+      expect(receivedCell).toHaveTextContent(/R\$\s*335,03/);
+      expect(receivedCell).not.toHaveTextContent(/R\$\s*349,72/);
+      expect(receivedCell.className).toContain('text-success-fg');
+      expect(within(row).getByText('Quitado')).toBeInTheDocument();
+    });
+
     it('should display status badges', async () => {
       renderPage();
       await waitFor(() => {
@@ -471,7 +520,7 @@ describe('SalesPage', () => {
       renderPage();
       await waitFor(() => {
         const triggers = screen.getAllByTestId(/^sale-actions-\d+-trigger$/);
-        expect(triggers).toHaveLength(3);
+        expect(triggers).toHaveLength(4);
       });
     });
 

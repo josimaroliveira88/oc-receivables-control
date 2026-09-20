@@ -4,7 +4,11 @@ import { formatBRL, fromCents } from '../../../utils/money';
 import { formatDateBR } from '../../../utils/dates';
 import { getSalePendingCents } from '../utils/saleHelpers';
 import { lineValueCents } from '../utils/saleHelpers';
-import { hasNetAmount, paymentFeeCents } from '../../../utils/paymentFee';
+import {
+  hasNetAmount,
+  paymentFeeCents,
+  paymentNetCents,
+} from '../../../utils/paymentFee';
 import { PaymentTypeBadge } from '../../Orders/components/Badges';
 import Modal from '../../../components/Modal';
 
@@ -155,6 +159,7 @@ const SaleDetailsModal = ({
                           netAmount: payment.netAmount,
                         })
                       : 0;
+                    const receivedCents = paymentNetCents(payment);
                     return (
                       <div key={payment.id} className="px-3 py-2 bg-surface">
                         <div className="flex items-start justify-between gap-2">
@@ -163,7 +168,7 @@ const SaleDetailsModal = ({
                           </span>
                           <span className="flex items-center gap-2">
                             <span className="text-sm font-semibold text-success-fg whitespace-nowrap">
-                              {formatBRL(parseFloat(payment.amount))}
+                              {formatBRL(receivedCents / 100)}
                             </span>
                             {payment.paymentType && (
                               <PaymentTypeBadge
@@ -187,6 +192,7 @@ const SaleDetailsModal = ({
                             data-testid={`payment-fee-${payment.id}`}
                             className="text-xs text-ink-faint mt-0.5"
                           >
+                            Cobrado: {formatBRL(parseFloat(payment.amount))} ·
                             Taxa: {formatBRL(feeCents / 100)} · Líquido:{' '}
                             {formatBRL(parseFloat(payment.netAmount))}
                           </p>

@@ -656,8 +656,13 @@ describe('SalesPayments', () => {
 
       const modal = within(screen.getByTestId('sale-details-modal'));
       const feeLine = modal.getByTestId('payment-fee-pay-1');
+      expect(feeLine).toHaveTextContent(/Cobrado:\s*R\$\s*234,02/);
       expect(feeLine).toHaveTextContent(/Taxa:\s*R\$\s*14,02/);
       expect(feeLine).toHaveTextContent(/Líquido:\s*R\$\s*220,00/);
+      const row = feeLine.closest('div.bg-surface');
+      const mainValue = row.querySelector('span.text-success-fg');
+      expect(mainValue).toHaveTextContent(/R\$\s*220,00/);
+      expect(mainValue).not.toHaveTextContent(/234,02/);
     });
   });
 

@@ -1,4 +1,5 @@
 import { toCents, fromCents, formatBRL } from '../../../utils/money';
+import { paymentNetCents } from '../../../utils/paymentFee';
 
 // Cashback points grant a 70% discount, so the discounted member amount is
 // 30% of the member price (same constant as the orders form).
@@ -121,14 +122,22 @@ export const getSalePaidCents = (sale) =>
     0,
   );
 
+// Net amount actually received: each payment's net (after the gateway fee when
+// the fee is passed to the client), falling back to the charged amount when no
+// net was informed. This is what the "Recebido" column and the payment details
+// display; order status/pending keep using the gross charged amount.
+export const getSaleReceivedCents = (sale) =>
+  (sale.payments || []).reduce((sum, p) => sum + paymentNetCents(p), 0);
+
 export const getSalePendingCents = (sale) =>
   Math.max(0, toCents(parseFloat(sale.totalValue)) - getSalePaidCents(sale));
 
 export const getSaleFinancials = (sale) => {
   const totalCents = toCents(parseFloat(sale.totalValue));
   const paidCents = getSalePaidCents(sale);
+  const receivedCents = getSaleReceivedCents(sale);
   const pendingCents = Math.max(0, totalCents - paidCents);
-  return { totalCents, paidCents, pendingCents };
+  return { totalCents, paidCents, receivedCents, pendingCents };
 };
 
 export const shouldShowSalePaymentAction = (sale) => {
