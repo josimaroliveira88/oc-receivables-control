@@ -664,6 +664,23 @@ describe('SalesPayments', () => {
       expect(mainValue).toHaveTextContent(/R\$\s*220,00/);
       expect(mainValue).not.toHaveTextContent(/234,02/);
     });
+
+    it('should open the details modal via the ?detailsSale deep-link', async () => {
+      mockGetImplementation([detailSale]);
+      render(
+        <MemoryRouter initialEntries={['/sales?detailsSale=sale-detail']}>
+          <ToastProvider>
+            <SalesPage />
+          </ToastProvider>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('sale-details-modal')).toBeInTheDocument();
+      });
+      const modal = within(screen.getByTestId('sale-details-modal'));
+      expect(modal.getByText('Detalhamento — V-0002')).toBeInTheDocument();
+    });
   });
 
   describe('Edit Payment', () => {

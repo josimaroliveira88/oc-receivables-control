@@ -12,8 +12,8 @@ import {
 } from '../utils/financeHelpers';
 
 // Automatic rows link back to the record that produced them. Sales and
-// InfinitePay redemptions deep-link to the sale; dōTERRA orders go to the
-// orders list (no edit deep-link for purchases).
+// InfinitePay redemptions deep-link to the sale details; dōTERRA orders
+// deep-link to the order details.
 const originLink = (transaction) => {
   if (!transaction.orderId) return null;
   if (
@@ -21,9 +21,11 @@ const originLink = (transaction) => {
     transaction.origin === 'RESGATE_INFINITEPAY' ||
     transaction.origin === 'VENDA_ADICIONAL'
   ) {
-    return `/sales?editSale=${transaction.orderId}`;
+    return `/sales?detailsSale=${transaction.orderId}`;
   }
-  if (transaction.origin === 'PEDIDO_DOTERRA') return '/orders';
+  if (transaction.origin === 'PEDIDO_DOTERRA') {
+    return `/orders?detailsOrder=${transaction.orderId}`;
+  }
   return null;
 };
 

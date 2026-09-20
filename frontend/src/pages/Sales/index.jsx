@@ -141,7 +141,7 @@ const SalesPage = () => {
     handleEditSubmit,
     confirmEditOverpay,
     cancelEditOverpay,
-  } = useSalePayments({ refreshSales });
+  } = useSalePayments({ refreshSales, sales, loading });
 
   const {
     settlementSale,

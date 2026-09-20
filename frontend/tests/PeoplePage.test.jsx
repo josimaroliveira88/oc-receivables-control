@@ -1075,7 +1075,7 @@ describe('PeoplePage', () => {
       );
     });
 
-    it('should navigate to the sale form when clicking a sale product', async () => {
+    it('should navigate to the sale details when clicking a sale product', async () => {
       mockWithSummary(summaryData, purchasesBoth);
       renderPageWithRoutes();
 
@@ -1099,7 +1099,7 @@ describe('PeoplePage', () => {
         expect(screen.getByTestId('sales-route')).toBeInTheDocument();
       });
       expect(screen.getByTestId('sales-route')).toHaveTextContent(
-        '/sales?editSale=ord-2',
+        '/sales?detailsSale=ord-2',
       );
     });
 

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { useDirtyForm } from '../../hooks/useDirtyForm';
@@ -17,7 +18,9 @@ import {
 } from '../Orders/utils/receivablesHelpers';
 import { getSaleClientName, getSalePendingCents } from './utils/saleHelpers';
 
-export function useSalePayments({ refreshSales }) {
+export function useSalePayments({ refreshSales, sales = [], loading = false }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const detailsDeepLinkRef = useRef(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);
   const [balances, setBalances] = useState([]);
@@ -461,6 +464,19 @@ export function useSalePayments({ refreshSales }) {
 
   const getDetailPersonPayments = (personId) =>
     getPersonPayments(detailSale, personId);
+
+  // Support deep-linking from the finances ledger and the client details via
+  // ?detailsSale=. Opens the details modal for the referenced sale once data
+  // loads.
+  useEffect(() => {
+    const detailsSaleParam = searchParams.get('detailsSale');
+    if (!detailsSaleParam || detailsDeepLinkRef.current || loading) return;
+    const sale = sales.find((s) => s.id === detailsSaleParam);
+    if (!sale) return;
+    detailsDeepLinkRef.current = true;
+    setSearchParams({}, { replace: true });
+    openDetailsModal(sale);
+  }, [searchParams, loading, sales, openDetailsModal, setSearchParams]);
 
   const orderPendingCents = selectedSale
     ? getSalePendingCents(selectedSale)

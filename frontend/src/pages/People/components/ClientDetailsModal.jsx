@@ -144,11 +144,11 @@ const ClientDetailsModal = ({ person, onClose }) => {
       });
   };
 
-  // Purchases link back to their source: orders go to the details view,
-  // sales go to the sale form (both pages support the deep-link params).
+  // Purchases link back to their source: both orders and sales go to the
+  // respective details view (both pages support the deep-link params).
   const goToProduct = (row) => {
     if (row.orderType === 'VENDA') {
-      navigate(`/sales?editSale=${row.orderId}`);
+      navigate(`/sales?detailsSale=${row.orderId}`);
     } else {
       navigate(`/orders?detailsOrder=${row.orderId}`);
     }

@@ -230,8 +230,26 @@ describe('FinancesPage', () => {
 
     expect(screen.getByTestId('transaction-link-t-venda')).toBeInTheDocument();
     expect(
+      screen.getByTestId('transaction-link-t-doterra'),
+    ).toBeInTheDocument();
+    expect(
       screen.queryByTestId('transaction-link-t-manual'),
     ).not.toBeInTheDocument();
+  });
+
+  it('deep-links sales to the sale details and orders to the order details', async () => {
+    mockGetImplementation();
+    renderPage();
+    await waitForTable();
+
+    expect(screen.getByTestId('transaction-link-t-venda')).toHaveAttribute(
+      'href',
+      '/sales?detailsSale=order-1',
+    );
+    expect(screen.getByTestId('transaction-link-t-doterra')).toHaveAttribute(
+      'href',
+      '/orders?detailsOrder=order-2',
+    );
   });
 
   it('only offers edit/delete for manual rows', async () => {
