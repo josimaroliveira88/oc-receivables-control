@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Plus } from 'lucide-react';
 import { lineValueCents } from '../utils/saleHelpers';
 import SaleItemFields from './SaleItemFields';
@@ -33,14 +33,26 @@ const SaleForm = ({
   onSubmit,
   onCancel,
 }) => {
+  const formRef = useRef(null);
+
+  // Bring the first invalid field into view on a failed submit. Covers every
+  // error box in the form, including the additional-value expense fields, so
+  // the user is never left at the bottom without seeing what must be filled.
   useEffect(() => {
-    const firstError = document.querySelector(
-      '[data-testid^="sale-item-error-"]',
-    );
+    const form = formRef.current;
+    if (!form) return;
+    const firstError = form.querySelector('[data-testid*="-error"]');
     if (firstError && typeof firstError.scrollIntoView === 'function') {
       firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-  }, [itemErrors]);
+  }, [
+    clientError,
+    shippingValueError,
+    additionalValueError,
+    additionalExpenseCategoryError,
+    additionalExpenseDescriptionError,
+    itemErrors,
+  ]);
 
   const totalChargedCents = items.reduce(
     (total, item) => total + lineValueCents(item),
@@ -48,7 +60,7 @@ const SaleForm = ({
   );
 
   return (
-    <form onSubmit={onSubmit} className="px-6 py-4">
+    <form ref={formRef} onSubmit={onSubmit} className="px-6 py-4">
       <div className="mb-4">
         <label
           htmlFor="saleClient"

@@ -81,6 +81,10 @@ const SaleTotals = ({
       </div>
       {additionalCents > 0 && (
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <p className="sm:col-span-2 text-xs text-ink-faint">
+            Valores adicionais geram uma despesa automática no financeiro.
+            Informe a categoria e a descrição:
+          </p>
           <div className="bg-base rounded-md p-3">
             <label
               htmlFor="saleAdditionalExpenseCategory"
