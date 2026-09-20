@@ -53,7 +53,6 @@ describe('createEmptySpreadsheetRow', () => {
     expect(row.productId).toBe('');
     expect(row.quantity).toBe(1);
     expect(row.discountPercent).toBe(0);
-    expect(row.useCashback).toBe(false);
     expect(row.chargedValue).toBe('');
     expect(row.chargedValueMode).toBe('UNIT');
     expect(row.forStock).toBe(false);
@@ -81,13 +80,13 @@ describe('derivedChargedValueString', () => {
     ).toBe('162');
   });
 
-  it('applies the cashback discount on top of the promotion', () => {
+  it('clamps the promotion percentage to 100%', () => {
     expect(
       derivedChargedValueString(
-        { productId: 'p2', discountPercent: 10, useCashback: true },
+        { productId: 'p2', discountPercent: 150 },
         products,
       ),
-    ).toBe('48.6');
+    ).toBe('0');
   });
 
   it('returns an empty string without a priced product', () => {
@@ -154,14 +153,14 @@ describe('spreadsheetRowTotals', () => {
     expect(totals.memberTotalCents).toBe(41626);
   });
 
-  it('applies the cashback discount to the charged value only', () => {
+  it('applies the promotion to the charged value only', () => {
     const totals = spreadsheetRowTotals(
-      { productId: 'p2', quantity: 1, useCashback: true },
+      { productId: 'p2', quantity: 1, discountPercent: 70 },
       products,
     );
-    expect(totals.memberUnitCents).toBe(18000);
+    expect(totals.memberUnitCents).toBe(5400);
     expect(totals.chargedLineCents).toBe(5400);
-    expect(totals.pvUnit).toBe(30);
+    expect(totals.pvUnit).toBe(9);
   });
 
   it('returns zeros and no product flag when nothing is selected', () => {
@@ -190,12 +189,12 @@ describe('spreadsheetTotals', () => {
     const totals = spreadsheetTotals(
       [
         { productId: 'p1', quantity: 1 },
-        { productId: 'p2', quantity: 1, useCashback: true },
+        { productId: 'p2', quantity: 1, discountPercent: 70 },
       ],
       products,
     );
-    expect(totals.totalPv).toBe(61);
-    expect(totals.totalMemberCents).toBe(41125);
+    expect(totals.totalPv).toBe(31 + 9);
+    expect(totals.totalMemberCents).toBe(23125 + 5400);
     expect(totals.totalChargedCents).toBe(23125 + 5400);
   });
 
@@ -221,9 +220,9 @@ describe('itemFromSpreadsheetRow', () => {
     expect(item.chargedValue).toBe('162');
     expect(item.quantity).toBe(2);
     expect(item.chargedValueMode).toBe('UNIT');
-    expect(item.useCashback).toBe(false);
     expect(item.forStock).toBe(true);
     expect(item.kitStockMode).toBe('');
+    expect(item).not.toHaveProperty('useCashback');
   });
 
   it('uses the explicit charged value and mode when provided', () => {
@@ -242,13 +241,12 @@ describe('itemFromSpreadsheetRow', () => {
     expect(item.details).toBe('Obs');
   });
 
-  it('applies cashback to the derived charged value', () => {
+  it('applies the promotion to the derived charged value', () => {
     const item = itemFromSpreadsheetRow(
-      { productId: 'p2', quantity: 1, useCashback: true, forStock: true },
+      { productId: 'p2', quantity: 1, discountPercent: 70, forStock: true },
       products,
     );
     expect(item.chargedValue).toBe('54');
-    expect(item.useCashback).toBe(true);
   });
 
   it('preserves the original item id when editing', () => {
@@ -343,12 +341,12 @@ describe('spreadsheetRowFromItem', () => {
     });
     expect(row.itemId).toBe('uuid-1');
     expect(row.discountPercent).toBe(10);
-    expect(row.useCashback).toBe(false);
     expect(row.chargedValue).toBe('162');
     expect(row.chargedValueMode).toBe('UNIT');
+    expect(row).not.toHaveProperty('useCashback');
   });
 
-  it('keeps cashback items without a promotion', () => {
+  it('converts legacy cashback items into a 70% promotion', () => {
     const row = spreadsheetRowFromItem({
       id: 'uuid-2',
       productId: 'p2',
@@ -358,8 +356,8 @@ describe('spreadsheetRowFromItem', () => {
       chargedValueMode: 'UNIT',
       useCashback: true,
     });
-    expect(row.useCashback).toBe(true);
-    expect(row.discountPercent).toBe(0);
+    expect(row.discountPercent).toBe(70);
+    expect(row.chargedValue).toBe('54');
   });
 
   it('does not infer a promotion in TOTAL mode', () => {

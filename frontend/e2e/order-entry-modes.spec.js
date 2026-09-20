@@ -92,13 +92,10 @@ test.describe('Modos de inclusão de pedido (Formulário detalhado / Planilha) -
       modal.getByText('Itens do Pedido', { exact: true }),
     ).toBeVisible();
     await expect(modal.getByPlaceholder('Busque um produto...')).toBeVisible();
+    await expect(modal.getByText('% Promoção')).toBeVisible();
     await expect(modal.getByText('Valor Pago (R$)')).toBeVisible();
     await expect(modal.getByText('Valor Pago (total)')).toBeVisible();
-    await expect(modal.getByText('O valor cobrado é')).toBeVisible();
     await expect(modal.getByText('Quantidade')).toBeVisible();
-    await expect(
-      modal.getByText(/Usei pontos de cashback e ganhei 70% de desconto/),
-    ).toBeVisible();
     await expect(modal.getByText(/Este item é para meu estoque/)).toBeVisible();
     await expect(modal.getByText('Detalhes do Item')).toBeVisible();
 
@@ -119,12 +116,8 @@ test.describe('Modos de inclusão de pedido (Formulário detalhado / Planilha) -
     await expect(
       modal.getByTestId('order-spreadsheet-charged-0'),
     ).toBeVisible();
-    await expect(modal.getByTestId('order-spreadsheet-mode-0')).toBeVisible();
     await expect(
       modal.getByTestId('order-spreadsheet-charged-total-0'),
-    ).toBeVisible();
-    await expect(
-      modal.getByTestId('order-spreadsheet-cashback-0'),
     ).toBeVisible();
     await expect(
       modal.getByTestId('order-spreadsheet-member-unit-0'),
@@ -143,7 +136,6 @@ test.describe('Modos de inclusão de pedido (Formulário detalhado / Planilha) -
       '% Promo',
       'Valor Pago',
       'V. Pago total',
-      'Cashback',
       'V. Membro unit.',
       'V. Membro total',
       'PV total',

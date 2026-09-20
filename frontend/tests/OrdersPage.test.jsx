@@ -1599,7 +1599,7 @@ describe('OrdersPage', () => {
       });
     });
 
-    it('should prefill "Valor Pago" with 30% of the member price when cashback is used', async () => {
+    it('should prefill "Valor Pago" with the member price minus the promotion percentage', async () => {
       await openModal();
       const combobox = screen.getByPlaceholderText('Busque um produto...');
       fireEvent.change(combobox, { target: { value: 'Lavanda' } });
@@ -1609,14 +1609,16 @@ describe('OrdersPage', () => {
         expect(screen.getByPlaceholderText('0,00').value).toBe('180,00');
       });
 
-      fireEvent.click(screen.getByTestId('order-item-cashback-0'));
+      fireEvent.change(screen.getByTestId('order-item-discount-0'), {
+        target: { value: '70' },
+      });
 
       await waitFor(() => {
         expect(screen.getByPlaceholderText('0,00').value).toBe('54,00');
       });
     });
 
-    it('should restore the member price when unchecking cashback', async () => {
+    it('should restore the member price when the promotion percentage is cleared', async () => {
       await openModal();
       const combobox = screen.getByPlaceholderText('Busque um produto...');
       fireEvent.change(combobox, { target: { value: 'Lavanda' } });
@@ -1626,18 +1628,22 @@ describe('OrdersPage', () => {
         expect(screen.getByPlaceholderText('0,00').value).toBe('180,00');
       });
 
-      fireEvent.click(screen.getByTestId('order-item-cashback-0'));
+      fireEvent.change(screen.getByTestId('order-item-discount-0'), {
+        target: { value: '70' },
+      });
       await waitFor(() => {
         expect(screen.getByPlaceholderText('0,00').value).toBe('54,00');
       });
 
-      fireEvent.click(screen.getByTestId('order-item-cashback-0'));
+      fireEvent.change(screen.getByTestId('order-item-discount-0'), {
+        target: { value: '' },
+      });
       await waitFor(() => {
         expect(screen.getByPlaceholderText('0,00').value).toBe('180,00');
       });
     });
 
-    it('should recalculate "Valor Pago" when the product changes with cashback still checked', async () => {
+    it('should recalculate "Valor Pago" when the product changes with a promotion set', async () => {
       await openModal();
       const combobox = screen.getByPlaceholderText('Busque um produto...');
       fireEvent.change(combobox, { target: { value: 'Lavanda' } });
@@ -1646,7 +1652,9 @@ describe('OrdersPage', () => {
         expect(screen.getByPlaceholderText('0,00').value).toBe('180,00');
       });
 
-      fireEvent.click(screen.getByTestId('order-item-cashback-0'));
+      fireEvent.change(screen.getByTestId('order-item-discount-0'), {
+        target: { value: '70' },
+      });
       await waitFor(() => {
         expect(screen.getByPlaceholderText('0,00').value).toBe('54,00');
       });
@@ -1659,7 +1667,7 @@ describe('OrdersPage', () => {
       });
     });
 
-    it('should keep the manually edited "Valor Pago" until the product or cashback changes', async () => {
+    it('should keep the manually edited "Valor Pago" until the product or promotion changes', async () => {
       await openModal();
       const combobox = screen.getByPlaceholderText('Busque um produto...');
       fireEvent.change(combobox, { target: { value: 'Lavanda' } });
@@ -1676,7 +1684,7 @@ describe('OrdersPage', () => {
       });
     });
 
-    it('should send useCashback in the item payload when checked', async () => {
+    it('should not send useCashback in the item payload', async () => {
       mockPost.mockResolvedValue({ data: { id: '3', orderNumber: 'ORD-CB' } });
       await openModal();
 
@@ -1687,7 +1695,6 @@ describe('OrdersPage', () => {
       const combobox = screen.getByPlaceholderText('Busque um produto...');
       fireEvent.change(combobox, { target: { value: 'Lavanda' } });
       fireEvent.mouseDown(screen.getByText(/Óleo de Lavanda/));
-      fireEvent.click(screen.getByTestId('order-item-cashback-0'));
 
       const form = screen
         .getByPlaceholderText('Informe o número do pedido da dōTERRA')
@@ -1700,14 +1707,16 @@ describe('OrdersPage', () => {
           expect.objectContaining({
             items: [
               expect.objectContaining({
-                useCashback: true,
-                chargedValue: 54,
+                chargedValue: 180,
                 forStock: true,
               }),
             ],
           }),
         );
       });
+      expect(mockPost.mock.calls[0][1].items[0]).not.toHaveProperty(
+        'useCashback',
+      );
     });
 
     it('should clear product and its snapshot fields when clicking "Limpar produto"', async () => {
@@ -3140,24 +3149,6 @@ describe('OrdersPage', () => {
       ).toMatch(/31,50/);
     });
 
-    it('should compute Valor Total reflecting TOTAL mode (just chargedValue)', async () => {
-      mockGetImplementation([], mockPeople);
-      renderPage();
-      await openCreateModal();
-      fireEvent.change(screen.getByTestId('order-item-quantity-0'), {
-        target: { value: '3' },
-      });
-      fireEvent.change(screen.getByPlaceholderText('0,00'), {
-        target: { value: '4000' },
-      });
-      fireEvent.change(screen.getByTestId('order-item-price-mode-0'), {
-        target: { value: 'TOTAL' },
-      });
-      expect(
-        screen.getByTestId('order-totals-charged-footer').textContent,
-      ).toMatch(/40,00/);
-    });
-
     it('should compute Valor Total as the products sum plus the freight', async () => {
       mockGetImplementation([], mockPeople);
       renderPage();
@@ -3201,7 +3192,7 @@ describe('OrdersPage', () => {
       ).toBeGreaterThanOrEqual(1);
     });
 
-    it('should prefill quantity, forStock and chargedValueMode when editing an order', async () => {
+    it('should prefill quantity, forStock and paid value when editing an order', async () => {
       const selfPerson = { id: 'p-self', name: 'Eu', isSelf: true };
       const orderWithStock = [
         {
@@ -3243,7 +3234,10 @@ describe('OrdersPage', () => {
       expect(screen.getByTestId('order-item-stock-toggle-0').checked).toBe(
         true,
       );
-      expect(screen.getByTestId('order-item-price-mode-0').value).toBe('TOTAL');
+      // TOTAL mode is preserved on legacy items, so no promotion is inferred
+      // and the paid value is shown as stored.
+      expect(screen.getByPlaceholderText('0,00').value).toBe('40,00');
+      expect(screen.getByTestId('order-item-discount-0').value).toBe('0');
     });
 
     it('should strip the minus sign so PV doTERRA cannot be typed negative', async () => {

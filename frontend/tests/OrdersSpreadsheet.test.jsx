@@ -266,18 +266,20 @@ describe('Order spreadsheet entry mode', () => {
     );
   });
 
-  it('applies cashback to the charged value while keeping the member total', async () => {
+  it('applies the promotion to the charged value and the member total', async () => {
     mockGetImplementation([]);
     renderPage();
     await openCreateModal();
     await switchToSpreadsheet();
 
     await selectProduct('Óleo de Lavanda');
-    fireEvent.click(screen.getByTestId('order-spreadsheet-cashback-0'));
+    fireEvent.change(screen.getByTestId('order-spreadsheet-discount-0'), {
+      target: { value: '70' },
+    });
 
     expect(
       screen.getByTestId('order-spreadsheet-member-unit-0'),
-    ).toHaveTextContent(/R\$\s*180,00/);
+    ).toHaveTextContent(/R\$\s*54,00/);
     expect(screen.getByTestId('order-totals-charged-footer')).toHaveTextContent(
       /R\$\s*54,00/,
     );
@@ -300,7 +302,7 @@ describe('Order spreadsheet entry mode', () => {
     ).toBeInTheDocument();
   });
 
-  it('exposes the paid value, mode, stock and details fields of the detailed form', async () => {
+  it('exposes the paid value, stock and details fields of the detailed form', async () => {
     mockGetImplementation([]);
     renderPage();
     await openCreateModal();
@@ -309,7 +311,6 @@ describe('Order spreadsheet entry mode', () => {
     expect(
       screen.getByTestId('order-spreadsheet-charged-0'),
     ).toBeInTheDocument();
-    expect(screen.getByTestId('order-spreadsheet-mode-0')).toHaveValue('UNIT');
     expect(
       screen.getByTestId('order-spreadsheet-charged-total-0'),
     ).toBeInTheDocument();
@@ -343,29 +344,6 @@ describe('Order spreadsheet entry mode', () => {
     ).toHaveTextContent(/R\$\s*150,00/);
   });
 
-  it('recomputes the paid total in TOTAL mode without multiplying by quantity', async () => {
-    mockGetImplementation([]);
-    renderPage();
-    await openCreateModal();
-    await switchToSpreadsheet();
-
-    await selectProduct('Óleo de Lavanda');
-    fireEvent.change(screen.getByTestId('order-spreadsheet-quantity-0'), {
-      target: { value: '3' },
-    });
-    expect(
-      screen.getByTestId('order-spreadsheet-charged-total-0'),
-    ).toHaveTextContent(/R\$\s*540,00/);
-
-    fireEvent.change(screen.getByTestId('order-spreadsheet-mode-0'), {
-      target: { value: 'TOTAL' },
-    });
-
-    expect(
-      screen.getByTestId('order-spreadsheet-charged-total-0'),
-    ).toHaveTextContent(/R\$\s*180,00/);
-  });
-
   it('checks the stock flag by default for a selected product', async () => {
     mockGetImplementation([]);
     renderPage();
@@ -390,7 +368,7 @@ describe('Order spreadsheet entry mode', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('sends the edited paid value, mode and details in the payload', async () => {
+  it('sends the edited paid value and details in the payload', async () => {
     mockGetImplementation([]);
     mockPost.mockResolvedValue({ data: { id: 'new-detail' } });
     renderPage();
@@ -405,9 +383,6 @@ describe('Order spreadsheet entry mode', () => {
     fireEvent.change(screen.getByTestId('order-spreadsheet-charged-0'), {
       target: { value: '15000' },
     });
-    fireEvent.change(screen.getByTestId('order-spreadsheet-mode-0'), {
-      target: { value: 'TOTAL' },
-    });
     fireEvent.change(screen.getByTestId('order-spreadsheet-details-0'), {
       target: { value: 'Promo' },
     });
@@ -420,7 +395,7 @@ describe('Order spreadsheet entry mode', () => {
           items: [
             expect.objectContaining({
               chargedValue: 150,
-              chargedValueMode: 'TOTAL',
+              chargedValueMode: 'UNIT',
               details: 'Promo',
             }),
           ],
@@ -459,7 +434,6 @@ describe('Order spreadsheet entry mode', () => {
               memberPrice: 180,
               quantity: 2,
               forStock: true,
-              useCashback: false,
               chargedValueMode: 'UNIT',
               personId: null,
             }),
