@@ -512,6 +512,11 @@ const options = {
             orderDate: { type: 'string', example: '2026-09-07' },
             shippingValue: { type: 'number', minimum: 0, nullable: true },
             additionalValue: { type: 'number', minimum: 0, nullable: true },
+            additionalValueChargedToClient: {
+              type: 'boolean',
+              description:
+                'Whether "Valores Adicionais" are charged to the client (default true).',
+            },
             additionalExpenseCategoryId: {
               type: 'string',
               format: 'uuid',
@@ -538,6 +543,11 @@ const options = {
             orderDate: { type: 'string', example: '2026-09-07' },
             shippingValue: { type: 'number', minimum: 0, nullable: true },
             additionalValue: { type: 'number', minimum: 0, nullable: true },
+            additionalValueChargedToClient: {
+              type: 'boolean',
+              description:
+                'Whether "Valores Adicionais" are charged to the client (default true).',
+            },
             additionalExpenseCategoryId: {
               type: 'string',
               format: 'uuid',
