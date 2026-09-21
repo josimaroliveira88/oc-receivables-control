@@ -17,8 +17,9 @@ Full-stack financial tracking application for clients, dōTERRA orders, receivab
 
 | Service | Local address | Notes |
 | --- | --- | --- |
-| Frontend | `http://localhost:3000` | Vite dev server; `/api` is proxied to the backend. |
-| Backend | `http://localhost:4000` | Express API; health endpoint is `/health`. |
+| Frontend (dev) | `http://localhost:3000` | Vite dev server; `/api` is proxied to the backend. |
+| Backend (dev) | `http://localhost:4000` | Express API; health endpoint is `/health`. |
+| App (production) | `http://localhost:3000` | Single Node process serves the built SPA **and** the API on the same origin. |
 | PostgreSQL | `localhost:5432` | Docker volume `postgres_data`. |
 | Adminer | `http://localhost:8080` | Database UI. |
 
@@ -29,15 +30,26 @@ Backend configuration is in the gitignored `backend/.env`, based on `backend/.en
 - `JWT_EXPIRES_IN`
 - `PORT`
 - `NODE_ENV`
+- `SERVE_STATIC` (optional; `true` serves the built SPA — implied by `NODE_ENV=production`)
+- `STATIC_DIR` (optional; defaults to `frontend/dist`)
 - Optional `CORS_ORIGIN`
 
-Frontend uses `API_URL` for the Vite proxy target. Docker sets it to `http://backend:4000`; the local default is `http://localhost:4000`.
+Frontend uses `API_URL` for the Vite proxy target. Docker sets it to `http://backend:4000`; the local default is `http://localhost:4000`. Because the built SPA calls `/api` on its own origin, production needs no proxy or CORS.
 
-Start the complete environment with:
+Start the dev environment with:
 
 ```text
 docker compose up --build
 ```
+
+Production (SPA + API in one process on port 3000) runs either natively or via Docker:
+
+```text
+npm run build && npm start        # native, with NODE_ENV=production (start-prod.bat on Windows)
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+`docker-compose.prod.yml` shares `postgres_data` with the dev stack and uses the same container names, so the two are mutually exclusive. The production image (`backend/Dockerfile.prod`) builds the SPA in a first stage and copies `dist/` into the backend image; the backend serves it through `utils/serveFrontend.js` (SPA fallback, `/api` untouched).
 
 For a database with existing data, apply migrations with `npx prisma migrate deploy`, never `prisma migrate dev`.
 
@@ -47,9 +59,11 @@ For a database with existing data, apply migrations with `npx prisma migrate dep
 .
 ├── AGENTS.md
 ├── ARCHITECTURE.md
-├── docker-compose.yml
+├── docker-compose.yml, docker-compose.prod.yml, .dockerignore
+├── start.bat, start-prod.bat, update.bat, check-updates.bat, backup.bat
 ├── docs/
 ├── backend/
+│   ├── Dockerfile, Dockerfile.prod, entrypoint.sh, entrypoint.prod.sh
 │   ├── prisma/
 │   │   ├── schema.prisma
 │   │   ├── migrations/
@@ -63,7 +77,7 @@ For a database with existing data, apply migrations with `npx prisma migrate dep
 │   │   ├── validators/                      # pure Zod schemas per domain (auth, people, orders, sales, payments, product, stock, finances)
 │   │   ├── middlewares/auth.js, upload.js, errorResponse.js   # upload.js: multer disk storage for order attachments plus in-memory CSV upload for the InfinitePay import (validated types/size); errorResponse.js: shared controller error mapper (ZodError/status/fallback)
 │   │   ├── routes/
-│   │   └── utils/ (money, CSV parsing incl. InfinitePay statement and bank-statement/redemption parsers, rescueHelpers matching, catalog loading, receivables, stockDiff, financeDefaults category seeding, httpError error factories)
+│   │   └── utils/ (money, CSV parsing incl. InfinitePay statement and bank-statement/redemption parsers, rescueHelpers matching, catalog loading, receivables, stockDiff, financeDefaults category seeding, httpError error factories, serveFrontend production SPA static serving)
 │   └── tests/
 └── frontend/
     ├── src/

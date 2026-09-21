@@ -14,8 +14,9 @@ MVP and Phases 1-80 are complete (see `CHANGELOG.md`). The application provides 
 - Frontend: React 18, Vite, Tailwind CSS 3, Flowbite plugin, Recharts, SheetJS, lucide-react, react-icons (brand icons, e.g. WhatsApp/Instagram), react-number-format (ATM-style currency masks via `CurrencyInput`).
 - Infrastructure: Docker Compose; Adminer is included for database inspection.
 - Tooling: Prettier 3 for code formatting, ESLint 9 for code quality (per-workspace flat configs).
-- Frontend: `http://localhost:3000`.
-- Backend: `http://localhost:4000`, API prefix `/api`.
+- Frontend (dev): `http://localhost:3000`.
+- Backend (dev): `http://localhost:4000`, API prefix `/api`.
+- Production (single process): the backend serves the built SPA **and** the API at `http://localhost:3000` (`NODE_ENV=production` or `SERVE_STATIC=true`; static dir defaults to `frontend/dist`).
 - Database: `localhost:5432`.
 - Adminer: `http://localhost:8080`.
 
@@ -57,6 +58,8 @@ Run from the indicated directory unless stated otherwise:
 
 ```text
 docker compose up --build       # Start db, backend, frontend, and Adminer
+docker compose -f docker-compose.prod.yml up -d --build   # Production stack (SPA + API on port 3000)
+npm run build && npm start      # Native production run (SPA + API on port 3000)
 cd backend && npm run dev       # Backend with nodemon
 cd frontend && npm run dev      # Frontend with Vite
 cd backend && npm run test      # Backend Vitest suite (serial DB files)

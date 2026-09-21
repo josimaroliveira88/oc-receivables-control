@@ -157,27 +157,41 @@ Esse passo é idempotente e seguro. Ele é importante porque:
 
 ---
 
-## 7. Build do frontend
+## 7. Build do frontend (produção)
+
+Em produção o **próprio backend serve o frontend buildado** na mesma origem (porta 3000), então é preciso gerar o `dist/`:
 
 ```powershell
 cd C:\caminho\do\projeto\receivables-control\frontend
 npm run build
 ```
 
-Isso gera a pasta `frontend\dist\` com os arquivos estáticos. Se o cliente serve o frontend por um servidor (IIS, nginx no WSL, `serve`, etc.), copie o conteúdo de `dist\` para o local apropriado. Se o cliente usa `npm run dev` direto, pule esta etapa — apenas reinicie o backend.
+Isso gera `frontend\dist\`. Marque a versão buildada para o script saber que não precisa rebuildar:
+
+```powershell
+cd C:\caminho\do\projeto\receivables-control
+git rev-parse HEAD > "frontend\dist\.build-commit"
+```
+
+> **Atalho:** o `start-prod.bat` (na raiz) faz o build **somente quando há atualização** — se `frontend\dist` não existir, se o commit atual for diferente do último build, ou se houver mudanças não commitadas em `frontend/`. Depois sobe o backend em produção na porta 3000. Para o dia a dia no cliente, basta rodar `start-prod.bat`.
 
 ---
 
-## 8. Reiniciar o backend
+## 8. Reiniciar o backend (produção)
 
-Inicie o backend novamente (serviço do Windows, atalho ou `npm start` em produção):
+Suba o backend em modo produção. Ele serve a API e a SPA na porta 3000:
 
 ```powershell
-cd C:\caminho\do\projeto\receivables-control\backend
+cd C:\caminho\do\projeto\receivables-control
+$env:NODE_ENV = "production"
+$env:SERVE_STATIC = "true"
+$env:PORT = "3000"
 npm start
 ```
 
-Verifique nos logs que o servidor subiu sem erros (`Server running on port 4000` ou similar).
+Verifique nos logs que o servidor subiu sem erros (`Serving frontend from ...` e `Server is running on port 3000`). Acesse `http://localhost:3000`.
+
+> Como `SERVE_STATIC=true` é definido no ambiente, ele tem prioridade sobre o `backend\.env` (o `dotenv` não sobrescreve variáveis já definidas). O mesmo vale para `PORT` e `NODE_ENV`.
 
 ---
 
@@ -225,8 +239,8 @@ Se algo deu errado e o cliente precisa voltar à versão anterior imediatamente:
 [ ] 4. npm install no backend e frontend
 [ ] 5. npx prisma migrate deploy (NÃO usar migrate dev)
 [ ] 6. npx prisma generate no backend
-[ ] 7. npm run build no frontend (se aplicável)
-[ ] 8. Backend reiniciado, logs sem erro
-[ ] 9. Login + funcionalidades da versão testadas
+[ ] 7. npm run build no frontend (start-prod.bat faz isso quando necessário)
+[ ] 8. Backend de produção reiniciado na porta 3000, logs sem erro
+[ ] 9. Login + funcionalidades da versão testadas em http://localhost:3000
 [ ] 10. Contagem de dados confere com a versão anterior
 ```

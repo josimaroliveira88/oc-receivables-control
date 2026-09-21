@@ -9,6 +9,27 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 110 — Modo produção (SPA + API no mesmo processo na porta 3000) (2026-09-21)
+
+### Added
+- **Frontend buildado servido pelo backend**: em produção o próprio processo Node serve a SPA e a API na **mesma origem** (`http://localhost:3000`), sem CORS nem proxy. O helper `backend/src/utils/serveFrontend.js` (`registerFrontend(app, staticDir)`) monta o `express.static` e o fallback de SPA (rotas do React Router caem em `index.html`), deixando `/api` intacto e retornando `false` quando não há `dist/`. Ativado por `SERVE_STATIC=true` (ou `NODE_ENV=production`); `STATIC_DIR` é configurável e por padrão aponta para `frontend/dist`.
+- **`start-prod.bat` (Windows, cliente)**: verifica Node/git/PostgreSQL, instala dependências faltantes, aplica `prisma migrate deploy`, **builda o frontend somente quando necessário** (quando `frontend\dist` não existe, quando o commit atual difere do último build gravado em `frontend\dist\.build-commit`, ou quando há mudanças não commitadas em `frontend/`) e sobe o backend em modo produção na porta 3000.
+- **Stack Docker de produção**: `backend/Dockerfile.prod` (estágio que builda o SPA e copia `dist/` para a imagem do backend), `backend/entrypoint.prod.sh`, `docker-compose.prod.yml` (backend serve SPA + API na 3000, volume persistente `receivables_uploads` para anexos e `postgres_data` compartilhado com o stack dev) e `.dockerignore` na raiz.
+- **Script `npm start`** na raiz (`npm --prefix backend start`).
+
+### Changed
+- **`backend/src/config.js`**: novos exports `SERVE_STATIC` e `STATIC_DIR`.
+- **`backend/src/app.js`**: monta a SPA após as rotas de API quando `SERVE_STATIC` está ativo.
+- **`update.bat`**: grava `frontend\dist\.build-commit` após o build, para o `start-prod.bat` não rebuildar à toa depois de uma atualização.
+- **`start.bat` / `start-prod.bat`**: a checagem do Prisma Client passou a usar o caminho real `backend\node_modules\.prisma\client` (antes checava `backend\prisma\generated`, que nunca existe, forçando `prisma generate` em toda execução).
+- **Docs**: `ARCHITECTURE.md` (endereço de produção, `SERVE_STATIC`/`STATIC_DIR`, árvore de arquivos, Docker de produção), `DEPLOYMENT.md` (passos 7–9 no modelo de produção e checklist) e `AGENTS.md` (portas/stack de produção e comandos).
+
+### Fixed
+- **`update.bat` abortava de forma abrupta (`... foi inesperado neste momento.`) logo após o `git pull`**: os `echo` de `Instalando dependencias (npm ci)...` e `Aplicando (migrate deploy)...` estavam **dentro de blocos `if (...)`**, e o `)` do parêntese fechava o bloco antes da hora, quebrando o passo 6. Os parênteses foram removidos (mesma classe de bug já corrigida no `start.bat`).
+
+### Tests
+- Backend: `backend/tests/serveFrontend.test.js` (7) cobre `index.html` na raiz, assets estáticos, fallback de SPA, rotas de API preservadas, `404` para `/api` desconhecida e ausência de `dist`. **849 backend + 1021 frontend passing**; `npm run lint` sem erros (6 warnings preexistentes), `npm run build` e `npm run format:check` limpos. A imagem Docker de produção foi construída e validada por smoke test (SPA na raiz, fallback de rota e `/health`).
+
 ## Phase 109 — Tela inicial volta a ser Produtos (2026-09-21)
 
 ### Fixed
