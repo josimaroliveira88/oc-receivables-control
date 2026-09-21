@@ -157,6 +157,57 @@ describe('useInfinitePayRescueImport', () => {
     ]);
   });
 
+  it('replaces, not stacks, when a deposit matches a sale already assigned to the whole rescue', () => {
+    const { result } = renderHook(() => useInfinitePayRescueImport());
+
+    // The rescue is already assigned to s1 for the whole amount (e.g. picked in
+    // the "Vendas sugeridas pelo valor" section), then the user also clicks the
+    // s1 match of its single source deposit. The total must stay 22001, not sum.
+    act(() =>
+      result.current.assignMatch(2, match('s1', { suggestedCents: 22001 })),
+    );
+    act(() =>
+      result.current.assignFromDeposit(2, {
+        depositKey: '2-0',
+        orderId: 's1',
+        amountCents: 22001,
+      }),
+    );
+
+    expect(result.current.assignments[2]).toEqual([
+      { orderId: 's1', amountCents: 22001, sourceKey: '2-0' },
+    ]);
+  });
+
+  it('does not mutate the previous assignment list when merging', () => {
+    const { result } = renderHook(() => useInfinitePayRescueImport());
+
+    act(() =>
+      result.current.assignFromDeposit(2, {
+        depositKey: '2-0',
+        orderId: 's1',
+        amountCents: 10000,
+      }),
+    );
+    const before = result.current.assignments[2];
+    act(() =>
+      result.current.assignFromDeposit(2, {
+        depositKey: '2-1',
+        orderId: 's1',
+        amountCents: 5000,
+      }),
+    );
+
+    // The previously returned array/object must not have been mutated in place;
+    // React state must produce a new snapshot.
+    expect(before).toEqual([
+      { orderId: 's1', amountCents: 10000, sourceKey: '2-0' },
+    ]);
+    expect(result.current.assignments[2]).toEqual([
+      { orderId: 's1', amountCents: 15000, sourceKey: '2-0' },
+    ]);
+  });
+
   it('updates and removes an assignment amount', () => {
     const { result } = renderHook(() => useInfinitePayRescueImport());
     act(() => result.current.toggleSale(2, sale()));
