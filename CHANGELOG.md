@@ -9,6 +9,17 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 113 — Verificação e2e do cartão de crédito e renomeação de "fatura" para "compra" (2026-09-21)
+
+### Added
+- **Suíte e2e do cartão de crédito**: novo `frontend/e2e/credit-card-orders.spec.js` (8 casos seriais) cobrindo pedido novo no cartão à vista e parcelado, edição de pedido existente entre à vista/parcelado, troca do tipo para PIX (remove a compra e restaura a despesa efetiva), card "Pendente" e filtro "Efetividade" nas Finanças, lista/detalhe/baixa de parcela na tela de cartões, compras manuais e a aba "Cartão de crédito" do modal de lançamentos. 20 screenshots em `frontend/e2e/screenshots/cc-01..cc-20`.
+
+### Changed
+- **Terminologia da tela de cartões**: o agrupador (`CreditCardBill`) é uma **compra**, não a fatura mensal, então os textos passaram a dizer "compra" — botão **Nova compra**, modal **Nova compra**/**Editar compra**, resumo **Total em compras**, vazio **Nenhuma compra cadastrada**, diálogo **Excluir compra**, além de toasts, `aria-label` da tabela e placeholders de busca. "Fatura" ficou reservado à fatura mensal do banco: a ação OFX virou **Conciliar fatura** (botão + título do modal) e os summaries do swagger/rotas passaram a "compra" (mantendo "pagamento da fatura" como motivo de ignorar no OFX). Arquivos: `frontend/src/pages/CreditCards/{index.jsx,useCreditCards.js}`, `.../CreditCards/components/{CreditCardBillModal,CreditCardBillDetail,CreditCardsTable,CreditCardReconcileModal}.jsx`, `frontend/src/hooks/useCreditCardBillForm.js`, `backend/src/routes/creditCardsRoutes.js`, `backend/src/docs/swagger.js`.
+
+### Tests
+- Frontend: `CreditCardsPage.test.jsx` atualizado para os novos rótulos; **49/49** testes de cartão passando. Backend: **24/24** (`creditCardsBills`, `creditCardsInstallments`, `creditCardsReconcile`). E2E: **8/8** passando. `npm run lint` sem erros (apenas warnings preexistentes) e `npm run format:check` limpo.
+
 ## Phase 112 — Cartão de crédito nas Finanças: faturas, parcelas, conciliação OFX e efetividade (2026-09-21)
 
 ### Added
