@@ -33,6 +33,7 @@ describe('financeHelpers labels', () => {
       'PEDIDO_DOTERRA',
       'VENDA_ADICIONAL',
       'MANUAL',
+      'CARTAO_CREDITO',
     ]);
   });
 
@@ -48,6 +49,7 @@ describe('financeHelpers labels', () => {
     expect(originLabel('PEDIDO_DOTERRA')).toBe('Pedido dōTERRA');
     expect(originLabel('VENDA_ADICIONAL')).toBe('Adicional de venda');
     expect(originLabel('MANUAL')).toBe('Manual');
+    expect(originLabel('CARTAO_CREDITO')).toBe('Cartão de crédito');
     expect(originLabel('NOPE')).toBe('—');
   });
 

@@ -55,7 +55,7 @@ describe('MobileDrawer', () => {
     );
   });
 
-  it('should render all 6 navigation items in the drawer', () => {
+  it('should render all 7 navigation items in the drawer', () => {
     renderDrawer();
     fireEvent.click(screen.getByLabelText('Abrir menu'));
     expect(screen.getByText('Clientes')).toBeInTheDocument();
@@ -63,13 +63,14 @@ describe('MobileDrawer', () => {
     expect(screen.getByText('Vendas')).toBeInTheDocument();
     expect(screen.getByText('Produtos')).toBeInTheDocument();
     expect(screen.getByText('Estoque')).toBeInTheDocument();
+    expect(screen.getByText('Cartões de crédito')).toBeInTheDocument();
     expect(screen.getByText('Finanças')).toBeInTheDocument();
   });
 
-  it('should have 6 links in the drawer', () => {
+  it('should have 7 links in the drawer', () => {
     renderDrawer();
     fireEvent.click(screen.getByLabelText('Abrir menu'));
-    expect(screen.getAllByRole('link')).toHaveLength(6);
+    expect(screen.getAllByRole('link')).toHaveLength(7);
   });
 
   it('should link Vendas to /sales', () => {
@@ -93,6 +94,7 @@ describe('MobileDrawer', () => {
       'Vendas',
       'Produtos',
       'Estoque',
+      'Cartões de crédito',
       'Finanças',
     ]);
   });
