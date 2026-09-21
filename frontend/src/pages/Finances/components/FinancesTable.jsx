@@ -4,6 +4,8 @@ import { ExternalLink, Pencil, RotateCcw, Trash } from 'lucide-react';
 import { formatBRL, toCents } from '../../../utils/money';
 import { formatDateBR } from '../../../utils/dates';
 import ActionMenu from '../../../components/ActionMenu';
+import { EFFECTIVENESS_CLASSES } from '../../../utils/badgeStyles';
+import { formatInstallmentBadge } from '../../CreditCards/utils/creditCardHelpers';
 import {
   TYPE_BADGE_CLASSES,
   formatSignedBRL,
@@ -105,6 +107,11 @@ const FinancesTable = ({
             const feeCents = transaction.feeAmount
               ? toCents(parseFloat(transaction.feeAmount))
               : 0;
+            const hasInstallment =
+              transaction.installmentNumber && transaction.installmentsTotal;
+            const effectiveness = transaction.isEffective
+              ? 'Efetiva'
+              : 'Pendente';
 
             return (
               <tr
@@ -141,6 +148,32 @@ const FinancesTable = ({
                       className="block text-xs text-ink-faint mt-0.5 truncate"
                     >
                       {transaction.notes}
+                    </span>
+                  )}
+                  {(hasInstallment ||
+                    typeof transaction.isEffective === 'boolean') && (
+                    <span className="mt-1 flex flex-wrap items-center gap-1.5">
+                      {hasInstallment && (
+                        <span
+                          data-testid={`transaction-installment-${transaction.id}`}
+                          className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-base text-ink-soft"
+                        >
+                          {formatInstallmentBadge(
+                            transaction.installmentNumber,
+                            transaction.installmentsTotal,
+                          )}
+                        </span>
+                      )}
+                      {typeof transaction.isEffective === 'boolean' && (
+                        <span
+                          data-testid={`transaction-effectiveness-${transaction.id}`}
+                          className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
+                            EFFECTIVENESS_CLASSES[effectiveness] || ''
+                          }`}
+                        >
+                          {effectiveness}
+                        </span>
+                      )}
                     </span>
                   )}
                 </td>

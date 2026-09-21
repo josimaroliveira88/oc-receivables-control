@@ -25,6 +25,8 @@ const OrderSpreadsheetForm = ({
   people,
   orderDate,
   paymentType,
+  installments,
+  firstInstallmentAt,
   doterraPv,
   doterraPvError,
   attachmentFile,
@@ -72,6 +74,8 @@ const OrderSpreadsheetForm = ({
         people={people}
         orderDate={orderDate}
         paymentType={paymentType}
+        installments={installments}
+        firstInstallmentAt={firstInstallmentAt}
         doterraPv={doterraPv}
         doterraPvError={doterraPvError}
         attachmentFile={attachmentFile}

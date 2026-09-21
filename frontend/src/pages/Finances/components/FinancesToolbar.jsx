@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search } from 'lucide-react';
 import {
+  EFFECTIVE_FILTER_OPTIONS,
   ORIGIN_FILTER_OPTIONS,
   TRANSACTION_TYPE_OPTIONS,
 } from '../utils/financeHelpers';
@@ -107,6 +108,21 @@ const FinancesToolbar = ({
             {categoryOptions.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-sm font-medium text-ink-soft">
+          <span className="sr-only">Efetividade</span>
+          <select
+            value={filters.effective}
+            onChange={(e) => onChange({ effective: e.target.value })}
+            className={selectClass}
+            aria-label="Efetividade"
+          >
+            {EFFECTIVE_FILTER_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </select>

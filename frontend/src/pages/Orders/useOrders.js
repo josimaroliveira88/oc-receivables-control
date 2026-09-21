@@ -52,6 +52,8 @@ export function useOrders() {
   const [isTeamOrder, setIsTeamOrder] = useState(false);
   const [accountOwner, setAccountOwner] = useState('');
   const [paymentType, setPaymentType] = useState('');
+  const [installments, setInstallments] = useState('1');
+  const [firstInstallmentAt, setFirstInstallmentAt] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
   const [doterraPv, setDoterraPv] = useState('');
   const [attachmentFile, setAttachmentFile] = useState(null);
@@ -419,6 +421,8 @@ export function useOrders() {
     setIsTeamOrder(false);
     setAccountOwner('');
     setPaymentType('');
+    setInstallments('1');
+    setFirstInstallmentAt('');
     setOrderNotes('');
     setDoterraPv('');
     setAttachmentFile(null);
@@ -463,6 +467,8 @@ export function useOrders() {
       isTeamOrder,
       accountOwner,
       paymentType,
+      installments,
+      firstInstallmentAt,
       orderNotes,
       doterraPv,
       shippingValue,
@@ -498,6 +504,16 @@ export function useOrders() {
         break;
       case 'paymentType':
         setPaymentType(value);
+        if (value !== 'CARTAO_CREDITO') {
+          setInstallments('1');
+          setFirstInstallmentAt('');
+        }
+        break;
+      case 'installments':
+        setInstallments(value);
+        break;
+      case 'firstInstallmentAt':
+        setFirstInstallmentAt(value);
         break;
       case 'orderNotes':
         setOrderNotes(value);
@@ -625,7 +641,7 @@ export function useOrders() {
             teamPersonId,
           })
         : items;
-    return {
+    const payload = {
       orderNumber: orderNumber.trim(),
       orderDate: orderDate || undefined,
       isTeamOrder,
@@ -640,6 +656,13 @@ export function useOrders() {
           : parseFloat(shippingValue),
       items: payloadItems.map(itemPayload),
     };
+
+    if (paymentType === 'CARTAO_CREDITO') {
+      payload.installments = Number(installments) || undefined;
+      payload.firstInstallmentAt = firstInstallmentAt || undefined;
+    }
+
+    return payload;
   };
 
   const handleCreateOrder = async (e) => {
@@ -677,6 +700,12 @@ export function useOrders() {
     setIsTeamOrder(Boolean(order.isTeamOrder));
     setAccountOwner(order.accountOwner || '');
     setPaymentType(order.paymentType || '');
+    setInstallments(
+      order.installments != null ? String(order.installments) : '1',
+    );
+    setFirstInstallmentAt(
+      order.firstInstallmentAt ? order.firstInstallmentAt.split('T')[0] : '',
+    );
     setOrderNotes(order.orderNotes || '');
     setDoterraPv(
       order.doterraPv != null ? String(parseFloat(order.doterraPv)) : '',
@@ -715,6 +744,11 @@ export function useOrders() {
       isTeamOrder: Boolean(order.isTeamOrder),
       accountOwner: order.accountOwner || '',
       paymentType: order.paymentType || '',
+      installments:
+        order.installments != null ? String(order.installments) : '1',
+      firstInstallmentAt: order.firstInstallmentAt
+        ? order.firstInstallmentAt.split('T')[0]
+        : '',
       orderNotes: order.orderNotes || '',
       doterraPv:
         order.doterraPv != null ? String(parseFloat(order.doterraPv)) : '',
@@ -797,6 +831,8 @@ export function useOrders() {
     isTeamOrder,
     accountOwner,
     paymentType,
+    installments,
+    firstInstallmentAt,
     orderNotes,
     doterraPv,
     shippingValue,
@@ -898,6 +934,8 @@ export function useOrders() {
     showTeamPersonConfirm,
     accountOwner,
     paymentType,
+    installments,
+    firstInstallmentAt,
     orderNotes,
     doterraPv,
     doterraPvError,

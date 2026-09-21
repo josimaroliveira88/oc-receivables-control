@@ -124,3 +124,8 @@ export const INSTALLMENT_STATUS_CLASSES = {
   Paga: 'bg-success-soft text-success-fg',
   Pendente: 'bg-warning-soft text-warning-fg',
 };
+
+export const EFFECTIVENESS_CLASSES = {
+  Efetiva: 'bg-success-soft text-success-fg',
+  Pendente: 'bg-warning-soft text-warning-fg',
+};

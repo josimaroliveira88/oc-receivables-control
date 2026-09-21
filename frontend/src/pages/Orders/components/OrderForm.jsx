@@ -16,6 +16,8 @@ const OrderForm = ({
   usesOrderLevelClient,
   accountOwner,
   paymentType,
+  installments,
+  firstInstallmentAt,
   orderNotes,
   doterraPv,
   doterraPvError,
@@ -77,6 +79,8 @@ const OrderForm = ({
         people={people}
         orderDate={orderDate}
         paymentType={paymentType}
+        installments={installments}
+        firstInstallmentAt={firstInstallmentAt}
         doterraPv={doterraPv}
         doterraPvError={doterraPvError}
         attachmentFile={attachmentFile}

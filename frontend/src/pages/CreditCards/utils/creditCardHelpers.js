@@ -4,6 +4,20 @@ export { originLabel } from '../../Finances/utils/financeHelpers';
 
 export const BILL_STATUS_LABELS = ['Aberta', 'Parcial', 'Paga'];
 
+export const formatInstallmentBadge = (number, total) => {
+  if (!number || !total) return '—';
+  return `${number}/${total}`;
+};
+
+export const buildReconcileSelections = (lines = []) =>
+  lines.reduce((selections, line) => {
+    selections[line.fitid] = line.suggestedInstallmentId || '';
+    return selections;
+  }, {});
+
+export const reconcileMatchLabel = (match) =>
+  `${match.description} — parcela ${match.installmentNumber}/${match.installmentsTotal}`;
+
 export const formatBillStatus = (bill) => {
   const transactions = bill?.transactions || [];
   const total = transactions.length || bill?.installments || 0;

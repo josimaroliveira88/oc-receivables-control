@@ -43,6 +43,17 @@ export const TYPE_LABELS = {
   DESPESA: 'Despesa',
 };
 
+export const EFFECTIVE_FILTER_OPTIONS = [
+  { value: '', label: 'Todas' },
+  { value: 'yes', label: 'Somente efetivas' },
+  { value: 'no', label: 'Somente pendentes' },
+];
+
+export const EFFECTIVE_LABELS = {
+  yes: 'Somente efetivas',
+  no: 'Somente pendentes',
+};
+
 export const TYPE_BADGE_CLASSES = FINANCIAL_TRANSACTION_TYPE_CLASSES;
 
 export const transactionTypeLabel = (type) => TYPE_LABELS[type] || '—';
@@ -67,6 +78,7 @@ export const buildTransactionParams = (filters = {}) => {
   if (filters.type) params.type = filters.type;
   if (filters.origin) params.origin = filters.origin;
   if (filters.categoryId) params.categoryId = filters.categoryId;
+  if (filters.effective) params.effective = filters.effective;
   if (filters.from) params.from = filters.from;
   if (filters.to) params.to = filters.to;
   if (filters.search && filters.search.trim()) {
@@ -81,6 +93,7 @@ export const hasActiveTransactionFilters = (filters = {}) =>
     filters.type ||
     filters.origin ||
     filters.categoryId ||
+    filters.effective ||
     filters.from ||
     filters.to ||
     (filters.search && filters.search.trim()),
@@ -92,6 +105,8 @@ export const describeTransactionFilters = (filters = {}) => {
   if (filters.type) parts.push(TYPE_LABELS[filters.type] || filters.type);
   if (filters.origin)
     parts.push(ORIGIN_LABELS[filters.origin] || filters.origin);
+  if (filters.effective)
+    parts.push(EFFECTIVE_LABELS[filters.effective] || filters.effective);
   if (filters.from) parts.push(`de ${filters.from}`);
   if (filters.to) parts.push(`até ${filters.to}`);
   if (filters.search && filters.search.trim()) {

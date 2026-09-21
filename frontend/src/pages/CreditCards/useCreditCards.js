@@ -4,6 +4,7 @@ import { useToast } from '../../components/Toast';
 import { useCreditCardBillForm } from '../../hooks/useCreditCardBillForm';
 import * as creditCardsApi from '../../services/creditCardsApi';
 import { todayString } from '../Finances/utils/financeHelpers';
+import { useCreditCardReconcile } from './useCreditCardReconcile';
 import { formatBillStatus, summarizeBills } from './utils/creditCardHelpers';
 
 export function useCreditCards() {
@@ -44,6 +45,11 @@ export function useCreditCards() {
   }, [loadBills]);
 
   const billForm = useCreditCardBillForm({ onSaved: () => loadBills() });
+
+  const reconcile = useCreditCardReconcile({
+    onCommitted: () => loadBills(),
+    onUndone: () => loadBills(),
+  });
 
   useEffect(() => {
     const deepLinkedId = searchParams.get('bill');
@@ -200,5 +206,6 @@ export function useCreditCards() {
     requestDelete,
     cancelDelete,
     confirmDelete,
+    reconcile,
   };
 }

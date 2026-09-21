@@ -23,6 +23,7 @@ export function useFinances() {
   const [typeFilter, setTypeFilter] = useState('');
   const [originFilter, setOriginFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [effectiveFilter, setEffectiveFilter] = useState('');
   const [fromFilter, setFromFilter] = useState('');
   const [toFilter, setToFilter] = useState('');
   const [search, setSearch] = useState('');
@@ -32,11 +33,20 @@ export function useFinances() {
       type: typeFilter,
       origin: originFilter,
       categoryId: categoryFilter,
+      effective: effectiveFilter,
       from: fromFilter,
       to: toFilter,
       search,
     }),
-    [typeFilter, originFilter, categoryFilter, fromFilter, toFilter, search],
+    [
+      typeFilter,
+      originFilter,
+      categoryFilter,
+      effectiveFilter,
+      fromFilter,
+      toFilter,
+      search,
+    ],
   );
 
   // The filters that refetch automatically: everything except the free-text
@@ -46,10 +56,18 @@ export function useFinances() {
       type: typeFilter,
       origin: originFilter,
       categoryId: categoryFilter,
+      effective: effectiveFilter,
       from: fromFilter,
       to: toFilter,
     }),
-    [typeFilter, originFilter, categoryFilter, fromFilter, toFilter],
+    [
+      typeFilter,
+      originFilter,
+      categoryFilter,
+      effectiveFilter,
+      fromFilter,
+      toFilter,
+    ],
   );
 
   const [showFormModal, setShowFormModal] = useState(false);
@@ -113,6 +131,7 @@ export function useFinances() {
     if ('type' in patch) setTypeFilter(patch.type);
     if ('origin' in patch) setOriginFilter(patch.origin);
     if ('categoryId' in patch) setCategoryFilter(patch.categoryId);
+    if ('effective' in patch) setEffectiveFilter(patch.effective);
     if ('from' in patch) setFromFilter(patch.from);
     if ('to' in patch) setToFilter(patch.to);
     if ('search' in patch) setSearch(patch.search);
@@ -123,6 +142,7 @@ export function useFinances() {
       type: '',
       origin: '',
       categoryId: '',
+      effective: '',
       from: '',
       to: '',
       search: '',

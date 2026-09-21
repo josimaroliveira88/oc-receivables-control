@@ -16,3 +16,12 @@ export const payInstallment = (id, payload) =>
 
 export const unpayInstallment = (id) =>
   api.post(`/credit-cards/installments/${id}/unpay`);
+
+export const previewReconcile = (ofxText) =>
+  api.post('/credit-cards/reconcile/preview', { ofxText });
+
+export const commitReconcile = (payload) =>
+  api.post('/credit-cards/reconcile/commit', payload);
+
+export const undoReconcileBatch = (batchId) =>
+  api.delete(`/credit-cards/reconcile/batch/${batchId}`);

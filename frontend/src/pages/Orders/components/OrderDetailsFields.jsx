@@ -22,6 +22,8 @@ const OrderDetailsFields = ({
   people,
   orderDate,
   paymentType,
+  installments,
+  firstInstallmentAt,
   doterraPv,
   doterraPvError,
   attachmentFile,
@@ -201,6 +203,45 @@ const OrderDetailsFields = ({
           <option value="CARTAO_CREDITO">Crédito</option>
         </select>
       </div>
+
+      {paymentType === 'CARTAO_CREDITO' && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label
+              htmlFor="installments"
+              className="block text-sm font-medium text-ink-soft mb-1"
+            >
+              Parcelas
+            </label>
+            <input
+              id="installments"
+              type="number"
+              min={1}
+              max={24}
+              value={installments}
+              onChange={(e) => onChangeField('installments', e.target.value)}
+              className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="firstInstallmentAt"
+              className="block text-sm font-medium text-ink-soft mb-1"
+            >
+              Primeira parcela
+            </label>
+            <input
+              id="firstInstallmentAt"
+              type="date"
+              value={firstInstallmentAt}
+              onChange={(e) =>
+                onChangeField('firstInstallmentAt', e.target.value)
+              }
+              className="w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
+            />
+          </div>
+        </div>
+      )}
 
       <div className="mb-4">
         <label

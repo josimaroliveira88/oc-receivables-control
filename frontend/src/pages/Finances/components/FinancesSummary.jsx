@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingDown, TrendingUp, Wallet } from 'lucide-react';
+import { Clock, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
 import { formatBRL } from '../../../utils/money';
 
 const SummaryCard = ({ icon: Icon, label, value, valueClass, testId }) => (
@@ -21,11 +21,14 @@ const FinancesSummary = ({ summary }) => {
   const income = summary ? parseFloat(summary.totalIncome) : 0;
   const expense = summary ? parseFloat(summary.totalExpense) : 0;
   const balance = summary ? parseFloat(summary.balance) : 0;
+  const pending = summary ? parseFloat(summary.pendingTotal) : 0;
 
   const balanceClass = balance < 0 ? 'text-danger-fg' : 'text-success-fg';
+  const pendingClass =
+    pending > 0 ? 'text-warning-fg' : 'text-info-fg opacity-60';
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       <SummaryCard
         icon={TrendingUp}
         label="Receitas"
@@ -46,6 +49,13 @@ const FinancesSummary = ({ summary }) => {
         value={formatBRL(balance)}
         valueClass={balanceClass}
         testId="finances-summary-balance"
+      />
+      <SummaryCard
+        icon={Clock}
+        label="Pendente"
+        value={formatBRL(pending)}
+        valueClass={pendingClass}
+        testId="finances-summary-pending"
       />
     </div>
   );

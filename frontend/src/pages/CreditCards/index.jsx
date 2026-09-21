@@ -1,9 +1,10 @@
 import React from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Upload } from 'lucide-react';
 import { useCreditCards } from './useCreditCards';
 import CreditCardsTable from './components/CreditCardsTable';
 import CreditCardBillModal from './components/CreditCardBillModal';
 import CreditCardBillDetail from './components/CreditCardBillDetail';
+import CreditCardReconcileModal from './components/CreditCardReconcileModal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { fromCents, formatBRL } from '../../utils/money';
 import { BILL_STATUS_LABELS } from './utils/creditCardHelpers';
@@ -55,6 +56,7 @@ const CreditCards = () => {
     requestDelete,
     cancelDelete,
     confirmDelete,
+    reconcile,
   } = useCreditCards();
 
   const hasActiveFilters = Boolean(
@@ -80,14 +82,25 @@ const CreditCards = () => {
       <div className="bg-surface border border-line rounded-lg shadow-md">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-line px-6 py-4">
           <h2 className="text-xl font-semibold text-ink">Cartões de crédito</h2>
-          <button
-            type="button"
-            onClick={openBillCreate}
-            className="mt-3 sm:mt-0 inline-flex items-center justify-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-accent-on font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
-          >
-            <Plus className="w-4 h-4" aria-hidden="true" />
-            Nova fatura
-          </button>
+          <div className="mt-3 sm:mt-0 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={reconcile.open}
+              data-testid="credit-card-reconcile-open"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-line text-ink-soft hover:text-ink hover:bg-elevated font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-accent"
+            >
+              <Upload className="w-4 h-4" aria-hidden="true" />
+              Importar OFX
+            </button>
+            <button
+              type="button"
+              onClick={openBillCreate}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-accent-on font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
+            >
+              <Plus className="w-4 h-4" aria-hidden="true" />
+              Nova fatura
+            </button>
+          </div>
         </div>
 
         <div className="px-6 py-4">
@@ -173,6 +186,22 @@ const CreditCards = () => {
               </button>
             )}
           </div>
+
+          <CreditCardReconcileModal
+            isOpen={reconcile.isOpen}
+            onClose={reconcile.close}
+            onImportFile={reconcile.importFile}
+            statementLines={reconcile.statementLines}
+            selections={reconcile.selections}
+            error={reconcile.error}
+            submitting={reconcile.submitting}
+            committing={reconcile.committing}
+            committedBatchId={reconcile.committedBatchId}
+            committedCount={reconcile.committedCount}
+            onSelectionChange={reconcile.setSelection}
+            onCommit={reconcile.commit}
+            onUndo={reconcile.undoCommitted}
+          />
 
           <CreditCardsTable
             bills={visibleBills}
