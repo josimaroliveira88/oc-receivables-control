@@ -5,6 +5,8 @@ import { ZodError } from 'zod';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './docs/swagger.js';
+import { SERVE_STATIC, STATIC_DIR } from './config.js';
+import { registerFrontend } from './utils/serveFrontend.js';
 
 if (process.env.NODE_ENV !== 'test') {
   dotenv.config();
@@ -78,6 +80,11 @@ app.use('/api/products', productRoutes);
 // Stock routes
 import stockRoutes from './routes/stockRoutes.js';
 app.use('/api/stock', stockRoutes);
+
+// Production: serve the built SPA on the same origin as the API
+if (SERVE_STATIC && registerFrontend(app, STATIC_DIR)) {
+  console.log(`Serving frontend from ${STATIC_DIR}`);
+}
 
 // Centralized error handling middleware
 app.use((error, req, res, _next) => {
