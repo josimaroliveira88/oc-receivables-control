@@ -9,6 +9,7 @@ import {
   listOrdersViaApi,
   listFinanceTransactionsViaApi,
   saveScreenshot,
+  API_URL,
 } from './helpers.js';
 
 const orderNumberInput = (page) =>
@@ -49,7 +50,7 @@ test.describe('Pedidos da equipe (status EQUIPE) - e2e', () => {
     await createUserViaApi(request, testUser);
 
     const api = await playwright.request.newContext({
-      baseURL: 'http://localhost:4000',
+      baseURL: API_URL,
     });
     token = await loginAndGetToken(api, testUser.username, testUser.password);
 
@@ -60,7 +61,7 @@ test.describe('Pedidos da equipe (status EQUIPE) - e2e', () => {
   });
 
   const fetchOrderStatus = async (request, orderNumber) => {
-    const res = await request.get('http://localhost:4000/api/orders', {
+    const res = await request.get(`${API_URL}/api/orders`, {
       headers: { Authorization: `Bearer ${token}` },
       params: { q: orderNumber, searchField: 'orderNumber' },
     });

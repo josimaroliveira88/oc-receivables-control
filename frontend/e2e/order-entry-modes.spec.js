@@ -9,6 +9,7 @@ import {
   uniqueOrderNumber,
   saveScreenshot,
   apiRequest,
+  API_URL,
 } from './helpers.js';
 
 // Validates that every order field available in the detailed form is also
@@ -27,7 +28,7 @@ test.describe('Modos de inclusão de pedido (Formulário detalhado / Planilha) -
     await createUserViaApi(request, testUser);
 
     const api = await playwright.request.newContext({
-      baseURL: 'http://localhost:4000',
+      baseURL: API_URL,
     });
     token = await loginAndGetToken(api, testUser.username, testUser.password);
     // Stock-bound items require the user's self person to exist.

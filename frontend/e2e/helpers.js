@@ -1,5 +1,14 @@
 import { randomUUID } from 'node:crypto';
 
+// Base URL of the API. Both stacks expose the API on the same port as the app:
+// the dev stack proxies `/api` from the Vite dev server and the production stack
+// serves SPA + API together. Override with E2E_API_URL when running against a
+// custom port (e.g. a separate backend on :4000).
+export const API_URL =
+  process.env.E2E_API_URL ||
+  process.env.E2E_BASE_URL ||
+  'http://localhost:3000';
+
 export function generateE2EUser() {
   const tag = randomUUID().slice(0, 8);
   return {
@@ -9,7 +18,7 @@ export function generateE2EUser() {
 }
 
 export async function createUserViaApi(api, user) {
-  const res = await api.post('http://localhost:4000/api/auth/register', {
+  const res = await api.post(`${API_URL}/api/auth/register`, {
     data: { username: user.username, password: user.password },
     failOnStatusCode: false,
   });
@@ -47,7 +56,7 @@ export async function dismissFinancesAnnouncement(page) {
 }
 
 export async function createPersonViaApi(api, token, name) {
-  const res = await api.post('http://localhost:4000/api/people', {
+  const res = await api.post(`${API_URL}/api/people`, {
     headers: { Authorization: `Bearer ${token}` },
     data: { name },
     failOnStatusCode: false,
@@ -59,7 +68,7 @@ export async function createPersonViaApi(api, token, name) {
 }
 
 export async function createOrderViaApi(api, token, payload) {
-  const res = await api.post('http://localhost:4000/api/orders', {
+  const res = await api.post(`${API_URL}/api/orders`, {
     headers: { Authorization: `Bearer ${token}` },
     data: payload,
     failOnStatusCode: false,
@@ -71,7 +80,7 @@ export async function createOrderViaApi(api, token, payload) {
 }
 
 export async function loginAndGetToken(api, username, password) {
-  const res = await api.post('http://localhost:4000/api/auth/login', {
+  const res = await api.post(`${API_URL}/api/auth/login`, {
     data: { username, password },
   });
   if (!res.ok()) {
@@ -83,8 +92,6 @@ export async function loginAndGetToken(api, username, password) {
 export function uniqueOrderNumber(prefix) {
   return `${prefix}-${Date.now()}-${randomUUID().slice(0, 6)}`;
 }
-
-export const API_URL = 'http://localhost:4000';
 
 // Thin authenticated request wrapper for the E2E API seeding helpers below.
 // Every call carries the caller's JWT so the backend scopes the data by user.

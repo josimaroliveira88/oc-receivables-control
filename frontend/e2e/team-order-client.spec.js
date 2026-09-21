@@ -7,6 +7,7 @@ import {
   createOrderViaApi,
   loginAndGetToken,
   uniqueOrderNumber,
+  API_URL,
 } from './helpers.js';
 
 const formScope = (page) => page.getByTestId('modal-backdrop');
@@ -47,7 +48,7 @@ test.describe('Cliente no nível do pedido de equipe - e2e', () => {
     await createUserViaApi(request, testUser);
 
     const api = await playwright.request.newContext({
-      baseURL: 'http://localhost:4000',
+      baseURL: API_URL,
     });
     token = await loginAndGetToken(api, testUser.username, testUser.password);
 
@@ -80,7 +81,7 @@ test.describe('Cliente no nível do pedido de equipe - e2e', () => {
   });
 
   const fetchOrder = async (request, orderNumber) => {
-    const res = await request.get('http://localhost:4000/api/orders', {
+    const res = await request.get(`${API_URL}/api/orders`, {
       headers: { Authorization: `Bearer ${token}` },
       params: { q: orderNumber, searchField: 'orderNumber' },
     });
