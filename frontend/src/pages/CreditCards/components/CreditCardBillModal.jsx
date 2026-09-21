@@ -159,7 +159,7 @@ const CreditCardBillModal = ({
   return (
     <Modal
       isOpen={isOpen}
-      title={isEditing ? 'Editar fatura' : 'Nova fatura'}
+      title={isEditing ? 'Editar compra' : 'Nova compra'}
       onClose={onClose}
       isDirty={isDirty}
       submitting={submitting}

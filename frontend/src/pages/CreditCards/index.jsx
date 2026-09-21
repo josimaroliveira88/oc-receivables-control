@@ -90,7 +90,7 @@ const CreditCards = () => {
               className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-line text-ink-soft hover:text-ink hover:bg-elevated font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-accent"
             >
               <Upload className="w-4 h-4" aria-hidden="true" />
-              Importar OFX
+              Conciliar fatura
             </button>
             <button
               type="button"
@@ -98,7 +98,7 @@ const CreditCards = () => {
               className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-accent-on font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
             >
               <Plus className="w-4 h-4" aria-hidden="true" />
-              Nova fatura
+              Nova compra
             </button>
           </div>
         </div>
@@ -112,7 +112,7 @@ const CreditCards = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <SummaryCard
-              label="Total em faturas"
+              label="Total em compras"
               cents={summary.totalCents}
               valueClass="text-ink"
               testId="credit-cards-summary-total"
@@ -173,8 +173,8 @@ const CreditCards = () => {
               value={filters.q}
               onChange={(e) => setFilters({ q: e.target.value })}
               className={`${inputClass} flex-1`}
-              placeholder="Buscar faturas..."
-              aria-label="Buscar faturas"
+              placeholder="Buscar compras..."
+              aria-label="Buscar compras"
             />
             {hasActiveFilters && (
               <button
@@ -237,8 +237,8 @@ const CreditCards = () => {
 
       <ConfirmDialog
         open={Boolean(confirmDeleteId)}
-        title="Excluir fatura"
-        message="Tem certeza que deseja excluir esta fatura? As parcelas pendentes também serão removidas."
+        title="Excluir compra"
+        message="Tem certeza que deseja excluir esta compra? As parcelas pendentes também serão removidas."
         confirmLabel="Excluir"
         cancelLabel="Cancelar"
         loading={deleting}

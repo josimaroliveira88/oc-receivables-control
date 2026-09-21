@@ -113,7 +113,7 @@ describe('CreditCardsPage', () => {
     renderPage();
 
     expect(
-      await screen.findByText('Nenhuma fatura cadastrada'),
+      await screen.findByText('Nenhuma compra cadastrada'),
     ).toBeInTheDocument();
   });
 
@@ -225,11 +225,11 @@ describe('CreditCardsPage', () => {
       expect(screen.getByText('Fatura paga')).toBeInTheDocument(),
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Nova fatura' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Nova compra' }));
 
     expect(await screen.findByTestId('bill-form-modal')).toBeInTheDocument();
     expect(
-      screen.getByText('Nova fatura', { selector: 'h3' }),
+      screen.getByText('Nova compra', { selector: 'h3' }),
     ).toBeInTheDocument();
   });
 
@@ -238,7 +238,7 @@ describe('CreditCardsPage', () => {
     renderPage('/credit-cards?bill=foreign-bill');
 
     expect(
-      await screen.findByText('Fatura não encontrada.'),
+      await screen.findByText('Compra não encontrada.'),
     ).toBeInTheDocument();
     await waitFor(() =>
       expect(screen.getByTestId('location')).toHaveTextContent('/credit-cards'),
@@ -253,7 +253,7 @@ describe('CreditCardsPage', () => {
     renderPage();
     await waitForBills();
 
-    fireEvent.click(screen.getByRole('button', { name: /Importar OFX/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Conciliar fatura/ }));
 
     expect(
       await screen.findByTestId('credit-card-reconcile-modal'),

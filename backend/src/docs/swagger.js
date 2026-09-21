@@ -51,7 +51,7 @@ const options = {
       {
         name: 'CreditCards',
         description:
-          'Faturas de cartão de crédito, parcelas e conciliação do extrato OFX',
+          'Compras de cartão de crédito, parcelas e conciliação da fatura (OFX)',
       },
       {
         name: 'Products',
@@ -284,7 +284,7 @@ const options = {
             description: { type: 'string' },
             totalCents: {
               type: 'integer',
-              description: 'Valor total da fatura em centavos',
+              description: 'Valor total da compra em centavos',
             },
             installments: { type: 'integer' },
             firstInstallmentAt: { type: 'string', format: 'date' },

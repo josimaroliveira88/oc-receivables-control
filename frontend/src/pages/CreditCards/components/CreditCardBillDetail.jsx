@@ -19,7 +19,7 @@ const CreditCardBillDetail = ({
     onClose={onClose}
     maxWidth="max-w-2xl"
     testId="bill-detail-modal"
-    closeAriaLabel="Fechar fatura"
+    closeAriaLabel="Fechar compra"
   >
     {() => (
       <div className="px-6 py-4">

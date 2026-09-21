@@ -34,7 +34,7 @@ export function useCreditCards() {
       setBills(response.data);
       setError('');
     } catch (_err) {
-      setError('Erro ao carregar faturas. Tente novamente.');
+      setError('Erro ao carregar compras. Tente novamente.');
     } finally {
       if (showLoading) setLoading(false);
     }
@@ -61,7 +61,7 @@ export function useCreditCards() {
       setSearchParams({}, { replace: true });
       return;
     }
-    addToast('Fatura não encontrada.', 'error');
+    addToast('Compra não encontrada.', 'error');
     navigate('/credit-cards', { replace: true });
   }, [searchParams, bills, loading, setSearchParams, navigate, addToast]);
 
@@ -166,11 +166,11 @@ export function useCreditCards() {
     try {
       setDeleting(true);
       await creditCardsApi.deleteBill(confirmDeleteId);
-      addToast('Fatura excluída com sucesso!', 'success');
+      addToast('Compra excluída com sucesso!', 'success');
       setSelectedBillId(null);
       loadBills();
     } catch (_err) {
-      addToast('Erro ao excluir fatura. Tente novamente.', 'error');
+      addToast('Erro ao excluir compra. Tente novamente.', 'error');
     } finally {
       setDeleting(false);
       setConfirmDeleteId(null);

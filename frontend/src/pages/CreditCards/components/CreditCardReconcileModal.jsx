@@ -54,12 +54,12 @@ const CreditCardReconcileModal = ({
 
       <Modal
         isOpen={isOpen}
-        title="Importar extrato OFX"
+        title="Conciliar fatura"
         onClose={onClose}
         submitting={submitting || committing}
         maxWidth="max-w-3xl"
         testId="credit-card-reconcile-modal"
-        closeAriaLabel="Fechar importação"
+        closeAriaLabel="Fechar conciliação"
       >
         {(requestClose) => (
           <div className="px-6 py-4">

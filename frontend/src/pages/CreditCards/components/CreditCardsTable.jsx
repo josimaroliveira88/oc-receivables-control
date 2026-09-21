@@ -18,8 +18,8 @@ const CreditCardsTable = ({
       <div className="text-center py-12">
         <p className="text-ink-faint">
           {hasActiveFilters
-            ? 'Nenhuma fatura encontrada para os filtros aplicados.'
-            : 'Nenhuma fatura cadastrada'}
+            ? 'Nenhuma compra encontrada para os filtros aplicados.'
+            : 'Nenhuma compra cadastrada'}
         </p>
       </div>
     );
@@ -128,7 +128,7 @@ const CreditCardsTable = ({
                           variant: 'danger',
                         },
                       ]}
-                      ariaLabel="Ações da fatura"
+                      ariaLabel="Ações da compra"
                       testIdPrefix={`bill-actions-${bill.id}`}
                     />
                   </div>

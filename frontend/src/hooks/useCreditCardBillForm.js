@@ -77,16 +77,16 @@ export function useCreditCardBillForm({ onSaved } = {}) {
       const payload = buildBillPayload(form);
       if (form.id) {
         await creditCardsApi.updateBill(form.id, payload);
-        addToast('Fatura atualizada com sucesso!', 'success');
+        addToast('Compra atualizada com sucesso!', 'success');
       } else {
         await creditCardsApi.createBill(payload);
-        addToast('Fatura criada com sucesso!', 'success');
+        addToast('Compra criada com sucesso!', 'success');
       }
       close();
       onSaved?.();
     } catch (err) {
       setFormError(
-        errorMessageFrom(err, 'Erro ao salvar fatura. Tente novamente.'),
+        errorMessageFrom(err, 'Erro ao salvar compra. Tente novamente.'),
       );
     } finally {
       setSubmitting(false);

@@ -11,10 +11,10 @@ router.use(authenticateToken);
  * /api/credit-cards/bills:
  *   get:
  *     tags: [CreditCards]
- *     summary: Lista as faturas de cartão de crédito do usuário
+ *     summary: Lista as compras de cartão de crédito do usuário
  *     responses:
  *       200:
- *         description: Faturas do usuário, com suas parcelas
+ *         description: Compras do usuário, com suas parcelas
  *         content:
  *           application/json:
  *             schema:
@@ -32,7 +32,7 @@ router.get('/bills', creditCardsController.getBills);
  * /api/credit-cards/bills:
  *   post:
  *     tags: [CreditCards]
- *     summary: Cria uma fatura manual com parcelas pendentes
+ *     summary: Cria uma compra manual com parcelas pendentes
  *     requestBody:
  *       required: true
  *       content:
@@ -41,7 +41,7 @@ router.get('/bills', creditCardsController.getBills);
  *             $ref: '#/components/schemas/CreditCardBillInput'
  *     responses:
  *       201:
- *         description: Fatura criada com as parcelas
+ *         description: Compra criada com as parcelas
  *         content:
  *           application/json:
  *             schema:
@@ -59,7 +59,7 @@ router.post('/bills', creditCardsController.createBillHandler);
  * /api/credit-cards/bills/{id}:
  *   get:
  *     tags: [CreditCards]
- *     summary: Detalha uma fatura com suas parcelas
+ *     summary: Detalha uma compra com suas parcelas
  *     parameters:
  *       - in: path
  *         name: id
@@ -67,7 +67,7 @@ router.post('/bills', creditCardsController.createBillHandler);
  *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Fatura com as parcelas
+ *         description: Compra com as parcelas
  *         content:
  *           application/json:
  *             schema:
@@ -85,7 +85,7 @@ router.get('/bills/:id', creditCardsController.getBillHandler);
  * /api/credit-cards/bills/{id}:
  *   put:
  *     tags: [CreditCards]
- *     summary: Atualiza os metadados de uma fatura
+ *     summary: Atualiza os metadados de uma compra
  *     description: Regenera as parcelas pendentes quando o total, o número de parcelas, a data ou a categoria mudam. Retorna 409 se houver parcela efetiva.
  *     parameters:
  *       - in: path
@@ -100,7 +100,7 @@ router.get('/bills/:id', creditCardsController.getBillHandler);
  *             $ref: '#/components/schemas/CreditCardBillUpdateInput'
  *     responses:
  *       200:
- *         description: Fatura atualizada
+ *         description: Compra atualizada
  *         content:
  *           application/json:
  *             schema:
@@ -122,7 +122,7 @@ router.put('/bills/:id', creditCardsController.updateBillHandler);
  * /api/credit-cards/bills/{id}:
  *   delete:
  *     tags: [CreditCards]
- *     summary: Exclui uma fatura sem parcelas efetivas
+ *     summary: Exclui uma compra sem parcelas efetivas
  *     parameters:
  *       - in: path
  *         name: id
@@ -130,7 +130,7 @@ router.put('/bills/:id', creditCardsController.updateBillHandler);
  *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Fatura excluída
+ *         description: Compra excluída
  *         content:
  *           application/json:
  *             schema:
