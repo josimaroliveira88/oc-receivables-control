@@ -247,4 +247,19 @@ describe('CreditCardsPage', () => {
       'foreign-bill',
     );
   });
+
+  it('opens the OFX import modal from the toolbar', async () => {
+    mockBills([bill()]);
+    renderPage();
+    await waitForBills();
+
+    fireEvent.click(screen.getByRole('button', { name: /Importar OFX/ }));
+
+    expect(
+      await screen.findByTestId('credit-card-reconcile-modal'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('credit-card-reconcile-file-input'),
+    ).toBeInTheDocument();
+  });
 });

@@ -3,6 +3,7 @@ import {
   formatBillStatus,
   splitTotalIntoInstallments,
   effectiveDateForInstallment,
+  formatInstallmentBadge,
   originLabel,
   summarizeBills,
   buildBillPayload,
@@ -99,6 +100,17 @@ describe('effectiveDateForInstallment', () => {
   it('returns an empty string without a reference date', () => {
     expect(effectiveDateForInstallment('', 1)).toBe('');
     expect(effectiveDateForInstallment('2026-09-15', 0)).toBe('');
+  });
+});
+
+describe('formatInstallmentBadge', () => {
+  it('renders the installment number over the total', () => {
+    expect(formatInstallmentBadge(1, 12)).toBe('1/12');
+  });
+
+  it('returns an em dash when there is no installment', () => {
+    expect(formatInstallmentBadge(0, 0)).toBe('—');
+    expect(formatInstallmentBadge(null, null)).toBe('—');
   });
 });
 
