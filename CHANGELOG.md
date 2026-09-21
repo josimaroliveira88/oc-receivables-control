@@ -9,6 +9,23 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 115 — Cartão de crédito: rateio das parcelas, conciliação OFX e proteção de dados conciliados (2026-09-21)
+
+### Added
+- **Desfazer conciliação na compra**: o detalhe da compra passou a exibir o aviso "Parcelas conciliadas com a fatura do cartão" com o botão **Desfazer conciliação** do batch, somado ao "Desfazer" por parcela já existente. Antes só havia o banner pós-confirmação, que sumia ao trocar de tela, dificultando reverter a conciliação depois. Arquivos: `frontend/src/pages/CreditCards/components/CreditCardBillDetail.jsx`, `frontend/src/pages/CreditCards/useCreditCards.js`, `frontend/src/pages/CreditCards/index.jsx`.
+
+### Changed
+- **Rateio das parcelas alinhado ao cartão**: o resto da divisão passou a ser absorvido pela **primeira** parcela (antes era a última), que é o padrão do Ourocard — numa compra de R$ 1.113,75 em 6x o extrato cobra `PARC 01/06` = R$ 185,65 e as demais a R$ 185,62. O rateio idêntico faz o valor das parcelas bater com o banco e a conciliação casar sem fudge de tolerância. Arquivos: `backend/src/services/creditCardService.js`, `frontend/src/pages/CreditCards/utils/creditCardHelpers.js`.
+- **Conciliação OFX ciente do memo `PARC nn/mm`**: `parseCreditCardOfx` passou a extrair `installmentNumber`/`installmentsTotal` do memo; o preview restringe a busca a faturas com o mesmo número de parcelas, dá preferência à parcela do número declarado (desempate por data só quando não há `PARC`) e a tolerância de centavos cresce com o número de parcelas (`mm - 1`), cobrindo o resto do rateio e dados legados. Arquivos: `backend/src/utils/creditCardOfxParser.js`, `backend/src/services/creditCardReconcileService.js`.
+
+### Fixed
+- **Despesa avulsa remanescente ao converter um pedido para cartão**: `syncExpenseFromOrder` agora remove a despesa `PEDIDO_DOTERRA` sem fatura (`creditCardBillId IS NULL`) antes de criar/atualizar a fatura e as parcelas. Antes, um pedido que era PIX/boleto e passava a `CARTAO_CREDITO` mantinha a despesa efetiva de valor cheio **além** das parcelas, contando a despesa em dobro nas Finanças; a remoção preserva parcelas já efetivadas/conciliadas. Arquivo: `backend/src/services/financeSyncService.js`.
+- **Edição de pedido com parcela conciliada/paga**: `upsertBillForOrder` agora compara o formato da compra (`installments`, `totalCents`, `firstInstallmentAt`, categoria) e, quando há parcela efetiva e o formato muda, retorna **409** com `paidInstallmentIds` e mensagem em PT-BR pedindo para desfazer a conciliação/baixa antes. Antes a compra era atualizada pela metade, mantendo as parcelas antigas (inclusive a efetiva) no lugar e deixando o número de parcelas divergente. Edições sem mudança de formato (ex.: observações) continuam válidas. Arquivo: `backend/src/services/creditCardService.js`.
+- **"Desfazer" de parcela reconciliada**: `unpayInstallment` passou a limpar também `statementFitid` e `importBatchId`, revertendo de fato a conciliação e permitindo reconciliar novamente a mesma linha do extrato (`FITID`). Arquivo: `backend/src/services/creditCardService.js`.
+
+### Tests
+- Backend: novos casos em `creditCardOfxParser.test.js` (extração de `PARC nn/mm`), `financeSyncCreditCard.test.js` (rateio na primeira parcela; remoção da despesa avulsa na conversão para cartão; 409 ao mudar o formato com parcela efetiva; manutenção das parcelas efetivas quando o formato não muda), `creditCardsReconcile.test.js` (parcela arredondada do banco sugerida a partir do memo; tolerância proporcional ao número de parcelas; `PARC` de contagem diferente não casa) e `creditCardsInstallments.test.js` (desfazer limpa os marcadores da conciliação) — **906 backend** passando (0 falhas). Frontend: `creditCardHelpers.test.js` atualizado para o resto na primeira parcela e `CreditCardsPage.test.jsx` cobrindo o desfazer do batch na compra — **1074 frontend** passando. Verificação: `npm run lint` sem erros (apenas warnings preexistentes em hooks de Sales), `npm run build` e `npm run format:check` limpos.
+
 ## Phase 114 — Correção do menu de ações na lista de compras do cartão de crédito (2026-09-21)
 
 ### Fixed
