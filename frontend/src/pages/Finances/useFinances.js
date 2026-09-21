@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import api from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { useDirtyForm } from '../../hooks/useDirtyForm';
+import { useCreditCardBillForm } from '../../hooks/useCreditCardBillForm';
 import {
   buildTransactionPayload,
   buildTransactionParams,
@@ -85,6 +86,10 @@ export function useFinances() {
     [],
   );
 
+  const billForm = useCreditCardBillForm({
+    onSaved: () => loadTransactions(filters),
+  });
+
   // Initial load: this is the only one that shows the full-page spinner.
   useEffect(() => {
     loadTransactions({}, { showLoading: true });
@@ -136,6 +141,7 @@ export function useFinances() {
   };
 
   const openCreate = () => {
+    billForm.close();
     resetForm();
     setShowFormModal(true);
   };
@@ -143,6 +149,7 @@ export function useFinances() {
   const closeForm = () => {
     setShowFormModal(false);
     resetForm();
+    billForm.close();
   };
 
   const setFormField = (field, value) => {
@@ -271,6 +278,14 @@ export function useFinances() {
     closeForm,
     setFormField,
     handleSubmit,
+    creditCard: {
+      form: billForm.form,
+      formError: billForm.formError,
+      submitting: billForm.submitting,
+      isDirty: billForm.isDirty,
+      onChangeField: billForm.setField,
+      onSubmit: billForm.handleSubmit,
+    },
     confirmDeleteId,
     deleting,
     requestDelete,

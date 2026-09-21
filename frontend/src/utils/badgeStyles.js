@@ -113,3 +113,14 @@ export const FINANCIAL_TRANSACTION_TYPE_CLASSES = {
 };
 
 export const FINANCIAL_TRANSACTION_TYPE_FALLBACK = 'bg-base text-ink-soft';
+
+export const CREDIT_CARD_BILL_STATUS_CLASSES = {
+  Aberta: 'bg-warning-soft text-warning-fg',
+  Parcial: 'bg-info-soft text-info-fg',
+  Paga: 'bg-success-soft text-success-fg',
+};
+
+export const INSTALLMENT_STATUS_CLASSES = {
+  Paga: 'bg-success-soft text-success-fg',
+  Pendente: 'bg-warning-soft text-warning-fg',
+};

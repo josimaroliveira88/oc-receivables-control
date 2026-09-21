@@ -4,6 +4,7 @@ import {
   ShoppingCart,
   Package,
   Boxes,
+  CreditCard,
   Wallet,
 } from 'lucide-react';
 
@@ -13,5 +14,6 @@ export const navigationItems = [
   { to: '/sales', icon: ShoppingCart, label: 'Vendas' },
   { to: '/products', icon: Package, label: 'Produtos' },
   { to: '/stock', icon: Boxes, label: 'Estoque' },
+  { to: '/credit-cards', icon: CreditCard, label: 'Cartões de crédito' },
   { to: '/finances', icon: Wallet, label: 'Finanças' },
 ];

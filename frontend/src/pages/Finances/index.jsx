@@ -30,6 +30,7 @@ const FinancesPage = () => {
     closeForm,
     setFormField,
     handleSubmit,
+    creditCard,
     confirmDeleteId,
     deleting,
     requestDelete,
@@ -119,6 +120,7 @@ const FinancesPage = () => {
         isDirty={formDirty}
         onChangeField={setFormField}
         onSubmit={handleSubmit}
+        creditCard={creditCard}
       />
 
       <FinancialCategoryModal

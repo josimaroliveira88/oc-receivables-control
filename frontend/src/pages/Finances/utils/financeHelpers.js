@@ -26,6 +26,7 @@ export const ORIGIN_FILTER_OPTIONS = [
   { value: 'PEDIDO_DOTERRA', label: 'Pedido dōTERRA' },
   { value: 'VENDA_ADICIONAL', label: 'Adicional de venda' },
   { value: 'MANUAL', label: 'Manual' },
+  { value: 'CARTAO_CREDITO', label: 'Cartão de crédito' },
 ];
 
 export const ORIGIN_LABELS = {
@@ -34,6 +35,7 @@ export const ORIGIN_LABELS = {
   PEDIDO_DOTERRA: 'Pedido dōTERRA',
   VENDA_ADICIONAL: 'Adicional de venda',
   MANUAL: 'Manual',
+  CARTAO_CREDITO: 'Cartão de crédito',
 };
 
 export const TYPE_LABELS = {
