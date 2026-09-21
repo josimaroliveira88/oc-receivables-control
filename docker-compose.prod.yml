@@ -1,0 +1,75 @@
+# Production stack: a single backend process serves both the API and the built
+# SPA on port 3000 (same origin). Meant for local production validation and for
+# client installs that use Docker.
+#
+#   docker compose -f docker-compose.prod.yml up -d --build
+#   open http://localhost:3000
+#
+# This stack shares the `postgres_data` volume with docker-compose.yml, so it is
+# mutually exclusive with the dev stack (they use the same container names and
+# ports). Stop the dev stack before starting this one.
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: receivables_db
+    restart: unless-stopped
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: receivables
+    networks:
+      - receivables-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U admin -d receivables']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.prod
+    container_name: receivables_backend
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      DATABASE_URL: postgresql://admin:admin@db:5432/receivables?schema=public
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      JWT_EXPIRES_IN: 24h
+      PORT: 3000
+      NODE_ENV: production
+      SERVE_STATIC: 'true'
+      STATIC_DIR: /app/frontend-dist
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - receivables_uploads:/app/uploads
+    networks:
+      - receivables-network
+
+  adminer:
+    image: adminer
+    container_name: receivables_adminer
+    restart: unless-stopped
+    ports:
+      - '8080:8080'
+    depends_on:
+      - db
+    networks:
+      - receivables-network
+
+volumes:
+  postgres_data:
+  receivables_uploads:
+
+networks:
+  receivables-network:
+    driver: bridge

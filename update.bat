@@ -216,6 +216,7 @@ REM ============================================================
 echo [10/10] Construindo frontend (npm run build)...
 call npm --prefix frontend run build
 if %ERRORLEVEL% neq 0 goto :error
+git rev-parse HEAD > "frontend\dist\.build-commit"
 echo       Build do frontend concluido. OK.
 
 echo.

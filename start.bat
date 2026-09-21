@@ -115,7 +115,7 @@ echo       Instalando dependencias do frontend...
 call npm --prefix frontend install
 
 :check_prisma
-if not exist "backend\prisma\generated" goto :gen_prisma
+if not exist "backend\node_modules\.prisma\client" goto :gen_prisma
 goto :deps_ok
 
 :gen_prisma
