@@ -922,12 +922,17 @@ describe('Orders CRUD with Items', () => {
         'INFINITE_PAY',
         'DINHEIRO',
       ]) {
+        const cardFields =
+          paymentType === 'CARTAO_CREDITO'
+            ? { installments: 1, firstInstallmentAt: '2026-10-15' }
+            : {};
         const response = await request(app)
           .post('/api/orders')
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             orderNumber: uniqueOrderNumber('ORD-PGTO'),
             paymentType,
+            ...cardFields,
             items: [
               {
                 description: 'Item',

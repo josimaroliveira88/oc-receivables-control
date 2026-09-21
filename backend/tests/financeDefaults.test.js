@@ -71,6 +71,9 @@ describe('financeDefaults', () => {
       expect(getDefaultCategoryName('PEDIDO_DOTERRA')).toBe(
         'Compra de produtos dōTERRA',
       );
+      expect(getDefaultCategoryName('CARTAO_CREDITO')).toBe(
+        'Compra de produtos dōTERRA',
+      );
     });
 
     it('returns null for manual entries and unknown origins', () => {
@@ -84,6 +87,7 @@ describe('financeDefaults', () => {
         'VENDA',
         'RESGATE_INFINITEPAY',
         'PEDIDO_DOTERRA',
+        'CARTAO_CREDITO',
         'MANUAL',
       ]);
     });

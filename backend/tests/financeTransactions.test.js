@@ -596,6 +596,7 @@ describe('Finances transactions API', () => {
         totalIncome: '0.00',
         totalExpense: '0.00',
         balance: '0.00',
+        pendingTotal: '0.00',
       });
     });
 
@@ -611,6 +612,7 @@ describe('Finances transactions API', () => {
         totalIncome: '1200.50',
         totalExpense: '300.25',
         balance: '900.25',
+        pendingTotal: '0.00',
       });
     });
 
@@ -639,6 +641,7 @@ describe('Finances transactions API', () => {
         totalIncome: '100.00',
         totalExpense: '0.00',
         balance: '100.00',
+        pendingTotal: '0.00',
       });
     });
 
