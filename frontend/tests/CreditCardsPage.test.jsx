@@ -131,6 +131,21 @@ describe('CreditCardsPage', () => {
     );
   });
 
+  it('renders the table without a scroll container that clips the row actions menu', async () => {
+    mockBills([bill()]);
+    renderPage();
+    await waitForBills();
+
+    // An `overflow-x-auto` wrapper becomes a scroll container on both axes and
+    // clipped the absolutely positioned ActionMenu, so the action dropdown was
+    // hidden (and a scrollbar appeared) when the list had a single row.
+    const table = screen.getByRole('table');
+    expect(table.closest('.overflow-x-auto')).toBeNull();
+    expect(
+      screen.getByTestId('bill-actions-bill-1-trigger'),
+    ).toBeInTheDocument();
+  });
+
   it('opens the bill detail with the installment list when a row is clicked', async () => {
     mockBills([bill()]);
     renderPage();
