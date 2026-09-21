@@ -20,6 +20,11 @@ Guidance for maintainers:
 ### Tests
 - Frontend: `useInfinitePayRescueImport.test.js` ganhou 2 casos (redefine em vez de empilhar quando o depósito casa com a venda já atribuída ao resgate inteiro; e ausência de mutação do state no merge). Novo e2e `frontend/e2e/infinitepay-rescue-import.spec.js` (CT1 cobre a não-duplicação do total; CT2 cobre o desfazer da importação em lote). Verificação: **1023 frontend** passando, e2e 2/2 no stack de produção, `npm run lint` sem erros, `npm run build` e `npm run format:check` limpos. O e2e foi validado contra a falha (sem a correção exibe "R$ 440,02 de R$ 220,01"; com a correção passa).
 
+## Phase 111 — Stack Docker de produção usa a base da aplicação (2026-09-21)
+
+### Fixed
+- **`docker-compose.prod.yml` apontava para a base de testes**: o serviço `backend` fixava `DATABASE_URL` em `receivables` (base usada pela suíte de testes), então a aplicação em produção subia sem os dados reais. O stack de produção passou a reutilizar `backend/.env` — mesma base `receivables_cliente` e mesmos segredos do ambiente de desenvolvimento — sobrescrevendo apenas `PORT`, `NODE_ENV`, `SERVE_STATIC` e `STATIC_DIR`. Container recriado e validado em `http://localhost:3000` com os dados reais (`receivables_cliente`: 6 usuários, 64 clientes, 67 pedidos).
+
 ## Phase 110 — Modo produção (SPA + API no mesmo processo na porta 3000) (2026-09-21)
 
 ### Added
