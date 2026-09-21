@@ -162,7 +162,7 @@ REM 6. Instala dependencias do backend
 REM ============================================================
 :backend_deps
 if %BACKEND_LOCK_CHANGED% equ 1 (
-    echo [6/10] package-lock.json do backend alterado. Instalando dependencias (npm ci)...
+    echo [6/10] package-lock.json do backend alterado. Instalando dependencias com npm ci...
     call npm --prefix backend ci
     if %ERRORLEVEL% neq 0 goto :error
     echo       Dependencias do backend OK.
@@ -175,7 +175,7 @@ REM 7. Aplica migrations do Prisma
 REM ============================================================
 :prisma_migrate
 if %MIGRATIONS_CHANGED% equ 1 (
-    echo [7/10] Migrations novas detectadas. Aplicando (migrate deploy)...
+    echo [7/10] Migrations novas detectadas. Aplicando migrate deploy...
     call npm --prefix backend run prisma:migrate:deploy
     if %ERRORLEVEL% neq 0 goto :error
     echo       Migrations aplicadas. OK.
@@ -201,7 +201,7 @@ REM 9. Instala dependencias do frontend
 REM ============================================================
 :frontend_deps
 if %FRONTEND_LOCK_CHANGED% equ 1 (
-    echo [9/10] package-lock.json do frontend alterado. Instalando dependencias (npm ci)...
+    echo [9/10] package-lock.json do frontend alterado. Instalando dependencias com npm ci...
     call npm --prefix frontend ci
     if %ERRORLEVEL% neq 0 goto :error
     echo       Dependencias do frontend OK.
