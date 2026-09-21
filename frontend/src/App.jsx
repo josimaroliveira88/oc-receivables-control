@@ -42,7 +42,7 @@ const App = () => {
             </ProtectedRoute>
           }
         >
-          <Route path="/" element={<Navigate to="/finances" replace />} />
+          <Route path="/" element={<Navigate to="/products" replace />} />
           <Route path="/people" element={<PeoplePage />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/sales" element={<SalesPage />} />
