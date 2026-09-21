@@ -9,6 +9,17 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 111 — Correção da duplicação ao escolher depósito de origem no resgate InfinitePay (2026-09-21)
+
+### Fixed
+- **Totalização duplicada ao clicar em "Depósitos de origem"**: depois de o resgate já estar atribuído a uma venda inteira ("Vendas sugeridas pelo valor", sem `sourceKey`), clicar na venda casada de um depósito de origem **somava** o valor do depósito por cima em vez de redefinir a atribuição. Um resgate de R$ 220,01 com a V-0018 previamente selecionada passava a exibir "Selecionado: R$ 440,02 de R$ 220,01", crescendo a cada clique (660,03, 880,04…). O `assignFromDeposit` em `frontend/src/pages/Sales/useInfinitePayRescueImport.js` agora remove a atribuição do resgate inteiro antes de adicionar a do depósito (novo helper `replaceWholeRescueAssignment` em `frontend/src/pages/Sales/utils/infinitepayRescueHelpers.js`), então a escolha do depósito **redefine** a atribuição. O `mergeAssignments` deixou de mutar os objetos no state (passou a copiar antes de somar).
+
+### Changed
+- **E2E configurável por URL**: `frontend/e2e/helpers.js` e `frontend/playwright.config.js` passaram a derivar a base da API de `E2E_API_URL`/`E2E_BASE_URL` (padrão `http://localhost:3000`, o stack de produção que serve SPA + API juntos), com os specs `team-orders`, `team-order-client` e `order-entry-modes` usando `API_URL` em vez de `localhost:4000` fixo.
+
+### Tests
+- Frontend: `useInfinitePayRescueImport.test.js` ganhou 2 casos (redefine em vez de empilhar quando o depósito casa com a venda já atribuída ao resgate inteiro; e ausência de mutação do state no merge). Novo e2e `frontend/e2e/infinitepay-rescue-import.spec.js` (CT1 cobre a não-duplicação do total; CT2 cobre o desfazer da importação em lote). Verificação: **1023 frontend** passando, e2e 2/2 no stack de produção, `npm run lint` sem erros, `npm run build` e `npm run format:check` limpos. O e2e foi validado contra a falha (sem a correção exibe "R$ 440,02 de R$ 220,01"; com a correção passa).
+
 ## Phase 110 — Modo produção (SPA + API no mesmo processo na porta 3000) (2026-09-21)
 
 ### Added
