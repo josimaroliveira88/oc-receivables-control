@@ -1,6 +1,7 @@
 import request from 'supertest';
 import app from '../src/app.js';
 import prisma from '../src/config/database.js';
+import { parseLocalDate } from '../src/utils/date.js';
 
 const registerUser = async (prefix) => {
   const username = `${prefix}_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
@@ -167,6 +168,33 @@ describe('Credit-card installment pay/unpay', () => {
     });
     expect(persisted.isEffective).toBe(false);
     expect(persisted.effectiveDate).toBeNull();
+  });
+
+  it('clears the reconciliation tags when unpaying a reconciled installment', async () => {
+    const id = await firstInstallmentId();
+    await prisma.financialTransaction.update({
+      where: { id },
+      data: {
+        isEffective: true,
+        effectiveDate: parseLocalDate('2026-09-15'),
+        statementFitid: 'FIT-RECONCILED',
+        importBatchId: 'batch-1',
+      },
+    });
+
+    const response = await request(app)
+      .post(`/api/credit-cards/installments/${id}/unpay`)
+      .set('Authorization', `Bearer ${user.token}`);
+
+    expect(response.status).toBe(200);
+
+    const persisted = await prisma.financialTransaction.findUnique({
+      where: { id },
+    });
+    expect(persisted.isEffective).toBe(false);
+    expect(persisted.effectiveDate).toBeNull();
+    expect(persisted.statementFitid).toBeNull();
+    expect(persisted.importBatchId).toBeNull();
   });
 
   it('is a no-op when unpaying an already pending installment', async () => {

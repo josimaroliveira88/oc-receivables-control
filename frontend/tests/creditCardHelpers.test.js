@@ -78,9 +78,9 @@ describe('splitTotalIntoInstallments', () => {
     ]);
   });
 
-  it('lets the last installment absorb the rounding remainder', () => {
+  it('lets the first installment absorb the rounding remainder', () => {
     expect(splitTotalIntoInstallments(43865, 4)).toEqual([
-      10966, 10966, 10966, 10967,
+      10967, 10966, 10966, 10966,
     ]);
   });
 });

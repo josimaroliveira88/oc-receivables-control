@@ -200,6 +200,31 @@ describe('CreditCardsPage', () => {
     );
   });
 
+  it('undoes a reconciliation batch from the bill detail', async () => {
+    mockBills([
+      bill({
+        installments: 1,
+        transactions: [
+          { ...installment('inst-1', 1, 1, true), importBatchId: 'batch-1' },
+        ],
+      }),
+    ]);
+    mockDelete.mockResolvedValue({
+      data: { batchId: 'batch-1', restored: 1 },
+    });
+    renderPage();
+    await waitForBills();
+
+    fireEvent.click(screen.getByText('Compra de teste'));
+    fireEvent.click(await screen.findByTestId('bill-undo-batch-batch-1'));
+
+    await waitFor(() =>
+      expect(mockDelete).toHaveBeenCalledWith(
+        '/credit-cards/reconcile/batch/batch-1',
+      ),
+    );
+  });
+
   it('opens the edit modal pre-filled and saves the metadata', async () => {
     mockBills([bill()]);
     mockPut.mockResolvedValue({

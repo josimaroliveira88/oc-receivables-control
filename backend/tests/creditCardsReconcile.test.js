@@ -121,6 +121,79 @@ describe('Credit-card OFX reconciliation', () => {
     expect(unmatched.suggestedInstallmentId).toBeNull();
   });
 
+  it('matches the bank-rounded first installment declared in the PARC memo', async () => {
+    const bill = await createBill({
+      description: 'Pedido dōTERRA 183973238',
+      totalAmount: 1113.75,
+      installments: 6,
+      firstInstallmentAt: '2026-09-20',
+    });
+
+    const response = await preview(
+      ofx(
+        block({
+          date: '20260828',
+          amount: '-185.65',
+          fitid: 'FIT-PARC-01-06',
+          memo: 'DOTERRA PARC 01/06 BARUERI BR',
+        }),
+      ),
+    );
+
+    const [line] = response.body.statementLines;
+    const first = await prisma.financialTransaction.findFirst({
+      where: { creditCardBillId: bill.id, installmentNumber: 1 },
+    });
+
+    expect(Number(first.amount)).toBe(185.65);
+    expect(line.suggestedInstallmentId).toBe(first.id);
+  });
+
+  it('absorbs a rounding remainder up to the installment count', async () => {
+    const bill = await createBill({
+      description: 'Pedido dōTERRA com resto',
+      totalAmount: 400.03,
+      installments: 4,
+      firstInstallmentAt: '2026-08-17',
+    });
+
+    const response = await preview(
+      ofx(
+        block({
+          date: '20260817',
+          amount: '-100.00',
+          fitid: 'FIT-PARC-ROUNDING',
+          memo: 'DOTERRA PARC 01/04',
+        }),
+      ),
+    );
+
+    const [line] = response.body.statementLines;
+    const first = await prisma.financialTransaction.findFirst({
+      where: { creditCardBillId: bill.id, installmentNumber: 1 },
+    });
+
+    expect(Number(first.amount)).toBe(100.03);
+    expect(line.suggestedInstallmentId).toBe(first.id);
+  });
+
+  it('does not match a line whose PARC count differs from the bill', async () => {
+    await createBill();
+
+    const response = await preview(
+      ofx(
+        block({
+          date: '20260817',
+          amount: '-438.64',
+          fitid: 'FIT-PARC-MISMATCH',
+          memo: 'DOTERRA PARC 01/06',
+        }),
+      ),
+    );
+
+    expect(response.body.statementLines[0].suggestedInstallmentId).toBeNull();
+  });
+
   it('assigns an ambiguous amount to the closest installment by date', async () => {
     const near = await createBill({
       installments: 1,

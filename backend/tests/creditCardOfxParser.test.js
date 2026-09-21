@@ -92,6 +92,30 @@ describe('creditCardOfxParser', () => {
     expect(rows.map((row) => row.amountCents)).toEqual([20570, 31]);
   });
 
+  it('extracts the PARC nn/mm installment number and total from the memo', () => {
+    const rows = parseCreditCardOfx(
+      ofx(
+        block({
+          date: '20260828',
+          amount: '-185.65',
+          fitid: 'FIT-PARC',
+          memo: 'DOTERRA PARC 01/06 BARUERI BR',
+        }),
+        block({
+          date: '20260820',
+          amount: '-30.00',
+          fitid: 'FIT-PLAIN',
+          memo: 'ZIGPAY CURITIBA BR',
+        }),
+      ),
+    );
+
+    expect(rows[0].installmentNumber).toBe(1);
+    expect(rows[0].installmentsTotal).toBe(6);
+    expect(rows[1].installmentNumber).toBeNull();
+    expect(rows[1].installmentsTotal).toBeNull();
+  });
+
   it('parses the YYYYMMDD date as a local YYYY-MM-DD date', () => {
     const rows = parseCreditCardOfx(
       ofx(

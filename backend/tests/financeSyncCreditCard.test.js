@@ -105,7 +105,7 @@ describe('Finances credit-card sync', () => {
     expect(rows.map((row) => Number(row.amount))).toEqual([100, 100, 100]);
   });
 
-  it('splits a non-divisible total with the last installment absorbing the remainder', async () => {
+  it('splits a non-divisible total with the first installment absorbing the remainder', async () => {
     const order = await createCardOrder({
       installments: 3,
       items: [{ description: 'Óleo', chargedValue: 100.01 }],
@@ -114,7 +114,7 @@ describe('Finances credit-card sync', () => {
 
     const rows = await getInstallments(bill.id);
     const amounts = rows.map((row) => Number(row.amount));
-    expect(amounts).toEqual([33.33, 33.33, 33.35]);
+    expect(amounts).toEqual([33.35, 33.33, 33.33]);
     expect(amounts.reduce((sum, value) => sum + value, 0)).toBeCloseTo(
       100.01,
       2,
@@ -177,6 +177,97 @@ describe('Finances credit-card sync', () => {
     expect(rows[0].origin).toBe('PEDIDO_DOTERRA');
     expect(rows[0].isEffective).toBe(true);
     expect(rows[0].creditCardBillId).toBeNull();
+  });
+
+  it('replaces the standalone expense with a bill when converting a purchase to card', async () => {
+    const order = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        orderNumber: uniqueOrderNumber('CARD-CONV'),
+        orderDate: '2026-08-28',
+        paymentType: 'PIX',
+        items: [{ description: 'Óleo', chargedValue: 300 }],
+      });
+    expect(order.status).toBe(201);
+
+    const before = await prisma.financialTransaction.findMany({
+      where: {
+        orderId: order.body.id,
+        userId: user.userId,
+        origin: 'PEDIDO_DOTERRA',
+      },
+    });
+    expect(before).toHaveLength(1);
+    expect(before[0].isEffective).toBe(true);
+    expect(before[0].creditCardBillId).toBeNull();
+
+    const updated = await request(app)
+      .put(`/api/orders/${order.body.id}`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        paymentType: 'CARTAO_CREDITO',
+        installments: 6,
+        firstInstallmentAt: '2026-09-20',
+      });
+    expect(updated.status).toBe(200);
+
+    const bill = await getBill(order.body.id);
+    expect(bill).not.toBeNull();
+
+    const rows = await prisma.financialTransaction.findMany({
+      where: {
+        orderId: order.body.id,
+        userId: user.userId,
+        origin: 'PEDIDO_DOTERRA',
+      },
+      orderBy: { installmentNumber: 'asc' },
+    });
+    expect(rows).toHaveLength(6);
+    expect(rows.every((row) => row.creditCardBillId === bill.id)).toBe(true);
+    expect(rows.every((row) => row.isEffective === false)).toBe(true);
+  });
+
+  const markFirstInstallmentEffective = async (billId) => {
+    const rows = await getInstallments(billId);
+    await prisma.financialTransaction.update({
+      where: { id: rows[0].id },
+      data: { isEffective: true, effectiveDate: parseLocalDate('2026-10-15') },
+    });
+    return rows[0].id;
+  };
+
+  it('rejects changing the installment shape when the bill has an effective installment', async () => {
+    const order = await createCardOrder();
+    const bill = await getBill(order.body.id);
+    const paidId = await markFirstInstallmentEffective(bill.id);
+
+    const updated = await request(app)
+      .put(`/api/orders/${order.body.id}`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({ installments: 6 });
+    expect(updated.status).toBe(409);
+    expect(updated.body.paidInstallmentIds).toEqual([paidId]);
+
+    const refreshedBill = await getBill(order.body.id);
+    expect(refreshedBill.installments).toBe(3);
+    expect(await getInstallments(refreshedBill.id)).toHaveLength(3);
+  });
+
+  it('keeps the effective installments when the edit does not change the bill shape', async () => {
+    const order = await createCardOrder();
+    const bill = await getBill(order.body.id);
+    const paidId = await markFirstInstallmentEffective(bill.id);
+
+    const updated = await request(app)
+      .put(`/api/orders/${order.body.id}`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({ orderNotes: 'Observação' });
+    expect(updated.status).toBe(200);
+
+    const refreshed = await getInstallments(bill.id);
+    expect(refreshed).toHaveLength(3);
+    expect(refreshed.find((row) => row.id === paidId).isEffective).toBe(true);
   });
 
   it('keeps pre-migration rows effective because isEffective defaults to true', async () => {
