@@ -9,6 +9,23 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 112 — Cartão de crédito nas Finanças: faturas, parcelas, conciliação OFX e efetividade (2026-09-21)
+
+### Added
+- **Modelo de dados de cartão de crédito (Fase A)**: nova tabela `CreditCardBill`, valor `CARTAO_CREDITO` em `FinancialOrigin`, colunas de efetividade/parcela em `FinancialTransaction` (`isEffective` com default `true` — a migração marca as linhas existentes como efetivas —, `effectiveDate`, `installmentNumber`, `installmentsTotal`, `paymentType`, `statementFitid`, `creditCardBillId`) e `installments`/`firstInstallmentAt` em `Order`. Compras dōTERRA com `paymentType = CARTAO_CREDITO` passam a gerar **1 fatura + N parcelas pendentes** (`creditCardService.upsertBillForOrder`), com vencimentos mensais clampados ao último dia do mês e rateio em centavos (a última parcela absorve o resto); a fatura é removida quando o pedido deixa de ser no cartão.
+- **API `/api/credit-cards` (Fase B)**: CRUD de faturas (`GET/POST /bills`, `GET/PUT/DELETE /bills/:id`), `POST /installments/:id/pay|unpay` e conciliação OFX (`POST /reconcile/preview|commit`, `DELETE /reconcile/batch/:batchId`). Novo parser OFX 1.x (`creditCardOfxParser.js`) que converte `TRNAMT` em centavos positivos com tipo `PURCHASE`/`CREDIT`, ignora `DEBIT` e sinaliza `PGTO DEBITO CONTA` (pagamento da própria fatura) como ignorado. A conciliação casa valor (±2 centavos) com janela de 35 dias e desempate por proximidade de data, com idempotência por `FITID`; faturas com parcela efetiva rejeitam alteração/exclusão com `409` e expõem `paidInstallmentIds`.
+- **Página `/credit-cards` (Fase C)**: item de navegação "Cartões de crédito" com tabela (descrição, "Parcelas X/Y pagas", primeira parcela, total e status Aberta/Parcial/Paga), detalhe com baixa/desfazer parcela otimista e modal de criar/editar fatura (usando o `Modal` compartilhado + guarda de fechamento polido). O modal de lançamentos de Finanças ganhou a aba "Cartão de crédito", reutilizando o mesmo formulário.
+- **Conciliação OFX no frontend e integração com Finanças (Fase D)**: modal "Importar OFX" com prévia das linhas do extrato e parcela sugerida (permitindo trocar ou ignorar), confirmação e banner "Desfazer último batch". A página de Finanças ganhou o filtro "Efetividade" (Todas / Somente efetivas / Somente pendentes), o card "Pendente" e badges de parcela (`X/Y`) e efetividade (Efetiva/Pendente) por linha. O formulário de pedido exibe "Parcelas" e "Primeira parcela" quando o tipo de pagamento é Crédito.
+
+### Changed
+- **`GET /api/finances/summary`**: `totalIncome`/`totalExpense`/`balance` passam a considerar **apenas lançamentos efetivos** (`isEffective = true`) e a resposta ganha `pendingTotal` (soma dos pendentes no mesmo período). A listagem `GET /api/finances/transactions` aceita `effective=yes|no|all`.
+- **Origens e categorias**: `CARTAO_CREDITO` adicionado aos validadores de finanças e ao rótulo "Cartão de crédito"; faturas automáticas reutilizam a categoria padrão "Compras dōTERRA".
+
+### Tests
+- Backend: Fases A+B somam **49 casos novos** (`financeSyncCreditCard`, `financeSummaryEffectiveness`, `ordersCreditCard`, `creditCardsBills`, `creditCardsInstallments`, `creditCardsReconcile`, `creditCardOfxParser`) — **898 backend** passando (0 falhas).
+- Frontend: Fases C+D somam **49 casos novos** (`CreditCardsPage`, `CreditCardBillModal`, `creditCardHelpers`, `FinancialTransactionModalCreditCard`, `CreditCardReconcileModal`, `FinancesFilterEffective`, `FinancesSummaryPending`, `FinancialTransactionModalPaymentType`, `OrderDetailsFieldsCreditCard`) — **1072 frontend** passando (0 falhas).
+- Verificação: `npm run lint` sem erros (apenas warnings preexistentes em hooks de Orders/Sales), `npm run format:check` e `npm run build` limpos. Testes ao vivo no stack dev: 82 checagens de API da Fase B, 4 e2e da página de cartões (Fase C) e 3 e2e da conciliação/filtro de efetividade (Fase D) aprovados.
+
 ## Phase 111 — Correção da duplicação ao escolher depósito de origem no resgate InfinitePay (2026-09-21)
 
 ### Fixed
