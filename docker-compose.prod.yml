@@ -5,9 +5,11 @@
 #   docker compose -f docker-compose.prod.yml up -d --build
 #   open http://localhost:3000
 #
-# This stack shares the `postgres_data` volume with docker-compose.yml, so it is
-# mutually exclusive with the dev stack (they use the same container names and
-# ports). Stop the dev stack before starting this one.
+# This stack shares the `postgres_data` volume and `backend/.env` with
+# docker-compose.yml, so it uses the same application database (e.g.
+# `receivables_cliente`) as dev. Only PORT, NODE_ENV, SERVE_STATIC and STATIC_DIR
+# are overridden. It is mutually exclusive with the dev stack (same container
+# names and ports), so stop the dev stack before starting this one.
 version: '3.8'
 
 services:
@@ -39,10 +41,9 @@ services:
     restart: unless-stopped
     ports:
       - '3000:3000'
+    env_file:
+      - ./backend/.env
     environment:
-      DATABASE_URL: postgresql://admin:admin@db:5432/receivables?schema=public
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
-      JWT_EXPIRES_IN: 24h
       PORT: 3000
       NODE_ENV: production
       SERVE_STATIC: 'true'
