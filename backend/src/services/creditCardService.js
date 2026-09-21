@@ -13,10 +13,15 @@ const addMonthsClamped = (date, months) => {
   return new Date(Date.UTC(year, month, day));
 };
 
+// The Ourocard statement charges the first installment with the division
+// remainder (rounded up) and the base amount on the rest: a 6x purchase of
+// R$ 1113.75 appears as `PARC 01/06` = R$ 185.65 followed by 5 × R$ 185.62.
+// Splitting the same way keeps the parcel values equal to the bank's, so OFX
+// reconciliation matches without a tolerance fudge.
 const splitTotalIntoInstallments = (totalCents, installments) => {
   const base = Math.floor(totalCents / installments);
   const amounts = Array.from({ length: installments }, () => base);
-  amounts[installments - 1] = totalCents - base * (installments - 1);
+  amounts[0] = totalCents - base * (installments - 1);
   return amounts;
 };
 
@@ -68,6 +73,9 @@ const createInstallments = async (
   });
 };
 
+const EFFECTIVE_INSTALLMENTS_MESSAGE =
+  'Esta compra já tem parcela conciliada ou paga. Desfaça a conciliação/baixa antes de alterá-la.';
+
 const upsertBillForOrder = async (client, { userId, order }) => {
   const installments = order.installments ?? 1;
   const firstInstallmentAt = order.firstInstallmentAt ?? order.orderDate;
@@ -89,15 +97,30 @@ const upsertBillForOrder = async (client, { userId, order }) => {
   };
 
   if (existing) {
-    const effectiveCount = await client.financialTransaction.count({
-      where: { creditCardBillId: existing.id, isEffective: true },
-    });
+    const paid = await findPaidInstallments(client, existing.id);
+    const shapeChanged =
+      existing.totalCents !== totalCents ||
+      existing.installments !== installments ||
+      (existing.firstInstallmentAt?.getTime() ?? null) !==
+        (firstInstallmentAt?.getTime() ?? null) ||
+      existing.categoryId !== categoryId;
+
+    // A reconciled/paid installment locks the shape: rebuilding the parcels
+    // would destroy the reconciliation, so the edit is rejected instead of
+    // silently updating the bill while the old installments linger. Metadata
+    // changes that keep the shape (e.g. the description) are still applied.
+    if (paid.length > 0 && shapeChanged) {
+      const error = conflict(EFFECTIVE_INSTALLMENTS_MESSAGE);
+      error.paidInstallmentIds = paid.map((row) => row.id);
+      throw error;
+    }
+
     const bill = await client.creditCardBill.update({
       where: { id: existing.id },
       data: billData,
     });
 
-    if (effectiveCount === 0) {
+    if (paid.length === 0) {
       await client.financialTransaction.deleteMany({
         where: { creditCardBillId: existing.id },
       });
@@ -152,7 +175,7 @@ const findPaidInstallments = (client, billId) =>
 const assertEditable = async (client, billId) => {
   const paid = await findPaidInstallments(client, billId);
   if (paid.length > 0) {
-    const error = conflict('Cannot change a bill with effective installments');
+    const error = conflict(EFFECTIVE_INSTALLMENTS_MESSAGE);
     error.paidInstallmentIds = paid.map((row) => row.id);
     throw error;
   }
@@ -362,9 +385,16 @@ const unpayInstallment = async (client, { userId, id }) => {
     return installment;
   }
 
+  // Clearing the reconciliation tags too, so unpaying a reconciled parcel fully
+  // reverts it and the same statement line (FITID) can be reconciled again.
   return client.financialTransaction.update({
     where: { id },
-    data: { isEffective: false, effectiveDate: null },
+    data: {
+      isEffective: false,
+      effectiveDate: null,
+      statementFitid: null,
+      importBatchId: null,
+    },
   });
 };
 

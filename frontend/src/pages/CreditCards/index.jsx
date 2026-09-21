@@ -41,6 +41,7 @@ const CreditCards = () => {
     closeBill,
     handlePayInstallment,
     handleUnpayInstallment,
+    handleUndoBatch,
     showBillForm,
     billForm,
     billFormError,
@@ -230,6 +231,7 @@ const CreditCards = () => {
           onClose={closeBill}
           onPay={(_bill, installment) => handlePayInstallment(installment)}
           onUnpay={(_bill, installment) => handleUnpayInstallment(installment)}
+          onUndoBatch={handleUndoBatch}
           onEdit={openBillEdit}
           onDelete={handleDeleteFromDetail}
         />

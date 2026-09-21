@@ -1,14 +1,16 @@
 // OFX statement reconciliation for credit-card installments. `previewReconcile`
 // parses the file and suggests, per statement line, the pending installment
-// whose amount matches within tolerance and whose date is closest; `commitReconcile`
+// whose amount matches within tolerance and whose date is closest. When the memo
+// carries `PARC nn/mm` the search is scoped to bills with that installment count
+// and the matching installment number wins over date proximity; `commitReconcile`
 // turns the user's confirmed picks into effective installments tagged with the
 // batch id; `undoReconcileBatch` restores the touched installments. Matching is
-// greedy by amount, with date proximity as the tiebreaker.
+// greedy (an installment is consumed by the first line that picks it).
 import { randomUUID } from 'node:crypto';
 import { badRequest, notFound } from '../utils/httpError.js';
 import { parseCreditCardOfx } from '../utils/creditCardOfxParser.js';
 
-const MATCH_TOLERANCE_CENTS = 2;
+const MIN_MATCH_TOLERANCE_CENTS = 2;
 const MAX_DAY_DISTANCE = 35;
 
 // Calendar distance in whole days. `@db.Date` columns come back as UTC
@@ -24,10 +26,11 @@ const daysBetweenKeys = (firstKey, secondKey) =>
 
 const toDateKey = (value) => value.toISOString().slice(0, 10);
 
-// Loads the pending installments plus the parent bill total. The Ourocard
-// statement lists the purchase value once (`PARC 01/04`), not each parcel, so
-// the line matches either the installment value (à vista) or the bill total
-// (parcelado); the date proximity then picks the parcel the line pays.
+// Loads the pending installments plus the parent bill total. The statement line
+// usually carries the installment value (`PARC 01/06` = R$ 185.65), but some
+// statements list the full purchase value instead, so `amountMatches` accepts
+// either the installment amount or the bill total; the date proximity then picks
+// the parcel the line pays.
 const loadPendingInstallments = async (client, userId) => {
   const installments = await client.financialTransaction.findMany({
     where: {
@@ -56,10 +59,29 @@ const loadPendingInstallments = async (client, userId) => {
   }));
 };
 
-const amountMatches = (row, amountCents) =>
-  Math.abs(row.amountCents - amountCents) <= MATCH_TOLERANCE_CENTS ||
+// The statement writes the installment value with the bank's rounding, which
+// can differ from ours by up to `installments - 1` cents when the division has
+// a remainder. The memo's `PARC nn/mm` tells us how many installments the
+// purchase has, so the tolerance scales with it; without the memo we keep the
+// cent-level tolerance used for à-vista lines.
+const toleranceFor = (line) =>
+  line.installmentsTotal
+    ? Math.max(MIN_MATCH_TOLERANCE_CENTS, line.installmentsTotal - 1)
+    : MIN_MATCH_TOLERANCE_CENTS;
+
+const amountMatches = (row, amountCents, tolerance) =>
+  Math.abs(row.amountCents - amountCents) <= tolerance ||
   (row.billTotalCents !== null &&
-    Math.abs(row.billTotalCents - amountCents) <= MATCH_TOLERANCE_CENTS);
+    Math.abs(row.billTotalCents - amountCents) <= tolerance);
+
+// The `PARC nn/mm` memo scopes the search to bills split in the same number of
+// installments; without it the amount/date window is the only filter.
+const matchesInstallmentCount = (row, line) =>
+  !line.installmentsTotal || row.installmentsTotal === line.installmentsTotal;
+
+const matchesInstallmentNumber = (row, line) =>
+  line.installmentNumber !== null &&
+  row.installmentNumber === line.installmentNumber;
 
 const previewReconcile = async (client, { userId, ofxText }) => {
   const statementLines = parseCreditCardOfx(ofxText);
@@ -77,14 +99,19 @@ const previewReconcile = async (client, { userId, ofxText }) => {
       .filter(
         (row) =>
           !consumed.has(row.id) &&
-          amountMatches(row, line.amountCents) &&
+          matchesInstallmentCount(row, line) &&
+          amountMatches(row, line.amountCents, toleranceFor(line)) &&
           daysBetweenKeys(row.effectiveKey, line.date) <= MAX_DAY_DISTANCE,
       )
-      .sort(
-        (a, b) =>
+      .sort((a, b) => {
+        const aExact = matchesInstallmentNumber(a, line) ? 0 : 1;
+        const bExact = matchesInstallmentNumber(b, line) ? 0 : 1;
+        if (aExact !== bExact) return aExact - bExact;
+        return (
           daysBetweenKeys(a.effectiveKey, line.date) -
-          daysBetweenKeys(b.effectiveKey, line.date),
-      );
+          daysBetweenKeys(b.effectiveKey, line.date)
+        );
+      });
 
     const matches = candidates.slice(0, 5);
     if (matches.length > 0) {

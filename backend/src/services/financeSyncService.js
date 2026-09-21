@@ -35,6 +35,16 @@ const removeExpenseForOrder = (client, orderId) =>
     where: { orderId, origin: 'PEDIDO_DOTERRA' },
   });
 
+// Removes only the standalone purchase expense (the one not owned by a card
+// bill). Card installments also carry the PEDIDO_DOTERRA origin but are linked
+// to their bill via `creditCardBillId`, so converting a purchase to a card must
+// drop the old full-value expense without touching already-created installments
+// (including the effective ones already reconciled).
+const removeStandaloneExpenseForOrder = (client, orderId) =>
+  client.financialTransaction.deleteMany({
+    where: { orderId, origin: 'PEDIDO_DOTERRA', creditCardBillId: null },
+  });
+
 // Only payments on non-team sales feed the ledger. InfinitePay payments are
 // excluded because their money only enters on a manual redemption, and dōTERRA
 // order payments never produce a transaction.
@@ -105,6 +115,7 @@ const syncExpenseFromOrder = async (client, { userId, order }) => {
   }
 
   if (order.paymentType === 'CARTAO_CREDITO') {
+    await removeStandaloneExpenseForOrder(client, order.id);
     return upsertBillForOrder(client, { userId, order });
   }
 

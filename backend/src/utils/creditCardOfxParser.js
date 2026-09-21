@@ -7,6 +7,7 @@
 import { toCents } from './money.js';
 
 const STATEMENT_PAYMENT_MEMO = /PGTO DEBITO CONTA/i;
+const INSTALLMENT_MEMO = /PARC\s+(\d{1,2})\s*\/\s*(\d{1,2})/i;
 
 class CreditCardOfxError extends Error {
   constructor(message) {
@@ -65,12 +66,15 @@ function parseCreditCardOfx(ofxText) {
     }
 
     const memo = normalizeMemo(readTag(block, 'MEMO'));
+    const parc = memo.match(INSTALLMENT_MEMO);
     const row = {
       date: parseOfxDate(readTag(block, 'DTPOSTED')),
       amountCents: parseAmountCents(amountRaw),
       type: amountRaw.startsWith('-') ? 'PURCHASE' : 'CREDIT',
       fitid: readTag(block, 'FITID'),
       memo,
+      installmentNumber: parc ? Number(parc[1]) : null,
+      installmentsTotal: parc ? Number(parc[2]) : null,
     };
 
     if (row.type === 'CREDIT' && STATEMENT_PAYMENT_MEMO.test(memo)) {

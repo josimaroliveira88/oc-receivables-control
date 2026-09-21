@@ -30,7 +30,7 @@ export const formatBillStatus = (bill) => {
 export const splitTotalIntoInstallments = (totalCents, installments) => {
   const base = Math.floor(totalCents / installments);
   return Array.from({ length: installments }, (_, index) =>
-    index === installments - 1 ? totalCents - base * (installments - 1) : base,
+    index === 0 ? totalCents - base * (installments - 1) : base,
   );
 };
 

@@ -153,6 +153,16 @@ export function useCreditCards() {
     }
   };
 
+  const handleUndoBatch = async (batchId) => {
+    try {
+      await creditCardsApi.undoReconcileBatch(batchId);
+      addToast('Conciliação desfeita com sucesso!', 'success');
+      loadBills();
+    } catch (_err) {
+      addToast('Erro ao desfazer a conciliação. Tente novamente.', 'error');
+    }
+  };
+
   const openBillEdit = (bill) => {
     billForm.openEdit(bill);
     setSelectedBillId(null);
@@ -191,6 +201,7 @@ export function useCreditCards() {
     closeBill,
     handlePayInstallment,
     handleUnpayInstallment,
+    handleUndoBatch,
     showBillForm: billForm.isOpen,
     billForm: billForm.form,
     billFormError: billForm.formError,
