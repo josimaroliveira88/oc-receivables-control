@@ -13,5 +13,6 @@ frontend/playwright-report/
 frontend/e2e/screenshots/
 docs/*.csv
 docs/*.ofx
+docs/*.txt
 .opencode/oldagents/lgpd-auditor.md
 node_modules
