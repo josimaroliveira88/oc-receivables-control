@@ -9,6 +9,14 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 114 — Correção do menu de ações na lista de compras do cartão de crédito (2026-09-21)
+
+### Fixed
+- **Menu de ações recortado com apenas uma compra na lista**: a tabela de `/credit-cards` era a única que envolvia o `ActionMenu` num contêiner `overflow-x-auto`. Pela regra do CSS, `overflow-x: auto` com o outro eixo `visible` computa para `auto` nos dois eixos, então o wrapper virava um contêiner de rolagem e recortava o menu (posicionado de forma absoluta). Com uma única linha o menu sempre extrapolava a altura da tabela, exibindo uma barra de rolagem e escondendo as ações; com várias linhas o menu costumava caber e o defeito não aparecia. A `CreditCardsTable` passou a seguir o padrão de tabela responsiva das demais telas (`block lg:table lg:table-fixed` + `data-label` por célula), sem o wrapper de rolagem. Arquivo: `frontend/src/pages/CreditCards/components/CreditCardsTable.jsx`.
+
+### Tests
+- Frontend: novo caso em `frontend/tests/CreditCardsPage.test.jsx` garantindo que a tabela não fica dentro de um contêiner `overflow-x-auto` e que o gatilho de ações é renderizado com uma única linha. Verificação: **1073 frontend** passando, `npm run lint` sem erros (apenas warnings preexistentes em hooks de Sales), `npm run build` e `npm run format:check` limpos.
+
 ## Phase 113 — Verificação e2e do cartão de crédito e renomeação de "fatura" para "compra" (2026-09-21)
 
 ### Added
