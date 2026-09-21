@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { paymentTypeSchema } from '../utils/paymentTypes.js';
+import { dateSchema } from './financesValidator.js';
 
 const itemSchema = z.object({
   id: z.string().optional().nullable(),
@@ -59,31 +60,64 @@ const orderDescriptiveSchema = {
     .nonnegative('PV doTERRA must not be negative')
     .optional()
     .nullable(),
+  installments: z
+    .number()
+    .int('Installments must be an integer')
+    .min(1, 'Installments must be at least 1')
+    .max(24, 'Installments must be at most 24')
+    .optional(),
+  firstInstallmentAt: dateSchema.optional(),
 };
 
-const createOrderSchema = z.object({
-  orderNumber: z.string().min(1, 'Order number is required'),
-  orderDate: z.string().optional(),
-  shippingValue: z
-    .number()
-    .min(0, 'Shipping value must not be negative')
-    .optional()
-    .nullable()
-    .default(0),
-  ...orderDescriptiveSchema,
-  items: z.array(itemSchema).min(1, 'At least one item is required'),
-});
+const requireCreditCardFields = (data, ctx) => {
+  if (data.paymentType !== 'CARTAO_CREDITO') return;
 
-const updateOrderSchema = z.object({
-  orderNumber: z.string().min(1, 'Order number is required').optional(),
-  orderDate: z.string().optional(),
-  shippingValue: z
-    .number()
-    .min(0, 'Shipping value must not be negative')
-    .optional()
-    .nullable(),
-  ...orderDescriptiveSchema,
-  items: z.array(itemSchema).min(1, 'At least one item is required').optional(),
-});
+  if (data.installments == null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['installments'],
+      message: 'Installments is required for credit card orders',
+    });
+  }
+  if (!data.firstInstallmentAt) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['firstInstallmentAt'],
+      message: 'First installment date is required for credit card orders',
+    });
+  }
+};
+
+const createOrderSchema = z
+  .object({
+    orderNumber: z.string().min(1, 'Order number is required'),
+    orderDate: z.string().optional(),
+    shippingValue: z
+      .number()
+      .min(0, 'Shipping value must not be negative')
+      .optional()
+      .nullable()
+      .default(0),
+    ...orderDescriptiveSchema,
+    items: z.array(itemSchema).min(1, 'At least one item is required'),
+  })
+  .superRefine(requireCreditCardFields);
+
+const updateOrderSchema = z
+  .object({
+    orderNumber: z.string().min(1, 'Order number is required').optional(),
+    orderDate: z.string().optional(),
+    shippingValue: z
+      .number()
+      .min(0, 'Shipping value must not be negative')
+      .optional()
+      .nullable(),
+    ...orderDescriptiveSchema,
+    items: z
+      .array(itemSchema)
+      .min(1, 'At least one item is required')
+      .optional(),
+  })
+  .superRefine(requireCreditCardFields);
 
 export { itemSchema, createOrderSchema, updateOrderSchema };

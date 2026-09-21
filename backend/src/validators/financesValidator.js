@@ -11,6 +11,7 @@ const transactionOriginSchema = z.enum([
   'PEDIDO_DOTERRA',
   'VENDA_ADICIONAL',
   'MANUAL',
+  'CARTAO_CREDITO',
 ]);
 
 // `YYYY-MM-DD` calendar date. The regex alone accepts impossible dates like
@@ -115,6 +116,7 @@ const listTransactionsQuerySchema = z.object({
   categoryId: z.string().uuid('Category ID must be a valid UUID').optional(),
   from: dateSchema.optional(),
   to: dateSchema.optional(),
+  effective: z.enum(['yes', 'no', 'all']).optional(),
   q: z.string().trim().optional(),
 });
 

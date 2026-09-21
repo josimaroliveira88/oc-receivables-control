@@ -11,6 +11,7 @@ import { getDefaultCategoryName } from '../utils/financeDefaults.js';
 import { assertCategoryMatches } from '../utils/financeCategory.js';
 import { toCents } from '../utils/money.js';
 import { badRequest } from '../utils/httpError.js';
+import { upsertBillForOrder, removeBillForOrder } from './creditCardService.js';
 
 // Looks up the user's default category for an automatic origin. Returns `null`
 // when no default applies (MANUAL) or when the category no longer exists, so
@@ -93,12 +94,21 @@ const syncIncomeFromPayment = async (client, { userId, payment, order }) => {
 
 // Creates/updates the single expense row derived from a dōTERRA purchase order,
 // or removes it when the order is a team order (which never affects the user's
-// finances) or is not a purchase at all.
+// finances) or is not a purchase at all. Credit-card purchases instead produce
+// one bill plus N pending installments (see creditCardService), so they stop
+// being effective expenses on the purchase date.
 const syncExpenseFromOrder = async (client, { userId, order }) => {
   if (order.orderType !== 'COMPRA' || order.isTeamOrder) {
+    await removeBillForOrder(client, { userId, orderId: order.id });
     await removeExpenseForOrder(client, order.id);
     return null;
   }
+
+  if (order.paymentType === 'CARTAO_CREDITO') {
+    return upsertBillForOrder(client, { userId, order });
+  }
+
+  await removeBillForOrder(client, { userId, orderId: order.id });
 
   const amount = (await orderHasMultipleClients(client, order.id))
     ? order.totalValue

@@ -36,6 +36,7 @@ import {
   sortOrdersInMemory,
 } from '../utils/ordersSort.js';
 import { syncExpenseFromOrder } from './financeSyncService.js';
+import { removeBillForOrder } from './creditCardService.js';
 
 const getOrders = async (client, { userId, query }) => {
   const { q, searchField, status, paymentType, sortBy, sortDir } = query;
@@ -227,6 +228,10 @@ const createOrder = async (client, { userId, payload }) => {
           payload.doterraPv != null
             ? fromCents(toCents(payload.doterraPv)).toFixed(2)
             : null,
+        installments: payload.installments ?? null,
+        firstInstallmentAt: payload.firstInstallmentAt
+          ? parseLocalDate(payload.firstInstallmentAt)
+          : null,
         doterraValue: fromCents(totalCents).toFixed(2),
         status,
         userId,
@@ -311,6 +316,17 @@ const updateOrder = async (client, { id, userId, payload }) => {
                 ? fromCents(toCents(payload.doterraPv)).toFixed(2)
                 : null,
           }),
+          ...(payload.installments !== undefined && {
+            installments: payload.installments,
+          }),
+          ...(payload.firstInstallmentAt !== undefined && {
+            firstInstallmentAt: parseLocalDate(payload.firstInstallmentAt),
+          }),
+          ...(payload.paymentType !== undefined &&
+            payload.paymentType !== 'CARTAO_CREDITO' && {
+              installments: null,
+              firstInstallmentAt: null,
+            }),
           shippingValue: fromCents(newShippingCents).toFixed(2),
           totalValue: fromCents(newTotalCents).toFixed(2),
           doterraValue: fromCents(newTotalCents).toFixed(2),
@@ -471,6 +487,17 @@ const updateOrder = async (client, { id, userId, payload }) => {
               ? fromCents(toCents(payload.doterraPv)).toFixed(2)
               : null,
         }),
+        ...(payload.installments !== undefined && {
+          installments: payload.installments,
+        }),
+        ...(payload.firstInstallmentAt !== undefined && {
+          firstInstallmentAt: parseLocalDate(payload.firstInstallmentAt),
+        }),
+        ...(payload.paymentType !== undefined &&
+          payload.paymentType !== 'CARTAO_CREDITO' && {
+            installments: null,
+            firstInstallmentAt: null,
+          }),
       },
     });
 
@@ -568,6 +595,8 @@ const deleteOrder = async (client, { id, userId }) => {
         items: existingOrder.items,
       });
     }
+
+    await removeBillForOrder(tx, { userId, orderId: id });
 
     await tx.order.delete({ where: { id } });
     return { message: 'Order deleted successfully' };

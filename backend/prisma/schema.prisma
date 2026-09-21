@@ -18,6 +18,7 @@ model User {
   saleCounter           SaleCounter?
   financialCategories   FinancialCategory[]
   financialTransactions FinancialTransaction[]
+  creditCardBills       CreditCardBill[]
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
 }
@@ -67,12 +68,15 @@ model Order {
   doterraPv                      Decimal?               @db.Decimal(10, 2)
   doterraValue                   Decimal?               @db.Decimal(10, 2)
   attachmentFilename             String?                @db.VarChar(255)
+  installments                   Int?
+  firstInstallmentAt             DateTime?              @db.Date
   user                           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId                         String
   items                          Item[]
   payments                       Payment[]
   stockMovements                 StockMovement[]
   financialTransactions          FinancialTransaction[]
+  creditCardBill                 CreditCardBill?
   createdAt                      DateTime               @default(now())
   updatedAt                      DateTime               @updatedAt
 
@@ -289,6 +293,7 @@ enum FinancialOrigin {
   PEDIDO_DOTERRA
   VENDA_ADICIONAL
   MANUAL
+  CARTAO_CREDITO
 }
 
 model FinancialCategory {
@@ -300,6 +305,7 @@ model FinancialCategory {
   active       Boolean                  @default(true)
   user         User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions FinancialTransaction[]
+  creditCardBills CreditCardBill[]
   createdAt    DateTime                 @default(now())
   updatedAt    DateTime                 @updatedAt
 
@@ -307,30 +313,62 @@ model FinancialCategory {
   @@index([userId])
 }
 
+model CreditCardBill {
+  id                 String       @id @default(uuid())
+  userId             String
+  description        String       @db.VarChar(255)
+  totalCents         Int
+  installments       Int
+  firstInstallmentAt DateTime     @db.Date
+  brand              String?      @db.VarChar(40)
+  notes              String?      @db.VarChar(2000)
+  categoryId         String?
+  orderId            String?      @unique
+  paymentType        PaymentType  @default(CARTAO_CREDITO)
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category           FinancialCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  order              Order?       @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  transactions       FinancialTransaction[]
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([userId, firstInstallmentAt])
+}
+
 model FinancialTransaction {
-  id              String                   @id @default(uuid())
-  userId          String
-  type            FinancialTransactionType
-  origin          FinancialOrigin
-  amount          Decimal                  @db.Decimal(10, 2)
-  description     String                   @db.VarChar(255)
-  transactionDate DateTime                 @db.Date
-  notes           String?                  @db.VarChar(2000)
-  categoryId      String?
-  orderId         String?
-  paymentId       String?
-  importBatchId   String?
-  user            User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category        FinancialCategory?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  order           Order?                   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  payment         Payment?                 @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  createdAt       DateTime                 @default(now())
-  updatedAt       DateTime                 @updatedAt
+  id                String                   @id @default(uuid())
+  userId            String
+  type              FinancialTransactionType
+  origin            FinancialOrigin
+  amount            Decimal                  @db.Decimal(10, 2)
+  description       String                   @db.VarChar(255)
+  transactionDate   DateTime                 @db.Date
+  notes             String?                  @db.VarChar(2000)
+  isEffective       Boolean                  @default(true)
+  effectiveDate     DateTime?                @db.Date
+  installmentNumber Int?
+  installmentsTotal Int?
+  paymentType       PaymentType?
+  statementFitid    String?                  @db.VarChar(64)
+  categoryId        String?
+  orderId           String?
+  paymentId         String?
+  creditCardBillId  String?
+  importBatchId     String?
+  user              User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category          FinancialCategory?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  order             Order?                   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  payment           Payment?                 @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  creditCardBill    CreditCardBill?          @relation(fields: [creditCardBillId], references: [id], onDelete: Cascade)
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
 
   @@unique([paymentId])
   @@index([userId, transactionDate])
   @@index([userId, type])
   @@index([userId, categoryId])
+  @@index([userId, isEffective])
   @@index([orderId])
   @@index([userId, importBatchId])
 }

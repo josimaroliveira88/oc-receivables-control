@@ -25,6 +25,7 @@ const ORIGIN_CATEGORY_NAMES = {
   VENDA: 'Vendas',
   RESGATE_INFINITEPAY: 'Vendas',
   PEDIDO_DOTERRA: 'Compra de produtos dōTERRA',
+  CARTAO_CREDITO: 'Compra de produtos dōTERRA',
   MANUAL: null,
 };
 

@@ -28,6 +28,9 @@ const buildWhere = (userId, query = {}) => {
   if (query.origin) where.origin = query.origin;
   if (query.categoryId) where.categoryId = query.categoryId;
 
+  if (query.effective === 'yes') where.isEffective = true;
+  if (query.effective === 'no') where.isEffective = false;
+
   if (query.from || query.to) {
     where.transactionDate = {};
     if (query.from) where.transactionDate.gte = parseLocalDate(query.from);
@@ -240,10 +243,14 @@ const deleteRescueBatch = async (client, { userId, batchId }) => {
 };
 
 // Totals for the whole filtered set (never a page), computed in integer cents.
+// Only effective rows feed income/expense/balance; pending rows (credit-card
+// installments not yet reconciled) are reported separately as `pendingTotal`.
 const getSummary = async (client, { userId, query }) => {
+  const baseWhere = buildWhere(userId, query);
+
   const groups = await client.financialTransaction.groupBy({
     by: ['type'],
-    where: buildWhere(userId, query),
+    where: { ...baseWhere, isEffective: true },
     _sum: { amount: true },
   });
 
@@ -256,10 +263,17 @@ const getSummary = async (client, { userId, query }) => {
     if (group.type === 'DESPESA') expenseCents += sumCents;
   }
 
+  const pending = await client.financialTransaction.aggregate({
+    where: { ...baseWhere, isEffective: false },
+    _sum: { amount: true },
+  });
+  const pendingCents = toCents(pending._sum.amount ?? 0);
+
   return {
     totalIncome: fromCents(incomeCents).toFixed(2),
     totalExpense: fromCents(expenseCents).toFixed(2),
     balance: fromCents(incomeCents - expenseCents).toFixed(2),
+    pendingTotal: fromCents(pendingCents).toFixed(2),
   };
 };
 
