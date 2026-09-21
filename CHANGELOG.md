@@ -9,6 +9,14 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 109 — Tela inicial volta a ser Produtos (2026-09-21)
+
+### Fixed
+- **Tela inicial padrão**: a rota raiz (`/`) e a rota coringa (`*`) voltaram a redirecionar para `/products` em vez de `/finances`, restaurando **Produtos** como a primeira tela carregada ao abrir a aplicação (`frontend/src/App.jsx`).
+
+### Tests
+- Frontend: `App.test.jsx` passou a afirmar que `/` e caminhos desconhecidos caem na tela de Produtos (e não na de Finanças). **1021 frontend passing**; `npm run build` e `npm run format:check` limpos. Backend sem alterações.
+
 ## Phase 108 — Importação de resgates InfinitePay pelo extrato bancário (2026-09-20)
 
 ### Added
