@@ -52,14 +52,14 @@ const renderApp = (initialEntries = ['/']) =>
   );
 
 describe('App routing', () => {
-  it('lands on the finances screen when the root path is opened', () => {
+  it('lands on the products screen when the root path is opened', () => {
     renderApp(['/']);
-    expect(screen.getByTestId('finances-page')).toBeInTheDocument();
-    expect(screen.queryByTestId('products-page')).not.toBeInTheDocument();
+    expect(screen.getByTestId('products-page')).toBeInTheDocument();
+    expect(screen.queryByTestId('finances-page')).not.toBeInTheDocument();
   });
 
-  it('redirects unknown paths to the finances screen', () => {
+  it('redirects unknown paths to the products screen', () => {
     renderApp(['/does-not-exist']);
-    expect(screen.getByTestId('finances-page')).toBeInTheDocument();
+    expect(screen.getByTestId('products-page')).toBeInTheDocument();
   });
 });
