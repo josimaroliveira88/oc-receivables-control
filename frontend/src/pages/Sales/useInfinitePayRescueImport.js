@@ -5,6 +5,7 @@ import {
   defaultAssignmentCents,
   isRescueBalanced,
   mergeAssignments,
+  replaceWholeRescueAssignment,
 } from './utils/infinitepayRescueHelpers';
 
 // State and I/O for the InfinitePay redemption (resgate) statement import.
@@ -92,7 +93,9 @@ export function useInfinitePayRescueImport({ onCommitted, onUndone } = {}) {
 
   // Assigns a sale to one source deposit of a bundled rescue. The deposit key
   // makes the choice replaceable: picking another sale for the same deposit
-  // swaps it instead of adding a second part.
+  // swaps it instead of adding a second part. It also replaces a previous
+  // whole-rescue choice, so clicking a deposit after "Vendas sugeridas pelo
+  // valor" re-scopes the assignment instead of stacking the two amounts.
   const assignFromDeposit = useCallback(
     (line, { depositKey, orderId, amountCents }) => {
       setAssignments((previous) => {
@@ -101,10 +104,11 @@ export function useInfinitePayRescueImport({ onCommitted, onUndone } = {}) {
         );
         return {
           ...previous,
-          [line]: mergeAssignments([
-            ...current,
-            { orderId, amountCents, sourceKey: depositKey },
-          ]),
+          [line]: replaceWholeRescueAssignment(current, {
+            orderId,
+            amountCents,
+            sourceKey: depositKey,
+          }),
         };
       });
     },

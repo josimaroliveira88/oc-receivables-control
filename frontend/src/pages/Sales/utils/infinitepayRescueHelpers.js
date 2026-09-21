@@ -36,7 +36,8 @@ export const isRescueBalanced = (
   assignmentTotalCents(assignments) > 0 &&
   Math.abs(assignmentTotalCents(assignments) - rescueAmountCents) <= tolerance;
 
-// Combines assignments that target the same sale into a single one.
+// Combines assignments that target the same sale into a single one, without
+// mutating the inputs (the caller passes arrays held in React state).
 export const mergeAssignments = (assignments) => {
   const byOrder = new Map();
   for (const assignment of assignments) {
@@ -48,6 +49,16 @@ export const mergeAssignments = (assignments) => {
     }
   }
   return [...byOrder.values()];
+};
+
+// Replaces a whole-rescue assignment (no `sourceKey`) with the deposit-scoped
+// one. Picking a source deposit must re-scope the choice, not stack it on top of
+// a sale the user had already assigned to the entire rescue.
+export const replaceWholeRescueAssignment = (assignments, assignment) => {
+  const withoutWhole = assignments.filter(
+    (current) => current.sourceKey !== undefined,
+  );
+  return mergeAssignments([...withoutWhole, assignment]);
 };
 
 // Builds the pre-filled assignments for a preview: a rescue identified by a
