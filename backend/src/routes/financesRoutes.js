@@ -149,6 +149,10 @@ router.delete('/categories/:id', financesController.deleteCategoryHandler);
  *         name: to
  *         schema: { type: string, format: date }
  *       - in: query
+ *         name: effective
+ *         description: Filtra por efetividade (yes = efetivas, no = pendentes, all = todas)
+ *         schema: { type: string, enum: [yes, no, all] }
+ *       - in: query
  *         name: q
  *         description: Busca textual em descrição e observações
  *         schema: { type: string }
@@ -365,6 +369,9 @@ router.delete('/settlements/:id', financesController.deleteSettlementHandler);
  *       - in: query
  *         name: to
  *         schema: { type: string, format: date }
+ *       - in: query
+ *         name: effective
+ *         schema: { type: string, enum: [yes, no, all] }
  *       - in: query
  *         name: q
  *         schema: { type: string }

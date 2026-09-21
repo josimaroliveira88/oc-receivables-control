@@ -49,6 +49,11 @@ const options = {
           'Fluxo de caixa: categorias e lançamentos financeiros manuais e automáticos',
       },
       {
+        name: 'CreditCards',
+        description:
+          'Faturas de cartão de crédito, parcelas e conciliação do extrato OFX',
+      },
+      {
         name: 'Products',
         description: 'Catálogo, tipos de preço, kits e composição',
       },
@@ -161,6 +166,7 @@ const options = {
             'PEDIDO_DOTERRA',
             'VENDA_ADICIONAL',
             'MANUAL',
+            'CARTAO_CREDITO',
           ],
         },
         FinancialTransaction: {
@@ -173,6 +179,28 @@ const options = {
             description: { type: 'string' },
             transactionDate: { type: 'string', format: 'date' },
             notes: { type: 'string', nullable: true },
+            isEffective: {
+              type: 'boolean',
+              description:
+                'Parcela efetivada (paga). Lançamentos normais são sempre true.',
+            },
+            effectiveDate: {
+              type: 'string',
+              format: 'date',
+              nullable: true,
+              description: 'Data em que a parcela se tornou efetiva',
+            },
+            installmentNumber: { type: 'integer', nullable: true },
+            installmentsTotal: { type: 'integer', nullable: true },
+            paymentType: {
+              allOf: [{ $ref: '#/components/schemas/PaymentType' }],
+              nullable: true,
+            },
+            creditCardBillId: {
+              type: 'string',
+              format: 'uuid',
+              nullable: true,
+            },
             categoryId: { type: 'string', format: 'uuid', nullable: true },
             orderId: { type: 'string', format: 'uuid', nullable: true },
             paymentId: { type: 'string', format: 'uuid', nullable: true },
@@ -227,6 +255,12 @@ const options = {
             totalIncome: { type: 'string', example: '1200.50' },
             totalExpense: { type: 'string', example: '300.25' },
             balance: { type: 'string', example: '900.25' },
+            pendingTotal: {
+              type: 'string',
+              example: '500.00',
+              description:
+                'Soma das parcelas pendentes (não efetivadas) no período',
+            },
           },
         },
         FinancialSettlementInput: {
@@ -241,7 +275,139 @@ const options = {
         },
         PaymentType: {
           type: 'string',
-          enum: ['PIX', 'BOLETO', 'CARTAO_CREDITO', 'INFINITE_PAY'],
+          enum: ['PIX', 'BOLETO', 'CARTAO_CREDITO', 'INFINITE_PAY', 'DINHEIRO'],
+        },
+        CreditCardBill: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            description: { type: 'string' },
+            totalCents: {
+              type: 'integer',
+              description: 'Valor total da fatura em centavos',
+            },
+            installments: { type: 'integer' },
+            firstInstallmentAt: { type: 'string', format: 'date' },
+            brand: { type: 'string', nullable: true },
+            notes: { type: 'string', nullable: true },
+            categoryId: { type: 'string', format: 'uuid', nullable: true },
+            orderId: { type: 'string', format: 'uuid', nullable: true },
+            paymentType: { $ref: '#/components/schemas/PaymentType' },
+            category: {
+              allOf: [{ $ref: '#/components/schemas/FinancialCategory' }],
+              nullable: true,
+            },
+            transactions: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/FinancialTransaction' },
+            },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+        CreditCardBillInput: {
+          type: 'object',
+          required: [
+            'description',
+            'totalAmount',
+            'installments',
+            'firstInstallmentAt',
+          ],
+          properties: {
+            description: { type: 'string', maxLength: 255 },
+            totalAmount: {
+              type: 'number',
+              exclusiveMinimum: 0,
+              example: 438.64,
+            },
+            installments: { type: 'integer', minimum: 1, maximum: 24 },
+            firstInstallmentAt: { type: 'string', format: 'date' },
+            brand: { type: 'string', maxLength: 40, nullable: true },
+            notes: { type: 'string', maxLength: 2000, nullable: true },
+            categoryId: { type: 'string', format: 'uuid', nullable: true },
+          },
+        },
+        CreditCardBillUpdateInput: {
+          type: 'object',
+          properties: {
+            description: { type: 'string', maxLength: 255 },
+            totalAmount: { type: 'number', exclusiveMinimum: 0 },
+            installments: { type: 'integer', minimum: 1, maximum: 24 },
+            firstInstallmentAt: { type: 'string', format: 'date' },
+            brand: { type: 'string', maxLength: 40, nullable: true },
+            notes: { type: 'string', maxLength: 2000, nullable: true },
+            categoryId: { type: 'string', format: 'uuid', nullable: true },
+          },
+        },
+        InstallmentPaymentInput: {
+          type: 'object',
+          required: ['paidAt'],
+          properties: {
+            paidAt: { type: 'string', format: 'date' },
+          },
+        },
+        ReconcilePreviewInput: {
+          type: 'object',
+          required: ['ofxText'],
+          properties: {
+            ofxText: { type: 'string', maxLength: 1048576 },
+          },
+        },
+        ReconcilePreview: {
+          type: 'object',
+          properties: {
+            batchId: { type: 'string', format: 'uuid' },
+            statementLines: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  date: { type: 'string', format: 'date' },
+                  amountCents: { type: 'integer' },
+                  type: {
+                    type: 'string',
+                    enum: ['PURCHASE', 'CREDIT'],
+                  },
+                  fitid: { type: 'string', nullable: true },
+                  memo: { type: 'string' },
+                  ignoredReason: {
+                    type: 'string',
+                    nullable: true,
+                    description:
+                      'Motivo para ignorar a linha (ex.: pagamento da fatura)',
+                  },
+                  suggestedInstallmentId: {
+                    type: 'string',
+                    format: 'uuid',
+                    nullable: true,
+                  },
+                  matches: {
+                    type: 'array',
+                    items: { type: 'object' },
+                  },
+                },
+              },
+            },
+          },
+        },
+        ReconcileCommitInput: {
+          type: 'object',
+          required: ['batchId', 'matches'],
+          properties: {
+            batchId: { type: 'string', format: 'uuid' },
+            matches: {
+              type: 'array',
+              items: {
+                type: 'object',
+                required: ['statementFitid', 'statementDate', 'installmentId'],
+                properties: {
+                  statementFitid: { type: 'string', maxLength: 64 },
+                  statementDate: { type: 'string', format: 'date' },
+                  installmentId: { type: 'string', format: 'uuid' },
+                },
+              },
+            },
+          },
         },
         Person: {
           type: 'object',

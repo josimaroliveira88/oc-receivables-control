@@ -73,6 +73,10 @@ app.use('/api/sales', salesRoutes);
 import financesRoutes from './routes/financesRoutes.js';
 app.use('/api/finances', financesRoutes);
 
+// Credit-card routes (bills, installments, OFX reconciliation)
+import creditCardsRoutes from './routes/creditCardsRoutes.js';
+app.use('/api/credit-cards', creditCardsRoutes);
+
 // Product routes
 import productRoutes from './routes/productRoutes.js';
 app.use('/api/products', productRoutes);

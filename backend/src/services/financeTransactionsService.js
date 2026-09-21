@@ -13,7 +13,10 @@ import { assertCategoryMatches } from '../utils/financeCategory.js';
 import { resolveCategoryId } from './financeSyncService.js';
 
 // Adds the derived gateway fee (informative only) when the row is linked to a
-// payment, mirroring the payments response. Never a stored column.
+// payment, mirroring the payments response. Never a stored column. The
+// effectiveness, installment and credit-card fields are already persisted
+// columns, so spreading the row keeps them available to the frontend without a
+// second fetch.
 const decorateTransaction = (transaction) => ({
   ...transaction,
   feeAmount: transaction.payment

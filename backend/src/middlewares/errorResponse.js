@@ -17,6 +17,11 @@ const handleError = (res, error, { fallback = 500, label = 'Error' } = {}) => {
     // the frontend can deep-link to the owning order/venda.
     if (error.orderNumber !== undefined) body.orderNumber = error.orderNumber;
     if (error.orderId !== undefined) body.orderId = error.orderId;
+    // creditCardService attaches the effective installment ids on a bill
+    // conflict so the frontend can show which parcels block the change.
+    if (error.paidInstallmentIds !== undefined) {
+      body.paidInstallmentIds = error.paidInstallmentIds;
+    }
     return res.status(error.status).json(body);
   }
 
