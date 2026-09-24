@@ -9,6 +9,15 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 117 — Hooks de Pedidos e Vendas sem warnings do ESLint (2026-09-23)
+
+### Fixed
+- **Dependências estáveis nos efeitos de deep link**: `openDetailsModal` e `closeDetailsModal` em Pedidos/Vendas, assim como `handleEditOrder` e `handleEditSale`, passaram a ser memorizadas com `useCallback` e as dependências reais passaram a ser declaradas. A edição e o detalhamento abertos por `editOrder`, `editSale`, `detailsOrder` e `detailsSale` mantêm o mesmo comportamento sem recriar funções a cada renderização.
+- **Atualização segura das refs de busca**: `fetchOrdersRef.current` e `fetchSalesRef.current` não são mais mutados durante a renderização; as referências são atualizadas em efeitos separados, preservando a refetch automática por filtros/ordenação, a pesquisa somente após confirmação e o cancelamento da requisição anterior. Arquivos: `frontend/src/pages/Orders/useOrderPayments.js`, `frontend/src/pages/Orders/useOrders.js`, `frontend/src/pages/Sales/useSalePayments.js`, `frontend/src/pages/Sales/useSales.js`.
+
+### Tests
+- Novo e2e `frontend/e2e/hooks-lint-regressions.spec.js` com 2 casos executados antes e depois da correção, cobrindo deep links de edição/detalhamento, refetch automática e pesquisa confirmada de Pedidos e Vendas. Verificação final: **911 backend + 1074 frontend** passando, e2e **2/2** antes e depois, `npm run lint` sem erros nem warnings, `npm run build`, `npm run format:check` e `git diff --check` aprovados.
+
 ## Phase 116 — Mensagens de erro da interface em PT-BR (2026-09-23)
 
 ### Fixed
