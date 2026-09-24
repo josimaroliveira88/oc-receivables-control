@@ -192,7 +192,7 @@ export function useSalePayments({ refreshSales, sales = [], loading = false }) {
       const msg =
         err.response?.data?.error ||
         'Erro ao registrar pagamento. Tente novamente.';
-      if (typeof msg === 'string' && msg.includes('greater than zero')) {
+      if (typeof msg === 'string' && msg.includes('maior que zero')) {
         addToast('Valor deve ser maior que zero', 'error');
       } else {
         addToast(msg, 'error');
@@ -449,9 +449,12 @@ export function useSalePayments({ refreshSales, sales = [], loading = false }) {
       const msg =
         err.response?.data?.error ||
         'Erro ao atualizar pagamento. Tente novamente.';
-      if (typeof msg === 'string' && msg.includes('greater than zero')) {
+      if (typeof msg === 'string' && msg.includes('maior que zero')) {
         setEditPaymentError('Valor deve ser maior que zero');
-      } else if (typeof msg === 'string' && msg.includes('Payment not found')) {
+      } else if (
+        typeof msg === 'string' &&
+        msg.includes('Pagamento não encontrado')
+      ) {
         setEditPaymentError('Pagamento não encontrado');
       } else {
         addToast(msg, 'error');

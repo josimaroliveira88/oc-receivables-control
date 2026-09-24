@@ -97,7 +97,7 @@ describe('LoginPage', () => {
 
   describe('Login Form', () => {
     it('should show error message on failed login', async () => {
-      mockPost.mockRejectedValue(new Error('Invalid credentials'));
+      mockPost.mockRejectedValue(new Error('Credenciais inválidas'));
       renderPage();
 
       const usernameInput = screen.getByLabelText('Usuário');

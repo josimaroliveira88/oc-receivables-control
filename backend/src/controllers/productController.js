@@ -104,7 +104,7 @@ const getProductById = async (req, res) => {
     });
 
     if (!product) {
-      throw notFound('Product not found');
+      throw notFound('Produto não encontrado');
     }
 
     res.status(200).json(projectCurrentPrice(product));
@@ -122,7 +122,7 @@ const createProduct = async (req, res) => {
     });
 
     if (existing) {
-      return res.status(409).json({ error: 'Product code already exists' });
+      return res.status(409).json({ error: 'O código do produto já existe' });
     }
 
     const product = await prisma.$transaction(async (tx) => {
@@ -193,7 +193,7 @@ const updateProduct = async (req, res) => {
     });
 
     if (!existingProduct) {
-      throw notFound('Product not found');
+      throw notFound('Produto não encontrado');
     }
 
     const product = await prisma.$transaction(async (tx) => {
@@ -325,7 +325,7 @@ const deleteProduct = async (req, res) => {
     });
 
     if (!existingProduct) {
-      throw notFound('Product not found');
+      throw notFound('Produto não encontrado');
     }
 
     await prisma.product.update({
@@ -333,7 +333,7 @@ const deleteProduct = async (req, res) => {
       data: { status: 'INATIVO' },
     });
 
-    res.status(200).json({ message: 'Product deactivated successfully' });
+    res.status(200).json({ message: 'Produto desativado com sucesso' });
   } catch (error) {
     handleError(res, error, { label: 'Error deactivating product' });
   }

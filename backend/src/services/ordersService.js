@@ -139,7 +139,7 @@ const getOrderById = async (client, { id, userId }) => {
   });
 
   if (!order) {
-    throw notFound('Order not found');
+    throw notFound('Pedido não encontrado');
   }
 
   return order;
@@ -169,7 +169,7 @@ const createOrder = async (client, { userId, payload }) => {
         where: { id: { in: personIds }, userId },
       });
       if (persons.length !== personIds.length) {
-        throw badRequest('One or more persons not found');
+        throw badRequest('Uma ou mais pessoas não foram encontradas');
       }
     }
 
@@ -276,7 +276,7 @@ const updateOrder = async (client, { id, userId, payload }) => {
     });
 
     if (!existingOrder) {
-      throw notFound('Order not found');
+      throw notFound('Pedido não encontrado');
     }
 
     assertNotSaleOrder(existingOrder);
@@ -383,7 +383,7 @@ const updateOrder = async (client, { id, userId, payload }) => {
         where: { id: { in: personIds }, userId },
       });
       if (persons.length !== personIds.length) {
-        throw badRequest('One or more persons not found');
+        throw badRequest('Uma ou mais pessoas não foram encontradas');
       }
     }
 
@@ -574,7 +574,7 @@ const deleteOrder = async (client, { id, userId }) => {
     });
 
     if (!existingOrder) {
-      throw notFound('Order not found');
+      throw notFound('Pedido não encontrado');
     }
 
     assertNotSaleOrder(existingOrder);
@@ -599,7 +599,7 @@ const deleteOrder = async (client, { id, userId }) => {
     await removeBillForOrder(tx, { userId, orderId: id });
 
     await tx.order.delete({ where: { id } });
-    return { message: 'Order deleted successfully' };
+    return { message: 'Pedido excluído com sucesso' };
   });
 
   return { message: result.message, attachmentFilename };
@@ -613,7 +613,7 @@ const addItemToOrder = async (client, { orderId, userId, payload }) => {
     });
 
     if (!order) {
-      throw notFound('Order not found');
+      throw notFound('Pedido não encontrado');
     }
 
     assertNotSaleOrder(order);
@@ -640,13 +640,13 @@ const addItemToOrder = async (client, { orderId, userId, payload }) => {
     });
 
     if (!resolved.personId) {
-      throw badRequest('Person is required');
+      throw badRequest('É necessário informar a pessoa');
     }
     const person = await tx.person.findFirst({
       where: { id: resolved.personId, userId },
     });
     if (!person) {
-      throw badRequest('Person not found');
+      throw badRequest('Pessoa não encontrada');
     }
 
     // Verify product exists and is available (when provided)
@@ -735,11 +735,11 @@ const updateItem = async (client, { id: itemId, userId, payload }) => {
     });
 
     if (!existingItem) {
-      throw notFound('Item not found');
+      throw notFound('Item não encontrado');
     }
 
     if (existingItem.order.userId !== userId) {
-      throw notFound('Item not found');
+      throw notFound('Item não encontrado');
     }
 
     assertNotSaleOrder(existingItem.order);
@@ -753,7 +753,7 @@ const updateItem = async (client, { id: itemId, userId, payload }) => {
         where: { id: payload.personId, userId },
       });
       if (!person) {
-        throw badRequest('Person not found');
+        throw badRequest('Pessoa não encontrada');
       }
       newPerson = person;
     }
@@ -886,11 +886,11 @@ const deleteItem = async (client, { id: itemId, userId }) => {
     });
 
     if (!existingItem) {
-      throw notFound('Item not found');
+      throw notFound('Item não encontrado');
     }
 
     if (existingItem.order.userId !== userId) {
-      throw notFound('Item not found');
+      throw notFound('Item não encontrado');
     }
 
     assertNotSaleOrder(existingItem.order);
@@ -944,7 +944,7 @@ const deleteItem = async (client, { id: itemId, userId }) => {
     });
     await syncExpenseFromOrder(tx, { userId, order: syncedOrder });
 
-    return { message: 'Item deleted successfully' };
+    return { message: 'Item excluído com sucesso' };
   });
 };
 

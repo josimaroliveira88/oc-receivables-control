@@ -17,14 +17,14 @@ const login = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: 'Credenciais inválidas' });
     }
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: 'Credenciais inválidas' });
     }
 
     // Generate JWT token
@@ -53,7 +53,7 @@ const register = async (req, res) => {
     });
 
     if (existingUser) {
-      return res.status(409).json({ error: 'Username already exists' });
+      return res.status(409).json({ error: 'Usuário já existe' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);

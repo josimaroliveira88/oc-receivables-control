@@ -2486,7 +2486,7 @@ describe('OrdersPage', () => {
         data: { id: '51', orderNumber: 'ORD-ATT-REM' },
       });
       mockDelete.mockResolvedValue({
-        data: { message: 'Attachment deleted successfully' },
+        data: { message: 'Anexo excluído com sucesso' },
       });
       renderPage();
 
@@ -2548,7 +2548,7 @@ describe('OrdersPage', () => {
 
     it('should call delete API when confirming deletion', async () => {
       mockDelete.mockResolvedValue({
-        data: { message: 'Order deleted successfully' },
+        data: { message: 'Pedido excluído com sucesso' },
       });
 
       renderPage();

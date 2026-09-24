@@ -224,7 +224,9 @@ describe('InfinitePay settlement from the Sales page', () => {
   it('shows the backend rejection as a form error', async () => {
     mockPost.mockRejectedValue({
       response: {
-        data: { error: 'Sale has no InfinitePay payment to settle' },
+        data: {
+          error: 'A venda não possui pagamento InfinitePay para resgatar',
+        },
       },
     });
     mockGetImplementation();
@@ -246,7 +248,9 @@ describe('InfinitePay settlement from the Sales page', () => {
 
     expect(
       await screen.findByTestId('settlement-form-error'),
-    ).toHaveTextContent('Sale has no InfinitePay payment to settle');
+    ).toHaveTextContent(
+      'A venda não possui pagamento InfinitePay para resgatar',
+    );
   });
 
   it('asks to discard before closing with unsaved changes', async () => {

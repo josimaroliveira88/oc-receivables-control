@@ -192,7 +192,7 @@ describe('RegisterPage', () => {
   describe('Error Handling', () => {
     it('should show "Usuário já existe" on 409 conflict', async () => {
       mockPost.mockRejectedValue({
-        response: { status: 409, data: { error: 'Username already exists' } },
+        response: { status: 409, data: { error: 'Usuário já existe' } },
       });
       renderPage();
 

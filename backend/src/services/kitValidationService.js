@@ -15,30 +15,30 @@ const validateKitComponents = async (
   const list = components || [];
 
   if (productType === 'KIT' && list.length === 0) {
-    throw badRequest('A KIT product must have at least one component');
+    throw badRequest('Um produto KIT deve ter pelo menos um componente');
   }
   if (productType === 'SIMPLES' && list.length > 0) {
-    throw badRequest('Components are only allowed for KIT products');
+    throw badRequest('Componentes só são permitidos para produtos KIT');
   }
   if (list.length === 0) return;
 
   const ids = list.map((c) => c.componentProductId);
   if (new Set(ids).size !== ids.length) {
-    throw badRequest('A kit cannot contain the same component twice');
+    throw badRequest('Um kit não pode conter o mesmo componente duas vezes');
   }
   if (productId && ids.includes(productId)) {
-    throw badRequest('A kit cannot contain itself');
+    throw badRequest('Um kit não pode conter a si mesmo');
   }
 
   const products = await client.product.findMany({
     where: { id: { in: ids } },
   });
   if (products.length !== ids.length) {
-    throw badRequest('One or more components do not exist');
+    throw badRequest('Um ou mais componentes não existem');
   }
   const notSimples = products.find((p) => p.productType === 'KIT');
   if (notSimples) {
-    throw badRequest('A kit can only contain SIMPLES products');
+    throw badRequest('Um kit só pode conter produtos SIMPLES');
   }
 };
 

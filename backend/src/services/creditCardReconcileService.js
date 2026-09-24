@@ -146,14 +146,14 @@ const commitReconcile = async (client, { userId, batchId, matches }) =>
       });
 
       if (!installment) {
-        throw notFound('Pending installment not found');
+        throw notFound('Parcela pendente não encontrada');
       }
 
       const existingFitid = await tx.financialTransaction.findFirst({
         where: { userId, statementFitid: match.statementFitid },
       });
       if (existingFitid) {
-        throw badRequest('Statement line already reconciled');
+        throw badRequest('Esta linha do extrato já foi conciliada');
       }
 
       const statementDate = new Date(`${match.statementDate}T00:00:00`);

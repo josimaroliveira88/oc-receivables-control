@@ -9,6 +9,16 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 116 — Mensagens de erro da interface em PT-BR (2026-09-23)
+
+### Fixed
+- **Mensagens de erro em inglês na interface**: as validações e respostas de erro da API passaram a ser exibidas em PT-BR, incluindo pedidos, vendas, clientes, produtos, pagamentos, finanças, estoque, cartões de crédito, anexos, autenticação e uploads. A mensagem de parcelas de cartão sem quantidade ou sem data da primeira parcela agora aparece em português.
+- **Auditoria dos demais pontos de erro**: mensagens de recurso não encontrado, valores inválidos, conflitos, arquivos inválidos, token expirado e erros internos foram traduzidas, incluindo os tratamentos dos modais de pagamento que identificavam mensagens do backend em inglês.
+- **Mensagens padrão do Zod**: mensagens internas da biblioteca para campos obrigatórios, UUIDs, tipos, limites de tamanho, listas, valores numéricos e enums também são convertidas para PT-BR antes de retornarem à interface.
+
+### Tests
+- Backend: novos testes em `zodMessages.test.js` para mensagens padrão do Zod e atualização das expectativas dos endpoints; **911 backend + 1074 frontend** passando. Verificação: `npm run lint` sem erros (apenas warnings preexistentes), `npm run format:check` e `git diff --check` limpos.
+
 ## Phase 115 — Cartão de crédito: rateio das parcelas, conciliação OFX e proteção de dados conciliados (2026-09-21)
 
 ### Added

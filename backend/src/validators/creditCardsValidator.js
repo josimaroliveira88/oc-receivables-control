@@ -6,37 +6,40 @@ const MAX_OFX_TEXT = 1024 * 1024;
 
 const billCategoryIdSchema = z
   .string()
-  .uuid('Category ID must be a valid UUID')
+  .uuid('O ID da categoria deve ser um UUID válido')
   .nullable()
   .optional();
 
 const installmentsSchema = z
   .number()
-  .int('Installments must be an integer')
-  .min(1, 'Installments must be at least 1')
-  .max(24, 'Installments must be at most 24');
+  .int('A quantidade de parcelas deve ser um número inteiro')
+  .min(1, 'A quantidade de parcelas deve ser pelo menos 1')
+  .max(24, 'A quantidade de parcelas deve ser no máximo 24');
 
 const createBillSchema = z.object({
   description: z
     .string()
     .trim()
-    .min(1, 'Description is required')
+    .min(1, 'A descrição é obrigatória')
     .max(
       MAX_DESCRIPTION,
-      `Description must be at most ${MAX_DESCRIPTION} characters`,
+      `A descrição deve ter no máximo ${MAX_DESCRIPTION} caracteres`,
     ),
-  totalAmount: z.number().positive('Amount must be greater than zero'),
+  totalAmount: z.number().positive('O valor deve ser maior que zero'),
   installments: installmentsSchema,
   firstInstallmentAt: dateSchema,
   brand: z
     .string()
     .trim()
-    .max(MAX_BRAND, `Brand must be at most ${MAX_BRAND} characters`)
+    .max(MAX_BRAND, `A bandeira deve ter no máximo ${MAX_BRAND} caracteres`)
     .nullable()
     .optional(),
   notes: z
     .string()
-    .max(MAX_NOTES, `Notes must be at most ${MAX_NOTES} characters`)
+    .max(
+      MAX_NOTES,
+      `As observações devem ter no máximo ${MAX_NOTES} caracteres`,
+    )
     .nullable()
     .optional(),
   categoryId: billCategoryIdSchema,
@@ -46,27 +49,30 @@ const updateBillSchema = z.object({
   description: z
     .string()
     .trim()
-    .min(1, 'Description is required')
+    .min(1, 'A descrição é obrigatória')
     .max(
       MAX_DESCRIPTION,
-      `Description must be at most ${MAX_DESCRIPTION} characters`,
+      `A descrição deve ter no máximo ${MAX_DESCRIPTION} caracteres`,
     )
     .optional(),
   totalAmount: z
     .number()
-    .positive('Amount must be greater than zero')
+    .positive('O valor deve ser maior que zero')
     .optional(),
   installments: installmentsSchema.optional(),
   firstInstallmentAt: dateSchema.optional(),
   brand: z
     .string()
     .trim()
-    .max(MAX_BRAND, `Brand must be at most ${MAX_BRAND} characters`)
+    .max(MAX_BRAND, `A bandeira deve ter no máximo ${MAX_BRAND} caracteres`)
     .nullable()
     .optional(),
   notes: z
     .string()
-    .max(MAX_NOTES, `Notes must be at most ${MAX_NOTES} characters`)
+    .max(
+      MAX_NOTES,
+      `As observações devem ter no máximo ${MAX_NOTES} caracteres`,
+    )
     .nullable()
     .optional(),
   categoryId: billCategoryIdSchema,
@@ -79,21 +85,24 @@ const payInstallmentSchema = z.object({
 const reconcilePreviewSchema = z.object({
   ofxText: z
     .string()
-    .min(1, 'OFX text is required')
-    .max(MAX_OFX_TEXT, `OFX file must be at most ${MAX_OFX_TEXT} characters`),
+    .min(1, 'O texto OFX é obrigatório')
+    .max(
+      MAX_OFX_TEXT,
+      `O arquivo OFX deve ter no máximo ${MAX_OFX_TEXT} caracteres`,
+    ),
 });
 
 const reconcileMatchSchema = z.object({
   statementFitid: z
     .string()
-    .min(1, 'FITID is required')
-    .max(64, 'FITID must be at most 64 characters'),
+    .min(1, 'O FITID é obrigatório')
+    .max(64, 'O FITID deve ter no máximo 64 caracteres'),
   statementDate: dateSchema,
-  installmentId: z.string().uuid('Installment ID must be a valid UUID'),
+  installmentId: z.string().uuid('O ID da parcela deve ser um UUID válido'),
 });
 
 const reconcileCommitSchema = z.object({
-  batchId: z.string().uuid('Batch ID must be a valid UUID'),
+  batchId: z.string().uuid('O ID do lote deve ser um UUID válido'),
   matches: z.array(reconcileMatchSchema),
 });
 

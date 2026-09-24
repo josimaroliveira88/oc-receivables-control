@@ -7,7 +7,10 @@ const movementSchema = z.object({
   reason: z.string().max(255).optional(),
   effectiveDate: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Effective date must be YYYY-MM-DD')
+    .regex(
+      /^\d{4}-\d{2}-\d{2}$/,
+      'A data de vigência deve estar no formato AAAA-MM-DD',
+    )
     .optional(),
 });
 

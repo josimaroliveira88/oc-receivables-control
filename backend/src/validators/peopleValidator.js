@@ -27,7 +27,7 @@ const isValidBirthday = (value) => {
 
 // Zod schema for person validation
 const personSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
+  name: z.string().min(1, 'O nome é obrigatório'),
   whatsapp: z.string().optional().nullable(),
   commonGroups: z.string().max(255).optional().nullable(),
   instagram: z.string().max(255).optional().nullable(),

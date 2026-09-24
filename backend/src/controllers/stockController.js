@@ -72,7 +72,7 @@ const getProductHistory = async (req, res) => {
     });
 
     if (!product) {
-      throw notFound('Product not found');
+      throw notFound('Produto não encontrado');
     }
 
     const movements = await prisma.stockMovement.findMany({
@@ -90,7 +90,7 @@ const getProductHistory = async (req, res) => {
         },
       });
       if (!inventory) {
-        throw notFound('Product not found');
+        throw notFound('Produto não encontrado');
       }
     }
 
@@ -111,13 +111,13 @@ const registerMovement = async (req, res) => {
 
     if ((type === 'ENTRADA' || type === 'SAIDA') && quantity <= 0) {
       throw badRequest(
-        'Quantity must be greater than zero for ENTRADA and SAIDA',
+        'A quantidade deve ser maior que zero para ENTRADA e SAIDA',
       );
     }
 
     if (type === 'AJUSTE' && quantity < 0) {
       throw badRequest(
-        'Quantity must be greater than or equal to zero for AJUSTE',
+        'A quantidade deve ser maior ou igual a zero para AJUSTE',
       );
     }
 

@@ -10,7 +10,7 @@ function parseProductCsv(csvText) {
   for (const line of dataLines) {
     const cols = line.split(';').map((col) => col.trim());
     if (cols.length < 6) {
-      throw new Error(`Invalid row: ${line}`);
+      throw new Error(`Linha inválida: ${line}`);
     }
     const [code, name, size, regularPrice, memberPrice, pv] = cols;
     if (!code || !name) continue;

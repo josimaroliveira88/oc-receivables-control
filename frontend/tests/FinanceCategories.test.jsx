@@ -251,7 +251,7 @@ describe('FinancialCategoryModal', () => {
 
   it('shows the API error when the category already exists', async () => {
     mockPost.mockRejectedValue({
-      response: { data: { error: 'Category already exists' } },
+      response: { data: { error: 'A categoria já existe' } },
     });
 
     renderHarness();
@@ -261,7 +261,7 @@ describe('FinancialCategoryModal', () => {
     submitForm();
 
     expect(await screen.findByTestId('category-form-error')).toHaveTextContent(
-      'Category already exists',
+      'A categoria já existe',
     );
   });
 

@@ -37,7 +37,7 @@ const upload = multer({
   }),
   fileFilter(req, file, cb) {
     if (!ALLOWED_TYPES[file.mimetype]) {
-      const error = new Error('Invalid file type');
+      const error = new Error('Tipo de arquivo inválido');
       error.code = 'INVALID_FILE_TYPE';
       return cb(error);
     }
@@ -52,7 +52,7 @@ const uploadSingleAttachment = (req, res, next) => {
   upload.single('file')(req, res, (err) => {
     if (err) {
       if (err.code === 'INVALID_FILE_TYPE') {
-        return res.status(400).json({ error: 'Invalid file type' });
+        return res.status(400).json({ error: 'Tipo de arquivo inválido' });
       }
       return next(err);
     }
@@ -86,7 +86,7 @@ const infinitePayUpload = multer({
   limits: { fileSize: infinitePayMaxBytes() },
   fileFilter(req, file, cb) {
     if (!INFINITEPAY_ALLOWED_TYPES.has(file.mimetype)) {
-      const error = new Error('Invalid file type');
+      const error = new Error('Tipo de arquivo inválido');
       error.code = 'INVALID_FILE_TYPE';
       return cb(error);
     }

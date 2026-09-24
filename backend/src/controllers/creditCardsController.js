@@ -70,7 +70,9 @@ const updateBillHandler = async (req, res) => {
 const deleteBillHandler = async (req, res) => {
   try {
     await deleteBill(prisma, { userId: req.user.userId, id: req.params.id });
-    res.status(200).json({ message: 'Credit card bill deleted successfully' });
+    res
+      .status(200)
+      .json({ message: 'Compra no cartão de crédito excluída com sucesso' });
   } catch (error) {
     handleError(res, error, { label: 'Error deleting credit card bill' });
   }

@@ -18,7 +18,7 @@ const validateProducts = async (client, items) => {
   });
 
   if (products.length !== productIds.length) {
-    throw badRequest('One or more products are inactive or do not exist');
+    throw badRequest('Um ou mais produtos estão inativos ou não existem');
   }
 };
 
@@ -28,10 +28,12 @@ const validateStockItemRules = (items, selfPersonIds) => {
   for (const item of items) {
     if (!item.forStock) continue;
     if (!selfPersonIds.has(item.personId)) {
-      throw badRequest('Stock items are only allowed for the user themselves');
+      throw badRequest(
+        'Itens de estoque só podem ser vinculados ao próprio usuário',
+      );
     }
     if (!item.productId) {
-      throw badRequest('Stock items require a catalog product');
+      throw badRequest('Itens de estoque exigem um produto do catálogo');
     }
   }
 };

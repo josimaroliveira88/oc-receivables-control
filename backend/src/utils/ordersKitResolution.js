@@ -28,7 +28,7 @@ const resolveKitFields = async (client, items) => {
     if (type === 'KIT') {
       if (item.forStock && !item.kitStockMode) {
         throw badRequest(
-          'Stock items for KIT products require a kitStockMode (KIT or COMPONENTS)',
+          'Itens de estoque de produtos KIT exigem um modo de controle do kit (KIT ou COMPONENTS)',
         );
       }
       item.kitStockMode = item.kitStockMode ?? null;
@@ -59,7 +59,7 @@ const resolveEditedKitFields = async (client, oldItem, newItem) => {
   if (type === 'KIT') {
     if (newItem.forStock && !newItem.kitStockMode && !oldItem.kitStockMode) {
       throw badRequest(
-        'Stock items for KIT products require a kitStockMode (KIT or COMPONENTS)',
+        'Itens de estoque de produtos KIT exigem um modo de controle do kit (KIT ou COMPONENTS)',
       );
     }
     newItem.kitStockMode = newItem.kitStockMode ?? oldItem.kitStockMode ?? null;
@@ -98,7 +98,7 @@ const resolveOrderUpdateItems = async (client, existingItems, payloadItems) => {
     if (type === 'KIT') {
       if (item.forStock && !item.kitStockMode && !existing.kitStockMode) {
         throw badRequest(
-          'Stock items for KIT products require a kitStockMode (KIT or COMPONENTS)',
+          'Itens de estoque de produtos KIT exigem um modo de controle do kit (KIT ou COMPONENTS)',
         );
       }
       item.kitStockMode = item.kitStockMode ?? existing.kitStockMode ?? null;

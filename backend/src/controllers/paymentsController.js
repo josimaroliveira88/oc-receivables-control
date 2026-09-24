@@ -23,7 +23,7 @@ const createPayment = async (req, res) => {
     });
 
     res.status(201).json({
-      message: 'Payment created successfully',
+      message: 'Pagamento registrado com sucesso',
       payment: result.payment,
       order: result.order,
     });
@@ -44,7 +44,7 @@ const updatePayment = async (req, res) => {
     });
 
     res.status(200).json({
-      message: 'Payment updated successfully',
+      message: 'Pagamento atualizado com sucesso',
       payment: result.payment,
       order: result.order,
     });
@@ -74,7 +74,7 @@ const getOrderBalance = async (req, res) => {
     });
 
     if (!order) {
-      throw notFound('Order not found');
+      throw notFound('Pedido não encontrado');
     }
 
     const balances = buildOrderBalances(order);

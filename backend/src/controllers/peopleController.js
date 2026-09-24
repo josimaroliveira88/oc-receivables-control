@@ -59,7 +59,7 @@ const getPersonById = async (req, res) => {
     });
 
     if (!person) {
-      throw notFound('Person not found');
+      throw notFound('Pessoa não encontrada');
     }
 
     res.status(200).json(person);
@@ -78,7 +78,7 @@ const getPersonSummary = async (req, res) => {
     });
 
     if (!person) {
-      throw notFound('Person not found');
+      throw notFound('Pessoa não encontrada');
     }
 
     const [items, payments] = await Promise.all([
@@ -117,7 +117,7 @@ const getPersonPurchases = async (req, res) => {
     });
 
     if (!person) {
-      throw notFound('Person not found');
+      throw notFound('Pessoa não encontrada');
     }
 
     const items = await prisma.item.findMany({
@@ -186,7 +186,7 @@ const updatePerson = async (req, res) => {
     });
 
     if (!existingPerson) {
-      throw notFound('Person not found');
+      throw notFound('Pessoa não encontrada');
     }
 
     let displacedSelfId = null;
@@ -267,14 +267,14 @@ const deletePerson = async (req, res) => {
     });
 
     if (!existingPerson) {
-      throw notFound('Person not found');
+      throw notFound('Pessoa não encontrada');
     }
 
     await prisma.person.delete({
       where: { id },
     });
 
-    res.status(200).json({ message: 'Person deleted successfully' });
+    res.status(200).json({ message: 'Pessoa excluída com sucesso' });
   } catch (error) {
     handleError(res, error, { label: 'Error deleting person' });
   }

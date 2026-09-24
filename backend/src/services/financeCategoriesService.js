@@ -33,7 +33,7 @@ const findCategoryByName = (client, userId, { type, name }) =>
 const createCategory = async (client, userId, { name, type }) => {
   const existing = await findCategoryByName(client, userId, { type, name });
   if (existing) {
-    throw conflict('Category already exists');
+    throw conflict('A categoria já existe');
   }
 
   return client.financialCategory.create({
@@ -47,7 +47,7 @@ const updateCategory = async (client, userId, id, { name, active }) => {
   });
 
   if (!existing) {
-    throw notFound('Category not found');
+    throw notFound('Categoria não encontrada');
   }
 
   if (name !== undefined && name !== existing.name) {
@@ -56,7 +56,7 @@ const updateCategory = async (client, userId, id, { name, active }) => {
       name,
     });
     if (duplicate && duplicate.id !== id) {
-      throw conflict('Category already exists');
+      throw conflict('A categoria já existe');
     }
   }
 
@@ -75,7 +75,7 @@ const deactivateCategory = async (client, userId, id) => {
   });
 
   if (!existing) {
-    throw notFound('Category not found');
+    throw notFound('Categoria não encontrada');
   }
 
   return client.financialCategory.update({

@@ -1457,7 +1457,7 @@ describe('OrdersPayments', () => {
         response: {
           data: {
             error:
-              'Amount must be greater than zero for a person with chargeable items',
+              'O valor deve ser maior que zero para uma pessoa com itens cobrados',
           },
         },
       });

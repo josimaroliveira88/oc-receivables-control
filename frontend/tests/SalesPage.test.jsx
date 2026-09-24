@@ -1511,7 +1511,7 @@ describe('SalesPage', () => {
 
     it('should call the delete API when confirming deletion', async () => {
       mockDelete.mockResolvedValue({
-        data: { message: 'Sale order deleted successfully' },
+        data: { message: 'Pedido de venda excluído com sucesso' },
       });
       renderPage();
       await waitFor(() => {

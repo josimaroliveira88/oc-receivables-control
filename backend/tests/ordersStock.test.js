@@ -261,7 +261,7 @@ describe('Orders <-> Stock integration', () => {
         },
       ]);
       expect(res.status).toBe(400);
-      expect(res.body.error).toContain('user themselves');
+      expect(res.body.error).toContain('próprio usuário');
     });
 
     it('rejects forStock without a product', async () => {
@@ -274,7 +274,7 @@ describe('Orders <-> Stock integration', () => {
         },
       ]);
       expect(res.status).toBe(400);
-      expect(res.body.error).toContain('require a catalog product');
+      expect(res.body.error).toContain('produto do catálogo');
     });
 
     it('rejects quantity zero or negative', async () => {

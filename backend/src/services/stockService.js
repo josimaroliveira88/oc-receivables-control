@@ -22,7 +22,7 @@ const applyMovement = async (
   });
 
   if (!product) {
-    throw notFound('Product not found');
+    throw notFound('Produto não encontrado');
   }
 
   const inventory = await client.inventory.findUnique({

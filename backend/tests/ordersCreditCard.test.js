@@ -69,6 +69,14 @@ describe('Orders credit-card fields', () => {
     );
 
     expect(response.status).toBe(400);
+    expect(response.body.error).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          message:
+            'A quantidade de parcelas é obrigatória para pedidos com cartão de crédito',
+        }),
+      ]),
+    );
   });
 
   it('rejects a credit-card order without the first installment date', async () => {
@@ -77,6 +85,14 @@ describe('Orders credit-card fields', () => {
     );
 
     expect(response.status).toBe(400);
+    expect(response.body.error).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          message:
+            'A data da primeira parcela é obrigatória para pedidos com cartão de crédito',
+        }),
+      ]),
+    );
   });
 
   it('rejects more than 24 installments', async () => {

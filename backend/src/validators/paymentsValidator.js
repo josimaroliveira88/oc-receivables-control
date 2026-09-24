@@ -5,7 +5,7 @@ import { paymentTypeSchema } from '../utils/paymentTypes.js';
 // optional and nullable: null/omitted means no fee (net equals `amount`).
 const netAmountSchema = z
   .number()
-  .nonnegative('Net amount must be greater than or equal to zero')
+  .nonnegative('O valor líquido não pode ser menor que zero')
   .optional()
   .nullable();
 
@@ -14,21 +14,17 @@ const netAmountSchema = z
 const passesGatewayFeeToClientSchema = z.boolean().optional();
 
 const paymentSchema = z.object({
-  amount: z
-    .number()
-    .nonnegative('Amount must be greater than or equal to zero'),
+  amount: z.number().nonnegative('O valor não pode ser menor que zero'),
   netAmount: netAmountSchema,
   passesGatewayFeeToClient: passesGatewayFeeToClientSchema,
-  personId: z.string().uuid('Person ID must be a valid UUID'),
+  personId: z.string().uuid('O ID da pessoa deve ser um UUID válido'),
   paidAt: z.string().optional(),
   paymentType: paymentTypeSchema.optional().nullable(),
   notes: z.string().optional(),
 });
 
 const updatePaymentSchema = z.object({
-  amount: z
-    .number()
-    .nonnegative('Amount must be greater than or equal to zero'),
+  amount: z.number().nonnegative('O valor não pode ser menor que zero'),
   netAmount: netAmountSchema,
   passesGatewayFeeToClient: passesGatewayFeeToClientSchema,
   paidAt: z.string().optional(),

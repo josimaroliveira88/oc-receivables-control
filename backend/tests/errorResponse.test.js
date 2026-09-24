@@ -45,7 +45,17 @@ describe('errorResponse middleware', () => {
       handleError(res, zodError, { label: 'Test' });
 
       expect(res.statusCode).toBe(400);
-      expect(res.body).toEqual({ error: zodError.errors });
+      expect(res.body).toEqual({
+        error: [
+          {
+            code: 'invalid_type',
+            expected: 'string',
+            received: 'number',
+            path: ['name'],
+            message: 'Esperado texto, recebido número',
+          },
+        ],
+      });
       expect(consoleSpy).not.toHaveBeenCalled();
     });
   });
@@ -102,7 +112,7 @@ describe('errorResponse middleware', () => {
       handleError(res, new Error('boom'), { label: 'Error creating order' });
 
       expect(res.statusCode).toBe(500);
-      expect(res.body).toEqual({ error: 'Internal server error' });
+      expect(res.body).toEqual({ error: 'Erro interno do servidor' });
       expect(consoleSpy).toHaveBeenCalledWith(
         'Error creating order:',
         expect.any(Error),
@@ -118,7 +128,7 @@ describe('errorResponse middleware', () => {
       });
 
       expect(res.statusCode).toBe(400);
-      expect(res.body).toEqual({ error: 'Internal server error' });
+      expect(res.body).toEqual({ error: 'Erro interno do servidor' });
     });
 
     it('responds with the generic message for non-error values', () => {
@@ -127,7 +137,7 @@ describe('errorResponse middleware', () => {
       handleError(res, 'not an error object', { label: 'Test' });
 
       expect(res.statusCode).toBe(500);
-      expect(res.body).toEqual({ error: 'Internal server error' });
+      expect(res.body).toEqual({ error: 'Erro interno do servidor' });
     });
   });
 });

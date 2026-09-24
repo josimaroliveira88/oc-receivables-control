@@ -19,7 +19,7 @@ const findOwnedOrder = async (req) => {
     where: { id, userId: req.user.userId },
   });
   if (!order) {
-    throw notFound('Order not found');
+    throw notFound('Pedido não encontrado');
   }
   return order;
 };
@@ -30,12 +30,12 @@ const uploadAttachment = async (req, res) => {
     const order = await findOwnedOrder(req);
 
     if (!req.file) {
-      throw badRequest('No file provided');
+      throw badRequest('Nenhum arquivo foi enviado');
     }
 
     if (req.file.size > attachmentMaxBytes()) {
       removeAttachmentFile(req.file.filename);
-      throw badRequest('File is too large');
+      throw badRequest('O arquivo excede o tamanho máximo permitido');
     }
 
     if (order.attachmentFilename) {
@@ -59,12 +59,12 @@ const getAttachment = async (req, res) => {
     const order = await findOwnedOrder(req);
 
     if (!order.attachmentFilename) {
-      throw notFound('Attachment not found');
+      throw notFound('Anexo não encontrado');
     }
 
     const filePath = resolveAttachmentPath(order.attachmentFilename);
     if (!fs.existsSync(filePath)) {
-      throw notFound('Attachment not found');
+      throw notFound('Anexo não encontrado');
     }
 
     res.setHeader(
@@ -83,7 +83,7 @@ const deleteAttachment = async (req, res) => {
     const order = await findOwnedOrder(req);
 
     if (!order.attachmentFilename) {
-      throw notFound('Attachment not found');
+      throw notFound('Anexo não encontrado');
     }
 
     removeAttachmentFile(order.attachmentFilename);
@@ -92,7 +92,7 @@ const deleteAttachment = async (req, res) => {
       data: { attachmentFilename: null },
     });
 
-    res.status(200).json({ message: 'Attachment deleted successfully' });
+    res.status(200).json({ message: 'Anexo excluído com sucesso' });
   } catch (error) {
     handleError(res, error, { label: 'Error deleting attachment' });
   }

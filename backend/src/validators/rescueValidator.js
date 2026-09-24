@@ -4,11 +4,11 @@ import { dateSchema, MAX_NOTES } from './financesValidator.js';
 // One sale that composed a redemption: the order and the part of the redeemed
 // amount attributed to it, in integer cents.
 const rescueAssignmentSchema = z.object({
-  orderId: z.string().uuid('Order ID must be a valid UUID'),
+  orderId: z.string().uuid('O ID do pedido deve ser um UUID válido'),
   amountCents: z
     .number()
-    .int('Amount must be an integer number of cents')
-    .positive('Amount must be greater than zero'),
+    .int('O valor deve ser um número inteiro de centavos')
+    .positive('O valor deve ser maior que zero'),
 });
 
 // One confirmed redemption. `rescueAmountCents` is the value that left
@@ -18,23 +18,26 @@ const rescueSchema = z.object({
   rescueAmountCents: z
     .number()
     .int()
-    .positive('Amount must be greater than zero'),
+    .positive('O valor deve ser maior que zero'),
   transactionDate: dateSchema,
   notes: z
     .string()
-    .max(MAX_NOTES, `Notes must be at most ${MAX_NOTES} characters`)
+    .max(
+      MAX_NOTES,
+      `As observações devem ter no máximo ${MAX_NOTES} caracteres`,
+    )
     .nullable()
     .optional(),
   assignments: z.array(rescueAssignmentSchema).min(1),
 });
 
 const commitRescueSchema = z.object({
-  batchId: z.string().uuid('Batch ID must be a valid UUID'),
+  batchId: z.string().uuid('O ID do lote deve ser um UUID válido'),
   rescues: z.array(rescueSchema).min(1),
 });
 
 const batchIdParamSchema = z.object({
-  batchId: z.string().uuid('Batch ID must be a valid UUID'),
+  batchId: z.string().uuid('O ID do lote deve ser um UUID válido'),
 });
 
 export { commitRescueSchema, batchIdParamSchema };

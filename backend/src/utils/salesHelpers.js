@@ -59,7 +59,7 @@ const validateSaleProducts = async (client, items) => {
   });
 
   if (products.length !== productIds.length) {
-    throw badRequest('One or more products are inactive or do not exist');
+    throw badRequest('Um ou mais produtos estão inativos ou não existem');
   }
 };
 

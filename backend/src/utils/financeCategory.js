@@ -13,11 +13,13 @@ const assertCategoryMatches = async (client, userId, { categoryId, type }) => {
   });
 
   if (!category) {
-    throw badRequest('Category not found');
+    throw badRequest('Categoria não encontrada');
   }
 
   if (category.type !== type) {
-    throw badRequest('Category type does not match the transaction type');
+    throw badRequest(
+      'O tipo da categoria não corresponde ao tipo da transação',
+    );
   }
 };
 

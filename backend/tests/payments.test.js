@@ -103,7 +103,7 @@ describe('Payments & Balance', () => {
         });
 
       expect(response.status).toBe(201);
-      expect(response.body.message).toBe('Payment created successfully');
+      expect(response.body.message).toBe('Pagamento registrado com sucesso');
       expect(parseFloat(response.body.payment.amount)).toBe(100.0);
       expect(response.body.payment.personId).toBe(testPersonId);
       expect(response.body.payment.notes).toBe('Partial payment');
@@ -196,7 +196,7 @@ describe('Payments & Balance', () => {
         .send({ amount: 0, personId: testPersonId });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toContain('greater than zero');
+      expect(response.body.error).toContain('maior que zero');
     });
 
     it('should accept overpayment for a multi-person order and keep status PARCIAL while others owe', async () => {
@@ -345,7 +345,7 @@ describe('Payments & Balance', () => {
         });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Person not found');
+      expect(response.body.error).toBe('Pessoa não encontrada');
     });
 
     it('should reject payment for non-existent order', async () => {
@@ -355,7 +355,7 @@ describe('Payments & Balance', () => {
         .send({ amount: 100, personId: testPersonId });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Order not found');
+      expect(response.body.error).toBe('Pedido não encontrado');
     });
 
     it('should return 401 when no authentication token is provided', async () => {
@@ -364,7 +364,7 @@ describe('Payments & Balance', () => {
         .send({ amount: 100, personId: testPersonId });
 
       expect(response.status).toBe(401);
-      expect(response.body.error).toBe('Access token required');
+      expect(response.body.error).toBe('Token de acesso obrigatório');
     });
 
     it('should return 403 when invalid authentication token is provided', async () => {
@@ -374,7 +374,7 @@ describe('Payments & Balance', () => {
         .send({ amount: 100, personId: testPersonId });
 
       expect(response.status).toBe(403);
-      expect(response.body.error).toBe('Invalid or expired token');
+      expect(response.body.error).toBe('Token inválido ou expirado');
     });
 
     it('should transition status from PENDENTE to PARCIAL after first partial payment', async () => {
@@ -496,7 +496,7 @@ describe('Payments & Balance', () => {
         .send({ amount: 50, personId: testPersonId });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Order not found');
+      expect(response.body.error).toBe('Pedido não encontrado');
 
       await prisma.user.delete({ where: { id: otherUserId } }).catch(() => {});
     });
@@ -731,7 +731,7 @@ describe('Payments & Balance', () => {
         .send({ amount: 0 });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toContain('greater than zero');
+      expect(response.body.error).toContain('maior que zero');
 
       const stored = await prisma.payment.findUnique({
         where: { id: payment.id },
@@ -806,7 +806,7 @@ describe('Payments & Balance', () => {
         .send({ amount: 100.0 });
 
       expect(response.status).toBe(404);
-      expect(response.body.error).toBe('Payment not found');
+      expect(response.body.error).toBe('Pagamento não encontrado');
     });
 
     it("should return 404 when editing another user's payment", async () => {
@@ -829,7 +829,7 @@ describe('Payments & Balance', () => {
         .send({ amount: 200.0 });
 
       expect(response.status).toBe(404);
-      expect(response.body.error).toBe('Payment not found');
+      expect(response.body.error).toBe('Pagamento não encontrado');
 
       await prisma.user.delete({ where: { id: otherUserId } }).catch(() => {});
     });
@@ -842,7 +842,7 @@ describe('Payments & Balance', () => {
         .send({ amount: 100.0 });
 
       expect(response.status).toBe(401);
-      expect(response.body.error).toBe('Access token required');
+      expect(response.body.error).toBe('Token de acesso obrigatório');
     });
 
     it('should return 403 when an invalid authentication token is provided', async () => {
@@ -854,7 +854,7 @@ describe('Payments & Balance', () => {
         .send({ amount: 100.0 });
 
       expect(response.status).toBe(403);
-      expect(response.body.error).toBe('Invalid or expired token');
+      expect(response.body.error).toBe('Token inválido ou expirado');
     });
   });
 
@@ -998,7 +998,7 @@ describe('Payments & Balance', () => {
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(404);
-      expect(response.body.error).toBe('Order not found');
+      expect(response.body.error).toBe('Pedido não encontrado');
     });
 
     it('should return 401 when no authentication token is provided', async () => {
@@ -1007,7 +1007,7 @@ describe('Payments & Balance', () => {
       );
 
       expect(response.status).toBe(401);
-      expect(response.body.error).toBe('Access token required');
+      expect(response.body.error).toBe('Token de acesso obrigatório');
     });
 
     it('should return 403 when invalid authentication token is provided', async () => {
@@ -1016,7 +1016,7 @@ describe('Payments & Balance', () => {
         .set('Authorization', 'Bearer invalid-token');
 
       expect(response.status).toBe(403);
-      expect(response.body.error).toBe('Invalid or expired token');
+      expect(response.body.error).toBe('Token inválido ou expirado');
     });
   });
 });

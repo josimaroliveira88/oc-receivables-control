@@ -65,7 +65,7 @@ const deleteCategoryHandler = async (req, res) => {
     await deactivateCategory(prisma, req.user.userId, req.params.id);
     res
       .status(200)
-      .json({ message: 'Finance category deactivated successfully' });
+      .json({ message: 'Categoria financeira desativada com sucesso' });
   } catch (error) {
     handleError(res, error, { label: 'Error deactivating finance category' });
   }
@@ -119,7 +119,7 @@ const deleteTransactionHandler = async (req, res) => {
     });
     res
       .status(200)
-      .json({ message: 'Finance transaction deleted successfully' });
+      .json({ message: 'Transação financeira excluída com sucesso' });
   } catch (error) {
     handleError(res, error, { label: 'Error deleting finance transaction' });
   }
@@ -146,7 +146,7 @@ const deleteSettlementHandler = async (req, res) => {
       userId: req.user.userId,
       id: req.params.id,
     });
-    res.status(200).json({ message: 'InfinitePay settlement undone' });
+    res.status(200).json({ message: 'Resgate InfinitePay desfeito' });
   } catch (error) {
     handleError(res, error, { label: 'Error undoing InfinitePay settlement' });
   }

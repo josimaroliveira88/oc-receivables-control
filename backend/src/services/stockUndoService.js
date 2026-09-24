@@ -9,7 +9,7 @@ import { notFound, badRequest } from '../utils/httpError.js';
 const undoLastMovement = async (client, { id, userId }) => {
   const movement = await client.stockMovement.findUnique({ where: { id } });
   if (!movement || movement.userId !== userId) {
-    throw notFound('Movement not found');
+    throw notFound('Movimentação não encontrada');
   }
 
   if (movement.orderId) {

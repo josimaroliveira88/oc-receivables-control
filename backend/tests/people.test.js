@@ -274,7 +274,7 @@ describe('People CRUD', () => {
         .send({ name: 'No Auth' });
 
       expect(response.status).toBe(401);
-      expect(response.body.error).toBe('Access token required');
+      expect(response.body.error).toBe('Token de acesso obrigatório');
     });
 
     it('should return 403 when invalid authentication token is provided', async () => {
@@ -284,7 +284,7 @@ describe('People CRUD', () => {
         .send({ name: 'Invalid Auth' });
 
       expect(response.status).toBe(403);
-      expect(response.body.error).toBe('Invalid or expired token');
+      expect(response.body.error).toBe('Token inválido ou expirado');
     });
   });
 
@@ -345,7 +345,7 @@ describe('People CRUD', () => {
       const response = await request(app).get('/api/people');
 
       expect(response.status).toBe(401);
-      expect(response.body.error).toBe('Access token required');
+      expect(response.body.error).toBe('Token de acesso obrigatório');
     });
   });
 
@@ -1378,7 +1378,7 @@ describe('People CRUD', () => {
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
-      expect(response.body.message).toBe('Person deleted successfully');
+      expect(response.body.message).toBe('Pessoa excluída com sucesso');
 
       const getResponse = await request(app)
         .get(`/api/people/${createdPersonId}`)

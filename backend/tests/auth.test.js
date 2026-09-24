@@ -49,7 +49,7 @@ describe('User Registration', () => {
         .send({ username: 'duplicado', password: 'senha123' });
 
       expect(response.status).toBe(409);
-      expect(response.body.error).toBe('Username already exists');
+      expect(response.body.error).toBe('Usuário já existe');
     });
 
     it('should reject registration with short password', async () => {

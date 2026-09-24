@@ -40,18 +40,18 @@ const stubClient = ({
 
 describe('stockUndoService', () => {
   describe('undoLastMovement', () => {
-    it('throws 404 "Movement not found" when the movement does not exist', async () => {
+    it('throws 404 "Movimentação não encontrada" when the movement does not exist', async () => {
       const client = stubClient({ movement: null });
 
       await expect(
         undoLastMovement(client, { id: 'missing', userId: 'user-1' }),
       ).rejects.toMatchObject({
         status: 404,
-        message: 'Movement not found',
+        message: 'Movimentação não encontrada',
       });
     });
 
-    it('throws 404 "Movement not found" when the movement belongs to another user', async () => {
+    it('throws 404 "Movimentação não encontrada" when the movement belongs to another user', async () => {
       const client = stubClient({
         movement: { ...baseMovement, userId: 'user-2' },
       });
@@ -60,7 +60,7 @@ describe('stockUndoService', () => {
         undoLastMovement(client, { id: 'mov-1', userId: 'user-1' }),
       ).rejects.toMatchObject({
         status: 404,
-        message: 'Movement not found',
+        message: 'Movimentação não encontrada',
       });
     });
 

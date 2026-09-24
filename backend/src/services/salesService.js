@@ -293,7 +293,7 @@ const getSaleById = async (client, { id, userId }) => {
   });
 
   if (!sale) {
-    throw notFound('Sale order not found');
+    throw notFound('Pedido de venda não encontrado');
   }
 
   return decorateSale(sale);
@@ -417,7 +417,7 @@ const updateSale = async (client, { id, userId, payload }) => {
     });
 
     if (!existingOrder) {
-      throw notFound('Sale order not found');
+      throw notFound('Pedido de venda não encontrado');
     }
     if (existingOrder.orderType !== 'VENDA') {
       throw badRequest(
@@ -693,7 +693,7 @@ const deleteSale = async (client, { id, userId }) => {
     });
 
     if (!existingOrder) {
-      throw notFound('Sale order not found');
+      throw notFound('Pedido de venda não encontrado');
     }
     if (existingOrder.orderType !== 'VENDA') {
       throw badRequest(
@@ -726,7 +726,7 @@ const deleteSale = async (client, { id, userId }) => {
 
     await tx.order.delete({ where: { id } });
     return {
-      message: 'Sale order deleted successfully',
+      message: 'Pedido de venda excluído com sucesso',
       attachmentFilename: existingOrder.attachmentFilename,
     };
   });

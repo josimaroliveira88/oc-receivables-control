@@ -383,7 +383,7 @@ describe('Sales <-> Payments', () => {
         netAmount: 150,
       });
       expect(res.status).toBe(400);
-      expect(res.body.error).toContain('Net amount cannot be greater');
+      expect(res.body.error).toContain('O valor líquido não pode ser maior');
     });
 
     it('updates the net amount and recomputes the fee on edit', async () => {
@@ -432,7 +432,7 @@ describe('Sales <-> Payments', () => {
         .set('Authorization', `Bearer ${user.token}`)
         .send({ amount: 100, netAmount: 120 });
       expect(res.status).toBe(400);
-      expect(res.body.error).toContain('Net amount cannot be greater');
+      expect(res.body.error).toContain('O valor líquido não pode ser maior');
     });
 
     it('persists the fee-passthrough flag on the order via the payment', async () => {

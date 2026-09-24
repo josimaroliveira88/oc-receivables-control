@@ -6,24 +6,26 @@ const productTypeSchema = z.enum(['SIMPLES', 'KIT']);
 const componentSchema = z.object({
   componentProductId: z
     .string()
-    .uuid('Component product ID must be a valid UUID'),
+    .uuid('O ID do produto componente deve ser um UUID válido'),
   quantity: z
     .number()
-    .int('Component quantity must be an integer')
-    .min(1, 'Component quantity must be at least 1'),
+    .int('A quantidade do componente deve ser um número inteiro')
+    .min(1, 'A quantidade do componente deve ser pelo menos 1'),
 });
 
 const createProductSchema = z.object({
-  code: z.string().min(1, 'Code is required'),
-  name: z.string().min(1, 'Name is required'),
-  size: z.string().min(1, 'Size is required'),
-  regularPrice: z.number().nonnegative('Regular price must be non-negative'),
-  memberPrice: z.number().nonnegative('Member price must be non-negative'),
-  pv: z.number().nonnegative('PV must be non-negative'),
+  code: z.string().min(1, 'O código é obrigatório'),
+  name: z.string().min(1, 'O nome é obrigatório'),
+  size: z.string().min(1, 'O tamanho é obrigatório'),
+  regularPrice: z.number().nonnegative('O preço regular não pode ser negativo'),
+  memberPrice: z
+    .number()
+    .nonnegative('O preço de membro não pode ser negativo'),
+  pv: z.number().nonnegative('O PV não pode ser negativo'),
   doterraUrl: z
     .string()
-    .url('Invalid product URL')
-    .max(2048, 'Product URL is too long')
+    .url('URL do produto inválida')
+    .max(2048, 'A URL do produto é muito longa')
     .optional()
     .nullable(),
   productType: productTypeSchema.default('SIMPLES'),
@@ -31,24 +33,24 @@ const createProductSchema = z.object({
 });
 
 const updateProductSchema = z.object({
-  name: z.string().min(1, 'Name is required').optional(),
-  size: z.string().min(1, 'Size is required').optional(),
+  name: z.string().min(1, 'O nome é obrigatório').optional(),
+  size: z.string().min(1, 'O tamanho é obrigatório').optional(),
   status: productStatusSchema.optional(),
   doterraUrl: z
     .string()
-    .url('Invalid product URL')
-    .max(2048, 'Product URL is too long')
+    .url('URL do produto inválida')
+    .max(2048, 'A URL do produto é muito longa')
     .optional()
     .nullable(),
   regularPrice: z
     .number()
-    .nonnegative('Regular price must be non-negative')
+    .nonnegative('O preço regular não pode ser negativo')
     .optional(),
   memberPrice: z
     .number()
-    .nonnegative('Member price must be non-negative')
+    .nonnegative('O preço de membro não pode ser negativo')
     .optional(),
-  pv: z.number().nonnegative('PV must be non-negative').optional(),
+  pv: z.number().nonnegative('O PV não pode ser negativo').optional(),
   productType: productTypeSchema.optional(),
   components: z.array(componentSchema).optional(),
 });

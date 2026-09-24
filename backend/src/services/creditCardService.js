@@ -160,7 +160,7 @@ const removeBillForOrder = (client, { userId, orderId }) =>
 const findOwnedBill = async (client, userId, id) => {
   const bill = await client.creditCardBill.findFirst({ where: { id, userId } });
   if (!bill) {
-    throw notFound('Credit card bill not found');
+    throw notFound('Compra no cartão de crédito não encontrada');
   }
   return bill;
 };
@@ -227,7 +227,7 @@ const getBill = async (client, userId, id) => {
     include: billInclude,
   });
   if (!bill) {
-    throw notFound('Credit card bill not found');
+    throw notFound('Compra no cartão de crédito não encontrada');
   }
   return bill;
 };
@@ -240,7 +240,7 @@ const createManualBill = async (client, { userId, payload }) => {
 
   const totalCents = toCents(payload.totalAmount);
   if (totalCents <= 0) {
-    throw badRequest('Amount must be greater than zero');
+    throw badRequest('O valor deve ser maior que zero');
   }
 
   const firstInstallmentAt = parseLocalDate(payload.firstInstallmentAt);
@@ -355,7 +355,7 @@ const findOwnedInstallment = async (client, userId, id) => {
     where: { id, userId, creditCardBillId: { not: null } },
   });
   if (!installment) {
-    throw notFound('Installment not found');
+    throw notFound('Parcela não encontrada');
   }
   return installment;
 };

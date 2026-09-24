@@ -66,7 +66,7 @@ describe('parseProductCsv', () => {
       HEADER,
       '60226006;Adaptiv® Pastilhas;60 pastilhas;308.00',
     ].join('\n');
-    expect(() => parseProductCsv(csv)).toThrow(/Invalid row/);
+    expect(() => parseProductCsv(csv)).toThrow(/Linha inválida/);
   });
 });
 

@@ -28,7 +28,7 @@ const withFeeAmount = (payment) => ({
 const assertValidNetAmount = ({ amountCents, netAmount }) => {
   if (netAmount === null || netAmount === undefined) return;
   if (Math.round(netAmount * 100) > amountCents) {
-    throw badRequest('Net amount cannot be greater than the charged amount');
+    throw badRequest('O valor líquido não pode ser maior que o valor cobrado');
   }
 };
 
@@ -50,7 +50,7 @@ const createPayment = async (client, { userId, orderId, payload }) => {
     });
 
     if (!order) {
-      throw badRequest('Order not found');
+      throw badRequest('Pedido não encontrado');
     }
 
     if (order.isTeamOrder) {
@@ -62,7 +62,7 @@ const createPayment = async (client, { userId, orderId, payload }) => {
     });
 
     if (!person) {
-      throw badRequest('Person not found');
+      throw badRequest('Pessoa não encontrada');
     }
 
     const itemSumCents = order.items
@@ -71,7 +71,7 @@ const createPayment = async (client, { userId, orderId, payload }) => {
 
     if (itemSumCents > 0 && amountCents === 0) {
       throw badRequest(
-        'Amount must be greater than zero for a person with chargeable items',
+        'O valor deve ser maior que zero para uma pessoa com itens cobrados',
       );
     }
 
@@ -140,7 +140,7 @@ const updatePayment = async (client, { id, userId, payload }) => {
     });
 
     if (!existingPayment || existingPayment.order.userId !== userId) {
-      throw notFound('Payment not found');
+      throw notFound('Pagamento não encontrado');
     }
 
     const effectiveNetAmount =
@@ -162,7 +162,7 @@ const updatePayment = async (client, { id, userId, payload }) => {
     });
 
     if (!order) {
-      throw notFound('Payment not found');
+      throw notFound('Pagamento não encontrado');
     }
 
     if (order.isTeamOrder) {
@@ -175,7 +175,7 @@ const updatePayment = async (client, { id, userId, payload }) => {
 
     if (itemSumCents > 0 && amountCents === 0) {
       throw badRequest(
-        'Amount must be greater than zero for a person with chargeable items',
+        'O valor deve ser maior que zero para uma pessoa com itens cobrados',
       );
     }
 

@@ -3,12 +3,13 @@
 // (Zod validation, `.status` business rejections, unexpected failures) lives
 // in a single place. Error factories live in utils/httpError.js.
 import { ZodError } from 'zod';
+import { translateZodIssues } from '../utils/zodMessages.js';
 
-const GENERIC_ERROR_MESSAGE = 'Internal server error';
+const GENERIC_ERROR_MESSAGE = 'Erro interno do servidor';
 
 const handleError = (res, error, { fallback = 500, label = 'Error' } = {}) => {
   if (error instanceof ZodError) {
-    return res.status(400).json({ error: error.errors });
+    return res.status(400).json({ error: translateZodIssues(error.errors) });
   }
 
   if (error.status) {

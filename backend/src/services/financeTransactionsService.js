@@ -57,7 +57,7 @@ const findOwnedTransaction = async (client, userId, id) => {
   });
 
   if (!transaction) {
-    throw notFound('Transaction not found');
+    throw notFound('Transação não encontrada');
   }
 
   return transaction;
@@ -65,7 +65,9 @@ const findOwnedTransaction = async (client, userId, id) => {
 
 const assertManual = (transaction) => {
   if (transaction.origin !== 'MANUAL') {
-    throw badRequest('Automatic transactions cannot be edited or deleted');
+    throw badRequest(
+      'Transações automáticas não podem ser editadas ou excluídas',
+    );
   }
 };
 
@@ -155,15 +157,15 @@ const assertSettleableOrder = async (client, userId, orderId) => {
   });
 
   if (!order) {
-    throw notFound('Order not found');
+    throw notFound('Pedido não encontrado');
   }
 
   if (order.orderType !== 'VENDA') {
-    throw badRequest('Settlements are only available for sales');
+    throw badRequest('Os resgates estão disponíveis apenas para vendas');
   }
 
   if (order.isTeamOrder) {
-    throw badRequest('Team orders do not accept settlements');
+    throw badRequest('Pedidos de equipe não aceitam resgates');
   }
 
   const hasInfinitePayPayment = order.payments.some(
@@ -171,7 +173,7 @@ const assertSettleableOrder = async (client, userId, orderId) => {
   );
 
   if (!hasInfinitePayPayment) {
-    throw badRequest('Sale has no InfinitePay payment to settle');
+    throw badRequest('A venda não possui pagamento InfinitePay para resgatar');
   }
 
   return order;
@@ -225,7 +227,7 @@ const deleteRescue = async (client, { userId, id }) => {
   const existing = await findOwnedTransaction(client, userId, id);
 
   if (existing.origin !== 'RESGATE_INFINITEPAY') {
-    throw badRequest('Only InfinitePay redemptions can be undone');
+    throw badRequest('Somente resgates do InfinitePay podem ser desfeitos');
   }
 
   await client.financialTransaction.delete({ where: { id } });

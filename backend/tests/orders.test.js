@@ -478,7 +478,7 @@ describe('Orders CRUD with Items', () => {
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
-      expect(response.body.message).toBe('Order deleted successfully');
+      expect(response.body.message).toBe('Pedido excluído com sucesso');
 
       const getResponse = await request(app)
         .get(`/api/orders/${createdOrderId}`)
@@ -576,7 +576,7 @@ describe('Orders CRUD with Items', () => {
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
-      expect(response.body.message).toBe('Item deleted successfully');
+      expect(response.body.message).toBe('Item excluído com sucesso');
 
       const orderResponse = await request(app)
         .get(`/api/orders/${createdOrderId}`)
@@ -747,7 +747,7 @@ describe('Orders CRUD with Items', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBe(
-        'One or more products are inactive or do not exist',
+        'Um ou mais produtos estão inativos ou não existem',
       );
     });
 
@@ -774,7 +774,7 @@ describe('Orders CRUD with Items', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBe(
-        'One or more products are inactive or do not exist',
+        'Um ou mais produtos estão inativos ou não existem',
       );
     });
 
@@ -1468,7 +1468,7 @@ describe('Orders CRUD with Items', () => {
       expect(res.status).toBe(400);
       expect(
         res.body.error.some(
-          (issue) => issue.message === 'Person ID must be a valid UUID',
+          (issue) => issue.message === 'O ID da pessoa deve ser um UUID válido',
         ),
       ).toBe(true);
     });

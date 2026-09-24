@@ -5,23 +5,23 @@ const saleItemSchema = z.object({
   description: z.string().max(500).optional().nullable(),
   chargedValue: z
     .number()
-    .min(0, 'Charged value must not be negative')
+    .min(0, 'O valor cobrado não pode ser negativo')
     .default(0),
-  productId: z.string().uuid('Product ID must be a valid UUID'),
+  productId: z.string().uuid('O ID do produto deve ser um UUID válido'),
   memberPrice: z
     .number()
-    .nonnegative('Member price must not be negative')
+    .nonnegative('O preço de membro não pode ser negativo')
     .optional()
     .nullable(),
   details: z
     .string()
-    .max(500, 'Details must be at most 500 characters')
+    .max(500, 'Os detalhes devem ter no máximo 500 caracteres')
     .optional()
     .nullable(),
   quantity: z
     .number()
-    .int('Quantity must be an integer')
-    .positive('Quantity must be greater than zero')
+    .int('A quantidade deve ser um número inteiro')
+    .positive('A quantidade deve ser maior que zero')
     .default(1),
   chargedValueMode: z.enum(['UNIT', 'TOTAL']).default('UNIT'),
   kitStockMode: z.enum(['KIT', 'COMPONENTS']).optional().nullable(),
@@ -29,17 +29,17 @@ const saleItemSchema = z.object({
 });
 
 const createSaleSchema = z.object({
-  clientPersonId: z.string().uuid('Person ID must be a valid UUID'),
+  clientPersonId: z.string().uuid('O ID da pessoa deve ser um UUID válido'),
   orderDate: z.string().optional(),
   shippingValue: z
     .number()
-    .min(0, 'Shipping value must not be negative')
+    .min(0, 'O valor do frete não pode ser negativo')
     .optional()
     .nullable()
     .default(0),
   additionalValue: z
     .number()
-    .min(0, 'Additional value must not be negative')
+    .min(0, 'O valor adicional não pode ser negativo')
     .optional()
     .nullable()
     .default(0),
@@ -49,37 +49,42 @@ const createSaleSchema = z.object({
   // service whenever the additional value is greater than zero.
   additionalExpenseCategoryId: z
     .string()
-    .uuid('Expense category ID must be a valid UUID')
+    .uuid('O ID da categoria de despesa deve ser um UUID válido')
     .optional()
     .nullable(),
   additionalExpenseDescription: z
     .string()
     .trim()
-    .max(255, 'Expense description must be at most 255 characters')
+    .max(255, 'A descrição da despesa deve ter no máximo 255 caracteres')
     .optional()
     .nullable(),
   description: z
     .string()
-    .max(2000, 'Description must be at most 2000 characters')
+    .max(2000, 'A descrição deve ter no máximo 2000 caracteres')
     .optional()
     .nullable(),
   deliveredAt: z.string().optional().nullable(),
   // Whether the payment-gateway fee is passed on to the client (InfinitePay).
   passesGatewayFeeToClient: z.boolean().optional(),
-  items: z.array(saleItemSchema).min(1, 'At least one item is required'),
+  items: z
+    .array(saleItemSchema)
+    .min(1, 'É necessário informar pelo menos um item'),
 });
 
 const updateSaleSchema = z.object({
-  clientPersonId: z.string().uuid('Person ID must be a valid UUID').optional(),
+  clientPersonId: z
+    .string()
+    .uuid('O ID da pessoa deve ser um UUID válido')
+    .optional(),
   orderDate: z.string().optional(),
   shippingValue: z
     .number()
-    .min(0, 'Shipping value must not be negative')
+    .min(0, 'O valor do frete não pode ser negativo')
     .optional()
     .nullable(),
   additionalValue: z
     .number()
-    .min(0, 'Additional value must not be negative')
+    .min(0, 'O valor adicional não pode ser negativo')
     .optional()
     .nullable(),
   // Whether "Valores Adicionais" are charged to the client.
@@ -88,18 +93,18 @@ const updateSaleSchema = z.object({
   // service whenever the effective additional value is greater than zero.
   additionalExpenseCategoryId: z
     .string()
-    .uuid('Expense category ID must be a valid UUID')
+    .uuid('O ID da categoria de despesa deve ser um UUID válido')
     .optional()
     .nullable(),
   additionalExpenseDescription: z
     .string()
     .trim()
-    .max(255, 'Expense description must be at most 255 characters')
+    .max(255, 'A descrição da despesa deve ter no máximo 255 caracteres')
     .optional()
     .nullable(),
   description: z
     .string()
-    .max(2000, 'Description must be at most 2000 characters')
+    .max(2000, 'A descrição deve ter no máximo 2000 caracteres')
     .optional()
     .nullable(),
   deliveredAt: z.string().optional().nullable(),
@@ -107,7 +112,7 @@ const updateSaleSchema = z.object({
   passesGatewayFeeToClient: z.boolean().optional(),
   items: z
     .array(saleItemSchema)
-    .min(1, 'At least one item is required')
+    .min(1, 'É necessário informar pelo menos um item')
     .optional(),
 });
 

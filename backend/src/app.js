@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import { ZodError } from 'zod';
+import { translateZodIssues } from './utils/zodMessages.js';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './docs/swagger.js';
@@ -101,11 +102,11 @@ app.use((error, req, res, _next) => {
     ip: req.ip,
   });
   if (error instanceof ZodError) {
-    return res.status(400).json({ error: error.errors });
+    return res.status(400).json({ error: translateZodIssues(error.errors) });
   }
   // Default to 500 if no status code
   const status = error.status || 500;
-  const message = error.message || 'Internal Server Error';
+  const message = error.message || 'Erro interno do servidor';
   res.status(status).json({ error: message });
 });
 

@@ -25,7 +25,7 @@ describe('kitValidationService', () => {
         validateKitComponents(client, { productType: 'KIT', components: [] }),
       ).rejects.toMatchObject({
         status: 400,
-        message: 'A KIT product must have at least one component',
+        message: 'Um produto KIT deve ter pelo menos um componente',
       });
       expect(client.product.findMany).not.toHaveBeenCalled();
     });
@@ -37,7 +37,7 @@ describe('kitValidationService', () => {
         validateKitComponents(client, { productType: 'KIT' }),
       ).rejects.toMatchObject({
         status: 400,
-        message: 'A KIT product must have at least one component',
+        message: 'Um produto KIT deve ter pelo menos um componente',
       });
     });
 
@@ -53,7 +53,7 @@ describe('kitValidationService', () => {
         }),
       ).rejects.toMatchObject({
         status: 400,
-        message: 'Components are only allowed for KIT products',
+        message: 'Componentes só são permitidos para produtos KIT',
       });
       expect(client.product.findMany).not.toHaveBeenCalled();
     });
@@ -98,7 +98,7 @@ describe('kitValidationService', () => {
         }),
       ).rejects.toMatchObject({
         status: 400,
-        message: 'A kit cannot contain the same component twice',
+        message: 'Um kit não pode conter o mesmo componente duas vezes',
       });
       expect(client.product.findMany).not.toHaveBeenCalled();
     });
@@ -116,7 +116,7 @@ describe('kitValidationService', () => {
         }),
       ).rejects.toMatchObject({
         status: 400,
-        message: 'A kit cannot contain itself',
+        message: 'Um kit não pode conter a si mesmo',
       });
       expect(client.product.findMany).not.toHaveBeenCalled();
     });
@@ -146,7 +146,7 @@ describe('kitValidationService', () => {
         }),
       ).rejects.toMatchObject({
         status: 400,
-        message: 'One or more components do not exist',
+        message: 'Um ou mais componentes não existem',
       });
     });
 
@@ -162,7 +162,7 @@ describe('kitValidationService', () => {
         }),
       ).rejects.toMatchObject({
         status: 400,
-        message: 'A kit can only contain SIMPLES products',
+        message: 'Um kit só pode conter produtos SIMPLES',
       });
     });
   });

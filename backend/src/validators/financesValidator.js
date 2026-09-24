@@ -30,11 +30,11 @@ const isValidCalendarDate = (value) => {
 
 const dateSchema = z
   .string()
-  .refine(isValidCalendarDate, 'Invalid date (expected YYYY-MM-DD)');
+  .refine(isValidCalendarDate, 'Data inválida (esperado o formato AAAA-MM-DD)');
 
 const categoryIdSchema = z
   .string()
-  .uuid('Category ID must be a valid UUID')
+  .uuid('O ID da categoria deve ser um UUID válido')
   .nullable()
   .optional();
 
@@ -42,10 +42,10 @@ const createCategorySchema = z.object({
   name: z
     .string()
     .trim()
-    .min(1, 'Name is required')
+    .min(1, 'O nome é obrigatório')
     .max(
       MAX_CATEGORY_NAME,
-      `Name must be at most ${MAX_CATEGORY_NAME} characters`,
+      `O nome deve ter no máximo ${MAX_CATEGORY_NAME} caracteres`,
     ),
   type: transactionTypeSchema,
 });
@@ -56,10 +56,10 @@ const updateCategorySchema = z.object({
   name: z
     .string()
     .trim()
-    .min(1, 'Name is required')
+    .min(1, 'O nome é obrigatório')
     .max(
       MAX_CATEGORY_NAME,
-      `Name must be at most ${MAX_CATEGORY_NAME} characters`,
+      `O nome deve ter no máximo ${MAX_CATEGORY_NAME} caracteres`,
     )
     .optional(),
   active: z.boolean().optional(),
@@ -69,20 +69,23 @@ const updateCategorySchema = z.object({
 // created here is forced to MANUAL by the service.
 const createTransactionSchema = z.object({
   type: transactionTypeSchema,
-  amount: z.number().positive('Amount must be greater than zero'),
+  amount: z.number().positive('O valor deve ser maior que zero'),
   description: z
     .string()
     .trim()
-    .min(1, 'Description is required')
+    .min(1, 'A descrição é obrigatória')
     .max(
       MAX_DESCRIPTION,
-      `Description must be at most ${MAX_DESCRIPTION} characters`,
+      `A descrição deve ter no máximo ${MAX_DESCRIPTION} caracteres`,
     ),
   transactionDate: dateSchema,
   categoryId: categoryIdSchema,
   notes: z
     .string()
-    .max(MAX_NOTES, `Notes must be at most ${MAX_NOTES} characters`)
+    .max(
+      MAX_NOTES,
+      `As observações devem ter no máximo ${MAX_NOTES} caracteres`,
+    )
     .nullable()
     .optional(),
 });
@@ -90,21 +93,24 @@ const createTransactionSchema = z.object({
 // Partial update for a manual entry; any omitted field keeps its value.
 const updateTransactionSchema = z.object({
   type: transactionTypeSchema.optional(),
-  amount: z.number().positive('Amount must be greater than zero').optional(),
+  amount: z.number().positive('O valor deve ser maior que zero').optional(),
   description: z
     .string()
     .trim()
-    .min(1, 'Description is required')
+    .min(1, 'A descrição é obrigatória')
     .max(
       MAX_DESCRIPTION,
-      `Description must be at most ${MAX_DESCRIPTION} characters`,
+      `A descrição deve ter no máximo ${MAX_DESCRIPTION} caracteres`,
     )
     .optional(),
   transactionDate: dateSchema.optional(),
   categoryId: categoryIdSchema,
   notes: z
     .string()
-    .max(MAX_NOTES, `Notes must be at most ${MAX_NOTES} characters`)
+    .max(
+      MAX_NOTES,
+      `As observações devem ter no máximo ${MAX_NOTES} caracteres`,
+    )
     .nullable()
     .optional(),
 });
@@ -113,7 +119,10 @@ const updateTransactionSchema = z.object({
 const listTransactionsQuerySchema = z.object({
   type: transactionTypeSchema.optional(),
   origin: transactionOriginSchema.optional(),
-  categoryId: z.string().uuid('Category ID must be a valid UUID').optional(),
+  categoryId: z
+    .string()
+    .uuid('O ID da categoria deve ser um UUID válido')
+    .optional(),
   from: dateSchema.optional(),
   to: dateSchema.optional(),
   effective: z.enum(['yes', 'no', 'all']).optional(),
@@ -123,12 +132,15 @@ const listTransactionsQuerySchema = z.object({
 // InfinitePay redemption: the user informs the amount and date of the money
 // that actually entered the account. Multiple partial redemptions are allowed.
 const settlementSchema = z.object({
-  orderId: z.string().uuid('Order ID must be a valid UUID'),
-  amount: z.number().positive('Amount must be greater than zero'),
+  orderId: z.string().uuid('O ID do pedido deve ser um UUID válido'),
+  amount: z.number().positive('O valor deve ser maior que zero'),
   transactionDate: dateSchema,
   notes: z
     .string()
-    .max(MAX_NOTES, `Notes must be at most ${MAX_NOTES} characters`)
+    .max(
+      MAX_NOTES,
+      `As observações devem ter no máximo ${MAX_NOTES} caracteres`,
+    )
     .nullable()
     .optional(),
 });

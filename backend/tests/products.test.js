@@ -227,7 +227,7 @@ describe('Products CRUD', () => {
       });
 
       expect(response.status).toBe(401);
-      expect(response.body.error).toBe('Access token required');
+      expect(response.body.error).toBe('Token de acesso obrigatório');
     });
 
     it('should return 403 when invalid authentication token is provided', async () => {
@@ -244,7 +244,7 @@ describe('Products CRUD', () => {
         });
 
       expect(response.status).toBe(403);
-      expect(response.body.error).toBe('Invalid or expired token');
+      expect(response.body.error).toBe('Token inválido ou expirado');
     });
   });
 
@@ -903,7 +903,7 @@ describe('Products CRUD', () => {
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
-      expect(response.body.message).toBe('Product deactivated successfully');
+      expect(response.body.message).toBe('Produto desativado com sucesso');
 
       const product = await prisma.product.findUnique({
         where: { id: productId },

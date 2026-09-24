@@ -111,7 +111,7 @@ describe('API Interceptors', () => {
     it('should call Promise.reject with the original error on 403', async () => {
       const error = {
         response: { status: 403 },
-        message: 'Invalid or expired token',
+        message: 'Token inválido ou expirado',
       };
       await expect(onResponseError(error)).rejects.toBe(error);
     });

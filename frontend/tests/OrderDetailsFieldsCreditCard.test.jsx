@@ -122,7 +122,10 @@ describe('OrderDetailsFields credit-card fields', () => {
   it('shows the backend error when credit-card fields are missing', async () => {
     mockPost.mockRejectedValue({
       response: {
-        data: { error: 'Installments is required for credit card orders' },
+        data: {
+          error:
+            'A quantidade de parcelas é obrigatória para pedidos com cartão de crédito',
+        },
       },
     });
     renderPage();
@@ -136,7 +139,7 @@ describe('OrderDetailsFields credit-card fields', () => {
 
     expect(
       await screen.findByText(
-        'Installments is required for credit card orders',
+        'A quantidade de parcelas é obrigatória para pedidos com cartão de crédito',
       ),
     ).toBeInTheDocument();
   });
