@@ -2,6 +2,7 @@ import request from 'supertest';
 import app from '../src/app.js';
 import prisma from '../src/config/database.js';
 import { DEFAULT_CATEGORIES } from '../src/utils/financeDefaults.js';
+import { createTestUser } from './helpers/createTestUser.js';
 
 describe('Finances categories API', () => {
   let userId;
@@ -30,34 +31,18 @@ describe('Finances categories API', () => {
     await prisma.$disconnect();
   });
 
-  const register = async (prefix) => {
-    const username = `${prefix}_${Date.now()}_${Math.random()
-      .toString(16)
-      .slice(2)}`;
-
-    const registerRes = await request(app)
-      .post('/api/auth/register')
-      .send({ username, password: 'testpass123' });
-
-    const loginRes = await request(app)
-      .post('/api/auth/login')
-      .send({ username, password: 'testpass123' });
-
-    return { userId: registerRes.body.id, token: loginRes.body.token };
-  };
-
   const createUser = async () => {
-    const user = await register('fin_cat');
-    userId = user.userId;
-    authToken = user.token;
-    return user;
+    const { user, token } = await createTestUser('fin_cat');
+    userId = user.id;
+    authToken = token;
+    return { userId: user.id, token };
   };
 
   const createOtherUser = async () => {
-    const user = await register('fin_cat_other');
-    otherUserId = user.userId;
-    otherToken = user.token;
-    return user;
+    const { user, token } = await createTestUser('fin_cat_other');
+    otherUserId = user.id;
+    otherToken = token;
+    return { userId: user.id, token };
   };
 
   const getCategories = (token = authToken) =>
