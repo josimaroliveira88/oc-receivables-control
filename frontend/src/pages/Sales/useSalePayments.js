@@ -192,9 +192,7 @@ export function useSalePayments({ refreshSales, sales = [], loading = false }) {
       const msg =
         err.response?.data?.error ||
         'Erro ao registrar pagamento. Tente novamente.';
-      if (typeof msg === 'string' && msg.includes('pending balance')) {
-        addToast('Valor excede o saldo pendente', 'error');
-      } else if (typeof msg === 'string' && msg.includes('greater than zero')) {
+      if (typeof msg === 'string' && msg.includes('greater than zero')) {
         addToast('Valor deve ser maior que zero', 'error');
       } else {
         addToast(msg, 'error');

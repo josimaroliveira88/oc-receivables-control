@@ -1841,26 +1841,37 @@ describe('OrdersPayments', () => {
       });
     });
 
-    it('should map a backend "pending balance" error string to the PT-BR toast', async () => {
+    it('does not reach the pending-balance branch because overpayment is accepted', async () => {
       mockGetImplementation([mockOrders[0]]);
       renderPage();
       await openPaymentAction('order-1');
 
       const amountInput = screen.getByPlaceholderText('0,00');
-      fireEvent.change(amountInput, { target: { value: '10000' } });
+      fireEvent.change(amountInput, { target: { value: '99900' } });
 
-      mockPost.mockRejectedValue({
-        response: { data: { error: 'Amount exceeds pending balance' } },
+      mockPost.mockResolvedValue({
+        data: { id: 'pay-over', amount: '999.00', personId: 'p1' },
       });
+      mockGet.mockResolvedValue({ data: [] });
 
       const form = amountInput.closest('form');
       fireEvent.submit(form);
 
+      // Overpayment only asks for confirmation; the backend accepts it, so the
+      // old pending-balance error mapping can never be reached.
+      const dialog = await screen.findByRole('dialog');
+      fireEvent.click(
+        within(dialog).getByRole('button', { name: 'Confirmar recebimento' }),
+      );
+
       await waitFor(() => {
         expect(
-          screen.getByText('Valor excede o saldo pendente'),
+          screen.getByText('Pagamento registrado com sucesso!'),
         ).toBeInTheDocument();
       });
+      expect(
+        screen.queryByText('Valor excede o saldo pendente'),
+      ).not.toBeInTheDocument();
     });
   });
 });
