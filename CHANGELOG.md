@@ -9,6 +9,15 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 118 — Backend test-suite performance (2026-09-23)
+
+### Changed
+- **Cheap user fixtures in the finance suites**: `financeTransactions.test.js` and `financeCategories.test.js` no longer create a user per test through `POST /api/auth/register` + `POST /api/auth/login`, whose bcryptjs hashing (~100 ms per hash/compare) dominated their runtime. They now use the new `backend/tests/helpers/createTestUser.js`, which inserts the user directly with Prisma, seeds the default finance categories (mirroring `register`) and mints the JWT locally — preserving per-test isolation without the bcrypt cost. Auth-endpoint coverage stays in `auth.test.js`.
+- **Swagger spec skipped in tests**: `backend/vitest.config.js` aliases `src/docs/swagger.js` to the new `backend/tests/stubs/swagger.js`. The real module builds the OpenAPI spec at import time with swagger-jsdoc (globs and parses every route file, ~170 ms), a cost paid by every test file that imports the app; no test exercises `/api/docs`. Production code is untouched.
+
+### Tests
+- Backend suite: **911 passing** in ~52 s (was ~87–93 s) — `collect` 17.4 s → 8.4 s and `tests` 61.6 s → 33.3 s; `financeTransactions` 13.6 s → 0.78 s and `financeCategories` 6.2 s → 0.54 s. Frontend suite unaffected: **1074 passing**. Verification: `npm run lint` (backend) clean, `npm run format:check` clean, `git diff --check` clean.
+
 ## Phase 117 — Hooks de Pedidos e Vendas sem warnings do ESLint (2026-09-23)
 
 ### Fixed
