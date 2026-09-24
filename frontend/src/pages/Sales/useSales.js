@@ -414,7 +414,7 @@ export function useSales() {
     }
   };
 
-  const handleEditSale = (sale) => {
+  const handleEditSale = useCallback((sale) => {
     setEditSaleId(sale.id);
     setClientPersonId(sale.items?.[0]?.personId || '');
     setClientError('');
@@ -463,7 +463,7 @@ export function useSales() {
       items,
     });
     setShowEditModal(true);
-  };
+  }, []);
 
   const handleUpdateSale = async (e) => {
     e.preventDefault();
@@ -546,7 +546,10 @@ export function useSales() {
   }, [loadSupportData]);
 
   const fetchSalesRef = useRef(fetchSales);
-  fetchSalesRef.current = fetchSales;
+
+  useEffect(() => {
+    fetchSalesRef.current = fetchSales;
+  }, [fetchSales]);
 
   const saleFormValues = {
     clientPersonId,

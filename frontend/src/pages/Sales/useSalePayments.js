@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import { useToast } from '../../components/Toast';
@@ -515,28 +515,31 @@ export function useSalePayments({ refreshSales, sales = [], loading = false }) {
     setShowEditOverpayConfirm(false);
   };
 
-  const openDetailsModal = async (sale) => {
-    setDetailSale(sale);
-    setDetailBalances([]);
-    setDetailLoading(true);
-    setShowDetailsModal(true);
-
-    try {
-      const response = await api.get(`/orders/${sale.id}/balance`);
-      setDetailBalances(response.data.balances || []);
-    } catch (_err) {
-      addToast('Erro ao carregar detalhamento da venda.', 'error');
-      closeDetailsModal();
-    } finally {
-      setDetailLoading(false);
-    }
-  };
-
-  const closeDetailsModal = () => {
+  const closeDetailsModal = useCallback(() => {
     setShowDetailsModal(false);
     setDetailSale(null);
     setDetailBalances([]);
-  };
+  }, []);
+
+  const openDetailsModal = useCallback(
+    async (sale) => {
+      setDetailSale(sale);
+      setDetailBalances([]);
+      setDetailLoading(true);
+      setShowDetailsModal(true);
+
+      try {
+        const response = await api.get(`/orders/${sale.id}/balance`);
+        setDetailBalances(response.data.balances || []);
+      } catch (_err) {
+        addToast('Erro ao carregar detalhamento da venda.', 'error');
+        closeDetailsModal();
+      } finally {
+        setDetailLoading(false);
+      }
+    },
+    [addToast, closeDetailsModal],
+  );
 
   const getDetailPersonItems = (personId) =>
     getPersonItems(detailSale, personId);

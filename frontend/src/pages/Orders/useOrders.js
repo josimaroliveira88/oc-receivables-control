@@ -686,78 +686,81 @@ export function useOrders() {
     }
   };
 
-  const handleEditOrder = (order) => {
-    setEditOrderId(order.id);
-    setOrderNumber(order.orderNumber);
-    setOrderNumberBlurred(true);
-    setOrderNumberError('');
-    setItemErrors({});
-    setError('');
-    const orderDate = order.orderDate
-      ? order.orderDate.split('T')[0]
-      : getTodayString();
-    setOrderDate(orderDate);
-    setIsTeamOrder(Boolean(order.isTeamOrder));
-    setAccountOwner(order.accountOwner || '');
-    setPaymentType(order.paymentType || '');
-    setInstallments(
-      order.installments != null ? String(order.installments) : '1',
-    );
-    setFirstInstallmentAt(
-      order.firstInstallmentAt ? order.firstInstallmentAt.split('T')[0] : '',
-    );
-    setOrderNotes(order.orderNotes || '');
-    setDoterraPv(
-      order.doterraPv != null ? String(parseFloat(order.doterraPv)) : '',
-    );
-    setAttachmentFile(null);
-    setAttachmentRemoved(false);
-    const shippingValue =
-      order.shippingValue != null
-        ? String(parseFloat(order.shippingValue))
-        : '';
-    setShippingValue(shippingValue);
-    setShippingValueError('');
-    const items = order.items.map(editItemFromApi);
-    setItems(items);
-    const rows = spreadsheetRowsFromItems(items);
-    setSpreadsheetRows(rows);
-    setSpreadsheetInitial(rows);
-    setRowErrors({});
-    setRowsError('');
-    applyEntryMode(defaultEntryMode);
-    // Team orders created before the order-level client existed keep their
-    // per-item persons when those differ; when every item shares the same
-    // person (or none), the form adopts the new order-level client mode.
-    const {
-      usesOrderLevelClient: orderLevelClient,
-      teamPersonId: orderClientId,
-    } = order.isTeamOrder
-      ? deriveTeamClientFromItems(order.items)
-      : { usesOrderLevelClient: true, teamPersonId: '' };
-    setUsesOrderLevelClient(orderLevelClient);
-    setTeamPersonId(orderClientId);
-    setTeamPersonIdError('');
-    setOrderFormInitial({
-      orderNumber: order.orderNumber,
-      orderDate,
-      isTeamOrder: Boolean(order.isTeamOrder),
-      accountOwner: order.accountOwner || '',
-      paymentType: order.paymentType || '',
-      installments:
+  const handleEditOrder = useCallback(
+    (order) => {
+      setEditOrderId(order.id);
+      setOrderNumber(order.orderNumber);
+      setOrderNumberBlurred(true);
+      setOrderNumberError('');
+      setItemErrors({});
+      setError('');
+      const orderDate = order.orderDate
+        ? order.orderDate.split('T')[0]
+        : getTodayString();
+      setOrderDate(orderDate);
+      setIsTeamOrder(Boolean(order.isTeamOrder));
+      setAccountOwner(order.accountOwner || '');
+      setPaymentType(order.paymentType || '');
+      setInstallments(
         order.installments != null ? String(order.installments) : '1',
-      firstInstallmentAt: order.firstInstallmentAt
-        ? order.firstInstallmentAt.split('T')[0]
-        : '',
-      orderNotes: order.orderNotes || '',
-      doterraPv:
+      );
+      setFirstInstallmentAt(
+        order.firstInstallmentAt ? order.firstInstallmentAt.split('T')[0] : '',
+      );
+      setOrderNotes(order.orderNotes || '');
+      setDoterraPv(
         order.doterraPv != null ? String(parseFloat(order.doterraPv)) : '',
-      shippingValue,
-      teamPersonId: orderClientId,
-      items,
-    });
-    setShowEditModal(true);
-  };
+      );
+      setAttachmentFile(null);
+      setAttachmentRemoved(false);
+      const shippingValue =
+        order.shippingValue != null
+          ? String(parseFloat(order.shippingValue))
+          : '';
+      setShippingValue(shippingValue);
+      setShippingValueError('');
+      const items = order.items.map(editItemFromApi);
+      setItems(items);
+      const rows = spreadsheetRowsFromItems(items);
+      setSpreadsheetRows(rows);
+      setSpreadsheetInitial(rows);
+      setRowErrors({});
+      setRowsError('');
+      applyEntryMode(defaultEntryMode);
+      // Team orders created before the order-level client existed keep their
+      // per-item persons when those differ; when every item shares the same
+      // person (or none), the form adopts the new order-level client mode.
+      const {
+        usesOrderLevelClient: orderLevelClient,
+        teamPersonId: orderClientId,
+      } = order.isTeamOrder
+        ? deriveTeamClientFromItems(order.items)
+        : { usesOrderLevelClient: true, teamPersonId: '' };
+      setUsesOrderLevelClient(orderLevelClient);
+      setTeamPersonId(orderClientId);
+      setTeamPersonIdError('');
+      setOrderFormInitial({
+        orderNumber: order.orderNumber,
+        orderDate,
+        isTeamOrder: Boolean(order.isTeamOrder),
+        accountOwner: order.accountOwner || '',
+        paymentType: order.paymentType || '',
+        installments:
+          order.installments != null ? String(order.installments) : '1',
+        firstInstallmentAt: order.firstInstallmentAt
+          ? order.firstInstallmentAt.split('T')[0]
+          : '',
+        orderNotes: order.orderNotes || '',
+        doterraPv:
+          order.doterraPv != null ? String(parseFloat(order.doterraPv)) : '',
+        shippingValue,
+        teamPersonId: orderClientId,
+        items,
+      });
+      setShowEditModal(true);
+    },
+    [applyEntryMode, defaultEntryMode],
+  );
 
   const handleUpdateOrder = async (e) => {
     e.preventDefault();
@@ -823,7 +826,10 @@ export function useOrders() {
   }, [loadSupportData]);
 
   const fetchOrdersRef = useRef(fetchOrders);
-  fetchOrdersRef.current = fetchOrders;
+
+  useEffect(() => {
+    fetchOrdersRef.current = fetchOrders;
+  }, [fetchOrders]);
 
   const orderFormValues = {
     orderNumber,
