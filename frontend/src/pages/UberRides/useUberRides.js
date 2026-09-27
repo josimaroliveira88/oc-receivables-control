@@ -108,6 +108,13 @@ export function useUberRides() {
 
   const summary = useMemo(() => summarizeRides(rides), [rides]);
 
+  // Totalizer for the currently applied filter: same shape as `summary`, but
+  // derived from the visible (filtered) rides.
+  const visibleSummary = useMemo(
+    () => summarizeRides(visibleRides),
+    [visibleRides],
+  );
+
   const setRideField = useCallback((rideId, patch) => {
     setSelections((previous) => ({
       ...previous,
@@ -233,6 +240,7 @@ export function useUberRides() {
     setFilters,
     resetFilters,
     summary,
+    visibleSummary,
     selections,
     selectedItems,
     selectedTotalCents,

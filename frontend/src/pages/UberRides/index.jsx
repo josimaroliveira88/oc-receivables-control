@@ -35,6 +35,7 @@ const UberRides = () => {
     setFilters,
     resetFilters,
     summary,
+    visibleSummary,
     selections,
     selectedItems,
     selectedTotalCents,
@@ -198,6 +199,41 @@ const UberRides = () => {
                 Limpar filtros
               </button>
             )}
+          </div>
+
+          <div
+            data-testid="uber-rides-filter-totalizer"
+            className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-lg border border-line bg-base px-4 py-3"
+          >
+            <p className="text-sm text-ink-soft">
+              <span
+                data-testid="uber-rides-filter-count"
+                className="font-semibold text-ink"
+              >
+                {visibleSummary.total}
+              </span>{' '}
+              corrida(s) no filtro
+            </p>
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-ink-soft">
+              <p>
+                Total:{' '}
+                <span
+                  data-testid="uber-rides-filter-total"
+                  className="font-semibold text-ink"
+                >
+                  {formatBRL(fromCents(visibleSummary.totalCents))}
+                </span>
+              </p>
+              <p>
+                A lançar:{' '}
+                <span
+                  data-testid="uber-rides-filter-pending"
+                  className="font-semibold text-ink"
+                >
+                  {formatBRL(fromCents(visibleSummary.pendingCents))}
+                </span>
+              </p>
+            </div>
           </div>
 
           <UberRidesTable

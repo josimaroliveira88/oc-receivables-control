@@ -73,6 +73,7 @@ export const summarizeRides = (rides = []) => {
     completed: completed.length,
     cancelled: rides.length - completed.length,
     launched: rides.filter((ride) => ride.launched).length,
+    totalCents: rides.reduce((total, ride) => total + ride.amountCents, 0),
     pendingCents: completed
       .filter((ride) => !ride.launched)
       .reduce((total, ride) => total + ride.amountCents, 0),
