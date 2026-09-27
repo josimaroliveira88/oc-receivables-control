@@ -9,6 +9,23 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 120 — Extensão do Chrome para captura das corridas do Uber (2026-09-27)
+
+### Added
+- **Extensão do Chrome (uso pessoal, não publicada)**: `tools/uber-rides-extension/` replica o script do Tampermonkey (`tools/uber-rides/`, mantido como alternativa) como extensão MV3 carregada sem compactação. Coleta as corridas dos perfis **pessoal** e **família** na sessão do próprio usuário e copia o mesmo JSON que você cola na tela **Corridas**. Arquivos: `tools/uber-rides-extension/manifest.json`, `src/page/content.js` (mundo MAIN: gancho em `fetch`/`XMLHttpRequest` que reaproveita o `x-csrf-token` da chamada GraphQL da página + coleta paginada e redução das atividades), `src/ui/content.js` (mundo ISOLATED: caixa flutuante, `chrome.storage.local`, área de transferência e ponte do popup), `src/popup/popup.html` e `src/popup/popup.js`, `scripts/make-icons.mjs` (gera os ícones 16/48/128 sem dependências externas) e `README.md`.
+- **Popup da barra de ferramentas**: mostra se a sessão do Uber já foi detectada na aba ativa, dispara a captura remotamente (**Capturar agora**) e abre `riders.uber.com` (**Abrir riders.uber.com**).
+- **Últimas datas lembradas**: a janela usada é persistida em `chrome.storage.local` e pré-preenchida na próxima captura; sem valor salvo, o padrão continua sendo hoje até 35 dias atrás.
+- **Rótulo de build visível**: a caixa flutuante, o popup e os logs do console exibem `vX.Y.Z · label` (ex.: `v0.3.0 · self-contained`), para confirmar a olho nu que o Chrome carregou um build novo e diagnosticar cache da extensão.
+
+### Changed
+- Nenhuma mudança no backend ou no frontend: o envelope JSON e o contrato de importação (`/api/uber/rides/import`) permanecem idênticos aos do userscript.
+
+### Fixed
+- **`namespace.constants is undefined` na extensão**: a primeira versão dividia os content scripts em vários arquivos que compartilhavam `globalThis.__UBER_RIDES_CAPTURE__` e declarava `src/lib/constants.js` nos dois blocos do manifesto. O Chrome injetou esse arquivo **uma única vez** (no primeiro bloco), deixando o mundo isolado sem o namespace e derrubando `bridge.js`/`ui/index.js` antes de registrarem o listener do popup — daí o popup responder "não foi possível falar com a página" mesmo após recarregar. A correção tornou **cada mundo um arquivo único e autocontido** (`src/page/content.js` e `src/ui/content.js`), sem dependência de ordem de injeção nem de namespace compartilhado.
+
+### Tests
+- Sem testes automatizados (mesma decisão do userscript): o código depende de DOM, `window.fetch`/`XMLHttpRequest` e APIs da extensão. Verificação manual fim a fim no Chrome: as duas linhas de console (`MAIN` e `ISOLATED`) no mesmo build, captura paginada (`FAMILY: 43 corrida(s)`) e o JSON importado com sucesso na tela Corridas. `node --check` nos scripts, `manifest.json` válido e `npm run format:check` limpo.
+
 ## Phase 119 — Corridas do Uber: importação do JSON, lançamento no financeiro e tipo de corrida (2026-09-27)
 
 ### Added
