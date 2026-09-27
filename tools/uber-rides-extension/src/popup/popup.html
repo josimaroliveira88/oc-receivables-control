@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        margin: 0;
+        width: 280px;
+        font:
+          13px/1.45 system-ui,
+          sans-serif;
+        background: #fff;
+        color: #111;
+      }
+      header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        padding: 12px 12px 8px;
+        font-weight: 600;
+      }
+      header span {
+        font-size: 10px;
+        color: #999;
+        font-weight: 400;
+      }
+      main {
+        padding: 0 12px 12px;
+      }
+      p {
+        margin: 0 0 10px;
+        min-height: 32px;
+        font-size: 12px;
+        color: #555;
+      }
+      p[data-kind='ok'] {
+        color: #2f9e44;
+      }
+      p[data-kind='warn'] {
+        color: #d6336c;
+      }
+      button {
+        width: 100%;
+        padding: 8px;
+        border: 0;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      button + button {
+        margin-top: 6px;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      #capture {
+        background: #d6336c;
+        color: #fff;
+      }
+      #open {
+        background: #f1f3f5;
+        color: #111;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <strong>Corridas Uber</strong>
+      <span id="version"></span>
+    </header>
+    <main>
+      <p id="status" data-kind="info">Verificando…</p>
+      <button id="capture" type="button" disabled>Capturar agora</button>
+      <button id="open" type="button">Abrir riders.uber.com</button>
+    </main>
+    <script src="../lib/constants.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

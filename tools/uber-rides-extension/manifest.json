@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Corridas Uber — Capture",
+  "version": "0.3.0",
+  "description": "Captura a lista de corridas do Uber (perfis pessoal e família) e copia um JSON para colar no Controle de Recebíveis.",
+  "minimum_chrome_version": "111",
+  "icons": {
+    "16": "icons/16.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+  "permissions": ["clipboardWrite", "storage"],
+  "host_permissions": ["https://riders.uber.com/*"],
+  "action": {
+    "default_title": "Corridas Uber — Capture",
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "icons/16.png",
+      "48": "icons/48.png",
+      "128": "icons/128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://riders.uber.com/*"],
+      "js": ["src/page/content.js"],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": false
+    },
+    {
+      "matches": ["https://riders.uber.com/*"],
+      "js": ["src/ui/content.js"],
+      "run_at": "document_start",
+      "world": "ISOLATED",
+      "all_frames": false
+    }
+  ]
+}
