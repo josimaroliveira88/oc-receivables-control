@@ -9,6 +9,14 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 121 — Totalizador por filtro na tela Corridas (2026-09-27)
+
+### Added
+- **Totalizador de acordo com o filtro aplicado**: abaixo da barra de filtros, a tela **Corridas** (`/uber-rides`) passou a exibir uma barra que acompanha os filtros ativos, mostrando a **quantidade** de corridas visíveis, o **Total** (soma dos valores da lista filtrada) e o **A lançar** (soma das corridas concluídas ainda não lançadas). O totalizador é distinto dos cards globais do topo da tela, que continuam refletindo todas as corridas importadas. `summarizeRides` (`frontend/src/pages/UberRides/utils/uberRideHelpers.js`) ganhou o campo `totalCents`; `useUberRides` passou a expor `visibleSummary`, derivado de `visibleRides`. Arquivos: `frontend/src/pages/UberRides/index.jsx`, `frontend/src/pages/UberRides/useUberRides.js`, `frontend/src/pages/UberRides/utils/uberRideHelpers.js`, `ARCHITECTURE.md`.
+
+### Tests
+- Dois testes em `frontend/tests/UberRidesPage.test.jsx` cobrindo o totalizador por perfil e por busca, e atualização de `frontend/tests/uberRideHelpers.test.js` para o novo `totalCents`. Suíte frontend: 1092 testes passando; `npm run lint`, `npm run build` e `npm run format:check` limpos.
+
 ## Phase 120 — Extensão do Chrome para captura das corridas do Uber (2026-09-27)
 
 ### Added
