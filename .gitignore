@@ -15,5 +15,6 @@ docs/*.csv
 docs/*.ofx
 docs/*.txt
 docs/*.har
+docs/*.json
 .opencode/oldagents/lgpd-auditor.md
 node_modules
