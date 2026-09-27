@@ -2,11 +2,11 @@
 
 ## Current State
 
-MVP and Phases 1-80 are complete (see `CHANGELOG.md`). The application provides authenticated, user-isolated client, order, receivables, payment, finances, export, stock, and dōTERRA product-catalog workflows, including KIT products with per-component stock control.
+MVP and Phases 1-80 are complete (see `CHANGELOG.md`). The application provides authenticated, user-isolated client, order, receivables, payment, finances, export, stock, and dōTERRA product-catalog workflows, including KIT products with per-component stock control. It also imports Uber ride lists (pasted JSON captured by the Tampermonkey script in `tools/uber-rides/`) and launches the selected rides as `UBER` expenses in the finances ledger.
 
 - Internal documentation and code comments: English.
 - User-facing content: Brazilian Portuguese (PT-BR).
-- Last recorded test result: 621 backend + 714 frontend = 1335 passing tests.
+- Last recorded test result: 944 backend + 1090 frontend = 2034 passing tests.
 
 ## Stack and Ports
 

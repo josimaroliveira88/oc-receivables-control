@@ -9,6 +9,33 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 119 — Corridas do Uber: importação do JSON, lançamento no financeiro e tipo de corrida (2026-09-27)
+
+### Added
+- **Tela de Corridas (Uber)**: nova rota `/uber-rides` com item de menu "Corridas" ao lado de Finanças. O usuário cola o JSON capturado do Uber, vê as corridas interpretadas (data, perfil, destino, familiar, valor, situação), marca as pertinentes, escolhe a categoria (padrão `Transporte`, editável por corrida) e o texto, e lança tudo como **despesa** no financeiro com origem `UBER`. Arquivos: `frontend/src/pages/UberRides/` (`index.jsx`, `useUberRides.js`, `components/UberRidesTable.jsx`, `components/UberRideSelectionPanel.jsx`, `components/UberRideImportModal.jsx`, `utils/uberRideHelpers.js`), `frontend/src/pages/UberRidesPage.jsx`, `frontend/src/services/uberRidesApi.js`.
+- **Modelo e API de corridas**: enums `RideSource` (`UBER_ACTIVITY_JSON`, `UBER_SESSION`, `UBER_EMAIL`, `UBER_BUSINESS`, `MANUAL`) e `RideStatus` (`COMPLETED`, `CANCELLED`), modelo `RideRecord` e a nova origem `UBER` no `FinancialOrigin`; endpoints `POST /api/uber/rides/import`, `GET /api/uber/rides`, `POST /api/uber/rides/expenses` e `DELETE /api/uber/rides/batch/:batchId`, todos com JWT e escopo por `userId` e registrados no Swagger. Migrations `20260927120000_add_uber_rides` e `20260927130000_add_ride_type`. Arquivos: `backend/src/services/uberRidesService.js`, `backend/src/utils/uberActivityParser.js`, `backend/src/validators/uberRidesValidator.js`, `backend/src/controllers/uberRidesController.js`, `backend/src/routes/uberRoutes.js`, `backend/src/app.js`.
+- **Parser do JSON do Uber** (`backend/src/utils/uberActivityParser.js`, puro e testado): valor em centavos inteiros (aceita `R$ 1.234,56`), familiar como último segmento de `description` que não é valor nem status, status `CANCELLED` quando há "cancelad", data/hora de `subtitle` em pt-BR com o **ano inferido pela janela** (cobre a virada dez/jan), descarte com aviso de `cardURL` sem `/trips/`, `uuid` ausente ou duplicado, valor/data inválidos, e deduplicação por `uuid`.
+- **Captura do lado do Uber (Fase 119b)**: `tools/uber-rides/uber-rides.user.js` (Tampermonkey, `@grant none`, `@run-at document-start`) observa os headers da chamada GraphQL da própria página, pagina a operação `Activities` nos perfis `PERSONAL` **e** `FAMILY` e copia o JSON reduzido com a janela e o offset do navegador; `tools/uber-rides/README.md` documenta instalação, uso e limitações. Baseado em `docs/UBER_RIDES_RECONCILIATION_PLAN.md`.
+- **Categoria padrão `Transporte`** para despesas, somada a `DEFAULT_CATEGORIES`/`ORIGIN_CATEGORY_NAMES` e **backfilled para os usuários existentes** na migration (`INSERT ... SELECT ... ON CONFLICT DO NOTHING`).
+- **Tipo da corrida**: enum `RideType` (`RIDE`, `DELIVERY`, `UNKNOWN`) no `RideRecord`, classificado pelo `imageURL` da atividade — asset de courier/moto = **Entrega**, asset de carro = **Passageiro**, mapa da rota (corrida destacada) ou sem imagem = **Não identificado**. Exposto como badge na nova coluna **Tipo** e como filtro na barra.
+- **Sem lançamentos duplicados**: a importação faz upsert por `[userId, source, externalId]` e o `FinancialTransaction.rideId` único garante que uma corrida gere no máximo uma despesa; a tela marca as corridas **Lançada**, desabilita o checkbox e o `POST /rides/expenses` rejeita corrida já lançada. Corridas canceladas são importadas, mas não podem ser lançadas.
+- **Desfazer importação**: `DELETE /api/uber/rides/batch/:batchId` remove as corridas do lote que ainda não têm lançamento, preservando as já lançadas (idempotente).
+
+### Changed
+- **Origem `UBER` visível nas Finanças**: incluída no enum Zod de origens, no `FinancialOrigin` do Swagger e nos rótulos/filtro de origem de `frontend/src/pages/Finances/utils/financeHelpers.js` (label "Corrida Uber").
+- **Menu com 8 destinos**: `frontend/src/utils/navigation.js` ganhou "Corridas" (ícone de carro) entre "Cartões de crédito" e "Finanças"; `navigation.test.js`, `Header.test.jsx` e `MobileDrawer.test.jsx` foram atualizados.
+- **Mapa de badges**: `frontend/src/utils/badgeStyles.js` passou a servir `RIDE_STATUS_CLASSES`, `RIDE_LAUNCHED_CLASSES` e `RIDE_TYPE_CLASSES` (tokens semânticos, sem cores cruas).
+- `.gitignore` passou a ignorar `docs/*.har` (capturas de rede não entram no repositório).
+
+### Fixed
+- **Horário da corrida deslocado em 3 horas**: `formatRideDateTime` formatava com os getters **locais** do navegador, enquanto o horário capturado é o relógio local da corrida — `07:43` aparecia como `04:43`. O horário passou a ser tratado como *wall-clock*: o parser monta com `Date.UTC` (independente do fuso do servidor, que roda em UTC no container) e a tela renderiza pelos componentes UTC; a captura envia `utcOffsetMinutes` (padrão `-180`) apenas para converter a janela de datas para o mesmo relógio. Arquivos: `backend/src/utils/uberActivityParser.js`, `frontend/src/pages/UberRides/utils/uberRideHelpers.js`, `tools/uber-rides/uber-rides.user.js`.
+
+### Tests
+- Backend: `uberActivityParser.test.js` (19 casos — valor com separador de milhar, cancelada mantendo o familiar no último segmento, mês por extenso, ano inferido na virada dez/jan, janela convertida pelo offset, `cardURL` sem `/trips/`, `uuid` ausente/duplicado, valor e data inválidos, envelope por perfis, resposta GraphQL crua, janela ausente, JSON inválido e a classificação de tipo), `uberRideImport.test.js` (import com tipo, Zod rejeitando payload inválido, idempotência, isolamento por `userId`, filtros e desfazer lote) e `uberRideExpenses.test.js` (categoria padrão e personalizada, duplicidade e corrida cancelada rejeitadas, corrida de outro usuário, desfazer lote preservando lançadas).
+- Frontend: `uberRideHelpers.test.js` (formatação sem deslocamento de fuso, rótulos, payload de lançamento, resumo e filtros) e `UberRidesPage.test.jsx` (estado vazio, listagem, corrida já lançada, importação do JSON, lançamento com categoria padrão e badge de tipo).
+- `financeDefaults.test.js`, `financeHelpers.test.js`, `navigation.test.js`, `Header.test.jsx` e `MobileDrawer.test.jsx` atualizados para a categoria `Transporte`, a origem `UBER` e o novo item de menu.
+- **944 backend + 1090 frontend** passando. Verificação: `npm run lint` (backend e frontend) limpo, `npm run build` e `npm run format:check` limpos.
+
 ## Phase 118 — Backend test-suite performance (2026-09-23)
 
 ### Changed
