@@ -19,6 +19,7 @@ model User {
   financialCategories   FinancialCategory[]
   financialTransactions FinancialTransaction[]
   creditCardBills       CreditCardBill[]
+  rides                 RideRecord[]
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
 }
@@ -294,6 +295,7 @@ enum FinancialOrigin {
   VENDA_ADICIONAL
   MANUAL
   CARTAO_CREDITO
+  UBER
 }
 
 model FinancialCategory {
@@ -355,12 +357,14 @@ model FinancialTransaction {
   orderId           String?
   paymentId         String?
   creditCardBillId  String?
+  rideId            String?                  @unique
   importBatchId     String?
   user              User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   category          FinancialCategory?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   order             Order?                   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   payment           Payment?                 @relation(fields: [paymentId], references: [id], onDelete: Cascade)
   creditCardBill    CreditCardBill?          @relation(fields: [creditCardBillId], references: [id], onDelete: Cascade)
+  ride              RideRecord?              @relation(fields: [rideId], references: [id], onDelete: SetNull)
   createdAt         DateTime                 @default(now())
   updatedAt         DateTime                 @updatedAt
 
@@ -370,5 +374,56 @@ model FinancialTransaction {
   @@index([userId, categoryId])
   @@index([userId, isEffective])
   @@index([orderId])
+  @@index([userId, importBatchId])
+}
+
+// A single Uber ride captured from the rider activity feed. `externalId` is the
+// ride UUID (stable across imports), which makes re-importing the same JSON
+// idempotent. The ride is linked to at most one ledger entry through
+// `FinancialTransaction.rideId`, so the same ride can never generate two
+// expenses.
+enum RideSource {
+  UBER_ACTIVITY_JSON
+  UBER_SESSION
+  UBER_EMAIL
+  UBER_BUSINESS
+  MANUAL
+}
+
+enum RideStatus {
+  COMPLETED
+  CANCELLED
+}
+
+// Delivery (courier/motorcycle) vs passenger ride. `UNKNOWN` covers the
+// featured activity, whose `imageURL` is a route map without a vehicle asset.
+enum RideType {
+  RIDE
+  DELIVERY
+  UNKNOWN
+}
+
+model RideRecord {
+  id            String     @id @default(uuid())
+  userId        String
+  source        RideSource
+  externalId    String     @db.VarChar(64)
+  profileType   String?    @db.VarChar(20)
+  riderName     String?    @db.VarChar(120)
+  requestedAt   DateTime
+  destination   String?    @db.VarChar(255)
+  amountCents   Int
+  currency      String     @default("BRL") @db.VarChar(3)
+  status        RideStatus @default(COMPLETED)
+  rideType      RideType   @default(UNKNOWN)
+  importBatchId String?
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transaction   FinancialTransaction?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@unique([userId, source, externalId])
+  @@index([userId, requestedAt])
+  @@index([userId, status])
   @@index([userId, importBatchId])
 }

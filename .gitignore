@@ -14,5 +14,6 @@ frontend/e2e/screenshots/
 docs/*.csv
 docs/*.ofx
 docs/*.txt
+docs/*.har
 .opencode/oldagents/lgpd-auditor.md
 node_modules

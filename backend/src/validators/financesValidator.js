@@ -12,6 +12,7 @@ const transactionOriginSchema = z.enum([
   'VENDA_ADICIONAL',
   'MANUAL',
   'CARTAO_CREDITO',
+  'UBER',
 ]);
 
 // `YYYY-MM-DD` calendar date. The regex alone accepts impossible dates like

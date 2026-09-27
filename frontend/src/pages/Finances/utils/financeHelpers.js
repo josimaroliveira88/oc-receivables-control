@@ -27,6 +27,7 @@ export const ORIGIN_FILTER_OPTIONS = [
   { value: 'VENDA_ADICIONAL', label: 'Adicional de venda' },
   { value: 'MANUAL', label: 'Manual' },
   { value: 'CARTAO_CREDITO', label: 'Cartão de crédito' },
+  { value: 'UBER', label: 'Corrida Uber' },
 ];
 
 export const ORIGIN_LABELS = {
@@ -36,6 +37,7 @@ export const ORIGIN_LABELS = {
   VENDA_ADICIONAL: 'Adicional de venda',
   MANUAL: 'Manual',
   CARTAO_CREDITO: 'Cartão de crédito',
+  UBER: 'Corrida Uber',
 };
 
 export const TYPE_LABELS = {

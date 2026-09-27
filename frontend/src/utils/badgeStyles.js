@@ -129,3 +129,19 @@ export const EFFECTIVENESS_CLASSES = {
   Efetiva: 'bg-success-soft text-success-fg',
   Pendente: 'bg-warning-soft text-warning-fg',
 };
+
+// Uber rides: completed rides can be launched; cancelled ones cannot.
+export const RIDE_STATUS_CLASSES = {
+  COMPLETED: 'bg-info-soft text-info-fg',
+  CANCELLED: 'bg-warning-soft text-warning-fg',
+};
+
+// A ride already launched in the ledger.
+export const RIDE_LAUNCHED_CLASSES = 'bg-success-soft text-success-fg';
+
+// Passenger ride vs delivery vs unclassified.
+export const RIDE_TYPE_CLASSES = {
+  RIDE: 'bg-info-soft text-info-fg',
+  DELIVERY: 'bg-warning-soft text-warning-fg',
+  UNKNOWN: 'bg-base text-ink-soft',
+};

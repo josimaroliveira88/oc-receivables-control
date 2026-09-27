@@ -78,6 +78,10 @@ app.use('/api/finances', financesRoutes);
 import creditCardsRoutes from './routes/creditCardsRoutes.js';
 app.use('/api/credit-cards', creditCardsRoutes);
 
+// Uber ride routes (ride import and ledger launching)
+import uberRoutes from './routes/uberRoutes.js';
+app.use('/api/uber', uberRoutes);
+
 // Product routes
 import productRoutes from './routes/productRoutes.js';
 app.use('/api/products', productRoutes);

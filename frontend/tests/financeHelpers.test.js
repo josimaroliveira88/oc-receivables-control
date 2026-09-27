@@ -34,6 +34,7 @@ describe('financeHelpers labels', () => {
       'VENDA_ADICIONAL',
       'MANUAL',
       'CARTAO_CREDITO',
+      'UBER',
     ]);
   });
 
@@ -50,6 +51,7 @@ describe('financeHelpers labels', () => {
     expect(originLabel('VENDA_ADICIONAL')).toBe('Adicional de venda');
     expect(originLabel('MANUAL')).toBe('Manual');
     expect(originLabel('CARTAO_CREDITO')).toBe('Cartão de crédito');
+    expect(originLabel('UBER')).toBe('Corrida Uber');
     expect(originLabel('NOPE')).toBe('—');
   });
 

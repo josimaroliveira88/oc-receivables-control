@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { navigationItems } from '../src/utils/navigation';
 
 describe('navigationItems', () => {
-  it('exposes the seven application destinations in order with Finanças last', () => {
+  it('exposes the eight application destinations in order with Finanças last', () => {
     expect(navigationItems.map(({ to }) => to)).toEqual([
       '/people',
       '/orders',
@@ -10,6 +10,7 @@ describe('navigationItems', () => {
       '/products',
       '/stock',
       '/credit-cards',
+      '/uber-rides',
       '/finances',
     ]);
   });
@@ -22,6 +23,7 @@ describe('navigationItems', () => {
       'Produtos',
       'Estoque',
       'Cartões de crédito',
+      'Corridas',
       'Finanças',
     ]);
   });

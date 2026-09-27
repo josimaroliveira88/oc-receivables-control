@@ -54,6 +54,11 @@ const options = {
           'Compras de cartão de crédito, parcelas e conciliação da fatura (OFX)',
       },
       {
+        name: 'Uber',
+        description:
+          'Importação de corridas do Uber e lançamento como despesa no financeiro',
+      },
+      {
         name: 'Products',
         description: 'Catálogo, tipos de preço, kits e composição',
       },
@@ -167,6 +172,7 @@ const options = {
             'VENDA_ADICIONAL',
             'MANUAL',
             'CARTAO_CREDITO',
+            'UBER',
           ],
         },
         FinancialTransaction: {
@@ -404,6 +410,106 @@ const options = {
                   statementFitid: { type: 'string', maxLength: 64 },
                   statementDate: { type: 'string', format: 'date' },
                   installmentId: { type: 'string', format: 'uuid' },
+                },
+              },
+            },
+          },
+        },
+        RideSource: {
+          type: 'string',
+          enum: [
+            'UBER_ACTIVITY_JSON',
+            'UBER_SESSION',
+            'UBER_EMAIL',
+            'UBER_BUSINESS',
+            'MANUAL',
+          ],
+        },
+        RideStatus: {
+          type: 'string',
+          enum: ['COMPLETED', 'CANCELLED'],
+        },
+        RideType: {
+          type: 'string',
+          enum: ['RIDE', 'DELIVERY', 'UNKNOWN'],
+        },
+        RideRecord: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            source: { $ref: '#/components/schemas/RideSource' },
+            externalId: { type: 'string' },
+            profileType: { type: 'string', nullable: true },
+            riderName: { type: 'string', nullable: true },
+            requestedAt: { type: 'string', format: 'date-time' },
+            destination: { type: 'string', nullable: true },
+            amountCents: { type: 'integer' },
+            currency: { type: 'string', example: 'BRL' },
+            status: { $ref: '#/components/schemas/RideStatus' },
+            rideType: { $ref: '#/components/schemas/RideType' },
+            importBatchId: { type: 'string', format: 'uuid', nullable: true },
+            launched: {
+              type: 'boolean',
+              description:
+                'Já existe um lançamento no financeiro para a corrida',
+            },
+            transactionId: {
+              type: 'string',
+              format: 'uuid',
+              nullable: true,
+            },
+          },
+        },
+        RideImportInput: {
+          type: 'object',
+          required: ['json'],
+          properties: {
+            source: { $ref: '#/components/schemas/RideSource' },
+            windowStart: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Sobrepõe a janela contida no JSON',
+            },
+            windowEnd: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Sobrepõe a janela contida no JSON',
+            },
+            json: {
+              type: 'string',
+              description: 'JSON gerado pelo script de captura do Uber',
+            },
+          },
+        },
+        RideImportSummary: {
+          type: 'object',
+          properties: {
+            batchId: { type: 'string', format: 'uuid' },
+            total: { type: 'integer' },
+            created: { type: 'integer' },
+            updated: { type: 'integer' },
+            cancelled: { type: 'integer' },
+            warnings: { type: 'array', items: { type: 'string' } },
+          },
+        },
+        RideExpenseInput: {
+          type: 'object',
+          required: ['items'],
+          properties: {
+            items: {
+              type: 'array',
+              minItems: 1,
+              items: {
+                type: 'object',
+                required: ['rideId'],
+                properties: {
+                  rideId: { type: 'string', format: 'uuid' },
+                  categoryId: {
+                    type: 'string',
+                    format: 'uuid',
+                    nullable: true,
+                  },
+                  description: { type: 'string', nullable: true },
                 },
               },
             },

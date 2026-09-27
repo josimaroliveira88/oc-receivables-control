@@ -52,6 +52,7 @@ describe('financeDefaults', () => {
       expect(despesas.map((c) => c.name)).toEqual([
         'Compra de produtos dōTERRA',
         'Frete',
+        'Transporte',
         'Taxas de gateway',
         'Material de escritório',
         'Eventos',
@@ -74,6 +75,7 @@ describe('financeDefaults', () => {
       expect(getDefaultCategoryName('CARTAO_CREDITO')).toBe(
         'Compra de produtos dōTERRA',
       );
+      expect(getDefaultCategoryName('UBER')).toBe('Transporte');
     });
 
     it('returns null for manual entries and unknown origins', () => {
@@ -88,6 +90,7 @@ describe('financeDefaults', () => {
         'RESGATE_INFINITEPAY',
         'PEDIDO_DOTERRA',
         'CARTAO_CREDITO',
+        'UBER',
         'MANUAL',
       ]);
     });

@@ -12,6 +12,7 @@ const DEFAULT_CATEGORIES = [
   { type: 'RECEITA', name: 'Outras receitas' },
   { type: 'DESPESA', name: 'Compra de produtos dōTERRA' },
   { type: 'DESPESA', name: 'Frete' },
+  { type: 'DESPESA', name: 'Transporte' },
   { type: 'DESPESA', name: 'Taxas de gateway' },
   { type: 'DESPESA', name: 'Material de escritório' },
   { type: 'DESPESA', name: 'Eventos' },
@@ -26,6 +27,7 @@ const ORIGIN_CATEGORY_NAMES = {
   RESGATE_INFINITEPAY: 'Vendas',
   PEDIDO_DOTERRA: 'Compra de produtos dōTERRA',
   CARTAO_CREDITO: 'Compra de produtos dōTERRA',
+  UBER: 'Transporte',
   MANUAL: null,
 };
 

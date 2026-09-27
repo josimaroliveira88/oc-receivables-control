@@ -43,6 +43,7 @@ describe('Header', () => {
     expect(screen.getByText('Produtos')).toBeInTheDocument();
     expect(screen.getByText('Estoque')).toBeInTheDocument();
     expect(screen.getByText('Cartões de crédito')).toBeInTheDocument();
+    expect(screen.getByText('Corridas')).toBeInTheDocument();
     expect(screen.getByText('Finanças')).toBeInTheDocument();
   });
 
@@ -64,6 +65,7 @@ describe('Header', () => {
       'Produtos',
       'Estoque',
       'Cartões de crédito',
+      'Corridas',
       'Finanças',
     ]);
   });
