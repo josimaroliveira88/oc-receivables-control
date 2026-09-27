@@ -91,6 +91,79 @@ describe('UberRidesPage', () => {
     );
   });
 
+  it('totalizes the rides according to the applied filter', async () => {
+    mockApi({
+      rides: [
+        ride({ id: 'r1', amountCents: 3293, profileType: 'FAMILY' }),
+        ride({
+          id: 'r2',
+          amountCents: 1000,
+          profileType: 'PERSONAL',
+          destination: 'Centro',
+        }),
+        ride({
+          id: 'r3',
+          amountCents: 500,
+          profileType: 'FAMILY',
+          destination: 'Aeroporto',
+          launched: true,
+          transactionId: 'tx-3',
+        }),
+      ],
+    });
+    renderPage();
+
+    expect(
+      await screen.findByTestId('uber-rides-filter-count'),
+    ).toHaveTextContent('3');
+    expect(screen.getByTestId('uber-rides-filter-total')).toHaveTextContent(
+      /47,93/,
+    );
+    expect(screen.getByTestId('uber-rides-filter-pending')).toHaveTextContent(
+      /42,93/,
+    );
+
+    fireEvent.change(screen.getByTestId('uber-ride-filter-profile'), {
+      target: { value: 'FAMILY' },
+    });
+
+    expect(screen.getByTestId('uber-rides-filter-count')).toHaveTextContent(
+      '2',
+    );
+    expect(screen.getByTestId('uber-rides-filter-total')).toHaveTextContent(
+      /37,93/,
+    );
+    expect(screen.getByTestId('uber-rides-filter-pending')).toHaveTextContent(
+      /32,93/,
+    );
+  });
+
+  it('reflects the search filter in the totalizer', async () => {
+    mockApi({
+      rides: [
+        ride({
+          id: 'r1',
+          amountCents: 3293,
+          destination: 'Duo Residence Mall',
+        }),
+        ride({ id: 'r2', amountCents: 1000, destination: 'Centro' }),
+      ],
+    });
+    renderPage();
+
+    await screen.findByTestId('uber-rides-filter-count');
+    fireEvent.change(screen.getByTestId('uber-ride-filter-search'), {
+      target: { value: 'centro' },
+    });
+
+    expect(screen.getByTestId('uber-rides-filter-count')).toHaveTextContent(
+      '1',
+    );
+    expect(screen.getByTestId('uber-rides-filter-total')).toHaveTextContent(
+      /10,00/,
+    );
+  });
+
   it('flags a delivery ride', async () => {
     mockApi({ rides: [ride({ rideType: 'DELIVERY' })] });
     renderPage();

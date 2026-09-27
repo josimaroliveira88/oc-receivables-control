@@ -103,6 +103,7 @@ describe('uberRideHelpers', () => {
       completed: 2,
       cancelled: 1,
       launched: 1,
+      totalCents: 4993,
       pendingCents: 3293,
     });
   });
