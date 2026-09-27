@@ -36,6 +36,17 @@ describe('Uber ride import', () => {
     user = await createTestUser('uber_import');
   });
 
+  // Each test imports its own rides, so the accumulated rows of one test would
+  // otherwise show up in the next one's list assertions. The suite only passes
+  // in declaration order without this.
+  afterEach(async () => {
+    if (!user) return;
+    await prisma.financialTransaction.deleteMany({
+      where: { userId: user.user.id },
+    });
+    await prisma.rideRecord.deleteMany({ where: { userId: user.user.id } });
+  });
+
   afterAll(async () => {
     if (user) {
       await prisma.financialTransaction.deleteMany({
@@ -138,12 +149,29 @@ describe('Uber ride import', () => {
   });
 
   it('filters rides by status and launch state', async () => {
+    // Bring its own data: asserting `every(...)` on an empty list would pass
+    // without exercising the filter at all.
+    await importRides({
+      json: JSON.stringify(
+        envelope([
+          activity({ uuid: 'filter-completed', description: 'R$32,93 • Ana' }),
+          activity({
+            uuid: 'filter-cancelled',
+            description: 'R$12,00 • Cancelada',
+          }),
+        ]),
+      ),
+    });
+
     const completed = await listRides(user.token, '?status=COMPLETED');
+    expect(completed.body).toHaveLength(1);
+    expect(completed.body[0].externalId).toBe('filter-completed');
     expect(completed.body.every((row) => row.status === 'COMPLETED')).toBe(
       true,
     );
 
     const pending = await listRides(user.token, '?launched=no');
+    expect(pending.body).toHaveLength(2);
     expect(pending.body.every((row) => row.launched === false)).toBe(true);
   });
 
