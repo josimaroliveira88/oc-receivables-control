@@ -5,7 +5,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import SalesPage from '../src/pages/SalesPage';
 import { ToastProvider } from '../src/components/Toast';
@@ -13,6 +13,16 @@ import { ToastProvider } from '../src/components/Toast';
 const mockGet = vi.fn();
 const mockPost = vi.fn();
 const mockPut = vi.fn();
+
+// Ledger rows returned by `GET /finances/transactions`; reset per test.
+let mockLedgerRows = [];
+
+const RouteProbe = () => {
+  const location = useLocation();
+  return (
+    <div data-testid="route-probe">{location.pathname + location.search}</div>
+  );
+};
 
 vi.mock('../src/services/api', () => ({
   default: {
@@ -169,6 +179,8 @@ const mockGetImplementation = (salesData = []) => {
     if (url === '/people') return Promise.resolve({ data: [] });
     if (url.startsWith('/products'))
       return Promise.resolve({ data: { data: [] } });
+    if (url.startsWith('/finances/transactions'))
+      return Promise.resolve({ data: mockLedgerRows });
     const balanceMatch = url.match(/^\/orders\/(.+)\/balance$/);
     if (balanceMatch) {
       const saleId = balanceMatch[1];
@@ -185,6 +197,7 @@ const renderPage = () => {
     <MemoryRouter>
       <ToastProvider>
         <SalesPage />
+        <RouteProbe />
       </ToastProvider>
     </MemoryRouter>,
   );
@@ -225,6 +238,7 @@ const openDetailsAction = async (saleId) => {
 describe('SalesPayments', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockLedgerRows = [];
   });
 
   describe('Payment Modal', () => {
@@ -680,6 +694,96 @@ describe('SalesPayments', () => {
       });
       const modal = within(screen.getByTestId('sale-details-modal'));
       expect(modal.getByText('Detalhamento — V-0002')).toBeInTheDocument();
+    });
+
+    describe('ledger rows', () => {
+      const ledgerRow = (overrides = {}) => ({
+        id: 'tx-1',
+        type: 'RECEITA',
+        origin: 'VENDA',
+        amount: '200.00',
+        description: 'Venda V-0002 — João Silva',
+        transactionDate: '2026-08-05T00:00:00.000Z',
+        notes: null,
+        isEffective: true,
+        installmentNumber: null,
+        installmentsTotal: null,
+        paymentType: null,
+        feeAmount: null,
+        category: null,
+        orderId: 'sale-detail',
+        ...overrides,
+      });
+
+      const openWithLedger = async (rows) => {
+        mockLedgerRows = rows;
+        mockGetImplementation([detailSale]);
+        renderPage();
+        await openDetailsAction('sale-detail');
+        await waitFor(() =>
+          expect(
+            screen.getByText('Lançamentos no financeiro'),
+          ).toBeInTheDocument(),
+        );
+        return within(screen.getByTestId('sale-details-modal'));
+      };
+
+      it('fetches the ledger rows linked to the opened sale', async () => {
+        await openWithLedger([]);
+
+        expect(mockGet).toHaveBeenCalledWith('/finances/transactions', {
+          params: { orderId: 'sale-detail' },
+        });
+      });
+
+      it('shows an empty state when the sale has no ledger rows', async () => {
+        const modal = await openWithLedger([]);
+
+        expect(
+          modal.getByText('Nenhum lançamento no financeiro'),
+        ).toBeInTheDocument();
+        expect(
+          modal.queryByTestId('details-ledger-action'),
+        ).not.toBeInTheDocument();
+      });
+
+      it('offers a direct link when the sale has a single ledger row', async () => {
+        const modal = await openWithLedger([ledgerRow()]);
+
+        expect(
+          modal.getByText('Venda V-0002 — João Silva'),
+        ).toBeInTheDocument();
+        const action = modal.getByTestId('details-ledger-action');
+        expect(action).toHaveTextContent('Ver lançamento no financeiro');
+
+        fireEvent.click(action);
+        expect(screen.getByTestId('route-probe')).toHaveTextContent(
+          '/finances?orderId=sale-detail&transactionId=tx-1',
+        );
+      });
+
+      it('offers the filtered ledger link when the sale has several rows', async () => {
+        const modal = await openWithLedger([
+          ledgerRow(),
+          ledgerRow({
+            id: 'tx-2',
+            origin: 'RESGATE_INFINITEPAY',
+            description: 'Resgate InfinitePay — Venda V-0002',
+            amount: '180.00',
+          }),
+        ]);
+
+        expect(
+          modal.getByText('Resgate InfinitePay — Venda V-0002'),
+        ).toBeInTheDocument();
+        const action = modal.getByTestId('details-ledger-action');
+        expect(action).toHaveTextContent('Ver 2 lançamentos no financeiro');
+
+        fireEvent.click(action);
+        expect(screen.getByTestId('route-probe')).toHaveTextContent(
+          '/finances?orderId=sale-detail',
+        );
+      });
     });
   });
 

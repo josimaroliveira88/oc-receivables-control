@@ -385,6 +385,131 @@ describe('Finances transactions API', () => {
       expect(response.body).toHaveLength(2);
     });
 
+    describe('orderId filter', () => {
+      const seedLinked = async (order, data = {}) =>
+        prisma.financialTransaction.create({
+          data: {
+            userId,
+            type: data.type ?? 'DESPESA',
+            origin: data.origin ?? 'PEDIDO_DOTERRA',
+            amount: data.amount ?? '100.00',
+            description: data.description ?? 'Pedido dōTERRA 1',
+            transactionDate: parseLocalDate(
+              data.transactionDate ?? '2026-09-19',
+            ),
+            orderId: order.id,
+          },
+        });
+
+      const createOrder = (overrides = {}) =>
+        prisma.order.create({
+          data: {
+            orderNumber: `FILT-${Math.random().toString(36).slice(2, 8)}`,
+            totalValue: '100.00',
+            userId,
+            ...overrides,
+          },
+        });
+
+      it('returns only the transactions linked to the order', async () => {
+        await createUser();
+        const order = await createOrder();
+        const otherOrder = await createOrder();
+        await seedLinked(order, { description: 'Do pedido' });
+        await seedLinked(order, { description: 'Outro do pedido' });
+        await seedLinked(otherOrder, { description: 'De outro pedido' });
+        await seedManual({ description: 'Manual avulso' });
+
+        const response = await listTransactions(`?orderId=${order.id}`);
+
+        expect(response.body).toHaveLength(2);
+        expect(response.body.map((t) => t.description).sort()).toEqual([
+          'Do pedido',
+          'Outro do pedido',
+        ]);
+      });
+
+      it('returns an empty list when the order has no transactions', async () => {
+        await createUser();
+        const order = await createOrder();
+        await seedLinked(order, { description: 'Vinculado' });
+
+        const response = await listTransactions(
+          `?orderId=${crypto.randomUUID()}`,
+        );
+
+        expect(response.body).toHaveLength(0);
+      });
+
+      it('applies the orderId filter together with the other filters', async () => {
+        await createUser();
+        const order = await createOrder();
+        await seedLinked(order, {
+          type: 'DESPESA',
+          description: 'Despesa do pedido',
+        });
+        await seedLinked(order, {
+          type: 'RECEITA',
+          description: 'Receita do pedido',
+        });
+
+        const response = await listTransactions(
+          `?orderId=${order.id}&type=RECEITA`,
+        );
+
+        expect(response.body).toHaveLength(1);
+        expect(response.body[0].description).toBe('Receita do pedido');
+      });
+
+      it('scopes the orderId filter to the authenticated user', async () => {
+        await createUser();
+        const other = await createOtherUser();
+        const otherOrder = await prisma.order.create({
+          data: {
+            orderNumber: 'OTHER-1',
+            totalValue: '50.00',
+            userId: other.userId,
+          },
+        });
+        await prisma.financialTransaction.create({
+          data: {
+            userId: other.userId,
+            type: 'DESPESA',
+            origin: 'PEDIDO_DOTERRA',
+            amount: '50.00',
+            description: 'Pedido do outro usuário',
+            transactionDate: parseLocalDate('2026-09-19'),
+            orderId: otherOrder.id,
+          },
+        });
+
+        const response = await listTransactions(`?orderId=${otherOrder.id}`);
+
+        expect(response.body).toHaveLength(0);
+      });
+
+      it('rejects an orderId that is not a UUID', async () => {
+        await createUser();
+
+        const response = await listTransactions('?orderId=not-a-uuid');
+
+        expect(response.status).toBe(400);
+      });
+
+      it('filters the summary by orderId', async () => {
+        await createUser();
+        const order = await createOrder();
+        const otherOrder = await createOrder();
+        await seedLinked(order, { description: 'Do pedido' });
+        await seedLinked(otherOrder, { description: 'De outro pedido' });
+
+        const response = await getSummary(`?orderId=${order.id}`);
+
+        expect(response.status).toBe(200);
+        expect(response.body.totalExpense).toBe('100.00');
+      });
+    });
+
     it('includes the category and the derived fee of a linked payment', async () => {
       await createUser();
       const category = await getCategory('RECEITA', 'Vendas');

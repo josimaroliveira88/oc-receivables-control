@@ -5,7 +5,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import OrdersPage from '../src/pages/OrdersPage';
 import { ToastProvider } from '../src/components/Toast';
@@ -13,6 +13,17 @@ import { ToastProvider } from '../src/components/Toast';
 const mockGet = vi.fn();
 const mockPost = vi.fn();
 const mockPut = vi.fn();
+
+// Ledger rows returned by `GET /finances/transactions`; reset per test.
+let mockLedgerRows = [];
+let mockLedgerError = false;
+
+const RouteProbe = () => {
+  const location = useLocation();
+  return (
+    <div data-testid="route-probe">{location.pathname + location.search}</div>
+  );
+};
 
 vi.mock('../src/services/api', () => ({
   default: {
@@ -355,6 +366,10 @@ const mockGetImplementation = (ordersData = []) => {
     if (url === '/people') return Promise.resolve({ data: [] });
     if (url.startsWith('/products'))
       return Promise.resolve({ data: { data: [] } });
+    if (url.startsWith('/finances/transactions')) {
+      if (mockLedgerError) return Promise.reject(new Error('boom'));
+      return Promise.resolve({ data: mockLedgerRows });
+    }
     const balanceMatch = url.match(/^\/orders\/(.+)\/balance$/);
     if (balanceMatch) {
       const orderId = balanceMatch[1];
@@ -370,6 +385,7 @@ const renderPage = () => {
     <MemoryRouter>
       <ToastProvider>
         <OrdersPage />
+        <RouteProbe />
       </ToastProvider>
     </MemoryRouter>,
   );
@@ -399,6 +415,8 @@ const openPaymentAction = async (orderId, label = 'Registrar Pagamento') => {
 describe('OrdersPayments', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockLedgerRows = [];
+    mockLedgerError = false;
   });
 
   describe('Rendering', () => {
@@ -1297,6 +1315,115 @@ describe('OrdersPayments', () => {
       expect(modal.getByText('Detalhamento — ORD-DETAIL')).toBeInTheDocument();
       expect(screen.queryByText('Editar Pedido')).not.toBeInTheDocument();
     });
+
+    describe('ledger rows', () => {
+      const ledgerRow = (overrides = {}) => ({
+        id: 'tx-1',
+        type: 'DESPESA',
+        origin: 'PEDIDO_DOTERRA',
+        amount: '234.56',
+        description: 'Pedido dōTERRA ORD-DETAIL',
+        transactionDate: '2026-08-05T00:00:00.000Z',
+        notes: null,
+        isEffective: true,
+        installmentNumber: null,
+        installmentsTotal: null,
+        paymentType: null,
+        feeAmount: null,
+        category: null,
+        orderId: 'order-detail-rich',
+        ...overrides,
+      });
+
+      const openWithLedger = async (rows) => {
+        mockLedgerRows = rows;
+        const modal = await openDetailsModal();
+        await waitFor(() =>
+          expect(
+            modal.getByText('Lançamentos no financeiro'),
+          ).toBeInTheDocument(),
+        );
+        return modal;
+      };
+
+      it('fetches the ledger rows linked to the opened order', async () => {
+        await openWithLedger([]);
+
+        expect(mockGet).toHaveBeenCalledWith('/finances/transactions', {
+          params: { orderId: 'order-detail-rich' },
+        });
+      });
+
+      it('shows an empty state when the order has no ledger rows', async () => {
+        const modal = await openWithLedger([]);
+
+        expect(
+          modal.getByText('Nenhum lançamento no financeiro'),
+        ).toBeInTheDocument();
+        expect(
+          modal.queryByTestId('details-ledger-action'),
+        ).not.toBeInTheDocument();
+      });
+
+      it('offers a direct link when the order has a single ledger row', async () => {
+        const modal = await openWithLedger([ledgerRow()]);
+
+        expect(
+          modal.getByText('Pedido dōTERRA ORD-DETAIL'),
+        ).toBeInTheDocument();
+        const ledgerRowScope = within(
+          modal.getByTestId('details-ledger-row-tx-1'),
+        );
+        expect(
+          ledgerRowScope.getByText(/-\s*R\$\s*234,56/),
+        ).toBeInTheDocument();
+        const action = modal.getByTestId('details-ledger-action');
+        expect(action).toHaveTextContent('Ver lançamento no financeiro');
+
+        fireEvent.click(action);
+        expect(screen.getByTestId('route-probe')).toHaveTextContent(
+          '/finances?orderId=order-detail-rich&transactionId=tx-1',
+        );
+      });
+
+      it('offers the filtered ledger link when the order has several rows', async () => {
+        const modal = await openWithLedger([
+          ledgerRow(),
+          ledgerRow({
+            id: 'tx-2',
+            description: 'Adicional de venda',
+            amount: '30.00',
+          }),
+        ]);
+
+        expect(
+          modal.getByText('Pedido dōTERRA ORD-DETAIL'),
+        ).toBeInTheDocument();
+        expect(modal.getByText('Adicional de venda')).toBeInTheDocument();
+        const action = modal.getByTestId('details-ledger-action');
+        expect(action).toHaveTextContent('Ver 2 lançamentos no financeiro');
+
+        fireEvent.click(action);
+        expect(screen.getByTestId('route-probe')).toHaveTextContent(
+          '/finances?orderId=order-detail-rich',
+        );
+      });
+
+      it('keeps the modal usable when the ledger request fails', async () => {
+        mockLedgerError = true;
+        const modal = await openDetailsModal();
+
+        await waitFor(() =>
+          expect(modal.getByTestId('details-ledger')).toBeInTheDocument(),
+        );
+        expect(
+          modal.getByText('Não foi possível carregar os lançamentos.'),
+        ).toBeInTheDocument();
+        expect(
+          modal.getByText('Detalhamento — ORD-DETAIL'),
+        ).toBeInTheDocument();
+      });
+    });
   });
 
   describe('Edit Payment', () => {
@@ -1879,6 +2006,8 @@ describe('OrdersPayments', () => {
 describe('Payment type on order payments', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockLedgerRows = [];
+    mockLedgerError = false;
   });
 
   const paymentTypedOrder = {
@@ -2064,6 +2193,8 @@ describe('Payment type on order payments', () => {
 describe('Self person display in payment and details modals', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockLedgerRows = [];
+    mockLedgerError = false;
   });
 
   const selfOrder = {
