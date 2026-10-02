@@ -6,6 +6,7 @@ import FinancesSummary from './components/FinancesSummary';
 import FinancesToolbar from './components/FinancesToolbar';
 import FinancesTable from './components/FinancesTable';
 import FinancialTransactionModal from './components/FinancialTransactionModal';
+import FinancialTransactionDetailsModal from './components/FinancialTransactionDetailsModal';
 import FinancialCategoryModal from './components/FinancialCategoryModal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { hasActiveTransactionFilters } from './utils/financeHelpers';
@@ -20,6 +21,8 @@ const FinancesPage = () => {
     setFilters,
     resetFilters,
     commitSearch,
+    detailTransaction,
+    closeDetailTransaction,
     showFormModal,
     form,
     formError,
@@ -109,6 +112,11 @@ const FinancesPage = () => {
           />
         </div>
       </div>
+
+      <FinancialTransactionDetailsModal
+        transaction={detailTransaction}
+        onClose={closeDetailTransaction}
+      />
 
       <FinancialTransactionModal
         isOpen={showFormModal}

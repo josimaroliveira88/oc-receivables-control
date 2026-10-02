@@ -31,6 +31,10 @@ const buildWhere = (userId, query = {}) => {
   if (query.origin) where.origin = query.origin;
   if (query.categoryId) where.categoryId = query.categoryId;
 
+  // Ownership always wins: the userId scoping above cannot be overridden even
+  // when a foreign orderId is supplied.
+  if (query.orderId) where.orderId = query.orderId;
+
   if (query.effective === 'yes') where.isEffective = true;
   if (query.effective === 'no') where.isEffective = false;
 

@@ -80,6 +80,7 @@ export const buildTransactionParams = (filters = {}) => {
   if (filters.type) params.type = filters.type;
   if (filters.origin) params.origin = filters.origin;
   if (filters.categoryId) params.categoryId = filters.categoryId;
+  if (filters.orderId) params.orderId = filters.orderId;
   if (filters.effective) params.effective = filters.effective;
   if (filters.from) params.from = filters.from;
   if (filters.to) params.to = filters.to;
@@ -95,6 +96,7 @@ export const hasActiveTransactionFilters = (filters = {}) =>
     filters.type ||
     filters.origin ||
     filters.categoryId ||
+    filters.orderId ||
     filters.effective ||
     filters.from ||
     filters.to ||

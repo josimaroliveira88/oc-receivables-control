@@ -5,6 +5,7 @@ import { formatDateBR } from '../../../utils/dates';
 import { getOrderPendingCents } from '../utils/receivablesHelpers';
 import { lineValueCents } from '../utils/orderHelpers';
 import { PaymentTypeBadge } from './Badges';
+import OrderLedgerSection from '../../Finances/components/OrderLedgerSection';
 import Modal from '../../../components/Modal';
 
 const DetailsModal = ({
@@ -17,6 +18,9 @@ const DetailsModal = ({
   personItems,
   personPayments,
   onEditPayment,
+  ledgerTransactions = [],
+  ledgerLoading = false,
+  ledgerError = '',
 }) => {
   return (
     <Modal
@@ -236,6 +240,13 @@ const DetailsModal = ({
               })}
             </div>
           )}
+
+          <OrderLedgerSection
+            orderId={order.id}
+            transactions={ledgerTransactions}
+            loading={ledgerLoading}
+            error={ledgerError}
+          />
 
           <div className="mt-4 flex justify-end">
             <button

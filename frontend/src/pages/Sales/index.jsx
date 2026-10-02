@@ -103,6 +103,9 @@ const SalesPage = () => {
     showDetailsModal,
     detailSale,
     detailLoading,
+    ledgerTransactions,
+    ledgerLoading,
+    ledgerError,
     openPaymentModal,
     openPaymentModalPrefilled,
     closePaymentModal,
@@ -320,6 +323,9 @@ const SalesPage = () => {
         <SaleDetailsModal
           sale={detailSale}
           loading={detailLoading}
+          ledgerTransactions={ledgerTransactions}
+          ledgerLoading={ledgerLoading}
+          ledgerError={ledgerError}
           onClose={closeDetailsModal}
           personItems={getDetailPersonItems}
           personPayments={getDetailPersonPayments}

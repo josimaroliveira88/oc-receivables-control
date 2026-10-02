@@ -65,6 +65,25 @@ const FinancesToolbar = ({
         )}
       </div>
 
+      {filters.orderId && (
+        <div
+          data-testid="finances-order-filter"
+          className="flex flex-wrap items-center gap-2 text-sm"
+        >
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-accent-soft text-accent-on-soft">
+            Somente os lançamentos de um pedido
+          </span>
+          <button
+            type="button"
+            data-testid="finances-order-filter-clear"
+            onClick={() => onChange({ orderId: '' })}
+            className="text-accent hover:underline text-sm"
+          >
+            Remover filtro
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center flex-wrap">
         <label className="block text-sm font-medium text-ink-soft">
           <span className="sr-only">Tipo</span>

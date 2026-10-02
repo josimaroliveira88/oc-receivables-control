@@ -117,6 +117,9 @@ const OrdersPage = () => {
     detailOrder,
     detailBalances,
     detailLoading,
+    ledgerTransactions,
+    ledgerLoading,
+    ledgerError,
     expandedPersonId,
     openPaymentModal,
     closePaymentModal,
@@ -371,6 +374,9 @@ const OrdersPage = () => {
           order={detailOrder}
           balances={detailBalances}
           loading={detailLoading}
+          ledgerTransactions={ledgerTransactions}
+          ledgerLoading={ledgerLoading}
+          ledgerError={ledgerError}
           expandedPersonId={expandedPersonId}
           onClose={closeDetailsModal}
           onTogglePerson={toggleDetailPerson}

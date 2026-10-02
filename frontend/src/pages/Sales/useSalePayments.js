@@ -41,6 +41,10 @@ export function useSalePayments({ refreshSales, sales = [], loading = false }) {
   const [detailSale, setDetailSale] = useState(null);
   const [detailBalances, setDetailBalances] = useState([]);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [ledgerTransactions, setLedgerTransactions] = useState([]);
+  const [ledgerLoading, setLedgerLoading] = useState(false);
+  const [ledgerError, setLedgerError] = useState('');
+  const ledgerRequestRef = useRef(0);
   const [showEditPaymentModal, setShowEditPaymentModal] = useState(false);
   const [editingPayment, setEditingPayment] = useState(null);
   const [editPaymentAmount, setEditPaymentAmount] = useState('');
@@ -516,9 +520,40 @@ export function useSalePayments({ refreshSales, sales = [], loading = false }) {
   };
 
   const closeDetailsModal = useCallback(() => {
+    ledgerRequestRef.current += 1;
     setShowDetailsModal(false);
     setDetailSale(null);
     setDetailBalances([]);
+    setLedgerTransactions([]);
+    setLedgerLoading(false);
+    setLedgerError('');
+  }, []);
+
+  // Loads the ledger rows derived from this sale (if any). Failures never
+  // close the details modal: the ledger section just reports it.
+  const loadDetailLedger = useCallback((orderId) => {
+    const requestId = ledgerRequestRef.current + 1;
+    ledgerRequestRef.current = requestId;
+    setLedgerTransactions([]);
+    setLedgerError('');
+    setLedgerLoading(true);
+
+    api
+      .get('/finances/transactions', { params: { orderId } })
+      .then((response) => {
+        if (ledgerRequestRef.current !== requestId) return;
+        setLedgerTransactions(
+          Array.isArray(response.data) ? response.data : [],
+        );
+      })
+      .catch(() => {
+        if (ledgerRequestRef.current !== requestId) return;
+        setLedgerError('error');
+      })
+      .finally(() => {
+        if (ledgerRequestRef.current !== requestId) return;
+        setLedgerLoading(false);
+      });
   }, []);
 
   const openDetailsModal = useCallback(
@@ -527,6 +562,7 @@ export function useSalePayments({ refreshSales, sales = [], loading = false }) {
       setDetailBalances([]);
       setDetailLoading(true);
       setShowDetailsModal(true);
+      loadDetailLedger(sale.id);
 
       try {
         const response = await api.get(`/orders/${sale.id}/balance`);
@@ -538,7 +574,7 @@ export function useSalePayments({ refreshSales, sales = [], loading = false }) {
         setDetailLoading(false);
       }
     },
-    [addToast, closeDetailsModal],
+    [addToast, closeDetailsModal, loadDetailLedger],
   );
 
   const getDetailPersonItems = (personId) =>
@@ -630,6 +666,9 @@ export function useSalePayments({ refreshSales, sales = [], loading = false }) {
     showDetailsModal,
     detailSale,
     detailLoading,
+    ledgerTransactions,
+    ledgerLoading,
+    ledgerError,
     openPaymentModal,
     openPaymentModalPrefilled,
     closePaymentModal,

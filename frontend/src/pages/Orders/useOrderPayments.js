@@ -35,6 +35,10 @@ export function useOrderPayments({ refreshOrders, orders, loading }) {
   const [detailOrder, setDetailOrder] = useState(null);
   const [detailBalances, setDetailBalances] = useState([]);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [ledgerTransactions, setLedgerTransactions] = useState([]);
+  const [ledgerLoading, setLedgerLoading] = useState(false);
+  const [ledgerError, setLedgerError] = useState('');
+  const ledgerRequestRef = useRef(0);
   const [expandedPersonId, setExpandedPersonId] = useState('');
   const [showEditPaymentModal, setShowEditPaymentModal] = useState(false);
   const [editingPayment, setEditingPayment] = useState(null);
@@ -358,10 +362,42 @@ export function useOrderPayments({ refreshOrders, orders, loading }) {
   };
 
   const closeDetailsModal = useCallback(() => {
+    ledgerRequestRef.current += 1;
     setShowDetailsModal(false);
     setDetailOrder(null);
     setDetailBalances([]);
     setExpandedPersonId('');
+    setLedgerTransactions([]);
+    setLedgerLoading(false);
+    setLedgerError('');
+  }, []);
+
+  // Loads the ledger rows derived from this order (if any) alongside the
+  // balances. Failures never close the details modal: the ledger section just
+  // reports it, so the rest of the view stays usable.
+  const loadDetailLedger = useCallback((orderId) => {
+    const requestId = ledgerRequestRef.current + 1;
+    ledgerRequestRef.current = requestId;
+    setLedgerTransactions([]);
+    setLedgerError('');
+    setLedgerLoading(true);
+
+    api
+      .get('/finances/transactions', { params: { orderId } })
+      .then((response) => {
+        if (ledgerRequestRef.current !== requestId) return;
+        setLedgerTransactions(
+          Array.isArray(response.data) ? response.data : [],
+        );
+      })
+      .catch(() => {
+        if (ledgerRequestRef.current !== requestId) return;
+        setLedgerError('error');
+      })
+      .finally(() => {
+        if (ledgerRequestRef.current !== requestId) return;
+        setLedgerLoading(false);
+      });
   }, []);
 
   const openDetailsModal = useCallback(
@@ -371,6 +407,7 @@ export function useOrderPayments({ refreshOrders, orders, loading }) {
       setExpandedPersonId('');
       setDetailLoading(true);
       setShowDetailsModal(true);
+      loadDetailLedger(order.id);
 
       try {
         const response = await api.get(`/orders/${order.id}/balance`);
@@ -382,7 +419,7 @@ export function useOrderPayments({ refreshOrders, orders, loading }) {
         setDetailLoading(false);
       }
     },
-    [addToast, closeDetailsModal],
+    [addToast, closeDetailsModal, loadDetailLedger],
   );
 
   const toggleDetailPerson = (personId) => {
@@ -473,6 +510,9 @@ export function useOrderPayments({ refreshOrders, orders, loading }) {
     detailOrder,
     detailBalances,
     detailLoading,
+    ledgerTransactions,
+    ledgerLoading,
+    ledgerError,
     expandedPersonId,
     openPaymentModal,
     closePaymentModal,

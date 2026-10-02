@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { useDirtyForm } from '../../hooks/useDirtyForm';
@@ -14,11 +15,21 @@ import {
 // period summary, the manual create/edit form and the delete confirmation.
 // Categories live in useFinanceCategories; automatic rows are read-only here.
 export function useFinances() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [transactions, setTransactions] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+
+  // Deep links from the order/sale details: `orderId` narrows the ledger to
+  // one record and `transactionId` opens its read-only detail on top of it.
+  const [orderIdFilter, setOrderIdFilter] = useState(
+    () => searchParams.get('orderId') || '',
+  );
+  const [detailTransactionId, setDetailTransactionId] = useState(
+    () => searchParams.get('transactionId') || '',
+  );
 
   const [typeFilter, setTypeFilter] = useState('');
   const [originFilter, setOriginFilter] = useState('');
@@ -33,6 +44,7 @@ export function useFinances() {
       type: typeFilter,
       origin: originFilter,
       categoryId: categoryFilter,
+      orderId: orderIdFilter,
       effective: effectiveFilter,
       from: fromFilter,
       to: toFilter,
@@ -42,6 +54,7 @@ export function useFinances() {
       typeFilter,
       originFilter,
       categoryFilter,
+      orderIdFilter,
       effectiveFilter,
       fromFilter,
       toFilter,
@@ -56,6 +69,7 @@ export function useFinances() {
       type: typeFilter,
       origin: originFilter,
       categoryId: categoryFilter,
+      orderId: orderIdFilter,
       effective: effectiveFilter,
       from: fromFilter,
       to: toFilter,
@@ -64,11 +78,39 @@ export function useFinances() {
       typeFilter,
       originFilter,
       categoryFilter,
+      orderIdFilter,
       effectiveFilter,
       fromFilter,
       toFilter,
     ],
   );
+
+  // Resolves the deep-linked transaction against the loaded rows. The first
+  // load starts with an empty list, so the lookup waits for `loading`.
+  const detailTransaction =
+    detailTransactionId && !loading
+      ? transactions.find((t) => t.id === detailTransactionId) || null
+      : null;
+
+  const closeDetailTransaction = () => setDetailTransactionId('');
+
+  // A transactionId that never resolves (stale link, or filtered out) is
+  // dropped so the address does not keep a dangling parameter around.
+  useEffect(() => {
+    if (!detailTransactionId || loading || detailTransaction) return;
+    setDetailTransactionId('');
+  }, [detailTransactionId, loading, detailTransaction]);
+
+  // Mirrors the deep-link state into the URL, so refreshing the page or
+  // closing the read-only modal keeps the address addressable.
+  const searchParamsString = searchParams.toString();
+  useEffect(() => {
+    const next = new URLSearchParams();
+    if (orderIdFilter) next.set('orderId', orderIdFilter);
+    if (detailTransactionId) next.set('transactionId', detailTransactionId);
+    if (next.toString() === searchParamsString) return;
+    setSearchParams(next, { replace: true });
+  }, [orderIdFilter, detailTransactionId, searchParamsString, setSearchParams]);
 
   const [showFormModal, setShowFormModal] = useState(false);
   const [form, setForm] = useState(emptyTransactionForm);
@@ -108,9 +150,11 @@ export function useFinances() {
     onSaved: () => loadTransactions(filters),
   });
 
-  // Initial load: this is the only one that shows the full-page spinner.
+  // Initial load: this is the only one that shows the full-page spinner. The
+  // ref freezes the deep-linked filters (e.g. ?orderId=) from the first render.
+  const initialFiltersRef = useRef(autoFilters);
   useEffect(() => {
-    loadTransactions({}, { showLoading: true });
+    loadTransactions(initialFiltersRef.current, { showLoading: true });
   }, [loadTransactions]);
 
   // The selects and the period inputs refetch in place (no page-level spinner)
@@ -131,6 +175,7 @@ export function useFinances() {
     if ('type' in patch) setTypeFilter(patch.type);
     if ('origin' in patch) setOriginFilter(patch.origin);
     if ('categoryId' in patch) setCategoryFilter(patch.categoryId);
+    if ('orderId' in patch) setOrderIdFilter(patch.orderId);
     if ('effective' in patch) setEffectiveFilter(patch.effective);
     if ('from' in patch) setFromFilter(patch.from);
     if ('to' in patch) setToFilter(patch.to);
@@ -142,6 +187,7 @@ export function useFinances() {
       type: '',
       origin: '',
       categoryId: '',
+      orderId: '',
       effective: '',
       from: '',
       to: '',
@@ -288,6 +334,8 @@ export function useFinances() {
     setFilters,
     resetFilters,
     commitSearch,
+    detailTransaction,
+    closeDetailTransaction,
     showFormModal,
     form,
     formError,

@@ -10,6 +10,7 @@ import {
   paymentNetCents,
 } from '../../../utils/paymentFee';
 import { PaymentTypeBadge } from '../../Orders/components/Badges';
+import OrderLedgerSection from '../../Finances/components/OrderLedgerSection';
 import Modal from '../../../components/Modal';
 
 const SaleDetailsModal = ({
@@ -19,6 +20,9 @@ const SaleDetailsModal = ({
   personItems,
   personPayments,
   onEditPayment,
+  ledgerTransactions = [],
+  ledgerLoading = false,
+  ledgerError = '',
 }) => {
   const pendingCents = getSalePendingCents(sale);
   const clientPersonId = sale.items?.[0]?.personId || '';
@@ -207,6 +211,13 @@ const SaleDetailsModal = ({
               )}
             </>
           )}
+
+          <OrderLedgerSection
+            orderId={sale.id}
+            transactions={ledgerTransactions}
+            loading={ledgerLoading}
+            error={ledgerError}
+          />
 
           <div className="mt-4 flex justify-end">
             <button

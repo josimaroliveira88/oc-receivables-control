@@ -124,6 +124,9 @@ const listTransactionsQuerySchema = z.object({
     .string()
     .uuid('O ID da categoria deve ser um UUID válido')
     .optional(),
+  // Narrow the ledger to the rows derived from one order (purchase order or
+  // sale). Used by the order/sale details to deep-link into the finances page.
+  orderId: z.string().uuid('O ID do pedido deve ser um UUID válido').optional(),
   from: dateSchema.optional(),
   to: dateSchema.optional(),
   effective: z.enum(['yes', 'no', 'all']).optional(),
