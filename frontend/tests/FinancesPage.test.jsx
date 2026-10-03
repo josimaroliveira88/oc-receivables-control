@@ -252,7 +252,7 @@ describe('FinancesPage', () => {
     );
   });
 
-  it('only offers edit/delete for manual rows', async () => {
+  it('shows an action menu for every row, with details as the first item', async () => {
     mockGetImplementation();
     renderPage();
     await waitForTable();
@@ -261,8 +261,42 @@ describe('FinancesPage', () => {
       screen.getByTestId('transaction-actions-t-manual-trigger'),
     ).toBeInTheDocument();
     expect(
-      screen.queryByTestId('transaction-actions-t-venda-trigger'),
+      screen.getByTestId('transaction-actions-t-venda-trigger'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('transaction-actions-t-doterra-trigger'),
+    ).toBeInTheDocument();
+
+    // Automatic sale row: "Ver detalhes" is the only action.
+    fireEvent.click(screen.getByTestId('transaction-actions-t-venda-trigger'));
+    expect(
+      screen.getByTestId('transaction-actions-t-venda-item-Ver-detalhes'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('transaction-actions-t-venda-item-Editar'),
     ).not.toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    // Manual row: "Ver detalhes" comes before Editar/Excluir.
+    fireEvent.click(screen.getByTestId('transaction-actions-t-manual-trigger'));
+    expect(
+      screen.getByTestId('transaction-actions-t-manual-item-Ver-detalhes'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('transaction-actions-t-manual-item-Editar'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('transaction-actions-t-manual-item-Excluir'),
+    ).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    // dōTERRA order row: "Ver detalhes" is the only action as well.
+    fireEvent.click(
+      screen.getByTestId('transaction-actions-t-doterra-trigger'),
+    );
+    expect(
+      screen.getByTestId('transaction-actions-t-doterra-item-Ver-detalhes'),
+    ).toBeInTheDocument();
   });
 
   it('refetches with the committed filters', async () => {

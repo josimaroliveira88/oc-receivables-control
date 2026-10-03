@@ -231,4 +231,65 @@ describe('Finances deep links', () => {
       ).not.toBeInTheDocument();
     });
   });
+
+  describe('details from the table action menu', () => {
+    const openDetailsViaMenu = async (id) => {
+      fireEvent.click(screen.getByTestId(`transaction-actions-${id}-trigger`));
+      fireEvent.click(
+        screen.getByTestId(`transaction-actions-${id}-item-Ver-detalhes`),
+      );
+      await screen.findByTestId('transaction-details-modal');
+    };
+
+    it('opens the details modal for a linked sale row', async () => {
+      mockGetImplementation();
+      renderAt('/finances');
+      await waitForTable();
+
+      await openDetailsViaMenu('tx-1');
+
+      const modal = within(screen.getByTestId('transaction-details-modal'));
+      expect(modal.getByText('Detalhamento do lançamento')).toBeInTheDocument();
+      expect(
+        modal.getByTestId('transaction-details-description'),
+      ).toHaveTextContent('Venda V-0002 — João Silva');
+    });
+
+    it('opens the details modal for a manual row and mirrors the id in the URL', async () => {
+      mockGetImplementation([linkedTransaction, otherTransaction]);
+      renderAt('/finances');
+      await waitForTable();
+
+      await openDetailsViaMenu('tx-2');
+
+      const modal = within(screen.getByTestId('transaction-details-modal'));
+      expect(
+        modal.getByTestId('transaction-details-description'),
+      ).toHaveTextContent('Bônus dōTERRA');
+      expect(screen.getByTestId('route-probe')).toHaveTextContent(
+        '/finances?transactionId=tx-2',
+      );
+    });
+
+    it('clears the param and closes the modal opened by the action menu', async () => {
+      mockGetImplementation([linkedTransaction, otherTransaction]);
+      renderAt('/finances');
+      await waitForTable();
+
+      await openDetailsViaMenu('tx-2');
+      fireEvent.click(
+        within(screen.getByTestId('transaction-details-modal')).getByRole(
+          'button',
+          { name: 'Fechar detalhamento' },
+        ),
+      );
+
+      await waitFor(() =>
+        expect(
+          screen.queryByTestId('transaction-details-modal'),
+        ).not.toBeInTheDocument(),
+      );
+      expect(screen.getByTestId('route-probe')).toHaveTextContent('/finances');
+    });
+  });
 });
