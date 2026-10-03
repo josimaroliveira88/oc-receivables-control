@@ -11,8 +11,8 @@
 (() => {
   'use strict';
 
-  const VERSION = '0.3.0';
-  const BUILD_LABEL = 'self-contained';
+  const VERSION = '0.5.0';
+  const BUILD_LABEL = 'app-token';
   const BRIDGE_SOURCE = 'uber-rides-capture';
   const BOX_ID = 'uber-rides-capture-box';
   const DAY_MS = 86400000;
@@ -28,7 +28,10 @@
     START: 'uber-rides:start',
     END: 'uber-rides:end',
   };
-
+  const INTEGRATION_KEYS = {
+    TOKEN: 'uber-rides:api-token',
+    SERVER: 'uber-rides:server-url',
+  };
   console.info(
     `[Uber Rides Capture] ISOLATED v${VERSION} (${BUILD_LABEL}) carregado em ${location.href}`,
   );
@@ -97,6 +100,27 @@
       /* persistence is best-effort */
     }
   };
+
+  // Reads the stored integration token so the floating box can gate the
+  // "send to app" button and show the token hint without opening the popup.
+  const loadStoredToken = () =>
+    new Promise((resolve) => {
+      if (!hasStorage()) {
+        resolve('');
+        return;
+      }
+      try {
+        chrome.storage.local.get([INTEGRATION_KEYS.TOKEN], (result) => {
+          if (chrome.runtime.lastError) {
+            resolve('');
+            return;
+          }
+          resolve(result[INTEGRATION_KEYS.TOKEN] ?? '');
+        });
+      } catch (_err) {
+        resolve('');
+      }
+    });
 
   // --- Clipboard ------------------------------------------------------------
 
@@ -197,6 +221,33 @@
       error: data.error ?? (data.timedOut ? 'TIMEOUT' : undefined),
     }));
 
+  // --- Bridge to the background service worker -----------------------------
+
+  // The import POST cannot run here: an isolated-world fetch would carry the
+  // page origin (riders.uber.com) and hit the backend CORS instead. The
+  // background worker's fetch is covered by the host permissions.
+  const sendToApp = (json, windowStart, windowEnd) => {
+    if (typeof chrome === 'undefined' || !chrome.runtime?.sendMessage) {
+      return Promise.resolve({ ok: false, error: 'NO_BACKGROUND' });
+    }
+    return new Promise((resolve) => {
+      try {
+        chrome.runtime.sendMessage(
+          { type: 'SEND_TO_APP', json, windowStart, windowEnd },
+          (data) => {
+            if (chrome.runtime.lastError) {
+              resolve({ ok: false, error: 'NO_BACKGROUND' });
+              return;
+            }
+            resolve(data ?? { ok: false, error: 'NO_BACKGROUND' });
+          },
+        );
+      } catch (_err) {
+        resolve({ ok: false, error: 'NO_BACKGROUND' });
+      }
+    });
+  };
+
   // --- Floating box ---------------------------------------------------------
 
   const createBox = ({ start, end, onCapture }) => {
@@ -227,6 +278,8 @@
       <label style="display:block;font-size:11px;color:#666;margin-bottom:2px">Fim</label>
       <input data-role="end" type="date" style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:4px" />
       <button data-role="capture" type="button" style="width:100%;padding:8px;border:0;border-radius:6px;background:#d6336c;color:#fff;font-weight:600;cursor:pointer">Capturar e copiar JSON</button>
+      <button data-role="send" type="button" style="width:100%;padding:8px;border:0;border-radius:6px;background:#1c7ed6;color:#fff;font-weight:600;cursor:pointer;margin-top:6px">Enviar para o Controle de Recebíveis</button>
+      <div data-role="token" style="margin-top:6px;font-size:10px;color:#999"></div>
       <div data-role="status" style="margin-top:8px;font-size:11px;color:#555"></div>
       <div data-role="log" style="margin-top:6px;max-height:90px;overflow:auto;font-size:10px;color:#888"></div>
     `;
@@ -236,6 +289,8 @@
     const startEl = box.querySelector('[data-role="start"]');
     const endEl = box.querySelector('[data-role="end"]');
     const captureEl = box.querySelector('[data-role="capture"]');
+    const sendEl = box.querySelector('[data-role="send"]');
+    const tokenEl = box.querySelector('[data-role="token"]');
     const statusEl = box.querySelector('[data-role="status"]');
     const logEl = box.querySelector('[data-role="log"]');
     const versionEl = box.querySelector('[data-role="version"]');
@@ -257,9 +312,24 @@
       logEl.scrollTop = logEl.scrollHeight;
     };
 
+    // Keeps the send button disabled until a token is saved in the popup.
+    const setTokenState = (token) => {
+      const ready = Boolean(token);
+      sendEl.disabled = !ready;
+      tokenEl.textContent = ready
+        ? `Token salvo (termina em ${token.slice(-4)}).`
+        : 'Sem token. Abra o popup da extensão e salve o token gerado no app.';
+    };
+
     const setBusy = (busy) => {
       captureEl.disabled = busy;
       captureEl.textContent = busy ? 'Capturando…' : 'Capturar e copiar JSON';
+      sendEl.disabled = busy;
+    };
+
+    const setSendBusy = (busy, label) => {
+      sendEl.disabled = busy;
+      sendEl.textContent = label ?? (busy ? 'Enviando…' : SEND_BUTTON_LABEL);
     };
 
     const setSessionReady = (ready) => {
@@ -272,15 +342,19 @@
       );
     };
 
-    captureEl.addEventListener('click', () => onCapture());
+    captureEl.addEventListener('click', () => onCapture('copy'));
+    sendEl.addEventListener('click', () => onCapture('send'));
 
     setSessionReady(false);
+    setTokenState('');
 
     return {
       setStatus,
       appendLog,
       setBusy,
+      setSendBusy,
       setSessionReady,
+      setTokenState,
       getWindowValues: () => ({
         startValue: startEl.value,
         endValue: endEl.value,
@@ -290,11 +364,22 @@
 
   // --- Orchestration --------------------------------------------------------
 
+  const SEND_BUTTON_LABEL = 'Enviar para o Controle de Recebíveis';
+
+  // datetime-local ISO instants for the import payload, derived from the same
+  // wall-clock parse the capture window uses.
+  const toIsoInstant = (value, endOfDay = false) =>
+    parseLocalDateInput(value, endOfDay).toISOString();
+
   let controller = null;
   let capturing = false;
   let sessionReady = false;
 
-  const handleCapture = async () => {
+  // Shared capture pipeline: `target` = 'copy' replicates the legacy flow
+  // (clipboard, paste on the app); `target` = 'send' posts the captured JSON
+  // straight to the backend and opens Finances in a new tab, falling back to
+  // the clipboard when the send fails.
+  const handleCapture = async (target = 'copy') => {
     if (!controller || capturing) return;
 
     const { startValue, endValue } = controller.getWindowValues();
@@ -310,8 +395,12 @@
       return;
     }
 
+    const fromIso = toIsoInstant(startValue, false);
+    const toIso = toIsoInstant(endValue, true);
+
     capturing = true;
     controller.setBusy(true);
+    controller.setSendBusy(true, 'Capturando…');
     controller.setStatus('Capturando corridas...');
 
     try {
@@ -329,12 +418,47 @@
       }
 
       saveLastWindow(startValue, endValue);
+      const sizeKb = (result.json.length / 1024).toFixed(1);
+
+      if (target === 'send') {
+        const response = await sendToApp(result.json, fromIso, toIso);
+
+        if (response.ok) {
+          const parts = [
+            `${response.summary?.total ?? 0} corrida(s) processada(s)`,
+          ];
+          if (response.summary?.cancelled > 0) {
+            parts.push(`${response.summary.cancelled} cancelada(s)`);
+          }
+          controller.setStatus(
+            `Importado: ${parts.join(', ')}. Abrindo o Controle de Recebíveis…`,
+            'success',
+          );
+          return;
+        }
+
+        // Failure fallback: the capture is never lost.
+        const reason =
+          response.error === 'NO_TOKEN'
+            ? 'sem token salvo no popup da extensão'
+            : response.error === 'NETWORK'
+              ? 'sem conexão com o servidor'
+              : response.error === 'AUTH'
+                ? response.message || 'token inválido ou expirado'
+                : response.message ||
+                  `erro ${response.status ?? 'desconhecido'}`;
+        controller.setStatus(
+          `Envio falhou (${reason}). JSON copiado: cole na tela de importação do app.`,
+          'error',
+        );
+        await copyToClipboard(result.json);
+        return;
+      }
 
       const copied = await copyToClipboard(result.json);
-      const sizeKb = (result.json.length / 1024).toFixed(1);
       controller.setStatus(
         copied
-          ? `JSON copiado (${sizeKb} KB). Cole na tela Corridas do Controle de Recebíveis.`
+          ? `JSON copiado (${sizeKb} KB). Cole na tela de importação do Controle de Recebíveis.`
           : `JSON gerado (${sizeKb} KB), mas a cópia falhou. Veja o console (F12).`,
         copied ? 'success' : 'error',
       );
@@ -342,6 +466,7 @@
     } finally {
       capturing = false;
       controller.setBusy(false);
+      controller.setSendBusy(false, SEND_BUTTON_LABEL);
     }
   };
 
@@ -388,9 +513,10 @@
       onCapture: handleCapture,
     });
 
-    const status = await getStatus();
+    const [status, token] = await Promise.all([getStatus(), loadStoredToken()]);
     sessionReady = status.hasSession;
     controller.setSessionReady(status.hasSession);
+    controller.setTokenState(token);
   };
 
   if (document.readyState === 'loading') {

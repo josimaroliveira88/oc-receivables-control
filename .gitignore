@@ -6,6 +6,7 @@ backend/uploads/
 backend/backups/
 backend/.env
 frontend/dist
+frontend/public/uber-rides-extension.zip
 backend/dist
 frontend/screenshot.mjs
 frontend/test-results/

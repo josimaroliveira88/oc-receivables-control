@@ -19,8 +19,8 @@
   const GRAPHQL_URL = 'https://riders.uber.com/graphql';
   const PROFILES = ['PERSONAL', 'FAMILY'];
   const MAX_PAGES = 50;
-  const VERSION = '0.3.0';
-  const BUILD_LABEL = 'self-contained';
+  const VERSION = '0.5.0';
+  const BUILD_LABEL = 'app-token';
 
   const DROP_HEADERS = new Set([
     'content-length',
