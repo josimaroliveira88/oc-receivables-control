@@ -10,7 +10,7 @@ import ProductsPage from './pages/ProductsPage';
 import StockPage from './pages/StockPage';
 import FinancesPage from './pages/FinancesPage';
 import CreditCardsPage from './pages/CreditCardsPage';
-import UberRidesPage from './pages/UberRidesPage';
+import UberRidesGuide from './pages/Help/UberRidesGuide';
 import ToastProvider from './components/Toast';
 import Header from './components/Header';
 import MobileDrawer from './components/MobileDrawer';
@@ -51,8 +51,12 @@ const App = () => {
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/stock" element={<StockPage />} />
           <Route path="/credit-cards" element={<CreditCardsPage />} />
-          <Route path="/uber-rides" element={<UberRidesPage />} />
+          <Route
+            path="/uber-rides"
+            element={<Navigate to="/finances?openUberImport=1" replace />}
+          />
           <Route path="/finances" element={<FinancesPage />} />
+          <Route path="/ajuda/corridas-uber" element={<UberRidesGuide />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

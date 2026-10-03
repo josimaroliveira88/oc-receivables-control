@@ -20,6 +20,18 @@ const emptyFilters = () => ({
   search: '',
 });
 
+// Persisted flag: once the user asks not to see the welcome orientation again,
+// "Importar corridas" opens the import modal straight away.
+const WELCOME_DISMISSED_KEY = 'uber-rides-welcome-dismissed';
+
+const isWelcomeDismissed = () => {
+  try {
+    return localStorage.getItem(WELCOME_DISMISSED_KEY) === 'true';
+  } catch (_err) {
+    return false;
+  }
+};
+
 // Converts a `datetime-local` value (local time) into an ISO-8601 instant so the
 // window never depends on the server timezone.
 const toIsoInstant = (value) => {
@@ -30,8 +42,11 @@ const toIsoInstant = (value) => {
 
 // Owns the Uber rides page state: the ride list, client-side filters, the
 // import modal form and the per-ride selection/category/description used to
-// launch expenses.
-export function useUberRides() {
+// launch expenses. Also owns the one-time welcome orientation (token + install
+// steps): `openImport` routes through it until the user dismisses it.
+// `initialView` ('welcome' | 'import' | null) opens that modal on mount, so the
+// caller (Finances, when embedding the rides flow) decides where to land.
+export function useUberRides({ initialView = null } = {}) {
   const { addToast } = useToast();
 
   const [rides, setRides] = useState([]);
@@ -44,6 +59,7 @@ export function useUberRides() {
   const [launching, setLaunching] = useState(false);
 
   const [showImport, setShowImport] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
   const [importForm, setImportForm] = useState(emptyImportForm);
   const [importSnapshot, setImportSnapshot] = useState(null);
   const [importError, setImportError] = useState('');
@@ -154,11 +170,38 @@ export function useUberRides() {
   );
 
   const openImport = () => {
+    // First visit (or after the user re-opens the orientation) routes through
+    // the welcome modal so the extension/token setup is explained before the
+    // JSON paste form.
+    if (!isWelcomeDismissed()) {
+      setShowWelcome(true);
+      return;
+    }
+    openImportForm();
+  };
+
+  const openImportForm = () => {
     setImportForm(emptyImportForm());
     setImportSnapshot(emptyImportForm());
     setImportError('');
     setShowImport(true);
   };
+
+  const openWelcome = () => setShowWelcome(true);
+
+  const closeWelcome = () => setShowWelcome(false);
+
+  // The caller can ask for a specific modal on mount (e.g. Finances opens the
+  // rides flow straight into the welcome orientation on a first visit).
+  useEffect(() => {
+    if (initialView === 'welcome') {
+      setShowWelcome(true);
+    } else if (initialView === 'import') {
+      openImportForm();
+    }
+    // Mount-only: `initialView` is a seed, not a controlled prop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const closeImport = () => {
     setShowImport(false);
@@ -255,8 +298,12 @@ export function useUberRides() {
     importing,
     importDirty,
     openImport,
+    openImportForm,
     closeImport,
     setImportField,
     submitImport,
+    showWelcome,
+    openWelcome,
+    closeWelcome,
   };
 }

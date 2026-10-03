@@ -1,5 +1,6 @@
-import React from 'react';
-import { Settings } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Settings, Car } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useFinances } from './useFinances';
 import { useFinanceCategories } from './useFinanceCategories';
 import FinancesSummary from './components/FinancesSummary';
@@ -8,6 +9,7 @@ import FinancesTable from './components/FinancesTable';
 import FinancialTransactionModal from './components/FinancialTransactionModal';
 import FinancialTransactionDetailsModal from './components/FinancialTransactionDetailsModal';
 import FinancialCategoryModal from './components/FinancialCategoryModal';
+import UberRides from '../UberRides/index.jsx';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { hasActiveTransactionFilters } from './utils/financeHelpers';
 
@@ -48,8 +50,46 @@ const FinancesPage = () => {
   } = useFinances();
 
   const categories = useFinanceCategories();
+  const location = useLocation();
+  const navigate = useNavigate();
+  // `null` = closed; otherwise the modal the embedded rides flow should open
+  // with. `uberKey` forces a remount so the rides hook re-reads `initialView`
+  // on every open (it is a mount seed, not a controlled prop).
+  const [uberView, setUberView] = useState(null);
+  const [uberKey, setUberKey] = useState(0);
 
   const hasActiveFilters = hasActiveTransactionFilters(filters);
+
+  const openUberFlow = useCallback(() => {
+    let dismissed = false;
+    try {
+      dismissed =
+        localStorage.getItem('uber-rides-welcome-dismissed') === 'true';
+    } catch (_err) {
+      dismissed = false;
+    }
+    setUberView(dismissed ? 'import' : 'welcome');
+    setUberKey((key) => key + 1);
+  }, []);
+
+  const closeUberImport = useCallback(() => setUberView(null), []);
+  const openUberGuide = useCallback(
+    () => navigate('/ajuda/corridas-uber'),
+    [navigate],
+  );
+
+  // `/uber-rides` redirects here with `?openUberImport=1`; consume the flag
+  // once so old links still open the rides flow, then drop the query param.
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('openUberImport') !== '1') return;
+    openUberFlow();
+    params.delete('openUberImport');
+    const query = params.toString();
+    navigate(`${location.pathname}${query ? `?${query}` : ''}`, {
+      replace: true,
+    });
+  }, [location.search, location.pathname, navigate, openUberFlow]);
 
   if (loading) {
     return (
@@ -66,6 +106,15 @@ const FinancesPage = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-line px-6 py-4">
           <h2 className="text-xl font-semibold text-ink">Finanças</h2>
           <div className="mt-3 sm:mt-0 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={openUberFlow}
+              data-testid="finances-uber-import-open"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-ink-soft hover:text-ink bg-base hover:bg-elevated rounded-md transition-colors"
+            >
+              <Car className="w-4 h-4" aria-hidden="true" />
+              Importar corridas
+            </button>
             <button
               type="button"
               onClick={categories.openModal}
@@ -170,6 +219,15 @@ const FinancesPage = () => {
         loading={undoingRescue}
         onConfirm={confirmUndoRescue}
         onCancel={cancelUndoRescue}
+      />
+
+      <UberRides
+        key={uberKey}
+        embeddedOnly
+        isOpen={uberView !== null}
+        initialView={uberView}
+        onClose={closeUberImport}
+        onOpenGuide={openUberGuide}
       />
     </>
   );

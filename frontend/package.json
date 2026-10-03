@@ -5,8 +5,10 @@
   "description": "Frontend for Receivables Control System",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "predev": "npm run package:extension",
+    "build": "npm run package:extension && vite build",
     "preview": "vite preview",
+    "package:extension": "node ../tools/uber-rides-extension/scripts/package-extension.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",

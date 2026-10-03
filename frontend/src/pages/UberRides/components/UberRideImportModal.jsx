@@ -1,4 +1,5 @@
 import React from 'react';
+import { HelpCircle } from 'lucide-react';
 import Modal from '../../../components/Modal';
 
 const fieldClass =
@@ -13,6 +14,7 @@ const UberRideImportModal = ({
   onChange,
   onSubmit,
   onClose,
+  onOpenGuide,
 }) => (
   <Modal
     isOpen={isOpen}
@@ -31,10 +33,23 @@ const UberRideImportModal = ({
         }}
         className="px-6 py-4 space-y-4"
       >
-        <p className="text-sm text-ink-soft">
-          Cole abaixo o JSON gerado pelo script de captura do Uber. As corridas
-          já importadas são reconhecidas e não são duplicadas.
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-sm text-ink-soft">
+            Cole abaixo o JSON gerado pelo script de captura do Uber. As
+            corridas já importadas são reconhecidas e não são duplicadas.
+          </p>
+          {onOpenGuide && (
+            <button
+              type="button"
+              onClick={onOpenGuide}
+              data-testid="uber-ride-import-howto"
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-accent-on-soft bg-accent-soft hover:bg-accent hover:text-accent-on rounded-md transition-colors"
+            >
+              <HelpCircle className="w-4 h-4" aria-hidden="true" />
+              Como capturar?
+            </button>
+          )}
+        </div>
 
         <div>
           <label

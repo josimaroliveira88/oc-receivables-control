@@ -1,8 +1,10 @@
 import React from 'react';
-import { Upload } from 'lucide-react';
+import { Upload, HelpCircle } from 'lucide-react';
+import Modal from '../../components/Modal';
 import { useUberRides } from './useUberRides';
 import UberRidesTable from './components/UberRidesTable';
 import UberRideImportModal from './components/UberRideImportModal';
+import UberRidesWelcomeModal from './components/UberRidesWelcomeModal';
 import UberRideSelectionPanel from './components/UberRideSelectionPanel';
 import { fromCents, formatBRL } from '../../utils/money';
 import {
@@ -24,7 +26,13 @@ const SummaryCard = ({ label, value, testId }) => (
 const selectClass =
   'w-full sm:w-auto px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors';
 
-const UberRides = () => {
+const UberRides = ({
+  embeddedOnly = false,
+  isOpen = true,
+  onClose,
+  onOpenGuide,
+  initialView = null,
+}) => {
   const {
     rides,
     visibleRides,
@@ -50,10 +58,14 @@ const UberRides = () => {
     importing,
     importDirty,
     openImport,
+    openImportForm,
     closeImport,
     setImportField,
     submitImport,
-  } = useUberRides();
+    showWelcome,
+    openWelcome,
+    closeWelcome,
+  } = useUberRides({ initialView });
 
   const selectedRides = rides.filter(
     (ride) => isRideSelectable(ride) && selections[ride.id]?.selected,
@@ -67,30 +79,60 @@ const UberRides = () => {
     filters.search.trim(),
   );
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
-        <span className="ml-2 text-ink-faint">Carregando...</span>
-      </div>
-    );
-  }
-
-  return (
+  const content = (
     <>
       <div className="bg-surface border border-line rounded-lg shadow-md">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-line px-6 py-4">
-          <h2 className="text-xl font-semibold text-ink">Corridas Uber</h2>
-          <button
-            type="button"
-            onClick={openImport}
-            data-testid="uber-ride-import-open"
-            className="mt-3 sm:mt-0 inline-flex items-center justify-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-accent-on font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
-          >
-            <Upload className="w-4 h-4" aria-hidden="true" />
-            Importar corridas
-          </button>
-        </div>
+        {embeddedOnly ? (
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-line px-6 py-3">
+            <p className="text-sm text-ink-soft">
+              Importe o JSON capturado ou lance as corridas direto da extensão.
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={openWelcome}
+                data-testid="uber-ride-howto-open"
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-ink-soft hover:text-ink bg-base hover:bg-elevated rounded-md transition-colors"
+              >
+                <HelpCircle className="w-4 h-4" aria-hidden="true" />
+                Como capturar?
+              </button>
+              <button
+                type="button"
+                onClick={openImport}
+                data-testid="uber-ride-import-open"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-accent-on font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
+              >
+                <Upload className="w-4 h-4" aria-hidden="true" />
+                Importar corridas
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-line px-6 py-4">
+            <h2 className="text-xl font-semibold text-ink">Corridas Uber</h2>
+            <div className="mt-3 sm:mt-0 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={openWelcome}
+                data-testid="uber-ride-howto-open"
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-ink-soft hover:text-ink bg-base hover:bg-elevated rounded-md transition-colors"
+              >
+                <HelpCircle className="w-4 h-4" aria-hidden="true" />
+                Como capturar?
+              </button>
+              <button
+                type="button"
+                onClick={openImport}
+                data-testid="uber-ride-import-open"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-accent-on font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
+              >
+                <Upload className="w-4 h-4" aria-hidden="true" />
+                Importar corridas
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="px-6 py-4">
           {error && (
@@ -272,8 +314,39 @@ const UberRides = () => {
         onChange={setImportField}
         onSubmit={submitImport}
         onClose={closeImport}
+        onOpenGuide={onOpenGuide}
+      />
+
+      <UberRidesWelcomeModal
+        isOpen={showWelcome}
+        onClose={closeWelcome}
+        onOpenImport={openImportForm}
+        onOpenGuide={onOpenGuide}
       />
     </>
+  );
+
+  if (!embeddedOnly) {
+    return content;
+  }
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      title="Importar corridas"
+      onClose={onClose || (() => {})}
+      maxWidth="max-w-5xl"
+      testId="uber-rides-embedded-modal"
+    >
+      {loading ? (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
+          <span className="ml-2 text-ink-faint">Carregando...</span>
+        </div>
+      ) : (
+        content
+      )}
+    </Modal>
   );
 };
 
