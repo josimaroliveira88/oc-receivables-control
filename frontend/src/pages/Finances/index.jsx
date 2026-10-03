@@ -22,6 +22,7 @@ const FinancesPage = () => {
     resetFilters,
     commitSearch,
     detailTransaction,
+    openDetailTransaction,
     closeDetailTransaction,
     showFormModal,
     form,
@@ -106,6 +107,7 @@ const FinancesPage = () => {
           <FinancesTable
             transactions={transactions}
             hasActiveFilters={hasActiveFilters}
+            onOpenDetails={openDetailTransaction}
             onEdit={openEdit}
             onDelete={requestDelete}
             onUndoRescue={requestUndoRescue}

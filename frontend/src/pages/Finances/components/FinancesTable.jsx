@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ExternalLink, Pencil, RotateCcw, Trash } from 'lucide-react';
+import { ExternalLink, Eye, Pencil, RotateCcw, Trash } from 'lucide-react';
 import { formatBRL, toCents } from '../../../utils/money';
 import { formatDateBR } from '../../../utils/dates';
 import ActionMenu from '../../../components/ActionMenu';
@@ -34,6 +34,7 @@ const originLink = (transaction) => {
 const FinancesTable = ({
   transactions,
   hasActiveFilters,
+  onOpenDetails,
   onEdit,
   onDelete,
   onUndoRescue,
@@ -235,6 +236,11 @@ const FinancesTable = ({
                       <ActionMenu
                         actions={[
                           {
+                            label: 'Ver detalhes',
+                            icon: Eye,
+                            onClick: () => onOpenDetails(transaction.id),
+                          },
+                          {
                             label: 'Editar',
                             icon: Pencil,
                             onClick: () => onEdit(transaction),
@@ -255,6 +261,11 @@ const FinancesTable = ({
                       <ActionMenu
                         actions={[
                           {
+                            label: 'Ver detalhes',
+                            icon: Eye,
+                            onClick: () => onOpenDetails(transaction.id),
+                          },
+                          {
                             label: 'Desfazer resgate',
                             icon: RotateCcw,
                             onClick: () => onUndoRescue(transaction),
@@ -266,7 +277,19 @@ const FinancesTable = ({
                       />
                     </div>
                   ) : (
-                    <span className="text-ink-faint">—</span>
+                    <div className="flex justify-end">
+                      <ActionMenu
+                        actions={[
+                          {
+                            label: 'Ver detalhes',
+                            icon: Eye,
+                            onClick: () => onOpenDetails(transaction.id),
+                          },
+                        ]}
+                        ariaLabel="Ações do lançamento"
+                        testIdPrefix={`transaction-actions-${transaction.id}`}
+                      />
+                    </div>
                   )}
                 </td>
               </tr>

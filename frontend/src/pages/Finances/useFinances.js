@@ -92,6 +92,7 @@ export function useFinances() {
       ? transactions.find((t) => t.id === detailTransactionId) || null
       : null;
 
+  const openDetailTransaction = (id) => setDetailTransactionId(id);
   const closeDetailTransaction = () => setDetailTransactionId('');
 
   // A transactionId that never resolves (stale link, or filtered out) is
@@ -335,6 +336,7 @@ export function useFinances() {
     resetFilters,
     commitSearch,
     detailTransaction,
+    openDetailTransaction,
     closeDetailTransaction,
     showFormModal,
     form,
