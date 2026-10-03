@@ -9,6 +9,16 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 122 — Ação "Ver detalhes" para todos os lançamentos do financeiro (2026-10-03)
+
+### Added
+- **Menu de ações em todas as linhas da tabela de lançamentos**: a coluna "Ações" da tela Finanças agora disponibiliza a ação **"Ver detalhes"** para **todo** lançamento (manual, automático e resgate InfinitePay), abrindo o mesmo modal read-only de detalhamento (`FinancialTransactionDetailsModal`) que até então só era acessível via deep-link das telas de pedidos/vendas (`?transactionId=`). Em linhas `MANUAL` o item vem antes de Editar/Excluir; em linhas de resgate, antes de "Desfazer resgate"; nas automáticas sem outra ação, vira um menu exclusivo (substituindo o antigo travessão "—"). A abertura continua reutilizando o deep-link: o hook expõe `openDetailTransaction(id)`, que seta `transactionId` na URL, mantendo o endereço compartilhável e a refeitura via F5 intactas.
+- **Hook**: `frontend/src/pages/Finances/useFinances.js` ganhou `openDetailTransaction(id)` (o espelhamento na URL e o descarte de ids não resolvidos já existentes continuam valendo).
+- **Tabela/página**: `FinancesTable.jsx` recebe `onOpenDetails` e renderiza o item "Ver detalhes" (ícone `Eye`) em todos os ramos do `ActionMenu`; `index.jsx` repassa o novo callback.
+
+### Tests
+- Frontend: `FinancesPage.test.jsx` — o antigo "só manual tem menu" virou "ver detalhes em todas as linhas" (14 testes); `FinancesDetailsLink.test.jsx` ganhou 3 casos de integração abrindo o modal pela ação da tabela, para venda vinculada e linha manual, com espelhamento de `transactionId` na URL e limpeza no fechar (10 no total). **1116 frontend passing**; `npm run lint` limpo, `npm run build` e `npm run format:check` limpos. Backend sem alterações.
+
 ## Phase 121 — Totalizador por filtro na tela Corridas (2026-09-27)
 
 ### Added
