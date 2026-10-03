@@ -60,9 +60,19 @@ const renderPage = () =>
     </MemoryRouter>,
   );
 
+const renderEmbedded = () =>
+  render(
+    <MemoryRouter initialEntries={['/finances']}>
+      <ToastProvider>
+        <UberRidesPage embeddedOnly isOpen onClose={() => {}} />
+      </ToastProvider>
+    </MemoryRouter>,
+  );
+
 describe('UberRidesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
   it('renders the empty state when no ride was imported', async () => {
@@ -192,6 +202,9 @@ describe('UberRidesPage', () => {
     });
     renderPage();
 
+    // Dismiss the welcome orientation so "Importar corridas" opens the paste
+    // modal directly (the standalone page owns its own button).
+    localStorage.setItem('uber-rides-welcome-dismissed', 'true');
     await screen.findByText(/Nenhuma corrida importada/);
     fireEvent.click(screen.getByTestId('uber-ride-import-open'));
 
@@ -247,5 +260,48 @@ describe('UberRidesPage', () => {
     // No selection panel and no launch button before selecting.
     expect(screen.queryByTestId('uber-ride-launch')).not.toBeInTheDocument();
     expect(mockPost).not.toHaveBeenCalled();
+  });
+
+  it('renders the embedded variant with its own action bar', async () => {
+    mockApi({ rides: [ride()] });
+    renderEmbedded();
+
+    // The embedded variant renders inside the modal with its own compact action
+    // bar, so "Como capturar?" and the paste form remain reachable from there.
+    expect(
+      await screen.findByTestId('uber-rides-embedded-modal'),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('uber-ride-import-open')).toBeInTheDocument();
+    expect(screen.getByTestId('uber-ride-howto-open')).toBeInTheDocument();
+    expect(screen.queryByText('Corridas Uber')).not.toBeInTheDocument();
+    expect(screen.getByText('Duo Residence Mall')).toBeInTheDocument();
+  });
+
+  it('routes "Importar corridas" through the welcome orientation the first time', async () => {
+    mockApi({ rides: [] });
+    renderPage();
+
+    await screen.findByText(/Nenhuma corrida importada/);
+    fireEvent.click(screen.getByTestId('uber-ride-import-open'));
+
+    expect(
+      await screen.findByTestId('uber-rides-welcome-modal'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('uber-ride-import-modal'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('reopens the welcome orientation from the "Como capturar?" link', async () => {
+    mockApi({ rides: [] });
+    localStorage.setItem('uber-rides-welcome-dismissed', 'true');
+    renderPage();
+
+    await screen.findByText(/Nenhuma corrida importada/);
+    fireEvent.click(screen.getByTestId('uber-ride-howto-open'));
+
+    expect(
+      await screen.findByTestId('uber-rides-welcome-modal'),
+    ).toBeInTheDocument();
   });
 });

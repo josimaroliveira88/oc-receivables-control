@@ -162,13 +162,15 @@ const mockGetImplementation = ({
     if (url === '/finances/summary')
       return Promise.resolve({ data: summaryData });
     if (url === '/sales') return Promise.resolve({ data: salesRows });
+    if (url === '/api-tokens') return Promise.resolve({ data: [] });
+    if (url === '/uber/rides') return Promise.resolve({ data: [] });
     return Promise.resolve({ data: [] });
   });
 };
 
-const renderPage = () =>
+const renderPage = (initialEntries = ['/finances']) =>
   render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={initialEntries}>
       <ToastProvider>
         <FinancesPage />
       </ToastProvider>
@@ -184,6 +186,7 @@ const waitForTable = async () => {
 describe('FinancesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
   it('renders the page title and summary totals', async () => {
@@ -373,6 +376,45 @@ describe('FinancesPage', () => {
         ),
       ).toBeInTheDocument(),
     );
+  });
+
+  it('opens the Uber rides welcome orientation on the first visit', async () => {
+    mockGetImplementation();
+    renderPage();
+    await waitForTable();
+
+    fireEvent.click(screen.getByTestId('finances-uber-import-open'));
+
+    expect(
+      await screen.findByTestId('uber-rides-welcome-modal'),
+    ).toBeInTheDocument();
+  });
+
+  it('opens the Uber rides import modal from the header button after dismissing the orientation', async () => {
+    mockGetImplementation();
+    localStorage.setItem('uber-rides-welcome-dismissed', 'true');
+    renderPage();
+    await waitForTable();
+
+    fireEvent.click(screen.getByTestId('finances-uber-import-open'));
+
+    expect(
+      await screen.findByTestId('uber-rides-embedded-modal'),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByTestId('uber-ride-import-modal'),
+    ).toBeInTheDocument();
+  });
+
+  it('opens the Uber rides flow when the legacy query param is present', async () => {
+    mockGetImplementation();
+    localStorage.setItem('uber-rides-welcome-dismissed', 'true');
+    renderPage(['/finances?openUberImport=1']);
+    await waitForTable();
+
+    expect(
+      await screen.findByTestId('uber-rides-embedded-modal'),
+    ).toBeInTheDocument();
   });
 
   describe('manual transaction modal', () => {

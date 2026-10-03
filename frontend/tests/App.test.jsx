@@ -43,6 +43,9 @@ vi.mock('../src/pages/LoginPage', () => ({
 vi.mock('../src/pages/RegisterPage', () => ({
   default: () => <div data-testid="register-page" />,
 }));
+vi.mock('../src/pages/Help/UberRidesGuide', () => ({
+  default: () => <div data-testid="uber-rides-guide-page" />,
+}));
 
 const renderApp = (initialEntries = ['/']) =>
   render(
@@ -61,5 +64,15 @@ describe('App routing', () => {
   it('redirects unknown paths to the products screen', () => {
     renderApp(['/does-not-exist']);
     expect(screen.getByTestId('products-page')).toBeInTheDocument();
+  });
+
+  it('redirects the legacy /uber-rides path to Finances opening the import flow', () => {
+    renderApp(['/uber-rides']);
+    expect(screen.getByTestId('finances-page')).toBeInTheDocument();
+  });
+
+  it('renders the Uber rides help guide at /ajuda/corridas-uber', () => {
+    renderApp(['/ajuda/corridas-uber']);
+    expect(screen.getByTestId('uber-rides-guide-page')).toBeInTheDocument();
   });
 });
