@@ -20,8 +20,31 @@ model User {
   financialTransactions FinancialTransaction[]
   creditCardBills       CreditCardBill[]
   rides                 RideRecord[]
+  apiTokens             ApiToken[]
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
+}
+
+// Scoped API token for trusted first-party integrations (the Chrome extension).
+// Only the SHA-256 hash is stored, so a database leak never reveals usable
+// tokens; the cleartext is returned exactly once, by the create endpoint.
+model ApiToken {
+  id        String    @id @default(uuid())
+  userId    String
+  name      String    @db.VarChar(60)
+  // Purpose of the token, e.g. "uber:import". The uber import route checks it.
+  scope     String    @default("uber:import") @db.VarChar(40)
+  tokenHash String    @unique
+  // Last four cleartext characters, so the UI can show which token is which.
+  lastFour  String    @db.Char(4)
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Person {

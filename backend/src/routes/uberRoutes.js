@@ -1,10 +1,52 @@
 import express from 'express';
 import * as uberRidesController from '../controllers/uberRidesController.js';
 import { authenticateToken } from '../middlewares/auth.js';
+import { authenticateUberImport } from '../middlewares/apiTokenAuth.js';
 
 const router = express.Router();
 
-// All routes require authentication
+// All routes require authentication. `/rides/import` runs FIRST (route order
+// matters) with the composed middleware that also accepts a scoped API token
+// (`cr_…`; the Chrome extension calls it without a session); everything
+// defined after `router.use(authenticateToken)` is session-JWT only.
+
+/**
+ * @openapi
+ * /api/uber/rides/import:
+ *   post:
+ *     tags: [Uber]
+ *     summary: Importa as corridas de um JSON colado ou enviado pela extensão
+ *     description: |
+ *       Faz o parse do JSON do script de captura e faz upsert das corridas. Idempotente.
+ *       Aceita o JWT de sessão ou um token de API com escopo `uber:import` (extensão do Chrome).
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/RideImportInput'
+ *     responses:
+ *       200:
+ *         description: Resumo da importação
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RideImportSummary'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+// POST /api/uber/rides/import
+router.post(
+  '/rides/import',
+  authenticateUberImport,
+  uberRidesController.importRidesHandler,
+);
+
+// Session-JWT-only from this point; API tokens are rejected here.
 router.use(authenticateToken);
 
 /**
@@ -53,34 +95,6 @@ router.use(authenticateToken);
  */
 // GET /api/uber/rides
 router.get('/rides', uberRidesController.listRidesHandler);
-
-/**
- * @openapi
- * /api/uber/rides/import:
- *   post:
- *     tags: [Uber]
- *     summary: Importa as corridas de um JSON colado
- *     description: Faz o parse do JSON do script de captura e faz upsert das corridas. Idempotente.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/RideImportInput'
- *     responses:
- *       200:
- *         description: Resumo da importação
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/RideImportSummary'
- *       400:
- *         $ref: '#/components/responses/BadRequest'
- *       401:
- *         $ref: '#/components/responses/Unauthorized'
- */
-// POST /api/uber/rides/import
-router.post('/rides/import', uberRidesController.importRidesHandler);
 
 /**
  * @openapi

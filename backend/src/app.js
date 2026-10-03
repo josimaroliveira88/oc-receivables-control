@@ -82,6 +82,10 @@ app.use('/api/credit-cards', creditCardsRoutes);
 import uberRoutes from './routes/uberRoutes.js';
 app.use('/api/uber', uberRoutes);
 
+// API tokens for first-party integrations (the Chrome extension)
+import apiTokenRoutes from './routes/apiTokenRoutes.js';
+app.use('/api/api-tokens', apiTokenRoutes);
+
 // Product routes
 import productRoutes from './routes/productRoutes.js';
 app.use('/api/products', productRoutes);

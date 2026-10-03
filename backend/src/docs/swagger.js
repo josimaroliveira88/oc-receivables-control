@@ -59,6 +59,11 @@ const options = {
           'Importação de corridas do Uber e lançamento como despesa no financeiro',
       },
       {
+        name: 'ApiTokens',
+        description:
+          'Tokens de API para integrações de primeira parte (extensão do Chrome)',
+      },
+      {
         name: 'Products',
         description: 'Catálogo, tipos de preço, kits e composição',
       },
@@ -424,6 +429,51 @@ const options = {
             'UBER_BUSINESS',
             'MANUAL',
           ],
+        },
+        ApiToken: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            name: { type: 'string' },
+            scope: { type: 'string', example: 'uber:import' },
+            lastFour: {
+              type: 'string',
+              description: 'Quatro últimos caracteres do token em claro',
+              example: 'k2Rf',
+            },
+            expiresAt: { type: 'string', format: 'date-time' },
+            revokedAt: { type: 'string', format: 'date-time', nullable: true },
+            createdAt: { type: 'string', format: 'date-time' },
+          },
+        },
+        ApiTokenCreated: {
+          description: 'Inclui o token em claro — retorno único',
+          allOf: [
+            { $ref: '#/components/schemas/ApiToken' },
+            {
+              type: 'object',
+              properties: {
+                token: {
+                  type: 'string',
+                  description:
+                    'Token em claro, prefixo cr_ (exibir uma única vez)',
+                },
+              },
+            },
+          ],
+        },
+        ApiTokenCreateInput: {
+          type: 'object',
+          required: ['name'],
+          properties: {
+            name: { type: 'string', maxLength: 60 },
+            scope: {
+              type: 'string',
+              enum: ['uber:import'],
+              default: 'uber:import',
+            },
+            ttlDays: { type: 'integer', enum: [7, 30, 90], default: 30 },
+          },
         },
         RideStatus: {
           type: 'string',
