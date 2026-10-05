@@ -19,6 +19,8 @@ import {
   createManualTransaction,
   updateTransaction,
   deleteTransaction,
+  payCardTransaction,
+  unpayCardTransaction,
   createSettlement,
   deleteRescue,
   deleteRescueBatch,
@@ -125,6 +127,34 @@ const deleteTransactionHandler = async (req, res) => {
   }
 };
 
+// Settles (baixa) a credit-card Uber expense once its invoice is paid. Only
+// UBER rows with paymentType CARTAO_CREDITO are accepted; the ownership check
+// lives in the service.
+const payTransactionHandler = async (req, res) => {
+  try {
+    const transaction = await payCardTransaction(prisma, {
+      userId: req.user.userId,
+      id: req.params.id,
+    });
+    res.status(200).json(transaction);
+  } catch (error) {
+    handleError(res, error, { label: 'Error settling finance transaction' });
+  }
+};
+
+// Undoes the baixa of a credit-card Uber expense, returning it to pending.
+const unpayTransactionHandler = async (req, res) => {
+  try {
+    const transaction = await unpayCardTransaction(prisma, {
+      userId: req.user.userId,
+      id: req.params.id,
+    });
+    res.status(200).json(transaction);
+  } catch (error) {
+    handleError(res, error, { label: 'Error unsetting finance transaction' });
+  }
+};
+
 const createSettlementHandler = async (req, res) => {
   try {
     const payload = settlementSchema.parse(req.body);
@@ -190,6 +220,8 @@ export {
   createTransactionHandler,
   updateTransactionHandler,
   deleteTransactionHandler,
+  payTransactionHandler,
+  unpayTransactionHandler,
   createSettlementHandler,
   deleteSettlementHandler,
   deleteSettlementBatchHandler,

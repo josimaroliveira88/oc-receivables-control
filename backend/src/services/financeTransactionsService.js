@@ -24,6 +24,25 @@ const decorateTransaction = (transaction) => ({
     : null,
 });
 
+// An Uber expense converted to a credit-card purchase keeps its ride link, and
+// the ride date is no longer necessarily `transactionDate` (which becomes the
+// card charge date). The relation is exposed to the UI so the ride date can
+// still be shown next to the entry.
+const rideSelect = {
+  select: {
+    requestedAt: true,
+    destination: true,
+    riderName: true,
+    rideType: true,
+  },
+};
+
+const transactionInclude = {
+  category: true,
+  payment: true,
+  ride: rideSelect,
+};
+
 const buildWhere = (userId, query = {}) => {
   const where = { userId };
 
@@ -78,7 +97,7 @@ const assertManual = (transaction) => {
 const listTransactions = async (client, { userId, query }) => {
   const transactions = await client.financialTransaction.findMany({
     where: buildWhere(userId, query),
-    include: { category: true, payment: true },
+    include: transactionInclude,
     orderBy: [{ transactionDate: 'desc' }, { createdAt: 'desc' }],
   });
 
@@ -102,7 +121,7 @@ const createManualTransaction = async (client, { userId, payload }) => {
       notes: payload.notes ?? null,
       categoryId: payload.categoryId ?? null,
     },
-    include: { category: true, payment: true },
+    include: transactionInclude,
   });
 
   return decorateTransaction(transaction);
@@ -138,7 +157,7 @@ const updateManualTransaction = async (client, { userId, id, payload }) => {
       }),
       ...(payload.notes !== undefined && { notes: payload.notes }),
     },
-    include: { category: true, payment: true },
+    include: transactionInclude,
   });
 
   return decorateTransaction(transaction);
@@ -156,9 +175,44 @@ const deleteManualTransaction = async (client, { userId, id }) => {
 // launched again.
 const DELETABLE_ORIGINS = new Set(['MANUAL', 'UBER']);
 
+// Credit-card fields for an Uber edit. `paymentType` is the switch: CARTAO_CREDITO
+// turns the row into a pending card purchase that carries the invoice (fatura)
+// date, while null reverts it to a plain entry. When the field is omitted the
+// card state is left untouched. The invoice can never precede the charge date.
+const buildUberCardData = (existing, payload) => {
+  if (payload.paymentType === undefined) return {};
+
+  if (payload.paymentType === null) {
+    return { paymentType: null, effectiveDate: null, isEffective: true };
+  }
+
+  if (!payload.effectiveDate) {
+    throw badRequest('Informe a data da fatura do cartão de crédito');
+  }
+
+  const invoiceDate = parseLocalDate(payload.effectiveDate);
+  const chargeDate = payload.transactionDate
+    ? parseLocalDate(payload.transactionDate)
+    : existing.transactionDate;
+
+  if (invoiceDate.getTime() < chargeDate.getTime()) {
+    throw badRequest(
+      'A data da fatura não pode ser anterior à data do lançamento no cartão',
+    );
+  }
+
+  return {
+    paymentType: 'CARTAO_CREDITO',
+    effectiveDate: invoiceDate,
+    isEffective: false,
+  };
+};
+
 // Applies a partial update according to the row's origin:
 // - MANUAL: every field (existing behaviour).
 // - UBER: everything but `type`/`origin` (the ride-derived nature is fixed).
+//   The row can also be converted into a pending credit-card purchase (charge
+//   date = transactionDate, invoice date = effectiveDate) and reverted.
 // - other automatic origins: only the description; amount/date/category are
 //   derived from the source and are re-synced when it changes.
 const updateTransaction = async (client, { userId, id, payload }) => {
@@ -176,6 +230,8 @@ const updateTransaction = async (client, { userId, id, payload }) => {
       });
     }
 
+    const cardData = buildUberCardData(existing, payload);
+
     const transaction = await client.financialTransaction.update({
       where: { id },
       data: {
@@ -190,8 +246,9 @@ const updateTransaction = async (client, { userId, id, payload }) => {
           categoryId: payload.categoryId,
         }),
         ...(payload.notes !== undefined && { notes: payload.notes }),
+        ...cardData,
       },
-      include: { category: true, payment: true },
+      include: transactionInclude,
     });
 
     return decorateTransaction(transaction);
@@ -204,7 +261,7 @@ const updateTransaction = async (client, { userId, id, payload }) => {
         description: payload.description,
       }),
     },
-    include: { category: true, payment: true },
+    include: transactionInclude,
   });
 
   return decorateTransaction(transaction);
@@ -220,6 +277,48 @@ const deleteTransaction = async (client, { userId, id }) => {
   }
 
   await client.financialTransaction.delete({ where: { id } });
+};
+
+// A credit-card Uber expense is settled (baixada) once its invoice is paid,
+// mirroring the per-installment pay/unpay of the credit-card module. There is no
+// bill to recompute the scheduled date from, so the invoice date in
+// `effectiveDate` is preserved and only `isEffective` flips. Both operations are
+// idempotent and restricted to Uber card rows.
+const assertCardUber = (transaction) => {
+  if (
+    transaction.origin !== 'UBER' ||
+    transaction.paymentType !== 'CARTAO_CREDITO'
+  ) {
+    throw badRequest(
+      'Somente lançamentos de corrida Uber no cartão de crédito podem ser baixados',
+    );
+  }
+};
+
+const payCardTransaction = async (client, { userId, id }) => {
+  const existing = await findOwnedTransaction(client, userId, id);
+  assertCardUber(existing);
+
+  const transaction = await client.financialTransaction.update({
+    where: { id },
+    data: { isEffective: true },
+    include: transactionInclude,
+  });
+
+  return decorateTransaction(transaction);
+};
+
+const unpayCardTransaction = async (client, { userId, id }) => {
+  const existing = await findOwnedTransaction(client, userId, id);
+  assertCardUber(existing);
+
+  const transaction = await client.financialTransaction.update({
+    where: { id },
+    data: { isEffective: false },
+    include: transactionInclude,
+  });
+
+  return decorateTransaction(transaction);
 };
 
 // Validates that an order can receive an InfinitePay redemption and returns it.
@@ -289,7 +388,7 @@ const createSettlement = async (client, { userId, payload }) => {
       notes: payload.notes,
       importBatchId: payload.importBatchId,
     }),
-    include: { category: true, payment: true },
+    include: transactionInclude,
   });
 
   return decorateTransaction(transaction);
@@ -366,6 +465,8 @@ export {
   updateTransaction,
   deleteManualTransaction,
   deleteTransaction,
+  payCardTransaction,
+  unpayCardTransaction,
   assertSettleableOrder,
   buildSettlementData,
   createSettlement,

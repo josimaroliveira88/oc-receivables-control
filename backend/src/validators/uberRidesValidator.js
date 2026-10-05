@@ -61,6 +61,16 @@ const createRideExpensesSchema = z.object({
   items: z
     .array(rideExpenseItemSchema)
     .min(1, 'Selecione ao menos uma corrida'),
+  // Optional batch-level credit-card payment. When present every launched ride
+  // becomes a pending card purchase: the ride date is the charge date and
+  // `effectiveDate` is the invoice (fatura) date, settled later through the
+  // ledger pay/unpay.
+  payment: z
+    .object({
+      type: z.literal('CARTAO_CREDITO'),
+      effectiveDate: dateSchema,
+    })
+    .optional(),
 });
 
 const rideIdParamSchema = z.object({

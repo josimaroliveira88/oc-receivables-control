@@ -266,6 +266,67 @@ router.delete('/transactions/:id', financesController.deleteTransactionHandler);
 
 /**
  * @openapi
+ * /api/finances/transactions/{id}/pay:
+ *   post:
+ *     tags: [Finances]
+ *     summary: Baixa como paga uma corrida Uber no cartão de crédito
+ *     description: Marca como efetiva (isEffective true) uma despesa de corrida Uber paga no cartão de crédito, preservando a data da fatura. Idempotente.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Lançamento baixado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FinancialTransaction'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+// POST /api/finances/transactions/:id/pay
+router.post('/transactions/:id/pay', financesController.payTransactionHandler);
+
+/**
+ * @openapi
+ * /api/finances/transactions/{id}/unpay:
+ *   post:
+ *     tags: [Finances]
+ *     summary: Desfaz a baixa de uma corrida Uber no cartão de crédito
+ *     description: Volta a despesa a pendente (isEffective false), preservando a data da fatura. Idempotente.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Lançamento pendente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FinancialTransaction'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+// POST /api/finances/transactions/:id/unpay
+router.post(
+  '/transactions/:id/unpay',
+  financesController.unpayTransactionHandler,
+);
+
+/**
+ * @openapi
  * /api/finances/settlements:
  *   post:
  *     tags: [Finances]

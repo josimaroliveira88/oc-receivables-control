@@ -114,6 +114,11 @@ const updateTransactionSchema = z.object({
     )
     .nullable()
     .optional(),
+  // Uber credit-card payment. CARTAO_CREDITO turns the row into a pending card
+  // purchase; null reverts it to a plain entry. Both are ignored by the service
+  // for origins other than UBER. `effectiveDate` is the invoice (fatura) date.
+  paymentType: z.enum(['CARTAO_CREDITO']).nullable().optional(),
+  effectiveDate: dateSchema.nullable().optional(),
 });
 
 // Listing/summary filters, shared by both endpoints.

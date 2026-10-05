@@ -160,13 +160,42 @@ const defaultRideDescription = (ride) => {
   return parts.join(' ');
 };
 
+// `RideRecord.requestedAt` stores the rider's local wall clock encoded as UTC,
+// so the calendar day must be read from its UTC parts to compare with the
+// `YYYY-MM-DD` invoice date without a timezone shift.
+const rideDayString = (date) =>
+  `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+
+// Credit-card fields for a launched ride. The ride date is the card charge date
+// (kept as `transactionDate`) and the informed invoice date becomes the pending
+// `effectiveDate`, which must not precede the ride.
+const buildRideCardFields = (ride, payment) => {
+  if (!payment) return {};
+
+  if (rideDayString(ride.requestedAt) > payment.effectiveDate) {
+    throw badRequest(
+      'A data da fatura não pode ser anterior à data da corrida',
+    );
+  }
+
+  return {
+    paymentType: payment.type,
+    effectiveDate: parseLocalDate(payment.effectiveDate),
+    isEffective: false,
+  };
+};
+
 // Creates one DESPESA ledger row per selected ride. The whole batch is
 // transactional: if any ride is missing, cancelled or already launched, nothing
 // is written. The category defaults to the user's "Transporte" when not
 // informed, and every informed category must be the user's and of type DESPESA.
 // An optional `orderId` links the expense to the sale the ride delivered; it
-// must be one of the user's own VENDA orders.
-const createExpensesFromRides = async (client, { userId, items }) =>
+// must be one of the user's own VENDA orders. An optional batch `payment`
+// (CARTAO_CREDITO + invoice date) turns every row into a pending card purchase.
+const createExpensesFromRides = async (
+  client,
+  { userId, items, payment = null },
+) =>
   client.$transaction(async (tx) => {
     const created = [];
 
@@ -238,6 +267,7 @@ const createExpensesFromRides = async (client, { userId, items }) =>
           categoryId,
           orderId,
           rideId: ride.id,
+          ...buildRideCardFields(ride, payment),
         },
         include: { category: true },
       });

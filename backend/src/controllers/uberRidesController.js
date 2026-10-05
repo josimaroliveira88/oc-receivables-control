@@ -46,6 +46,7 @@ const createRideExpensesHandler = async (req, res) => {
     const created = await createExpensesFromRides(prisma, {
       userId: req.user.userId,
       items: payload.items,
+      payment: payload.payment ?? null,
     });
     res.status(201).json(created);
   } catch (error) {
