@@ -233,9 +233,15 @@ export function useUberRides({ initialView = null } = {}) {
         windowStart: toIsoInstant(importForm.windowStart),
         windowEnd: toIsoInstant(importForm.windowEnd),
       });
-      const parts = [`${data.total} corrida(s) processada(s)`];
+      const parts = [
+        `${data.created} nova(s)`,
+        `${data.updated} atualizada(s)`,
+      ];
       if (data.cancelled > 0) parts.push(`${data.cancelled} cancelada(s)`);
-      addToast(`Importação concluída: ${parts.join(', ')}.`, 'success');
+      addToast(
+        `Importação concluída: ${data.total} corrida(s) processada(s) (${parts.join(', ')}).`,
+        'success',
+      );
       closeImport();
       setSelections({});
       await loadRides();

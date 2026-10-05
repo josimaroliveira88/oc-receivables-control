@@ -224,6 +224,30 @@ describe('UberRidesPage', () => {
     );
   });
 
+  it('summarizes created, updated and cancelled rides in the import toast', async () => {
+    mockApi({ rides: [] });
+    mockPost.mockResolvedValue({
+      data: { total: 5, created: 3, updated: 2, cancelled: 1, warnings: [] },
+    });
+    renderPage();
+
+    localStorage.setItem('uber-rides-welcome-dismissed', 'true');
+    await screen.findByText(/Nenhuma corrida importada/);
+    fireEvent.click(screen.getByTestId('uber-ride-import-open'));
+
+    const modal = await screen.findByTestId('uber-ride-import-modal');
+    fireEvent.change(within(modal).getByTestId('uber-ride-import-json'), {
+      target: { value: '{"profiles":{"FAMILY":{"atividades":[]}}}' },
+    });
+    fireEvent.click(within(modal).getByRole('button', { name: 'Importar' }));
+
+    expect(
+      await screen.findByText(
+        /5 corrida\(s\) processada\(s\) \(3 nova\(s\), 2 atualizada\(s\), 1 cancelada\(s\)\)/,
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('launches the selected rides as expenses with the default category', async () => {
     mockApi({ rides: [ride()] });
     mockPost.mockResolvedValue({ data: [{ id: 'tx-1' }] });
