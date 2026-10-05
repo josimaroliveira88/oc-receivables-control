@@ -7,6 +7,9 @@ COPY frontend/package*.json ./
 RUN npm ci
 
 COPY frontend/ ./
+# The frontend build runs `package-extension.mjs`, which lives under `tools/`
+# and is referenced as `../tools` from the frontend workspace.
+COPY tools/ /tools/
 RUN npm run build
 
 # ---- Stage 2: production backend image (serves API + SPA) ----

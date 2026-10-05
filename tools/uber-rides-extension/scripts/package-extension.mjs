@@ -23,7 +23,12 @@ import { dirname, join, relative } from 'node:path';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const REPO_ROOT = join(ROOT, '..', '..');
-const OUTPUT_DIR = join(REPO_ROOT, 'frontend', 'public');
+// In the monorepo the ZIP lands in `frontend/public/`. Inside the dev container
+// the repo root is not mounted (only `frontend/` as `/app` and `tools/` as
+// `/tools`), so fall back to the package cwd, which npm runs as `frontend/`.
+const OUTPUT_DIR = existsSync(join(REPO_ROOT, 'frontend'))
+  ? join(REPO_ROOT, 'frontend', 'public')
+  : join(process.cwd(), 'public');
 const OUTPUT_FILE = join(OUTPUT_DIR, 'uber-rides-extension.zip');
 
 const INCLUDED = ['manifest.json', 'README.md', 'icons', 'src'];
