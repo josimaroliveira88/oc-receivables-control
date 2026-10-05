@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi } from 'vitest';
 import FinancialTransactionDetailsModal from '../src/pages/Finances/components/FinancialTransactionDetailsModal';
 
@@ -26,11 +27,16 @@ const makeTransaction = (overrides = {}) => ({
   ...overrides,
 });
 
+const renderModal = (transaction, props = {}) =>
+  render(
+    <MemoryRouter>
+      <FinancialTransactionDetailsModal transaction={transaction} {...props} />
+    </MemoryRouter>,
+  );
+
 describe('FinancialTransactionDetailsModal', () => {
   it('renders the read-only summary of a transaction', () => {
-    render(
-      <FinancialTransactionDetailsModal transaction={makeTransaction()} />,
-    );
+    renderModal(makeTransaction());
 
     expect(screen.getByTestId('transaction-details-modal')).toBeInTheDocument();
     expect(screen.getByText('Detalhamento do lançamento')).toBeInTheDocument();
@@ -55,16 +61,14 @@ describe('FinancialTransactionDetailsModal', () => {
   });
 
   it('shows a positive sign for income', () => {
-    render(
-      <FinancialTransactionDetailsModal
-        transaction={makeTransaction({
-          type: 'RECEITA',
-          origin: 'VENDA',
-          amount: '100.00',
-          description: 'Venda V-0001 — João Silva',
-          category: { id: 'cat-vendas', name: 'Vendas', type: 'RECEITA' },
-        })}
-      />,
+    renderModal(
+      makeTransaction({
+        type: 'RECEITA',
+        origin: 'VENDA',
+        amount: '100.00',
+        description: 'Venda V-0001 — João Silva',
+        category: { id: 'cat-vendas', name: 'Vendas', type: 'RECEITA' },
+      }),
     );
 
     expect(screen.getByTestId('transaction-details-amount')).toHaveTextContent(
@@ -76,16 +80,14 @@ describe('FinancialTransactionDetailsModal', () => {
   });
 
   it('renders notes, gateway fee and installments when present', () => {
-    render(
-      <FinancialTransactionDetailsModal
-        transaction={makeTransaction({
-          notes: 'Recebido via InfinitePay',
-          feeAmount: '3.00',
-          installmentNumber: 2,
-          installmentsTotal: 3,
-          isEffective: false,
-        })}
-      />,
+    renderModal(
+      makeTransaction({
+        notes: 'Recebido via InfinitePay',
+        feeAmount: '3.00',
+        installmentNumber: 2,
+        installmentsTotal: 3,
+        isEffective: false,
+      }),
     );
 
     expect(screen.getByTestId('transaction-details-notes')).toHaveTextContent(
@@ -103,14 +105,12 @@ describe('FinancialTransactionDetailsModal', () => {
   });
 
   it('renders a dash for absent optional fields', () => {
-    render(
-      <FinancialTransactionDetailsModal
-        transaction={makeTransaction({
-          category: null,
-          notes: null,
-          feeAmount: null,
-        })}
-      />,
+    renderModal(
+      makeTransaction({
+        category: null,
+        notes: null,
+        feeAmount: null,
+      }),
     );
 
     expect(
@@ -127,14 +127,41 @@ describe('FinancialTransactionDetailsModal', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('links an Uber ride expense back to its sale', () => {
+    renderModal(
+      makeTransaction({
+        origin: 'UBER',
+        description: 'Uber — Duo Residence Mall (Cássia)',
+        category: { id: 'cat-transp', name: 'Transporte', type: 'DESPESA' },
+        orderId: 'sale-9',
+      }),
+    );
+
+    const saleLink = screen.getByTestId('transaction-details-sale');
+    expect(saleLink).toHaveTextContent('Ver venda');
+    expect(screen.getByRole('link', { name: /Ver venda/ })).toHaveAttribute(
+      'href',
+      '/sales?detailsSale=sale-9',
+    );
+  });
+
+  it('hides the sale link for an Uber ride without a linked sale', () => {
+    renderModal(
+      makeTransaction({
+        origin: 'UBER',
+        description: 'Uber — Centro',
+        orderId: null,
+      }),
+    );
+
+    expect(
+      screen.queryByTestId('transaction-details-sale'),
+    ).not.toBeInTheDocument();
+  });
+
   it('closes through the close button and the footer button', () => {
     const onClose = vi.fn();
-    render(
-      <FinancialTransactionDetailsModal
-        transaction={makeTransaction()}
-        onClose={onClose}
-      />,
-    );
+    renderModal(makeTransaction(), { onClose });
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Fechar detalhamento' }),

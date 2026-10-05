@@ -43,10 +43,11 @@ const categories = [
   { id: 'cat-vendas', name: 'Vendas', type: 'RECEITA', active: true },
 ];
 
-const mockApi = ({ rides = [], cats = categories } = {}) => {
+const mockApi = ({ rides = [], cats = categories, saleOptions = [] } = {}) => {
   mockGet.mockImplementation((url) => {
     if (url === '/uber/rides') return Promise.resolve({ data: rides });
     if (url === '/finances/categories') return Promise.resolve({ data: cats });
+    if (url === '/sales/options') return Promise.resolve({ data: saleOptions });
     return Promise.resolve({ data: [] });
   });
 };
@@ -270,6 +271,56 @@ describe('UberRidesPage', () => {
             rideId: 'ride-1',
             categoryId: 'cat-transporte',
             description: 'Uber — Duo Residence Mall (Cássia)',
+            orderId: null,
+          },
+        ],
+      }),
+    );
+  });
+
+  it('links a selected ride to a sale through the autocomplete', async () => {
+    mockApi({
+      rides: [ride()],
+      saleOptions: [
+        {
+          id: 'sale-9',
+          orderNumber: 'V-0009',
+          clientName: 'João',
+          orderDate: '2026-09-20T00:00:00.000Z',
+          totalValue: '100.00',
+        },
+      ],
+    });
+    mockPost.mockResolvedValue({ data: [{ id: 'tx-1' }] });
+    renderPage();
+
+    fireEvent.click(await screen.findByTestId('uber-ride-select-ride-1'));
+
+    const input = await screen.findByTestId('uber-ride-order-ride-1-input');
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'V-00' } });
+
+    const option = await screen.findByTestId(
+      'uber-ride-order-ride-1-option-sale-9',
+    );
+    fireEvent.mouseDown(option);
+
+    expect(input.value).toContain('V-0009 — João');
+    expect(input.value).toContain('100,00');
+    expect(mockGet).toHaveBeenCalledWith('/sales/options', {
+      params: { q: 'V-00', limit: 20 },
+    });
+
+    fireEvent.click(screen.getByTestId('uber-ride-launch'));
+
+    await waitFor(() =>
+      expect(mockPost).toHaveBeenCalledWith('/uber/rides/expenses', {
+        items: [
+          {
+            rideId: 'ride-1',
+            categoryId: 'cat-transporte',
+            description: 'Uber — Duo Residence Mall (Cássia)',
+            orderId: 'sale-9',
           },
         ],
       }),

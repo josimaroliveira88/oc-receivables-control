@@ -102,6 +102,25 @@ const transactions = [
     paymentId: null,
     feeAmount: null,
   },
+  {
+    id: 't-uber',
+    type: 'DESPESA',
+    origin: 'UBER',
+    amount: '32.93',
+    description: 'Uber — Duo Residence Mall (Cássia)',
+    transactionDate: '2026-09-26T00:00:00.000Z',
+    notes: null,
+    categoryId: 'cat-doterra',
+    category: {
+      id: 'cat-doterra',
+      name: 'Compra de produtos dōTERRA',
+      type: 'DESPESA',
+    },
+    orderId: 'order-1',
+    rideId: 'ride-1',
+    paymentId: null,
+    feeAmount: null,
+  },
 ];
 
 const summary = {
@@ -269,14 +288,20 @@ describe('FinancesPage', () => {
     expect(
       screen.getByTestId('transaction-actions-t-doterra-trigger'),
     ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('transaction-actions-t-uber-trigger'),
+    ).toBeInTheDocument();
 
-    // Automatic sale row: "Ver detalhes" is the only action.
+    // Automatic sale row: details plus description-only editing.
     fireEvent.click(screen.getByTestId('transaction-actions-t-venda-trigger'));
     expect(
       screen.getByTestId('transaction-actions-t-venda-item-Ver-detalhes'),
     ).toBeInTheDocument();
     expect(
-      screen.queryByTestId('transaction-actions-t-venda-item-Editar'),
+      screen.getByTestId('transaction-actions-t-venda-item-Editar-descricao'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('transaction-actions-t-venda-item-Excluir'),
     ).not.toBeInTheDocument();
     fireEvent.keyDown(document, { key: 'Escape' });
 
@@ -293,12 +318,25 @@ describe('FinancesPage', () => {
     ).toBeInTheDocument();
     fireEvent.keyDown(document, { key: 'Escape' });
 
-    // dōTERRA order row: "Ver detalhes" is the only action as well.
+    // dōTERRA order row: details plus description-only editing.
     fireEvent.click(
       screen.getByTestId('transaction-actions-t-doterra-trigger'),
     );
     expect(
       screen.getByTestId('transaction-actions-t-doterra-item-Ver-detalhes'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('transaction-actions-t-doterra-item-Editar-descricao'),
+    ).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    // Uber row: fully editable (but for type/origin) and deletable.
+    fireEvent.click(screen.getByTestId('transaction-actions-t-uber-trigger'));
+    expect(
+      screen.getByTestId('transaction-actions-t-uber-item-Editar'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('transaction-actions-t-uber-item-Excluir'),
     ).toBeInTheDocument();
   });
 
@@ -567,6 +605,108 @@ describe('FinancesPage', () => {
         expect(
           screen.queryByTestId('transaction-form-modal'),
         ).not.toBeInTheDocument(),
+      );
+    });
+  });
+
+  describe('automatic row editing', () => {
+    it('edits only the description of an automatic sale row', async () => {
+      mockPut.mockResolvedValue({
+        data: { ...transactions[0], description: 'Venda ajustada' },
+      });
+      mockGetImplementation();
+      renderPage();
+      await waitForTable();
+
+      fireEvent.click(
+        screen.getByTestId('transaction-actions-t-venda-trigger'),
+      );
+      fireEvent.click(
+        screen.getByTestId('transaction-actions-t-venda-item-Editar-descricao'),
+      );
+
+      await screen.findByText('Editar descrição', { selector: 'h3' });
+      // Only the description is editable for automatic rows.
+      expect(
+        screen.queryByTestId('transaction-amount'),
+      ).not.toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('transaction-form-modal')).queryByLabelText(
+          'Tipo',
+        ),
+      ).not.toBeInTheDocument();
+
+      fireEvent.change(screen.getByLabelText('Descrição'), {
+        target: { value: 'Venda ajustada' },
+      });
+      const form = screen.getByLabelText('Descrição').closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() =>
+        expect(mockPut).toHaveBeenCalledWith('/finances/transactions/t-venda', {
+          description: 'Venda ajustada',
+        }),
+      );
+    });
+
+    it('edits an Uber row without changing its type or origin', async () => {
+      mockPut.mockResolvedValue({
+        data: { ...transactions[3], amount: '40.00' },
+      });
+      mockGetImplementation();
+      renderPage();
+      await waitForTable();
+
+      fireEvent.click(screen.getByTestId('transaction-actions-t-uber-trigger'));
+      fireEvent.click(
+        screen.getByTestId('transaction-actions-t-uber-item-Editar'),
+      );
+
+      await screen.findByText('Editar lançamento', { selector: 'h3' });
+      // Type is fixed for Uber rows, so no type selector is offered.
+      expect(
+        within(screen.getByTestId('transaction-form-modal')).queryByLabelText(
+          'Tipo',
+        ),
+      ).not.toBeInTheDocument();
+
+      fireEvent.change(screen.getByTestId('transaction-amount'), {
+        target: { value: '4000' },
+      });
+      const form = screen.getByTestId('transaction-amount').closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() =>
+        expect(mockPut).toHaveBeenCalledWith('/finances/transactions/t-uber', {
+          amount: 40,
+          description: 'Uber — Duo Residence Mall (Cássia)',
+          transactionDate: '2026-09-26',
+          categoryId: 'cat-doterra',
+          notes: null,
+        }),
+      );
+    });
+
+    it('deletes an Uber row after confirmation', async () => {
+      mockDelete.mockResolvedValue({ data: { message: 'ok' } });
+      mockGetImplementation();
+      renderPage();
+      await waitForTable();
+
+      fireEvent.click(screen.getByTestId('transaction-actions-t-uber-trigger'));
+      fireEvent.click(
+        screen.getByTestId('transaction-actions-t-uber-item-Excluir'),
+      );
+
+      expect(
+        await screen.findByText(/corrida voltará a ficar disponível/i),
+      ).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Excluir' }));
+
+      await waitFor(() =>
+        expect(mockDelete).toHaveBeenCalledWith(
+          '/finances/transactions/t-uber',
+        ),
       );
     });
   });

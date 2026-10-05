@@ -66,6 +66,18 @@ const otherTransaction = {
   orderId: null,
 };
 
+const uberTransaction = {
+  ...linkedTransaction,
+  id: 'tx-uber',
+  type: 'DESPESA',
+  origin: 'UBER',
+  amount: '32.93',
+  description: 'Uber — Duo Residence Mall (Cássia)',
+  categoryId: 'cat-transporte',
+  category: { id: 'cat-transporte', name: 'Transporte', type: 'DESPESA' },
+  orderId: 'order-uber',
+};
+
 const mockGetImplementation = (rows = [linkedTransaction]) => {
   mockGet.mockImplementation((url) => {
     if (url === '/finances/categories')
@@ -174,6 +186,17 @@ describe('Finances deep links', () => {
         ]),
       );
       expect(screen.getByText('Bônus dōTERRA')).toBeInTheDocument();
+    });
+  });
+
+  describe('origin links', () => {
+    it('links an Uber ride expense to its sale', async () => {
+      mockGetImplementation([uberTransaction]);
+      renderAt('/finances');
+
+      const link = await screen.findByTestId('transaction-link-tx-uber');
+      expect(link).toHaveAttribute('href', '/sales?detailsSale=order-uber');
+      expect(link).toHaveTextContent('Corrida Uber');
     });
   });
 

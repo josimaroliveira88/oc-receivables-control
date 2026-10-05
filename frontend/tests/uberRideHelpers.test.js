@@ -4,6 +4,7 @@ import {
   defaultRideDescription,
   filterRides,
   formatRideDateTime,
+  formatSaleOptionLabel,
   isRideSelectable,
   makeSelection,
   profileTypeLabel,
@@ -76,6 +77,27 @@ describe('uberRideHelpers', () => {
         rideId: 'ride-1',
         categoryId: 'cat-transporte',
         description: 'Uber — Duo Residence Mall (Cássia)',
+        orderId: null,
+      },
+    ]);
+  });
+
+  it('includes the linked sale in the expense payload', () => {
+    const rides = [ride()];
+    const selections = {
+      'ride-1': {
+        ...makeSelection(ride(), 'cat-transporte'),
+        orderId: 'sale-9',
+        orderLabel: 'V-0009 — João',
+      },
+    };
+
+    expect(buildExpenseItems(rides, selections)).toEqual([
+      {
+        rideId: 'ride-1',
+        categoryId: 'cat-transporte',
+        description: 'Uber — Duo Residence Mall (Cássia)',
+        orderId: 'sale-9',
       },
     ]);
   });
@@ -87,8 +109,23 @@ describe('uberRideHelpers', () => {
     };
 
     expect(buildExpenseItems(rides, selections)).toEqual([
-      { rideId: 'ride-1', categoryId: null, description: null },
+      { rideId: 'ride-1', categoryId: null, description: null, orderId: null },
     ]);
+  });
+
+  it('formats a sale option label with client name and value', () => {
+    expect(
+      formatSaleOptionLabel({
+        orderNumber: 'V-0001',
+        clientName: 'Ana',
+        totalValue: '100.00',
+      }),
+    ).toBe('V-0001 — Ana — R$\u00a0100,00');
+    expect(
+      formatSaleOptionLabel({ orderNumber: 'V-0002', totalValue: '50' }),
+    ).toBe('V-0002 — R$\u00a050,00');
+    expect(formatSaleOptionLabel({ orderNumber: 'V-0003' })).toBe('V-0003');
+    expect(formatSaleOptionLabel(null)).toBe('');
   });
 
   it('summarizes the rides and the pending amount', () => {
