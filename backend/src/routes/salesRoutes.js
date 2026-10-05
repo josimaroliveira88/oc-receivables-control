@@ -66,6 +66,31 @@ router.get('/', salesController.getSales);
 
 /**
  * @openapi
+ * /api/sales/options:
+ *   get:
+ *     tags: [Sales]
+ *     summary: Lista as vendas em formato compacto para autocomplete
+ *     description: Somente VENDA do usuário. `q` busca pelo número ou nome do cliente; `limit` limita o retorno.
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema: { type: string }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+ *     responses:
+ *       200:
+ *         description: Opções de venda
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+// GET /api/sales/options (must stay before /:id)
+router.get('/options', salesController.listSaleOptions);
+
+/**
+ * @openapi
  * /api/sales/{id}:
  *   get:
  *     tags: [Sales]

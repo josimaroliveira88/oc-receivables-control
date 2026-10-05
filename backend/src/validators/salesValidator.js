@@ -116,4 +116,28 @@ const updateSaleSchema = z.object({
     .optional(),
 });
 
-export { saleItemSchema, createSaleSchema, updateSaleSchema };
+// Query for the lightweight sale picker (autocomplete). `q` matches the order
+// number or the client name and `limit` caps the returned rows.
+const MAX_SALE_OPTIONS_LIMIT = 50;
+const DEFAULT_SALE_OPTIONS_LIMIT = 20;
+
+const saleOptionsQuerySchema = z.object({
+  q: z.string().trim().optional(),
+  limit: z.coerce
+    .number()
+    .int('O limite deve ser um número inteiro')
+    .min(1, 'O limite deve ser no mínimo 1')
+    .max(
+      MAX_SALE_OPTIONS_LIMIT,
+      `O limite deve ser no máximo ${MAX_SALE_OPTIONS_LIMIT}`,
+    )
+    .default(DEFAULT_SALE_OPTIONS_LIMIT),
+});
+
+export {
+  saleItemSchema,
+  createSaleSchema,
+  updateSaleSchema,
+  saleOptionsQuerySchema,
+  MAX_SALE_OPTIONS_LIMIT,
+};

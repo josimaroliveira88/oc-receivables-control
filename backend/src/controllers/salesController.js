@@ -4,6 +4,7 @@ import { removeAttachmentFile } from '../utils/attachmentStorage.js';
 import {
   createSaleSchema,
   updateSaleSchema,
+  saleOptionsQuerySchema,
 } from '../validators/salesValidator.js';
 import * as salesService from '../services/salesService.js';
 
@@ -29,6 +30,21 @@ const getSaleById = async (req, res) => {
     res.status(200).json(result);
   } catch (error) {
     handleError(res, error, { label: 'Error fetching sale' });
+  }
+};
+
+// Lightweight VENDA options for autocomplete pickers (Uber ride → sale link).
+const listSaleOptions = async (req, res) => {
+  try {
+    const query = saleOptionsQuerySchema.parse(req.query);
+    const options = await salesService.listSaleOptions(prisma, {
+      userId: req.user.userId,
+      q: query.q,
+      limit: query.limit,
+    });
+    res.status(200).json(options);
+  } catch (error) {
+    handleError(res, error, { label: 'Error listing sale options' });
   }
 };
 
@@ -83,4 +99,11 @@ const deleteSale = async (req, res) => {
   }
 };
 
-export { getSales, getSaleById, createSale, updateSale, deleteSale };
+export {
+  getSales,
+  listSaleOptions,
+  getSaleById,
+  createSale,
+  updateSale,
+  deleteSale,
+};

@@ -270,6 +270,70 @@ const getSales = async (client, { userId, query }) => {
     : decorated;
 };
 
+// Lightweight sale options for autocomplete pickers (e.g. linking an Uber ride
+// to the sale it delivered). Only the caller's VENDA rows are returned, capped
+// by `limit`, with the client name derived from the first item (sales carry the
+// client there, not on `accountOwner`). `q` matches the order number or the
+// client name.
+const listSaleOptions = async (client, { userId, q, limit = 20 }) => {
+  const where = { userId, orderType: 'VENDA' };
+
+  if (q && q.trim()) {
+    const orderIds = new Set();
+
+    const byOrder = await findIdsByTextSearch({
+      table: 'Order',
+      columns: ['orderNumber'],
+      q,
+    });
+    if (byOrder) byOrder.forEach((id) => orderIds.add(id));
+
+    const personIds = await findIdsByTextSearch({
+      table: 'Person',
+      columns: ['name'],
+      q,
+    });
+    if (personIds && personIds.length) {
+      const items = await client.item.findMany({
+        where: {
+          personId: { in: personIds },
+          order: { userId, orderType: 'VENDA' },
+        },
+        select: { orderId: true },
+        distinct: ['orderId'],
+      });
+      items.forEach((item) => orderIds.add(item.orderId));
+    }
+
+    if (orderIds.size === 0) return [];
+    where.id = { in: [...orderIds] };
+  }
+
+  const sales = await client.order.findMany({
+    where,
+    select: {
+      id: true,
+      orderNumber: true,
+      orderDate: true,
+      totalValue: true,
+      items: {
+        select: { person: { select: { name: true } } },
+        take: 1,
+      },
+    },
+    orderBy: [{ orderDate: 'desc' }, { createdAt: 'desc' }],
+    take: limit,
+  });
+
+  return sales.map((sale) => ({
+    id: sale.id,
+    orderNumber: sale.orderNumber,
+    orderDate: sale.orderDate,
+    totalValue: sale.totalValue,
+    clientName: sale.items[0]?.person?.name ?? null,
+  }));
+};
+
 const getSaleById = async (client, { id, userId }) => {
   const sale = await client.order.findFirst({
     where: { id, userId, orderType: 'VENDA' },
@@ -737,6 +801,7 @@ export {
   resolveSaleKitFields,
   resolveSaleUpdateItems,
   getSales,
+  listSaleOptions,
   getSaleById,
   createSale,
   updateSale,
