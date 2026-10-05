@@ -1,4 +1,5 @@
 import React from 'react';
+import { Trash2 } from 'lucide-react';
 import { fromCents, formatBRL } from '../../../utils/money';
 import {
   RIDE_LAUNCHED_CLASSES,
@@ -16,7 +17,14 @@ import {
 const cellLabel =
   'before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden';
 
-const UberRidesTable = ({ rides, selections, onToggle, hasActiveFilters }) => {
+const UberRidesTable = ({
+  rides,
+  selections,
+  onToggle,
+  onRemove,
+  removingRideId,
+  hasActiveFilters,
+}) => {
   if (rides.length === 0) {
     return (
       <div className="text-center py-12">
@@ -37,7 +45,7 @@ const UberRidesTable = ({ rides, selections, onToggle, hasActiveFilters }) => {
             <th scope="col" className="w-[6%] px-4 py-3" />
             <th
               scope="col"
-              className="w-[16%] px-4 py-3 text-left text-xs font-medium text-ink-faint"
+              className="w-[15%] px-4 py-3 text-left text-xs font-medium text-ink-faint"
             >
               Data
             </th>
@@ -55,27 +63,33 @@ const UberRidesTable = ({ rides, selections, onToggle, hasActiveFilters }) => {
             </th>
             <th
               scope="col"
-              className="w-[21%] px-4 py-3 text-left text-xs font-medium text-ink-faint"
+              className="w-[20%] px-4 py-3 text-left text-xs font-medium text-ink-faint"
             >
               Destino
             </th>
             <th
               scope="col"
-              className="w-[12%] px-4 py-3 text-left text-xs font-medium text-ink-faint"
+              className="w-[11%] px-4 py-3 text-left text-xs font-medium text-ink-faint"
             >
               Familiar
             </th>
             <th
               scope="col"
-              className="w-[12%] px-4 py-3 text-right text-xs font-medium text-ink-faint"
+              className="w-[11%] px-4 py-3 text-right text-xs font-medium text-ink-faint"
             >
               Valor
             </th>
             <th
               scope="col"
-              className="w-[12%] px-4 py-3 text-left text-xs font-medium text-ink-faint"
+              className="w-[11%] px-4 py-3 text-left text-xs font-medium text-ink-faint"
             >
               Situação
+            </th>
+            <th
+              scope="col"
+              className="w-[5%] px-4 py-3 text-center text-xs font-medium text-ink-faint"
+            >
+              Ações
             </th>
           </tr>
         </thead>
@@ -169,6 +183,24 @@ const UberRidesTable = ({ rides, selections, onToggle, hasActiveFilters }) => {
                     >
                       {rideStatusLabel(ride.status)}
                     </span>
+                  )}
+                </td>
+                <td
+                  data-label="Ações"
+                  className={`block lg:table-cell px-3 lg:px-4 py-2 lg:py-4 text-center lg:whitespace-nowrap ${cellLabel}`}
+                >
+                  {!ride.launched && (
+                    <button
+                      type="button"
+                      onClick={() => onRemove(ride)}
+                      disabled={removingRideId === ride.id}
+                      data-testid={`uber-ride-delete-${ride.id}`}
+                      aria-label={`Remover corrida para ${ride.destination ?? 'destino'}`}
+                      title="Remover corrida"
+                      className="inline-flex items-center justify-center p-1.5 text-danger-fg hover:bg-danger-soft rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Trash2 className="w-4 h-4" aria-hidden="true" />
+                    </button>
                   )}
                 </td>
               </tr>

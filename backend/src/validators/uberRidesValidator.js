@@ -56,6 +56,10 @@ const createRideExpensesSchema = z.object({
     .min(1, 'Selecione ao menos uma corrida'),
 });
 
+const rideIdParamSchema = z.object({
+  id: z.string().uuid('O ID da corrida deve ser um UUID válido'),
+});
+
 const listRidesQuerySchema = z.object({
   status: z.enum(['COMPLETED', 'CANCELLED']).optional(),
   source: rideSourceSchema.optional(),
@@ -72,5 +76,6 @@ export {
   instantSchema,
   importRidesSchema,
   createRideExpensesSchema,
+  rideIdParamSchema,
   listRidesQuerySchema,
 };

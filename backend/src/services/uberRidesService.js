@@ -204,6 +204,32 @@ const createExpensesFromRides = async (client, { userId, items }) =>
     return created;
   });
 
+// Removes a single ride the user discarded from the import list. Rides already
+// linked to a ledger row are rejected so the expense is never orphaned (the
+// relation is `onDelete: SetNull`, so an unguarded delete would silently strip
+// the link). The `userId` in the lookup keeps the delete scoped to its owner,
+// and a missing/foreign ride surfaces as a 404 without leaking existence.
+const deleteRide = async (client, { userId, rideId }) => {
+  const ride = await client.rideRecord.findFirst({
+    where: { id: rideId, userId },
+    include: { transaction: { select: { id: true } } },
+  });
+
+  if (!ride) {
+    throw notFound('Corrida não encontrada');
+  }
+
+  if (ride.transaction) {
+    throw badRequest(
+      'Esta corrida já foi lançada no financeiro e não pode ser removida.',
+    );
+  }
+
+  await client.rideRecord.delete({ where: { id: ride.id } });
+
+  return { id: ride.id, removed: true };
+};
+
 // Removes the rides of an import batch that were not launched yet. Rides already
 // linked to a ledger row are kept so the expense is never orphaned; the caller
 // receives how many rows were kept for that reason. Idempotent.
@@ -224,6 +250,7 @@ export {
   listRides,
   importRides,
   createExpensesFromRides,
+  deleteRide,
   deleteRideBatch,
   defaultRideDescription,
 };

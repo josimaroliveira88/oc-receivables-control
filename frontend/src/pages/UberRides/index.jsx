@@ -52,6 +52,8 @@ const UberRides = ({
     setRideField,
     clearSelections,
     launchSelected,
+    removingRideId,
+    removeRide,
     showImport,
     importForm,
     importError,
@@ -282,6 +284,8 @@ const UberRides = ({
             rides={visibleRides}
             selections={selections}
             onToggle={toggleRide}
+            onRemove={removeRide}
+            removingRideId={removingRideId}
             hasActiveFilters={hasActiveFilters}
           />
 

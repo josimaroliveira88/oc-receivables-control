@@ -3,12 +3,14 @@ import { handleError } from '../middlewares/errorResponse.js';
 import {
   importRidesSchema,
   createRideExpensesSchema,
+  rideIdParamSchema,
   listRidesQuerySchema,
 } from '../validators/uberRidesValidator.js';
 import {
   listRides,
   importRides,
   createExpensesFromRides,
+  deleteRide,
   deleteRideBatch,
 } from '../services/uberRidesService.js';
 
@@ -51,6 +53,19 @@ const createRideExpensesHandler = async (req, res) => {
   }
 };
 
+const deleteRideHandler = async (req, res) => {
+  try {
+    const { id } = rideIdParamSchema.parse(req.params);
+    const result = await deleteRide(prisma, {
+      userId: req.user.userId,
+      rideId: id,
+    });
+    res.status(200).json(result);
+  } catch (error) {
+    handleError(res, error, { label: 'Error deleting ride' });
+  }
+};
+
 const deleteRideBatchHandler = async (req, res) => {
   try {
     const result = await deleteRideBatch(prisma, {
@@ -67,5 +82,6 @@ export {
   listRidesHandler,
   importRidesHandler,
   createRideExpensesHandler,
+  deleteRideHandler,
   deleteRideBatchHandler,
 };

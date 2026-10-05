@@ -69,6 +69,19 @@ describe('Uber ride import', () => {
       .get(`/api/uber/rides${query}`)
       .set('Authorization', `Bearer ${token}`);
 
+  const deleteRide = (id) =>
+    request(app)
+      .delete(`/api/uber/rides/${id}`)
+      .set('Authorization', `Bearer ${user.token}`);
+
+  const rideIdByExternalId = async (externalId) => {
+    const ride = await prisma.rideRecord.findFirst({
+      where: { userId: user.user.id, externalId },
+      select: { id: true },
+    });
+    return ride?.id;
+  };
+
   it('imports rides with rider, amount, date and status', async () => {
     const response = await importRides({
       json: JSON.stringify(
@@ -192,5 +205,50 @@ describe('Uber ride import', () => {
       where: { userId: user.user.id, externalId: 'ride-undo' },
     });
     expect(remaining).toBe(0);
+  });
+
+  it('deletes a single ride that was not launched', async () => {
+    await importRides({
+      json: JSON.stringify(envelope([activity({ uuid: 'ride-delete' })])),
+    });
+    const rideId = await rideIdByExternalId('ride-delete');
+
+    const response = await deleteRide(rideId);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ id: rideId, removed: true });
+    expect(await prisma.rideRecord.count({ where: { id: rideId } })).toBe(0);
+  });
+
+  it('returns 404 when deleting a ride that does not exist', async () => {
+    const response = await deleteRide(randomUUID());
+
+    expect(response.status).toBe(404);
+    expect(response.body.error).toMatch(/não encontrada/i);
+  });
+
+  it('does not let another user delete a ride they do not own', async () => {
+    await importRides({
+      json: JSON.stringify(
+        envelope([activity({ uuid: 'ride-delete-foreign' })]),
+      ),
+    });
+    const rideId = await rideIdByExternalId('ride-delete-foreign');
+    const other = await createTestUser('uber_import_delete_other');
+
+    const response = await request(app)
+      .delete(`/api/uber/rides/${rideId}`)
+      .set('Authorization', `Bearer ${other.token}`);
+
+    expect(response.status).toBe(404);
+    expect(await prisma.rideRecord.count({ where: { id: rideId } })).toBe(1);
+
+    await prisma.user.delete({ where: { id: other.user.id } }).catch(() => {});
+  });
+
+  it('rejects deleting a ride with a non-UUID id with 400', async () => {
+    const response = await deleteRide('nao-e-um-uuid');
+
+    expect(response.status).toBe(400);
   });
 });

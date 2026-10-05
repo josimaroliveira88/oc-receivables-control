@@ -304,4 +304,63 @@ describe('UberRidesPage', () => {
       await screen.findByTestId('uber-rides-welcome-modal'),
     ).toBeInTheDocument();
   });
+
+  it('does not offer removal for an already launched ride', async () => {
+    mockApi({
+      rides: [ride({ launched: true, transactionId: 'tx-1' })],
+    });
+    renderPage();
+
+    await screen.findByTestId('uber-ride-launched-ride-1');
+    expect(
+      screen.queryByTestId('uber-ride-delete-ride-1'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('removes a discarded ride from the list after a successful delete', async () => {
+    let rides = [ride()];
+    mockGet.mockImplementation((url) => {
+      if (url === '/uber/rides') return Promise.resolve({ data: rides });
+      if (url === '/finances/categories')
+        return Promise.resolve({ data: categories });
+      return Promise.resolve({ data: [] });
+    });
+    mockDelete.mockImplementation(() => {
+      rides = [];
+      return Promise.resolve({ data: { id: 'ride-1', removed: true } });
+    });
+    renderPage();
+
+    fireEvent.click(await screen.findByTestId('uber-ride-delete-ride-1'));
+
+    await waitFor(() =>
+      expect(mockDelete).toHaveBeenCalledWith('/uber/rides/ride-1'),
+    );
+    expect(await screen.findByText('Corrida removida.')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.queryByTestId('uber-ride-delete-ride-1'),
+      ).not.toBeInTheDocument(),
+    );
+  });
+
+  it('shows an error toast and keeps the row when the delete fails', async () => {
+    mockApi({ rides: [ride()] });
+    mockDelete.mockRejectedValue({
+      response: {
+        data: {
+          error:
+            'Esta corrida já foi lançada no financeiro e não pode ser removida.',
+        },
+      },
+    });
+    renderPage();
+
+    fireEvent.click(await screen.findByTestId('uber-ride-delete-ride-1'));
+
+    expect(
+      await screen.findByText(/não pode ser removida/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Duo Residence Mall')).toBeInTheDocument();
+  });
 });

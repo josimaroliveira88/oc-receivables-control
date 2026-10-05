@@ -152,4 +152,29 @@ router.delete(
   uberRidesController.deleteRideBatchHandler,
 );
 
+/**
+ * @openapi
+ * /api/uber/rides/{id}:
+ *   delete:
+ *     tags: [Uber]
+ *     summary: Remove uma corrida importada
+ *     description: Remove uma corrida que ainda não foi lançada no financeiro. Rejeita corrida já lançada.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Corrida removida
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+// DELETE /api/uber/rides/:id (must stay after the more specific batch route)
+router.delete('/rides/:id', uberRidesController.deleteRideHandler);
+
 export default router;

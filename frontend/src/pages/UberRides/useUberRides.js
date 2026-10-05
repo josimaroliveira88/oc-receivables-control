@@ -57,6 +57,7 @@ export function useUberRides({ initialView = null } = {}) {
   const [filters, setFiltersState] = useState(emptyFilters);
   const [selections, setSelections] = useState({});
   const [launching, setLaunching] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
   const [showImport, setShowImport] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -272,6 +273,30 @@ export function useUberRides({ initialView = null } = {}) {
     }
   };
 
+  // Deletes a ride the user discarded from the import list. Persisted in the
+  // backend, so the row is gone for good; the list is refetched to keep the
+  // summary cards and totalizer in sync. The selection entry is pruned so no
+  // orphan id lingers in the state.
+  const removeRide = async (ride) => {
+    setDeletingId(ride.id);
+    try {
+      await uberRidesApi.deleteRide(ride.id);
+      addToast('Corrida removida.', 'success');
+      setSelections((previous) => {
+        const { [ride.id]: _removed, ...rest } = previous;
+        return rest;
+      });
+      await loadRides();
+    } catch (err) {
+      addToast(
+        errorMessageFrom(err, 'Não foi possível remover a corrida.'),
+        'error',
+      );
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return {
     rides,
     visibleRides,
@@ -292,6 +317,8 @@ export function useUberRides({ initialView = null } = {}) {
     setRideField,
     clearSelections,
     launchSelected,
+    removingRideId: deletingId,
+    removeRide,
     showImport,
     importForm,
     importError,

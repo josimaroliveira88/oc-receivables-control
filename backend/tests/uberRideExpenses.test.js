@@ -172,4 +172,25 @@ describe('Uber ride expenses', () => {
     expect(undo.status).toBe(200);
     expect(undo.body).toMatchObject({ removed: 0, kept: 1 });
   });
+
+  it('rejects deleting a ride that has already been launched', async () => {
+    await importRides([activity('ride-delete-launched')]);
+    const rideId = await rideIdByExternalId('ride-delete-launched');
+    await createExpenses([{ rideId }]);
+
+    const response = await request(app)
+      .delete(`/api/uber/rides/${rideId}`)
+      .set('Authorization', `Bearer ${user.token}`);
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toMatch(/já foi lançada/i);
+
+    // Neither the ride nor its ledger link is removed.
+    expect(
+      await prisma.rideRecord.findUnique({ where: { id: rideId } }),
+    ).not.toBeNull();
+    expect(
+      await prisma.financialTransaction.findUnique({ where: { rideId } }),
+    ).not.toBeNull();
+  });
 });
