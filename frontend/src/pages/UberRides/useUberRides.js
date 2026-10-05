@@ -58,6 +58,13 @@ export function useUberRides({ initialView = null } = {}) {
   const [selections, setSelections] = useState({});
   const [launching, setLaunching] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  // Rides are usually paid with a credit card, so the card payment is the
+  // default: every launched ride becomes a pending card purchase until the
+  // informed invoice (fatura) date is settled in Finanças.
+  const [cardPayment, setCardPayment] = useState({
+    card: true,
+    effectiveDate: '',
+  });
 
   const [showImport, setShowImport] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -138,6 +145,11 @@ export function useUberRides({ initialView = null } = {}) {
       [rideId]: { ...previous[rideId], ...patch },
     }));
   }, []);
+
+  const setPaymentField = useCallback(
+    (patch) => setCardPayment((previous) => ({ ...previous, ...patch })),
+    [],
+  );
 
   const clearSelections = useCallback(() => setSelections({}), []);
 
@@ -260,9 +272,23 @@ export function useUberRides({ initialView = null } = {}) {
       return;
     }
 
+    if (cardPayment.card && !cardPayment.effectiveDate) {
+      addToast(
+        'Informe a data da fatura do cartão de crédito para lançar.',
+        'error',
+      );
+      return;
+    }
+
     setLaunching(true);
     try {
-      const response = await uberRidesApi.createRideExpenses(selectedItems);
+      const payment = cardPayment.card
+        ? { type: 'CARTAO_CREDITO', effectiveDate: cardPayment.effectiveDate }
+        : null;
+      const response = await uberRidesApi.createRideExpenses(
+        selectedItems,
+        payment,
+      );
       addToast(
         `${response.data.length} despesa(s) lançada(s) no financeiro.`,
         'success',
@@ -319,6 +345,8 @@ export function useUberRides({ initialView = null } = {}) {
     selectedItems,
     selectedTotalCents,
     launching,
+    cardPayment,
+    setPaymentField,
     toggleRide,
     setRideField,
     clearSelections,

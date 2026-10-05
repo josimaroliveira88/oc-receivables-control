@@ -48,6 +48,8 @@ const UberRides = ({
     selectedItems,
     selectedTotalCents,
     launching,
+    cardPayment,
+    setPaymentField,
     toggleRide,
     setRideField,
     clearSelections,
@@ -295,6 +297,8 @@ const UberRides = ({
             categories={categories}
             totalCents={selectedTotalCents}
             launching={launching}
+            payment={cardPayment}
+            onPaymentChange={setPaymentField}
             onFieldChange={setRideField}
             onLaunch={launchSelected}
             onClear={clearSelections}

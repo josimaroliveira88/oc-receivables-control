@@ -1,6 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ExternalLink, Eye, Pencil, RotateCcw, Trash } from 'lucide-react';
+import {
+  ExternalLink,
+  Eye,
+  Pencil,
+  RotateCcw,
+  Trash,
+  CheckCircle2,
+} from 'lucide-react';
 import { formatBRL, toCents } from '../../../utils/money';
 import { formatDateBR } from '../../../utils/dates';
 import ActionMenu from '../../../components/ActionMenu';
@@ -9,6 +16,7 @@ import { formatInstallmentBadge } from '../../CreditCards/utils/creditCardHelper
 import {
   TYPE_BADGE_CLASSES,
   formatSignedBRL,
+  isCardTransaction,
   originLabel,
   transactionTypeLabel,
 } from '../utils/financeHelpers';
@@ -39,6 +47,8 @@ const FinancesTable = ({
   onEdit,
   onDelete,
   onUndoRescue,
+  onPay,
+  onUnpay,
 }) => {
   if (transactions.length === 0) {
     return (
@@ -108,6 +118,20 @@ const FinancesTable = ({
             const isUber = transaction.origin === 'UBER';
             const isRescue = transaction.origin === 'RESGATE_INFINITEPAY';
             const canFullyEdit = isManual || isUber;
+            const isCardUber = isUber && isCardTransaction(transaction);
+            const effectivenessAction = isCardUber
+              ? transaction.isEffective
+                ? {
+                    label: 'Desfazer baixa',
+                    icon: RotateCcw,
+                    onClick: () => onUnpay(transaction),
+                  }
+                : {
+                    label: 'Baixar como paga',
+                    icon: CheckCircle2,
+                    onClick: () => onPay(transaction),
+                  }
+              : null;
             const feeCents = transaction.feeAmount
               ? toCents(parseFloat(transaction.feeAmount))
               : 0;
@@ -127,6 +151,14 @@ const FinancesTable = ({
                   className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-ink before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
                 >
                   {formatDateBR(transaction.transactionDate)}
+                  {isUber && transaction.ride?.requestedAt && (
+                    <span
+                      data-testid={`transaction-ride-date-${transaction.id}`}
+                      className="block text-xs text-ink-faint mt-0.5"
+                    >
+                      Corrida: {formatDateBR(transaction.ride.requestedAt)}
+                    </span>
+                  )}
                 </td>
                 <td
                   data-label="Descrição"
@@ -176,6 +208,14 @@ const FinancesTable = ({
                           }`}
                         >
                           {effectiveness}
+                        </span>
+                      )}
+                      {isCardUber && transaction.effectiveDate && (
+                        <span
+                          data-testid={`transaction-invoice-${transaction.id}`}
+                          className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-base text-ink-soft"
+                        >
+                          Fatura: {formatDateBR(transaction.effectiveDate)}
                         </span>
                       )}
                     </span>
@@ -248,6 +288,7 @@ const FinancesTable = ({
                             icon: Pencil,
                             onClick: () => onEdit(transaction),
                           },
+                          ...(effectivenessAction ? [effectivenessAction] : []),
                           {
                             label: 'Excluir',
                             icon: Trash,

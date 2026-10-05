@@ -15,6 +15,8 @@ const UberRideSelectionPanel = ({
   categories,
   totalCents,
   launching,
+  payment,
+  onPaymentChange,
   onFieldChange,
   onLaunch,
   onClear,
@@ -47,6 +49,41 @@ const UberRideSelectionPanel = ({
             {launching ? 'Lançando...' : 'Lançar despesas'}
           </button>
         </div>
+      </div>
+
+      <div className="border-b border-line px-4 py-3 flex flex-col sm:flex-row sm:items-end gap-3">
+        <label className="inline-flex items-center gap-2 text-sm text-ink-soft">
+          <input
+            type="checkbox"
+            data-testid="uber-ride-card-payment"
+            checked={payment.card}
+            onChange={(event) =>
+              onPaymentChange({ card: event.target.checked })
+            }
+            className="h-4 w-4 rounded border-line text-accent focus:ring-accent"
+          />
+          Pago no cartão de crédito
+        </label>
+        {payment.card && (
+          <div>
+            <label
+              htmlFor="uber-ride-invoice-date"
+              className="block text-xs font-medium text-ink-faint mb-1"
+            >
+              Data da fatura
+            </label>
+            <input
+              id="uber-ride-invoice-date"
+              data-testid="uber-ride-invoice-date"
+              type="date"
+              value={payment.effectiveDate}
+              onChange={(event) =>
+                onPaymentChange({ effectiveDate: event.target.value })
+              }
+              className={fieldClass}
+            />
+          </div>
+        )}
       </div>
 
       <ul className="divide-y divide-line">

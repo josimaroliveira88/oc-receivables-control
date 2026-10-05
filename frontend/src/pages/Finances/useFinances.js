@@ -9,6 +9,7 @@ import {
   buildTransactionPayload,
   buildTransactionParams,
   buildUberTransactionPayload,
+  CARD_PAYMENT_TYPE,
   emptyTransactionForm,
   errorMessageFrom,
   EDIT_MODE,
@@ -127,6 +128,7 @@ export function useFinances() {
   const [deleting, setDeleting] = useState(false);
   const [confirmUndoRescueId, setConfirmUndoRescueId] = useState(null);
   const [undoingRescue, setUndoingRescue] = useState(false);
+  const [updatingEffectivenessId, setUpdatingEffectivenessId] = useState(null);
   const { addToast } = useToast();
 
   const loadTransactions = useCallback(
@@ -240,6 +242,10 @@ export function useFinances() {
       transactionDate: transaction.transactionDate.split('T')[0],
       categoryId: transaction.categoryId || '',
       notes: transaction.notes || '',
+      paymentType: transaction.paymentType ?? null,
+      effectiveDate: transaction.effectiveDate
+        ? transaction.effectiveDate.split('T')[0]
+        : '',
     };
     setForm(next);
     setFormInitial(next);
@@ -252,6 +258,8 @@ export function useFinances() {
     e.preventDefault();
 
     const isDescriptionOnly = formMode === EDIT_MODE.DESCRIPTION;
+    const isUber = formMode === EDIT_MODE.UBER;
+    const isUberCard = isUber && form.paymentType === CARD_PAYMENT_TYPE;
 
     if (!form.description.trim()) {
       setFormError('Informe a descrição');
@@ -263,8 +271,24 @@ export function useFinances() {
         return;
       }
       if (!form.transactionDate) {
-        setFormError('Informe a data');
+        setFormError(
+          isUberCard
+            ? 'Informe a data do lançamento no cartão'
+            : 'Informe a data',
+        );
         return;
+      }
+      if (isUberCard) {
+        if (!form.effectiveDate) {
+          setFormError('Informe a data da fatura');
+          return;
+        }
+        if (form.effectiveDate < form.transactionDate) {
+          setFormError(
+            'A data da fatura não pode ser anterior ao lançamento no cartão',
+          );
+          return;
+        }
       }
     }
 
@@ -345,6 +369,40 @@ export function useFinances() {
 
   const formDirty = useDirtyForm(form, formInitial).isDirty;
 
+  // Settles or reopens a credit-card Uber expense. Both directions are
+  // reversible, so no confirmation is required; the list is refetched to keep
+  // the summary's pending total in sync.
+  const setTransactionEffectiveness = async (transaction, effective) => {
+    setUpdatingEffectivenessId(transaction.id);
+    try {
+      await api.post(
+        `/finances/transactions/${transaction.id}/${effective ? 'pay' : 'unpay'}`,
+      );
+      addToast(
+        effective
+          ? 'Lançamento baixado como pago!'
+          : 'Baixa desfeita com sucesso!',
+        'success',
+      );
+      loadTransactions(filters);
+    } catch (_err) {
+      addToast(
+        effective
+          ? 'Erro ao baixar o lançamento. Tente novamente.'
+          : 'Erro ao desfazer a baixa. Tente novamente.',
+        'error',
+      );
+    } finally {
+      setUpdatingEffectivenessId(null);
+    }
+  };
+
+  const payTransaction = (transaction) =>
+    setTransactionEffectiveness(transaction, true);
+
+  const unpayTransaction = (transaction) =>
+    setTransactionEffectiveness(transaction, false);
+
   return {
     transactions,
     summary,
@@ -387,5 +445,8 @@ export function useFinances() {
     requestUndoRescue,
     cancelUndoRescue,
     confirmUndoRescue,
+    updatingEffectivenessId,
+    payTransaction,
+    unpayTransaction,
   };
 }

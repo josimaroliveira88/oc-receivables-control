@@ -69,6 +69,28 @@ const FinancialTransactionDetailsModal = ({
                   {formatDateBR(transaction.transactionDate)}
                 </dd>
               </div>
+              {transaction.ride?.requestedAt && (
+                <div>
+                  <dt className="text-xs text-ink-faint">Data da corrida</dt>
+                  <dd
+                    data-testid="transaction-details-ride-date"
+                    className="text-sm font-medium text-ink"
+                  >
+                    {formatDateBR(transaction.ride.requestedAt)}
+                  </dd>
+                </div>
+              )}
+              {transaction.effectiveDate && (
+                <div>
+                  <dt className="text-xs text-ink-faint">Data da fatura</dt>
+                  <dd
+                    data-testid="transaction-details-effective-date"
+                    className="text-sm font-medium text-ink"
+                  >
+                    {formatDateBR(transaction.effectiveDate)}
+                  </dd>
+                </div>
+              )}
               <div>
                 <dt className="text-xs text-ink-faint">Tipo</dt>
                 <dd data-testid="transaction-details-type">

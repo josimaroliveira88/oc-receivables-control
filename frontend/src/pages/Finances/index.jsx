@@ -48,6 +48,8 @@ const FinancesPage = () => {
     requestUndoRescue,
     cancelUndoRescue,
     confirmUndoRescue,
+    payTransaction,
+    unpayTransaction,
   } = useFinances();
 
   const categories = useFinanceCategories();
@@ -166,6 +168,8 @@ const FinancesPage = () => {
             onEdit={openEdit}
             onDelete={requestDelete}
             onUndoRescue={requestUndoRescue}
+            onPay={payTransaction}
+            onUnpay={unpayTransaction}
           />
         </div>
       </div>

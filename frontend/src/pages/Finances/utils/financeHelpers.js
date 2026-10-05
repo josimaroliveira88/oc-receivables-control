@@ -143,6 +143,10 @@ export const emptyTransactionForm = () => ({
   transactionDate: '',
   categoryId: '',
   notes: '',
+  // Uber card state: null = plain entry; CARTAO_CREDITO = pending card purchase
+  // whose invoice date lives in `effectiveDate`.
+  paymentType: null,
+  effectiveDate: '',
 });
 
 // Form values -> API payload. The masked currency string becomes a number and
@@ -172,9 +176,26 @@ export const transactionEditMode = (origin) => {
 };
 
 // Uber rows keep their type (DESPESA) and origin, so the payload omits `type`.
+// The payment state is always sent in full: CARTAO_CREDITO converts the row
+// into a pending card purchase carrying the invoice (fatura) date, while null
+// reverts it to a plain entry.
+export const CARD_PAYMENT_TYPE = 'CARTAO_CREDITO';
+
+export const isCardTransaction = (transaction) =>
+  transaction?.paymentType === CARD_PAYMENT_TYPE;
+
 export const buildUberTransactionPayload = (form) => {
   const { type: _type, ...rest } = buildTransactionPayload(form);
-  return rest;
+
+  if (form.paymentType === CARD_PAYMENT_TYPE) {
+    return {
+      ...rest,
+      paymentType: CARD_PAYMENT_TYPE,
+      effectiveDate: form.effectiveDate || null,
+    };
+  }
+
+  return { ...rest, paymentType: null, effectiveDate: null };
 };
 
 export const buildDescriptionPayload = (form) => ({

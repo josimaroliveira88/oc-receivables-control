@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react';
 import Modal from '../../../components/Modal';
 import CurrencyInput from '../../../components/CurrencyInput';
 import CreditCardBillModal from '../../CreditCards/components/CreditCardBillModal';
-import { CATEGORY_TYPE_OPTIONS } from '../utils/financeHelpers';
+import {
+  CARD_PAYMENT_TYPE,
+  CATEGORY_TYPE_OPTIONS,
+} from '../utils/financeHelpers';
 
 const inputClass =
   'w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors disabled:bg-base disabled:text-ink-faint disabled:cursor-not-allowed';
@@ -22,15 +25,43 @@ const FinancialTransactionModal = ({
 }) => {
   const isEditing = Boolean(form.id);
   const isDescriptionOnly = mode === 'description';
+  const isUber = mode === 'uber';
+  const isUberCardEdit = isEditing && isUber;
+  // The "Cartão de crédito" tab creates a new purchase, so it is only offered
+  // while creating. In edit mode it is reserved for Uber rows, where it converts
+  // the existing entry into a pending card purchase instead of creating one.
+  const showTabs = Boolean(creditCard) && (!isEditing || isUber);
   const [localMode, setLocalMode] = useState('simple');
 
   useEffect(() => {
-    if (!isOpen) setLocalMode('simple');
-  }, [isOpen]);
+    if (!isOpen) {
+      setLocalMode('simple');
+      return;
+    }
+    setLocalMode(
+      isUberCardEdit && form.paymentType === CARD_PAYMENT_TYPE
+        ? 'credit-card'
+        : 'simple',
+    );
+  }, [isOpen, isUberCardEdit, form.paymentType]);
 
-  const creditCardMode = localMode === 'credit-card' && Boolean(creditCard);
-  const modalIsDirty = creditCardMode ? creditCard.isDirty : isDirty;
-  const modalSubmitting = creditCardMode ? creditCard.submitting : submitting;
+  const creditCardMode = localMode === 'credit-card' && showTabs;
+  const showCreditCardBill = creditCardMode && !isEditing;
+  const isUberCardForm = creditCardMode && isUberCardEdit;
+  const modalIsDirty = showCreditCardBill ? creditCard.isDirty : isDirty;
+  const modalSubmitting = showCreditCardBill
+    ? creditCard.submitting
+    : submitting;
+
+  const selectSimpleMode = () => {
+    setLocalMode('simple');
+    if (isUberCardEdit) onChangeField('paymentType', null);
+  };
+
+  const selectCardMode = () => {
+    setLocalMode('credit-card');
+    if (isUberCardEdit) onChangeField('paymentType', CARD_PAYMENT_TYPE);
+  };
 
   const categoryOptions = categories
     .filter((category) => category.type === form.type && category.active)
@@ -54,11 +85,11 @@ const FinancialTransactionModal = ({
     >
       {(requestClose) => (
         <>
-          {creditCard && (
+          {showTabs && (
             <div className="flex gap-2 px-6 pt-4">
               <button
                 type="button"
-                onClick={() => setLocalMode('simple')}
+                onClick={selectSimpleMode}
                 aria-pressed={!creditCardMode}
                 className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   creditCardMode
@@ -70,7 +101,7 @@ const FinancialTransactionModal = ({
               </button>
               <button
                 type="button"
-                onClick={() => setLocalMode('credit-card')}
+                onClick={selectCardMode}
                 aria-pressed={creditCardMode}
                 className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   creditCardMode
@@ -83,7 +114,7 @@ const FinancialTransactionModal = ({
             </div>
           )}
 
-          {creditCardMode ? (
+          {showCreditCardBill ? (
             <CreditCardBillModal
               embedded
               form={creditCard.form}
@@ -164,23 +195,63 @@ const FinancialTransactionModal = ({
                       placeholder="0,00"
                     />
                   </div>
-                  <div>
-                    <label
-                      htmlFor="transactionDate"
-                      className="block text-sm font-medium text-ink-soft mb-1"
-                    >
-                      Data
-                    </label>
-                    <input
-                      id="transactionDate"
-                      type="date"
-                      value={form.transactionDate}
-                      onChange={(e) =>
-                        onChangeField('transactionDate', e.target.value)
-                      }
-                      className={inputClass}
-                    />
-                  </div>
+                  {isUberCardForm ? (
+                    <>
+                      <div>
+                        <label
+                          htmlFor="transactionDate"
+                          className="block text-sm font-medium text-ink-soft mb-1"
+                        >
+                          Data do lançamento no cartão
+                        </label>
+                        <input
+                          id="transactionDate"
+                          type="date"
+                          value={form.transactionDate}
+                          onChange={(e) =>
+                            onChangeField('transactionDate', e.target.value)
+                          }
+                          className={inputClass}
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label
+                          htmlFor="transactionEffectiveDate"
+                          className="block text-sm font-medium text-ink-soft mb-1"
+                        >
+                          Data da fatura
+                        </label>
+                        <input
+                          id="transactionEffectiveDate"
+                          data-testid="transaction-effective-date"
+                          type="date"
+                          value={form.effectiveDate}
+                          onChange={(e) =>
+                            onChangeField('effectiveDate', e.target.value)
+                          }
+                          className={inputClass}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <div>
+                      <label
+                        htmlFor="transactionDate"
+                        className="block text-sm font-medium text-ink-soft mb-1"
+                      >
+                        Data
+                      </label>
+                      <input
+                        id="transactionDate"
+                        type="date"
+                        value={form.transactionDate}
+                        onChange={(e) =>
+                          onChangeField('transactionDate', e.target.value)
+                        }
+                        className={inputClass}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
