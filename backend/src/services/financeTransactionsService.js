@@ -151,6 +151,77 @@ const deleteManualTransaction = async (client, { userId, id }) => {
   await client.financialTransaction.delete({ where: { id } });
 };
 
+// Origins whose rows may be deleted through this endpoint. Automatic rows are
+// owned by their source, except UBER rows: deleting one frees its ride to be
+// launched again.
+const DELETABLE_ORIGINS = new Set(['MANUAL', 'UBER']);
+
+// Applies a partial update according to the row's origin:
+// - MANUAL: every field (existing behaviour).
+// - UBER: everything but `type`/`origin` (the ride-derived nature is fixed).
+// - other automatic origins: only the description; amount/date/category are
+//   derived from the source and are re-synced when it changes.
+const updateTransaction = async (client, { userId, id, payload }) => {
+  const existing = await findOwnedTransaction(client, userId, id);
+
+  if (existing.origin === 'MANUAL') {
+    return updateManualTransaction(client, { userId, id, payload });
+  }
+
+  if (existing.origin === 'UBER') {
+    if (payload.categoryId !== undefined) {
+      await assertCategoryMatches(client, userId, {
+        categoryId: payload.categoryId,
+        type: existing.type,
+      });
+    }
+
+    const transaction = await client.financialTransaction.update({
+      where: { id },
+      data: {
+        ...(payload.amount !== undefined && { amount: payload.amount }),
+        ...(payload.description !== undefined && {
+          description: payload.description,
+        }),
+        ...(payload.transactionDate !== undefined && {
+          transactionDate: parseLocalDate(payload.transactionDate),
+        }),
+        ...(payload.categoryId !== undefined && {
+          categoryId: payload.categoryId,
+        }),
+        ...(payload.notes !== undefined && { notes: payload.notes }),
+      },
+      include: { category: true, payment: true },
+    });
+
+    return decorateTransaction(transaction);
+  }
+
+  const transaction = await client.financialTransaction.update({
+    where: { id },
+    data: {
+      ...(payload.description !== undefined && {
+        description: payload.description,
+      }),
+    },
+    include: { category: true, payment: true },
+  });
+
+  return decorateTransaction(transaction);
+};
+
+const deleteTransaction = async (client, { userId, id }) => {
+  const existing = await findOwnedTransaction(client, userId, id);
+
+  if (!DELETABLE_ORIGINS.has(existing.origin)) {
+    throw badRequest(
+      'Somente lançamentos manuais ou de corrida Uber podem ser excluídos',
+    );
+  }
+
+  await client.financialTransaction.delete({ where: { id } });
+};
+
 // Validates that an order can receive an InfinitePay redemption and returns it.
 // Shared by the single-settlement action and the bulk statement import so both
 // enforce the same ownership and sale-only rules.
@@ -292,7 +363,9 @@ export {
   listTransactions,
   createManualTransaction,
   updateManualTransaction,
+  updateTransaction,
   deleteManualTransaction,
+  deleteTransaction,
   assertSettleableOrder,
   buildSettlementData,
   createSettlement,

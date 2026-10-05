@@ -17,8 +17,8 @@ import {
 import {
   listTransactions,
   createManualTransaction,
-  updateManualTransaction,
-  deleteManualTransaction,
+  updateTransaction,
+  deleteTransaction,
   createSettlement,
   deleteRescue,
   deleteRescueBatch,
@@ -100,7 +100,7 @@ const createTransactionHandler = async (req, res) => {
 const updateTransactionHandler = async (req, res) => {
   try {
     const payload = updateTransactionSchema.parse(req.body);
-    const transaction = await updateManualTransaction(prisma, {
+    const transaction = await updateTransaction(prisma, {
       userId: req.user.userId,
       id: req.params.id,
       payload,
@@ -113,7 +113,7 @@ const updateTransactionHandler = async (req, res) => {
 
 const deleteTransactionHandler = async (req, res) => {
   try {
-    await deleteManualTransaction(prisma, {
+    await deleteTransaction(prisma, {
       userId: req.user.userId,
       id: req.params.id,
     });
