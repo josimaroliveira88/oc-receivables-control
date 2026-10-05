@@ -9,6 +9,29 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 124 — Corrida Uber no cartão de crédito, abas do modal de edição e ajustes das corridas (2026-10-05)
+
+### Added
+- **Corrida Uber como compra pendente no cartão de crédito**: um lançamento `UBER` pode ser convertido na própria linha (mesmo `id`/corrida, sem `CreditCardBill` por corrida e sem migração) para uma compra no cartão, registrando as duas datas — **data do lançamento no cartão** (`transactionDate`) e **data da fatura** (`effectiveDate`) — com `isEffective = false` até a baixa. A **data da corrida** permanece em `RideRecord.requestedAt` e passa a ser exposta na listagem (relação `ride`), já que deixa de coincidir com a data do lançamento. Linhas pendentes saem do total de despesas e entram em "Pendente", como as parcelas de cartão. `PUT /api/finances/transactions/:id` aceita `paymentType: 'CARTAO_CREDITO'` + `effectiveDate` (fatura não pode preceder o lançamento) e `paymentType: null` para reverter; `GET /api/finances/transactions`, `POST` e os `PUT` devolvem a relação `ride`.
+- **Baixa e desfazer baixa da fatura**: novas rotas `POST /api/finances/transactions/:id/pay` e `/unpay` (restritas a `origin UBER` + `paymentType CARTAO_CREDITO`, idempotentes, posse por `userId`), com as ações "Baixar como paga"/"Desfazer baixa" no menu da linha. A baixa preserva a data da fatura (diferente de `payInstallment`, que sobrescreve com a data do pagamento — aqui não há compra para recalcular a data agendada).
+- **Lançamento de corridas no cartão por padrão**: o painel de seleção ganhou o toggle **"Pago no cartão de crédito" (ligado por padrão)** + campo obrigatório **"Data da fatura"**. `POST /api/uber/rides/expenses` aceita um bloco opcional `payment: { type: 'CARTAO_CREDITO', effectiveDate }` e cria as linhas já pendentes (data da corrida = data do lançamento no cartão), rejeitando o lote quando a fatura precede alguma corrida selecionada.
+- **Remoção individual de corridas importadas**: `DELETE /api/uber/rides/:id` remove uma corrida ainda não lançada direto na tabela da tela de corridas; corridas já lançadas são rejeitadas com `400` e a lista é refeita após a exclusão.
+- **Vínculo de corrida Uber a uma venda**: cada corrida pode ser opcionalmente vinculada a uma `VENDA` (venda de outra usuária → `404`, pedido de compra → `400`), gravada em `FinancialTransaction.orderId` (sem migração); a descrição automática passa a incluir `— Venda V-nnnn` e o detalhamento mostra "Ver venda". Novo `GET /api/sales/options` (somente `VENDA` da usuária, busca por número/cliente, limite 1–50) alimenta um autocomplete com debounce exibindo "código — cliente — valor".
+- **Toast de importação detalhado**: o toast passa a mostrar quantas corridas foram criadas, atualizadas e (quando houver) canceladas, em vez do total bruto.
+
+### Changed
+- **Abas do modal de edição**: as abas "Lançamento simples"/"Cartão de crédito" eram exibidas **sempre** e, em modo de edição, escolher "Cartão de crédito" chamava `POST /api/credit-cards/bills` e criava um **novo** lançamento + parcelas em vez de editar. Agora a aba é exclusiva de criação e, em edição, aparece **apenas para corridas Uber**, onde converte a própria linha. A edição manual mantém o select Receita/Despesa (atualiza no lugar) e a edição "só descrição" fica reduzida à descrição, sem a opção de trocar o tipo.
+- **Exibição das datas do lançamento**: a coluna Data mostra "Corrida: DD/MM" para linhas Uber e o detalhamento ganhou "Data da corrida" e "Data da fatura". Lançamentos de corrida seguem editáveis (valor, data, categoria, descrição, observações; tipo/origem fixos) e excluíveis — excluir libera a corrida para ser lançada de novo. Os demais lançamentos automáticos permitem editar **somente a descrição** e continuam sem exclusão por aqui (o resgate mantém "Desfazer resgate").
+- **Build/Docker da extensão**: `docker-compose.yml` passa a montar `./tools:/tools` e `package-extension.mjs` resolve o diretório de saída de forma robusta (`frontend/public` ou o cwd do pacote no container); `backend/Dockerfile.prod` copia `tools/` para o build da SPA. `RUN npm install` vira `RUN npm ci` nas camadas de build de `frontend/Dockerfile` e `backend/Dockerfile` (o runtime dev mantém `npm install` para reconciliar o volume `node_modules`).
+
+### Fixed
+- **Modal de edição criava registro em vez de editar**: a aba de cartão em modo de edição não cria mais lançamentos/parcelas novos; o `PUT` nunca disparava e o lançamento editado ficava intacto.
+
+### Tests
+- Backend: `backend/tests/financeTransactions.test.js` e `backend/tests/uberRideExpenses.test.js` (+41 casos) cobrindo conversão/reversão, validações da data da fatura, `pay`/`unpay` idempotente, posse, total pendente no resumo, relação `ride` na listagem e lançamento com o bloco `payment`; `salesOptions.test.js` e `uberRideOrderLink.test.js` (+16) para a busca de vendas e o vínculo da corrida.
+- Frontend: `FinancesPage.test.jsx`, `FinancialTransactionModalCreditCard.test.jsx`, `UberRidesPage.test.jsx`, `uberRideHelpers.test.js` e `FinancialTransactionDetailsModal.test.jsx` (+23 nos ajustes desta fase) cobrindo abas por modo, conversão/reversão, baixa, dicas de datas e o padrão cartão no lançamento.
+- Verificação final: **1003 backend + 1153 frontend passando**, `npm run lint`, `npm run build` e `npm run format:check` limpos. Endpoints novos testados ao vivo (17/17: happy path, 401, 400 de validação, 404 de posse, pay/unpay idempotente, conversão/reversão), com os usuários descartáveis removidos do banco.
+
 ## Phase 123 — Corridas dentro de Finanças, token dedicado da extensão e envio direto ao backend (2026-10-03)
 
 ### Added
