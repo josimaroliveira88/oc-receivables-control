@@ -262,6 +262,54 @@ describe('UberRidesPage', () => {
       'cat-transporte',
     );
 
+    // Credit card is the default payment, so the invoice date is required.
+    expect(screen.getByTestId('uber-ride-card-payment')).toBeChecked();
+    fireEvent.change(screen.getByTestId('uber-ride-invoice-date'), {
+      target: { value: '2026-10-05' },
+    });
+
+    fireEvent.click(screen.getByTestId('uber-ride-launch'));
+
+    await waitFor(() =>
+      expect(mockPost).toHaveBeenCalledWith('/uber/rides/expenses', {
+        items: [
+          {
+            rideId: 'ride-1',
+            categoryId: 'cat-transporte',
+            description: 'Uber — Duo Residence Mall (Cássia)',
+            orderId: null,
+          },
+        ],
+        payment: { type: 'CARTAO_CREDITO', effectiveDate: '2026-10-05' },
+      }),
+    );
+  });
+
+  it('requires the invoice date for the default card payment', async () => {
+    mockApi({ rides: [ride()] });
+    renderPage();
+
+    fireEvent.click(await screen.findByTestId('uber-ride-select-ride-1'));
+    await screen.findByTestId('uber-ride-selected-ride-1');
+
+    fireEvent.click(screen.getByTestId('uber-ride-launch'));
+
+    expect(
+      await screen.findByText(/Informe a data da fatura/i),
+    ).toBeInTheDocument();
+    expect(mockPost).not.toHaveBeenCalled();
+  });
+
+  it('launches as a plain entry when the card payment is unchecked', async () => {
+    mockApi({ rides: [ride()] });
+    mockPost.mockResolvedValue({ data: [{ id: 'tx-1' }] });
+    renderPage();
+
+    fireEvent.click(await screen.findByTestId('uber-ride-select-ride-1'));
+    await screen.findByTestId('uber-ride-selected-ride-1');
+
+    fireEvent.click(screen.getByTestId('uber-ride-card-payment'));
+
     fireEvent.click(screen.getByTestId('uber-ride-launch'));
 
     await waitFor(() =>
@@ -311,6 +359,9 @@ describe('UberRidesPage', () => {
       params: { q: 'V-00', limit: 20 },
     });
 
+    fireEvent.change(screen.getByTestId('uber-ride-invoice-date'), {
+      target: { value: '2026-10-05' },
+    });
     fireEvent.click(screen.getByTestId('uber-ride-launch'));
 
     await waitFor(() =>
@@ -323,6 +374,7 @@ describe('UberRidesPage', () => {
             orderId: 'sale-9',
           },
         ],
+        payment: { type: 'CARTAO_CREDITO', effectiveDate: '2026-10-05' },
       }),
     );
   });

@@ -26,16 +26,19 @@ const emptySimpleForm = () => ({
   transactionDate: '',
   categoryId: '',
   notes: '',
+  paymentType: null,
+  effectiveDate: '',
 });
 
-const Harness = ({ onClose = vi.fn() }) => {
-  const [simpleForm] = useState(emptySimpleForm);
+const Harness = ({ onClose = vi.fn(), form, mode }) => {
+  const [simpleForm] = useState(form ?? emptySimpleForm);
   const card = useCreditCardBillForm();
   return (
     <FinancialTransactionModal
       isOpen
       onClose={onClose}
       form={simpleForm}
+      mode={mode}
       categories={[]}
       isDirty={false}
       onChangeField={vi.fn()}
@@ -95,5 +98,30 @@ describe('FinancialTransactionModal credit-card branch', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
 
     expect(screen.getByText('Descartar alterações?')).toBeInTheDocument();
+  });
+
+  it('does not offer the credit-card tab when editing a manual entry', () => {
+    renderModal({ mode: 'manual', form: { ...emptySimpleForm(), id: 't-1' } });
+
+    expect(
+      screen.queryByRole('button', { name: 'Cartão de crédito' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Tipo')).toBeInTheDocument();
+  });
+
+  it('converts an Uber entry from the credit-card tab without creating a bill', () => {
+    renderModal({
+      mode: 'uber',
+      form: { ...emptySimpleForm(), id: 't-2', amount: '32.93' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cartão de crédito' }));
+
+    expect(screen.getByLabelText('Data da fatura')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Data do lançamento no cartão'),
+    ).toBeInTheDocument();
+    // The bill form (create-only) is never rendered while editing.
+    expect(screen.queryByLabelText('Parcelas')).not.toBeInTheDocument();
   });
 });

@@ -118,10 +118,47 @@ const transactions = [
     },
     orderId: 'order-1',
     rideId: 'ride-1',
+    ride: {
+      requestedAt: '2026-09-26T16:02:00.000Z',
+      destination: 'Duo Residence Mall',
+      riderName: 'Cássia',
+      rideType: 'RIDE',
+    },
     paymentId: null,
     feeAmount: null,
   },
 ];
+
+// A ride already converted into a pending credit-card purchase (charge date in
+// `transactionDate`, invoice date in `effectiveDate`).
+const cardTransaction = {
+  id: 't-uber-card',
+  type: 'DESPESA',
+  origin: 'UBER',
+  amount: '32.93',
+  description: 'Uber — Duo Residence Mall (Cássia)',
+  transactionDate: '2026-09-27T00:00:00.000Z',
+  effectiveDate: '2026-10-05T00:00:00.000Z',
+  paymentType: 'CARTAO_CREDITO',
+  isEffective: false,
+  notes: null,
+  categoryId: 'cat-doterra',
+  category: {
+    id: 'cat-doterra',
+    name: 'Compra de produtos dōTERRA',
+    type: 'DESPESA',
+  },
+  orderId: null,
+  rideId: 'ride-1',
+  ride: {
+    requestedAt: '2026-09-26T16:02:00.000Z',
+    destination: 'Duo Residence Mall',
+    riderName: 'Cássia',
+    rideType: 'RIDE',
+  },
+  paymentId: null,
+  feeAmount: null,
+};
 
 const summary = {
   totalIncome: '180.00',
@@ -542,6 +579,15 @@ describe('FinancesPage', () => {
 
       await screen.findByText('Editar lançamento', { selector: 'h3' });
       expect(screen.getByLabelText('Descrição')).toHaveValue('Bônus dōTERRA');
+      // The credit-card tab is a create-only affordance.
+      expect(
+        screen.queryByRole('button', { name: 'Cartão de crédito' }),
+      ).not.toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('transaction-form-modal')).getByLabelText(
+          'Tipo',
+        ),
+      ).toBeInTheDocument();
 
       fireEvent.change(screen.getByLabelText('Descrição'), {
         target: { value: 'Bônus atualizado' },
@@ -635,6 +681,9 @@ describe('FinancesPage', () => {
           'Tipo',
         ),
       ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Cartão de crédito' }),
+      ).not.toBeInTheDocument();
 
       fireEvent.change(screen.getByLabelText('Descrição'), {
         target: { value: 'Venda ajustada' },
@@ -683,8 +732,174 @@ describe('FinancesPage', () => {
           transactionDate: '2026-09-26',
           categoryId: 'cat-doterra',
           notes: null,
+          paymentType: null,
+          effectiveDate: null,
         }),
       );
+    });
+
+    it('converts an Uber row to a pending credit-card purchase', async () => {
+      mockPut.mockResolvedValue({
+        data: { ...transactions[3], paymentType: 'CARTAO_CREDITO' },
+      });
+      mockGetImplementation();
+      renderPage();
+      await waitForTable();
+
+      fireEvent.click(screen.getByTestId('transaction-actions-t-uber-trigger'));
+      fireEvent.click(
+        screen.getByTestId('transaction-actions-t-uber-item-Editar'),
+      );
+      await screen.findByText('Editar lançamento', { selector: 'h3' });
+
+      // The card tab is offered for Uber rows in edit mode.
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Cartão de crédito' }),
+      );
+
+      fireEvent.change(screen.getByLabelText('Data do lançamento no cartão'), {
+        target: { value: '2026-09-27' },
+      });
+      fireEvent.change(screen.getByLabelText('Data da fatura'), {
+        target: { value: '2026-10-05' },
+      });
+      const form = screen.getByTestId('transaction-amount').closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() =>
+        expect(mockPut).toHaveBeenCalledWith('/finances/transactions/t-uber', {
+          amount: 32.93,
+          description: 'Uber — Duo Residence Mall (Cássia)',
+          transactionDate: '2026-09-27',
+          categoryId: 'cat-doterra',
+          notes: null,
+          paymentType: 'CARTAO_CREDITO',
+          effectiveDate: '2026-10-05',
+        }),
+      );
+    });
+
+    it('requires the invoice date before converting to credit card', async () => {
+      mockGetImplementation();
+      renderPage();
+      await waitForTable();
+
+      fireEvent.click(screen.getByTestId('transaction-actions-t-uber-trigger'));
+      fireEvent.click(
+        screen.getByTestId('transaction-actions-t-uber-item-Editar'),
+      );
+      await screen.findByText('Editar lançamento', { selector: 'h3' });
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Cartão de crédito' }),
+      );
+
+      const form = screen.getByTestId('transaction-amount').closest('form');
+      fireEvent.submit(form);
+
+      expect(
+        await screen.findByTestId('transaction-form-error'),
+      ).toHaveTextContent('Informe a data da fatura');
+      expect(mockPut).not.toHaveBeenCalled();
+    });
+
+    it('reverts a card Uber row to a plain entry', async () => {
+      mockPut.mockResolvedValue({
+        data: { ...cardTransaction, paymentType: null, effectiveDate: null },
+      });
+      mockGetImplementation({ transactionRows: [cardTransaction] });
+      renderPage();
+      await screen.findByText('Uber — Duo Residence Mall (Cássia)');
+
+      fireEvent.click(
+        screen.getByTestId('transaction-actions-t-uber-card-trigger'),
+      );
+      fireEvent.click(
+        screen.getByTestId('transaction-actions-t-uber-card-item-Editar'),
+      );
+      await screen.findByText('Editar lançamento', { selector: 'h3' });
+
+      // Opens on the card tab; "Lançamento simples" clears the payment state.
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Lançamento simples' }),
+      );
+      fireEvent.submit(
+        screen.getByTestId('transaction-amount').closest('form'),
+      );
+
+      await waitFor(() =>
+        expect(mockPut).toHaveBeenCalledWith(
+          '/finances/transactions/t-uber-card',
+          {
+            amount: 32.93,
+            description: 'Uber — Duo Residence Mall (Cássia)',
+            transactionDate: '2026-09-27',
+            categoryId: 'cat-doterra',
+            notes: null,
+            paymentType: null,
+            effectiveDate: null,
+          },
+        ),
+      );
+    });
+
+    it('shows the ride and invoice dates of a card Uber row', async () => {
+      mockGetImplementation({ transactionRows: [cardTransaction] });
+      renderPage();
+      await screen.findByText('Uber — Duo Residence Mall (Cássia)');
+
+      expect(
+        screen.getByTestId('transaction-ride-date-t-uber-card'),
+      ).toHaveTextContent('Corrida: 26/09/2026');
+      expect(
+        screen.getByTestId('transaction-invoice-t-uber-card'),
+      ).toHaveTextContent('Fatura: 05/10/2026');
+      expect(
+        screen.getByTestId('transaction-effectiveness-t-uber-card'),
+      ).toHaveTextContent('Pendente');
+    });
+
+    it('settles a pending card Uber row from the action menu', async () => {
+      mockPost.mockResolvedValue({
+        data: { ...cardTransaction, isEffective: true },
+      });
+      mockGetImplementation({ transactionRows: [cardTransaction] });
+      renderPage();
+      await screen.findByText('Uber — Duo Residence Mall (Cássia)');
+
+      fireEvent.click(
+        screen.getByTestId('transaction-actions-t-uber-card-trigger'),
+      );
+      fireEvent.click(
+        screen.getByTestId(
+          'transaction-actions-t-uber-card-item-Baixar-como-paga',
+        ),
+      );
+
+      await waitFor(() =>
+        expect(mockPost).toHaveBeenCalledWith(
+          '/finances/transactions/t-uber-card/pay',
+        ),
+      );
+    });
+
+    it('shows the ride and invoice dates in the details modal', async () => {
+      mockGetImplementation({ transactionRows: [cardTransaction] });
+      renderPage();
+      await screen.findByText('Uber — Duo Residence Mall (Cássia)');
+
+      fireEvent.click(
+        screen.getByTestId('transaction-actions-t-uber-card-trigger'),
+      );
+      fireEvent.click(
+        screen.getByTestId('transaction-actions-t-uber-card-item-Ver-detalhes'),
+      );
+
+      expect(
+        await screen.findByTestId('transaction-details-ride-date'),
+      ).toHaveTextContent('26/09/2026');
+      expect(
+        screen.getByTestId('transaction-details-effective-date'),
+      ).toHaveTextContent('05/10/2026');
     });
 
     it('deletes an Uber row after confirmation', async () => {
