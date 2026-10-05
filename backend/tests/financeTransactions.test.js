@@ -605,11 +605,56 @@ describe('Finances transactions API', () => {
       expect(response.status).toBe(400);
     });
 
-    it('rejects editing an automatic transaction', async () => {
+    it('edits only the description of an automatic transaction', async () => {
       await createUser();
       const automatic = await seedAutomatic();
 
-      const response = await putTransaction(automatic.id, { amount: 50 });
+      const response = await putTransaction(automatic.id, {
+        amount: 50,
+        description: 'Descrição editada',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.description).toBe('Descrição editada');
+      // Amount/date/category are derived from the source and stay untouched.
+      expect(Number(response.body.amount)).toBe(100);
+    });
+
+    it('updates an Uber ride transaction but keeps its type and origin', async () => {
+      await createUser();
+      const category = await getCategory('DESPESA', 'Eventos');
+      const uber = await seedAutomatic({
+        origin: 'UBER',
+        amount: '32.93',
+        description: 'Uber — Centro',
+      });
+
+      const response = await putTransaction(uber.id, {
+        type: 'RECEITA',
+        amount: 40,
+        description: 'Corrida corrigida',
+        transactionDate: '2026-10-01',
+        categoryId: category.id,
+        notes: 'Ajuste manual',
+      });
+
+      expect(response.status).toBe(200);
+      expect(Number(response.body.amount)).toBe(40);
+      expect(response.body.description).toBe('Corrida corrigida');
+      expect(response.body.type).toBe('DESPESA');
+      expect(response.body.origin).toBe('UBER');
+      expect(response.body.categoryId).toBe(category.id);
+      expect(response.body.notes).toBe('Ajuste manual');
+    });
+
+    it('rejects an Uber category that does not match DESPESA', async () => {
+      await createUser();
+      const incomeCategory = await getCategory('RECEITA', 'Vendas');
+      const uber = await seedAutomatic({ origin: 'UBER' });
+
+      const response = await putTransaction(uber.id, {
+        categoryId: incomeCategory.id,
+      });
 
       expect(response.status).toBe(400);
     });
@@ -661,7 +706,7 @@ describe('Finances transactions API', () => {
       expect(persisted).toBeNull();
     });
 
-    it('rejects deleting an automatic transaction', async () => {
+    it('rejects deleting an automatic transaction other than Uber', async () => {
       await createUser();
       const automatic = await seedAutomatic();
 
@@ -673,6 +718,20 @@ describe('Finances transactions API', () => {
         where: { id: automatic.id },
       });
       expect(persisted).not.toBeNull();
+    });
+
+    it('deletes an Uber ride transaction', async () => {
+      await createUser();
+      const uber = await seedAutomatic({ origin: 'UBER' });
+
+      const response = await deleteTransaction(uber.id);
+
+      expect(response.status).toBe(200);
+
+      const persisted = await prisma.financialTransaction.findUnique({
+        where: { id: uber.id },
+      });
+      expect(persisted).toBeNull();
     });
 
     it('returns 404 for a transaction from another user', async () => {
