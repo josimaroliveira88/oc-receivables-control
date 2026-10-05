@@ -34,6 +34,13 @@ const importRidesSchema = z.object({
 
 const rideExpenseItemSchema = z.object({
   rideId: z.string().uuid('O ID da corrida deve ser um UUID válido'),
+  // Optional link to the sale (VENDA) this ride delivered. Validated in the
+  // service for ownership and order type.
+  orderId: z
+    .string()
+    .uuid('O ID da venda deve ser um UUID válido')
+    .nullable()
+    .optional(),
   categoryId: z
     .string()
     .uuid('O ID da categoria deve ser um UUID válido')

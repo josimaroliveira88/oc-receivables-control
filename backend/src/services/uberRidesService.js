@@ -27,6 +27,21 @@ const addOneDay = (date) => {
   return next;
 };
 
+// `FinancialTransaction.description` is VarChar(255). The user-provided ride
+// description is validated against that limit, but appending the linked sale
+// reference can overflow it, so the base is trimmed to fit the suffix.
+const MAX_DESCRIPTION_LENGTH = 255;
+
+const withSaleReference = (description, orderNumber) => {
+  const suffix = ` — Venda ${orderNumber}`;
+  const available = MAX_DESCRIPTION_LENGTH - suffix.length;
+  const base =
+    description.length > available
+      ? description.slice(0, available).trimEnd()
+      : description;
+  return `${base}${suffix}`;
+};
+
 const buildRideWhere = (userId, query = {}) => {
   const where = { userId };
 
@@ -149,6 +164,8 @@ const defaultRideDescription = (ride) => {
 // transactional: if any ride is missing, cancelled or already launched, nothing
 // is written. The category defaults to the user's "Transporte" when not
 // informed, and every informed category must be the user's and of type DESPESA.
+// An optional `orderId` links the expense to the sale the ride delivered; it
+// must be one of the user's own VENDA orders.
 const createExpensesFromRides = async (client, { userId, items }) =>
   client.$transaction(async (tx) => {
     const created = [];
@@ -175,14 +192,40 @@ const createExpensesFromRides = async (client, { userId, items }) =>
         throw badRequest('Esta corrida já foi lançada no financeiro');
       }
 
+      let orderId = null;
+      let orderNumber = null;
+      if (item.orderId) {
+        const order = await tx.order.findFirst({
+          where: { id: item.orderId, userId },
+          select: { id: true, orderType: true, orderNumber: true },
+        });
+
+        if (!order) {
+          throw notFound('Venda não encontrada');
+        }
+
+        if (order.orderType !== 'VENDA') {
+          throw badRequest('Apenas vendas podem ser vinculadas a uma corrida');
+        }
+
+        orderId = order.id;
+        orderNumber = order.orderNumber;
+      }
+
       const categoryId =
         item.categoryId ?? (await resolveCategoryId(tx, userId, 'UBER'));
       await assertCategoryMatches(tx, userId, { categoryId, type: 'DESPESA' });
 
-      const description =
+      const baseDescription =
         item.description && item.description.trim()
           ? item.description.trim()
           : defaultRideDescription(ride);
+
+      // Linked rides carry the sale reference in the description, mirroring the
+      // other automatic ledger rows ("Venda V-0001 — Cliente").
+      const description = orderNumber
+        ? withSaleReference(baseDescription, orderNumber)
+        : baseDescription;
 
       const row = await tx.financialTransaction.create({
         data: {
@@ -193,6 +236,7 @@ const createExpensesFromRides = async (client, { userId, items }) =>
           description,
           transactionDate: ride.requestedAt,
           categoryId,
+          orderId,
           rideId: ride.id,
         },
         include: { category: true },
