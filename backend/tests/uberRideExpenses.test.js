@@ -55,6 +55,12 @@ describe('Uber ride expenses', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ items });
 
+  const createExpensesWithPayment = (items, payment, token = user.token) =>
+    request(app)
+      .post('/api/uber/rides/expenses')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ items, payment });
+
   const rideIdByExternalId = async (externalId) => {
     const ride = await prisma.rideRecord.findFirst({
       where: { userId: user.user.id, externalId },
@@ -75,6 +81,8 @@ describe('Uber ride expenses', () => {
       origin: 'UBER',
       amount: '32.93',
       description: 'Uber — Duo Residence Mall (Cássia)',
+      paymentType: null,
+      isEffective: true,
     });
     expect(response.body[0].categoryId).toBe(category.id);
 
@@ -83,6 +91,60 @@ describe('Uber ride expenses', () => {
     });
     expect(stored.origin).toBe('UBER');
     expect(stored.amount.toFixed(2)).toBe('32.93');
+  });
+
+  it('launches rides as pending credit-card purchases with the invoice date', async () => {
+    await importRides([activity('ride-card-1')]);
+    const rideId = await rideIdByExternalId('ride-card-1');
+
+    const response = await createExpensesWithPayment([{ rideId }], {
+      type: 'CARTAO_CREDITO',
+      effectiveDate: '2026-10-05',
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body[0]).toMatchObject({
+      origin: 'UBER',
+      paymentType: 'CARTAO_CREDITO',
+      isEffective: false,
+    });
+    expect(response.body[0].effectiveDate).toBeTruthy();
+
+    const stored = await prisma.financialTransaction.findUnique({
+      where: { rideId },
+    });
+    expect(stored.isEffective).toBe(false);
+    expect(stored.effectiveDate.toISOString().slice(0, 10)).toBe('2026-10-05');
+    expect(stored.transactionDate.toISOString().slice(0, 10)).toBe(
+      '2026-09-26',
+    );
+  });
+
+  it('rejects a payment whose invoice date precedes a ride in the batch', async () => {
+    await importRides([activity('ride-card-past')]);
+    const rideId = await rideIdByExternalId('ride-card-past');
+
+    const response = await createExpensesWithPayment([{ rideId }], {
+      type: 'CARTAO_CREDITO',
+      effectiveDate: '2026-08-01',
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toMatch(/fatura/i);
+    expect(await prisma.financialTransaction.count({ where: { rideId } })).toBe(
+      0,
+    );
+  });
+
+  it('rejects a payment block without the invoice date', async () => {
+    await importRides([activity('ride-card-nodate')]);
+    const rideId = await rideIdByExternalId('ride-card-nodate');
+
+    const response = await createExpensesWithPayment([{ rideId }], {
+      type: 'CARTAO_CREDITO',
+    });
+
+    expect(response.status).toBe(400);
   });
 
   it('marks the ride as launched in the listing', async () => {

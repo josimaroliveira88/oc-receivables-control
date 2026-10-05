@@ -80,6 +80,16 @@ describe('Finances transactions API', () => {
       .get(`/api/finances/summary${query}`)
       .set('Authorization', `Bearer ${token}`);
 
+  const payTransaction = (id, token = authToken) =>
+    request(app)
+      .post(`/api/finances/transactions/${id}/pay`)
+      .set('Authorization', `Bearer ${token}`);
+
+  const unpayTransaction = (id, token = authToken) =>
+    request(app)
+      .post(`/api/finances/transactions/${id}/unpay`)
+      .set('Authorization', `Bearer ${token}`);
+
   const seedManual = (data) =>
     prisma.financialTransaction.create({
       data: {
@@ -103,7 +113,27 @@ describe('Finances transactions API', () => {
         amount: data.amount ?? '100.00',
         description: data.description ?? 'Pedido dōTERRA 1',
         transactionDate: parseLocalDate(data.transactionDate ?? '2026-09-19'),
+        ...(data.paymentType !== undefined && {
+          paymentType: data.paymentType,
+        }),
+        ...(data.effectiveDate && {
+          effectiveDate: parseLocalDate(data.effectiveDate),
+        }),
+        ...(data.isEffective !== undefined && {
+          isEffective: data.isEffective,
+        }),
       },
+    });
+
+  const seedCardUber = (data = {}) =>
+    seedAutomatic({
+      origin: 'UBER',
+      amount: data.amount ?? '32.93',
+      description: data.description ?? 'Uber — Centro',
+      transactionDate: data.transactionDate ?? '2026-09-27',
+      paymentType: 'CARTAO_CREDITO',
+      effectiveDate: data.effectiveDate ?? '2026-10-05',
+      isEffective: data.isEffective ?? false,
     });
 
   describe('authentication', () => {
@@ -550,6 +580,39 @@ describe('Finances transactions API', () => {
       expect(response.body[0].category.name).toBe('Vendas');
       expect(response.body[0].feeAmount).toBe('3.00');
     });
+
+    it('includes the linked ride data of an Uber expense', async () => {
+      await createUser();
+      const ride = await prisma.rideRecord.create({
+        data: {
+          userId,
+          source: 'UBER_ACTIVITY_JSON',
+          externalId: `ext-${Math.random().toString(36).slice(2, 8)}`,
+          requestedAt: new Date('2026-09-26T16:02:00.000Z'),
+          destination: 'Duo Residence Mall',
+          amountCents: 3293,
+        },
+      });
+      await prisma.financialTransaction.create({
+        data: {
+          userId,
+          type: 'DESPESA',
+          origin: 'UBER',
+          amount: '32.93',
+          description: 'Uber — Duo Residence Mall',
+          transactionDate: parseLocalDate('2026-09-27'),
+          rideId: ride.id,
+        },
+      });
+
+      const response = await listTransactions();
+
+      expect(response.body).toHaveLength(1);
+      expect(response.body[0].ride).toMatchObject({
+        requestedAt: '2026-09-26T16:02:00.000Z',
+        destination: 'Duo Residence Mall',
+      });
+    });
   });
 
   describe('PUT /api/finances/transactions/:id', () => {
@@ -647,6 +710,102 @@ describe('Finances transactions API', () => {
       expect(response.body.notes).toBe('Ajuste manual');
     });
 
+    it('converts an Uber row into a pending credit-card purchase', async () => {
+      await createUser();
+      const uber = await seedAutomatic({
+        origin: 'UBER',
+        amount: '32.93',
+        description: 'Uber — Centro',
+      });
+
+      const response = await putTransaction(uber.id, {
+        description: 'Uber — Centro',
+        amount: 32.93,
+        transactionDate: '2026-09-27',
+        categoryId: null,
+        notes: null,
+        paymentType: 'CARTAO_CREDITO',
+        effectiveDate: '2026-10-05',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.paymentType).toBe('CARTAO_CREDITO');
+      expect(response.body.isEffective).toBe(false);
+      expect(response.body.effectiveDate).toBeTruthy();
+
+      const stored = await prisma.financialTransaction.findUnique({
+        where: { id: uber.id },
+      });
+      expect(stored.isEffective).toBe(false);
+      expect(stored.effectiveDate.toISOString().slice(0, 10)).toBe(
+        '2026-10-05',
+      );
+    });
+
+    it('rejects a card conversion without the invoice date', async () => {
+      await createUser();
+      const uber = await seedAutomatic({ origin: 'UBER' });
+
+      const response = await putTransaction(uber.id, {
+        paymentType: 'CARTAO_CREDITO',
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toMatch(/data da fatura/i);
+    });
+
+    it('rejects an invoice date before the card charge date', async () => {
+      await createUser();
+      const uber = await seedAutomatic({ origin: 'UBER' });
+
+      const response = await putTransaction(uber.id, {
+        transactionDate: '2026-10-10',
+        paymentType: 'CARTAO_CREDITO',
+        effectiveDate: '2026-10-05',
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toMatch(/data da fatura/i);
+    });
+
+    it('reverts a card Uber row to a plain entry', async () => {
+      await createUser();
+      const card = await seedCardUber();
+
+      const response = await putTransaction(card.id, { paymentType: null });
+
+      expect(response.status).toBe(200);
+      expect(response.body.paymentType).toBeNull();
+      expect(response.body.isEffective).toBe(true);
+      expect(response.body.effectiveDate).toBeNull();
+    });
+
+    it('leaves the card state untouched when the payment is omitted', async () => {
+      await createUser();
+      const card = await seedCardUber();
+
+      const response = await putTransaction(card.id, { amount: 40 });
+
+      expect(response.status).toBe(200);
+      expect(response.body.paymentType).toBe('CARTAO_CREDITO');
+      expect(response.body.isEffective).toBe(false);
+    });
+
+    it('ignores card fields on other origins', async () => {
+      await createUser();
+      const automatic = await seedAutomatic();
+
+      const response = await putTransaction(automatic.id, {
+        description: 'Descrição editada',
+        paymentType: 'CARTAO_CREDITO',
+        effectiveDate: '2026-10-05',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.paymentType).toBeNull();
+      expect(response.body.isEffective).toBe(true);
+    });
+
     it('rejects an Uber category that does not match DESPESA', async () => {
       await createUser();
       const incomeCategory = await getCategory('RECEITA', 'Vendas');
@@ -685,6 +844,81 @@ describe('Finances transactions API', () => {
         '00000000-0000-0000-0000-000000000000',
         { amount: 20 },
       );
+
+      expect(response.status).toBe(404);
+    });
+  });
+
+  describe('POST /api/finances/transactions/:id/pay and /unpay', () => {
+    it('settles a pending card Uber row keeping the invoice date', async () => {
+      await createUser();
+      const card = await seedCardUber();
+
+      const response = await payTransaction(card.id);
+
+      expect(response.status).toBe(200);
+      expect(response.body.isEffective).toBe(true);
+      expect(response.body.paymentType).toBe('CARTAO_CREDITO');
+      expect(response.body.effectiveDate).toBeTruthy();
+    });
+
+    it('undoes the settlement of a card Uber row', async () => {
+      await createUser();
+      const card = await seedCardUber({ isEffective: true });
+
+      const response = await unpayTransaction(card.id);
+
+      expect(response.status).toBe(200);
+      expect(response.body.isEffective).toBe(false);
+      expect(response.body.effectiveDate).toBeTruthy();
+    });
+
+    it('is idempotent for an already settled row', async () => {
+      await createUser();
+      const card = await seedCardUber({ isEffective: true });
+
+      const response = await payTransaction(card.id);
+
+      expect(response.status).toBe(200);
+      expect(response.body.isEffective).toBe(true);
+    });
+
+    it('rejects settling a plain Uber row', async () => {
+      await createUser();
+      const uber = await seedAutomatic({ origin: 'UBER' });
+
+      const response = await payTransaction(uber.id);
+
+      expect(response.status).toBe(400);
+    });
+
+    it('rejects settling a manual row', async () => {
+      await createUser();
+      const manual = await seedManual({});
+
+      const response = await payTransaction(manual.id);
+
+      expect(response.status).toBe(400);
+    });
+
+    it('returns 404 for another user card row', async () => {
+      await createUser();
+      await createOtherUser();
+      const other = await prisma.financialTransaction.create({
+        data: {
+          userId: otherUserId,
+          type: 'DESPESA',
+          origin: 'UBER',
+          amount: '10.00',
+          description: 'Do outro',
+          transactionDate: parseLocalDate('2026-09-27'),
+          paymentType: 'CARTAO_CREDITO',
+          effectiveDate: parseLocalDate('2026-10-05'),
+          isEffective: false,
+        },
+      });
+
+      const response = await payTransaction(other.id);
 
       expect(response.status).toBe(404);
     });
@@ -831,6 +1065,17 @@ describe('Finances transactions API', () => {
       const response = await getSummary();
 
       expect(response.body.totalIncome).toBe('0.00');
+    });
+
+    it('reports pending credit-card entries separately from expenses', async () => {
+      await createUser();
+      await seedManual({ amount: '10.00' });
+      await seedCardUber({ amount: '30.00' });
+
+      const response = await getSummary();
+
+      expect(response.body.totalExpense).toBe('10.00');
+      expect(response.body.pendingTotal).toBe('30.00');
     });
   });
 });
