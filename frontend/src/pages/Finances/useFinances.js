@@ -5,10 +5,14 @@ import { useToast } from '../../components/Toast';
 import { useDirtyForm } from '../../hooks/useDirtyForm';
 import { useCreditCardBillForm } from '../../hooks/useCreditCardBillForm';
 import {
+  buildDescriptionPayload,
   buildTransactionPayload,
   buildTransactionParams,
+  buildUberTransactionPayload,
   emptyTransactionForm,
   errorMessageFrom,
+  EDIT_MODE,
+  transactionEditMode,
 } from './utils/financeHelpers';
 
 // Owns all ledger state and I/O for the finances page: the filtered list, the
@@ -116,6 +120,7 @@ export function useFinances() {
   const [showFormModal, setShowFormModal] = useState(false);
   const [form, setForm] = useState(emptyTransactionForm);
   const [formInitial, setFormInitial] = useState(emptyTransactionForm);
+  const [formMode, setFormMode] = useState(EDIT_MODE.MANUAL);
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
@@ -210,12 +215,14 @@ export function useFinances() {
   const openCreate = () => {
     billForm.close();
     resetForm();
+    setFormMode(EDIT_MODE.MANUAL);
     setShowFormModal(true);
   };
 
   const closeForm = () => {
     setShowFormModal(false);
     resetForm();
+    setFormMode(EDIT_MODE.MANUAL);
     billForm.close();
   };
 
@@ -236,6 +243,7 @@ export function useFinances() {
     };
     setForm(next);
     setFormInitial(next);
+    setFormMode(transactionEditMode(transaction.origin));
     setFormError('');
     setShowFormModal(true);
   };
@@ -243,22 +251,34 @@ export function useFinances() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const isDescriptionOnly = formMode === EDIT_MODE.DESCRIPTION;
+
     if (!form.description.trim()) {
       setFormError('Informe a descrição');
       return;
     }
-    if (!form.amount || parseFloat(form.amount) <= 0) {
-      setFormError('Informe um valor maior que zero');
-      return;
-    }
-    if (!form.transactionDate) {
-      setFormError('Informe a data');
-      return;
+    if (!isDescriptionOnly) {
+      if (!form.amount || parseFloat(form.amount) <= 0) {
+        setFormError('Informe um valor maior que zero');
+        return;
+      }
+      if (!form.transactionDate) {
+        setFormError('Informe a data');
+        return;
+      }
     }
 
     setSubmitting(true);
     try {
-      const payload = buildTransactionPayload(form);
+      let payload;
+      if (isDescriptionOnly) {
+        payload = buildDescriptionPayload(form);
+      } else if (formMode === EDIT_MODE.UBER) {
+        payload = buildUberTransactionPayload(form);
+      } else {
+        payload = buildTransactionPayload(form);
+      }
+
       if (form.id) {
         await api.put(`/finances/transactions/${form.id}`, payload);
         addToast('Lançamento atualizado com sucesso!', 'success');
@@ -340,6 +360,7 @@ export function useFinances() {
     closeDetailTransaction,
     showFormModal,
     form,
+    formMode,
     formError,
     submitting,
     formDirty,

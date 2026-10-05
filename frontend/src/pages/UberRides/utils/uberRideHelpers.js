@@ -51,10 +51,15 @@ export const defaultRideDescription = (ride) => {
 export const isRideSelectable = (ride) =>
   ride?.status === 'COMPLETED' && !ride?.launched;
 
+// Re-exported so UberRides consumers share one formatter with the picker.
+export { formatSaleOptionLabel } from '../../../utils/saleOption';
+
 export const makeSelection = (ride, defaultCategoryId = '') => ({
   selected: true,
   categoryId: defaultCategoryId,
   description: defaultRideDescription(ride),
+  orderId: null,
+  orderLabel: '',
 });
 
 export const buildExpenseItems = (rides, selections = {}) =>
@@ -64,6 +69,7 @@ export const buildExpenseItems = (rides, selections = {}) =>
       rideId: ride.id,
       categoryId: selections[ride.id].categoryId || null,
       description: selections[ride.id].description.trim() || null,
+      orderId: selections[ride.id].orderId || null,
     }));
 
 export const summarizeRides = (rides = []) => {

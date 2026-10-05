@@ -156,6 +156,31 @@ export const buildTransactionPayload = (form) => ({
   notes: form.notes.trim() ? form.notes.trim() : null,
 });
 
+// How much of a ledger row is editable, by origin. Manual rows are fully
+// editable; Uber rows allow everything but type/origin; every other automatic
+// row only allows its description (the rest is derived from its source).
+export const EDIT_MODE = {
+  MANUAL: 'manual',
+  UBER: 'uber',
+  DESCRIPTION: 'description',
+};
+
+export const transactionEditMode = (origin) => {
+  if (origin === 'MANUAL') return EDIT_MODE.MANUAL;
+  if (origin === 'UBER') return EDIT_MODE.UBER;
+  return EDIT_MODE.DESCRIPTION;
+};
+
+// Uber rows keep their type (DESPESA) and origin, so the payload omits `type`.
+export const buildUberTransactionPayload = (form) => {
+  const { type: _type, ...rest } = buildTransactionPayload(form);
+  return rest;
+};
+
+export const buildDescriptionPayload = (form) => ({
+  description: form.description.trim(),
+});
+
 // Settlement (InfinitePay redemption) form -> API payload.
 export const buildSettlementPayload = ({ amount, transactionDate, notes }) => ({
   amount: parseFloat(amount) || 0,

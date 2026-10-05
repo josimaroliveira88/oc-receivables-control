@@ -15,13 +15,14 @@ import {
 
 // Automatic rows link back to the record that produced them. Sales and
 // InfinitePay redemptions deep-link to the sale details; dōTERRA orders
-// deep-link to the order details.
+// deep-link to the order details; Uber rides linked to a sale deep-link to it.
 const originLink = (transaction) => {
   if (!transaction.orderId) return null;
   if (
     transaction.origin === 'VENDA' ||
     transaction.origin === 'RESGATE_INFINITEPAY' ||
-    transaction.origin === 'VENDA_ADICIONAL'
+    transaction.origin === 'VENDA_ADICIONAL' ||
+    transaction.origin === 'UBER'
   ) {
     return `/sales?detailsSale=${transaction.orderId}`;
   }
@@ -104,7 +105,9 @@ const FinancesTable = ({
           {transactions.map((transaction) => {
             const link = originLink(transaction);
             const isManual = transaction.origin === 'MANUAL';
+            const isUber = transaction.origin === 'UBER';
             const isRescue = transaction.origin === 'RESGATE_INFINITEPAY';
+            const canFullyEdit = isManual || isUber;
             const feeCents = transaction.feeAmount
               ? toCents(parseFloat(transaction.feeAmount))
               : 0;
@@ -231,7 +234,7 @@ const FinancesTable = ({
                   data-label="Ações"
                   className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:min-w-0 text-left lg:text-right text-sm font-medium before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
                 >
-                  {isManual ? (
+                  {canFullyEdit ? (
                     <div className="flex justify-end">
                       <ActionMenu
                         actions={[
@@ -284,6 +287,11 @@ const FinancesTable = ({
                             label: 'Ver detalhes',
                             icon: Eye,
                             onClick: () => onOpenDetails(transaction.id),
+                          },
+                          {
+                            label: 'Editar descrição',
+                            icon: Pencil,
+                            onClick: () => onEdit(transaction),
                           },
                         ]}
                         ariaLabel="Ações do lançamento"

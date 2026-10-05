@@ -28,6 +28,7 @@ const FinancesPage = () => {
     closeDetailTransaction,
     showFormModal,
     form,
+    formMode,
     formError,
     submitting,
     formDirty,
@@ -52,6 +53,11 @@ const FinancesPage = () => {
   const categories = useFinanceCategories();
   const location = useLocation();
   const navigate = useNavigate();
+  // The row pending deletion decides the confirmation copy: deleting an Uber
+  // expense frees its ride to be launched again.
+  const deletingTransaction =
+    transactions.find((transaction) => transaction.id === confirmDeleteId) ||
+    null;
   // `null` = closed; otherwise the modal the embedded rides flow should open
   // with. `uberKey` forces a remount so the rides hook re-reads `initialView`
   // on every open (it is a mount seed, not a controlled prop).
@@ -173,6 +179,7 @@ const FinancesPage = () => {
         isOpen={showFormModal}
         onClose={closeForm}
         form={form}
+        mode={formMode}
         categories={categories.categories}
         formError={formError}
         submitting={submitting}
@@ -202,7 +209,11 @@ const FinancesPage = () => {
       <ConfirmDialog
         open={!!confirmDeleteId}
         title="Excluir lançamento"
-        message="Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita."
+        message={
+          deletingTransaction?.origin === 'UBER'
+            ? 'Tem certeza que deseja excluir este lançamento? A corrida voltará a ficar disponível para ser lançada.'
+            : 'Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.'
+        }
         confirmLabel="Excluir"
         cancelLabel="Cancelar"
         loading={deleting}

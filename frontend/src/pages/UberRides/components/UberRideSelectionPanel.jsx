@@ -1,6 +1,10 @@
 import React from 'react';
 import { fromCents, formatBRL } from '../../../utils/money';
-import { formatRideDateTime } from '../utils/uberRideHelpers';
+import OrderAutocomplete from '../../../components/OrderAutocomplete';
+import {
+  formatRideDateTime,
+  formatSaleOptionLabel,
+} from '../utils/uberRideHelpers';
 
 const fieldClass =
   'w-full px-2 py-1.5 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors text-sm';
@@ -52,7 +56,7 @@ const UberRideSelectionPanel = ({
             data-testid={`uber-ride-selected-${ride.id}`}
             className="px-4 py-3 grid grid-cols-1 lg:grid-cols-12 gap-3 items-end"
           >
-            <div className="lg:col-span-5">
+            <div className="lg:col-span-4">
               <p className="text-sm font-medium text-ink">
                 {ride.destination ?? 'Corrida'}
               </p>
@@ -86,7 +90,27 @@ const UberRideSelectionPanel = ({
                 ))}
               </select>
             </div>
-            <div className="lg:col-span-4">
+            <div className="lg:col-span-5">
+              <label
+                htmlFor={`uber-ride-order-${ride.id}-input`}
+                className="block text-xs font-medium text-ink-faint mb-1"
+              >
+                Venda (opcional)
+              </label>
+              <OrderAutocomplete
+                value={selections[ride.id]?.orderId ?? null}
+                selectedLabel={selections[ride.id]?.orderLabel ?? ''}
+                testId={`uber-ride-order-${ride.id}`}
+                inputId={`uber-ride-order-${ride.id}-input`}
+                onChange={(option) =>
+                  onFieldChange(ride.id, {
+                    orderId: option?.id ?? null,
+                    orderLabel: option ? formatSaleOptionLabel(option) : '',
+                  })
+                }
+              />
+            </div>
+            <div className="lg:col-span-12">
               <label
                 htmlFor={`uber-ride-description-${ride.id}`}
                 className="block text-xs font-medium text-ink-faint mb-1"

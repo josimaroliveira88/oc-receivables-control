@@ -1,4 +1,6 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import { ExternalLink } from 'lucide-react';
 import Modal from '../../../components/Modal';
 import { formatBRL } from '../../../utils/money';
 import { formatDateBR } from '../../../utils/dates';
@@ -88,6 +90,20 @@ const FinancialTransactionDetailsModal = ({
                   {originLabel(transaction.origin)}
                 </dd>
               </div>
+              {transaction.origin === 'UBER' && transaction.orderId && (
+                <div>
+                  <dt className="text-xs text-ink-faint">Venda</dt>
+                  <dd data-testid="transaction-details-sale">
+                    <Link
+                      to={`/sales?detailsSale=${transaction.orderId}`}
+                      className="inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline"
+                    >
+                      Ver venda
+                      <ExternalLink className="w-3 h-3" aria-hidden="true" />
+                    </Link>
+                  </dd>
+                </div>
+              )}
               <div>
                 <dt className="text-xs text-ink-faint">Categoria</dt>
                 <dd
