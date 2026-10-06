@@ -1,6 +1,10 @@
 // Pure helpers for the Uber rides page: labels, date formatting, the default
 // ledger description and selection/launch payload building. No React here so the
 // rules stay unit-testable.
+import { formatSaleOptionLabel } from '../../../utils/saleOption';
+import { formatDateBR } from '../../../utils/dates';
+
+export { formatSaleOptionLabel };
 
 export const RIDE_STATUS_LABELS = {
   COMPLETED: 'Concluída',
@@ -51,26 +55,71 @@ export const defaultRideDescription = (ride) => {
 export const isRideSelectable = (ride) =>
   ride?.status === 'COMPLETED' && !ride?.launched;
 
-// Re-exported so UberRides consumers share one formatter with the picker.
-export { formatSaleOptionLabel } from '../../../utils/saleOption';
+// Human label for a suggested match (ledger row with the same value): the
+// transaction date plus its existing description.
+export const formatRideMatchLabel = (match) =>
+  [formatDateBR(match?.transactionDate), match?.description]
+    .filter(Boolean)
+    .join(' — ');
 
-export const makeSelection = (ride, defaultCategoryId = '') => ({
-  selected: true,
+export const MATCH_ORIGIN_LABELS = {
+  MANUAL: 'Manual',
+  VENDA_ADICIONAL: 'Venda adicional',
+};
+
+export const matchOriginLabel = (origin) =>
+  MATCH_ORIGIN_LABELS[origin] ?? origin ?? '';
+
+// Sale label of a matched row, shaped like the picker option so the matched
+// row's existing sale can be shown read-only.
+export const saleLabelFromMatch = (match) =>
+  match?.orderNumber
+    ? formatSaleOptionLabel({
+        orderNumber: match.orderNumber,
+        clientName: match.clientName,
+        totalValue: match.saleTotalValue,
+      })
+    : '';
+
+// Per-row form state. A matched row starts with the most recent suggestion
+// pre-selected (see `pickDefaultMatch`), so the user only confirms it.
+export const makeSelection = (
+  ride,
+  {
+    defaultCategoryId = '',
+    defaultMatch = null,
+    defaultCard = true,
+    defaultEffectiveDate = '',
+  } = {},
+) => ({
   categoryId: defaultCategoryId,
   description: defaultRideDescription(ride),
-  orderId: null,
-  orderLabel: '',
+  orderId: defaultMatch?.orderId ?? null,
+  orderLabel: defaultMatch ? saleLabelFromMatch(defaultMatch) : '',
+  matchTransactionId: defaultMatch?.transactionId ?? null,
+  card: defaultCard,
+  effectiveDate: defaultEffectiveDate,
 });
 
-export const buildExpenseItems = (rides, selections = {}) =>
-  rides
-    .filter((ride) => isRideSelectable(ride) && selections[ride.id]?.selected)
-    .map((ride) => ({
-      rideId: ride.id,
-      categoryId: selections[ride.id].categoryId || null,
-      description: selections[ride.id].description.trim() || null,
-      orderId: selections[ride.id].orderId || null,
-    }));
+// Matches arrive newest-first from the API; the first one is the pre-selection.
+export const pickDefaultMatch = (ride) => ride?.matches?.[0] ?? null;
+
+// Payload for one row: a single-item batch. Reconciling sends the matched
+// transaction id and no category/payment (the existing row keeps both); a plain
+// launch sends the create fields.
+export const buildRideLaunchItem = (
+  ride,
+  selection,
+  { reconcile = false } = {},
+) => ({
+  rideId: ride.id,
+  categoryId: reconcile ? null : selection.categoryId || null,
+  description: selection.description.trim() || null,
+  orderId: selection.orderId || null,
+  ...(reconcile && selection.matchTransactionId
+    ? { matchTransactionId: selection.matchTransactionId }
+    : {}),
+});
 
 export const summarizeRides = (rides = []) => {
   const completed = rides.filter((ride) => ride.status === 'COMPLETED');

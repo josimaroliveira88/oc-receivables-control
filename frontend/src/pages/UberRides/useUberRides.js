@@ -5,9 +5,11 @@ import { useDirtyForm } from '../../hooks/useDirtyForm';
 import * as uberRidesApi from '../../services/uberRidesApi';
 import { errorMessageFrom } from '../Finances/utils/financeHelpers';
 import {
-  buildExpenseItems,
+  buildRideLaunchItem,
   filterRides,
   makeSelection,
+  pickDefaultMatch,
+  saleLabelFromMatch,
   summarizeRides,
 } from './utils/uberRideHelpers';
 
@@ -56,15 +58,13 @@ export function useUberRides({ initialView = null } = {}) {
 
   const [filters, setFiltersState] = useState(emptyFilters);
   const [selections, setSelections] = useState({});
-  const [launching, setLaunching] = useState(false);
+  const [expandedRideId, setExpandedRideId] = useState(null);
+  const [launchingRideId, setLaunchingRideId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
-  // Rides are usually paid with a credit card, so the card payment is the
-  // default: every launched ride becomes a pending card purchase until the
-  // informed invoice (fatura) date is settled in Finanças.
-  const [cardPayment, setCardPayment] = useState({
-    card: true,
-    effectiveDate: '',
-  });
+  // Rides are usually paid with a credit card, so a new row starts with the card
+  // payment on. The invoice date is sticky in the session: the last used date
+  // pre-fills the next row opened (same invoice = less typing).
+  const [lastInvoiceDate, setLastInvoiceDate] = useState('');
 
   const [showImport, setShowImport] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -146,41 +146,39 @@ export function useUberRides({ initialView = null } = {}) {
     }));
   }, []);
 
-  const setPaymentField = useCallback(
-    (patch) => setCardPayment((previous) => ({ ...previous, ...patch })),
-    [],
-  );
-
-  const clearSelections = useCallback(() => setSelections({}), []);
-
-  const toggleRide = useCallback(
+  // Expands/collapses the inline form of one row (one at a time). Opening it
+  // seeds the per-row state once; later edits survive a collapse.
+  const openRideForm = useCallback(
     (ride) => {
+      setExpandedRideId((current) => (current === ride.id ? null : ride.id));
       setSelections((previous) => {
-        const current = previous[ride.id];
-        if (current?.selected) {
-          return { ...previous, [ride.id]: { ...current, selected: false } };
-        }
+        if (previous[ride.id]) return previous;
         return {
           ...previous,
-          [ride.id]: current ?? makeSelection(ride, defaultCategoryId),
+          [ride.id]: makeSelection(ride, {
+            defaultCategoryId,
+            defaultMatch: pickDefaultMatch(ride),
+            defaultEffectiveDate: lastInvoiceDate,
+          }),
         };
       });
     },
-    [defaultCategoryId],
+    [defaultCategoryId, lastInvoiceDate],
   );
 
-  const selectedItems = useMemo(
-    () => buildExpenseItems(rides, selections),
-    [rides, selections],
-  );
-
-  const selectedTotalCents = useMemo(
-    () =>
-      rides
-        .filter((ride) => selections[ride.id]?.selected)
-        .reduce((total, ride) => total + ride.amountCents, 0),
-    [rides, selections],
-  );
+  // Switches the row between a suggested reconciliation and a plain launch.
+  // Picking a match also mirrors its sale (read-only) into the form.
+  const selectRideMatch = useCallback((ride, match) => {
+    setSelections((previous) => ({
+      ...previous,
+      [ride.id]: {
+        ...previous[ride.id],
+        matchTransactionId: match?.transactionId ?? null,
+        orderId: match?.orderId ?? null,
+        orderLabel: saleLabelFromMatch(match),
+      },
+    }));
+  }, []);
 
   const openImport = () => {
     // First visit (or after the user re-opens the orientation) routes through
@@ -266,44 +264,67 @@ export function useUberRides({ initialView = null } = {}) {
     }
   };
 
-  const launchSelected = async () => {
-    if (selectedItems.length === 0) {
-      addToast('Selecione ao menos uma corrida para lançar.', 'error');
-      return;
-    }
+  // Effectivates one row: reconciles the pre-selected match when requested,
+  // otherwise launches a new expense (with the row's optional card payment).
+  const submitRide = useCallback(
+    async (ride, { reconcile = false } = {}) => {
+      const selection = selections[ride.id];
+      if (!selection) return;
 
-    if (cardPayment.card && !cardPayment.effectiveDate) {
-      addToast(
-        'Informe a data da fatura do cartão de crédito para lançar.',
-        'error',
-      );
-      return;
-    }
+      if (!reconcile && selection.card && !selection.effectiveDate) {
+        addToast(
+          'Informe a data da fatura do cartão de crédito para lançar.',
+          'error',
+        );
+        return;
+      }
 
-    setLaunching(true);
-    try {
-      const payment = cardPayment.card
-        ? { type: 'CARTAO_CREDITO', effectiveDate: cardPayment.effectiveDate }
-        : null;
-      const response = await uberRidesApi.createRideExpenses(
-        selectedItems,
-        payment,
-      );
-      addToast(
-        `${response.data.length} despesa(s) lançada(s) no financeiro.`,
-        'success',
-      );
-      setSelections({});
-      await loadRides();
-    } catch (err) {
-      addToast(
-        errorMessageFrom(err, 'Não foi possível lançar as despesas.'),
-        'error',
-      );
-    } finally {
-      setLaunching(false);
-    }
-  };
+      setLaunchingRideId(ride.id);
+      try {
+        const item = buildRideLaunchItem(ride, selection, { reconcile });
+        const payment =
+          !reconcile && selection.card
+            ? { type: 'CARTAO_CREDITO', effectiveDate: selection.effectiveDate }
+            : null;
+        await uberRidesApi.createRideExpenses([item], payment);
+        addToast(
+          reconcile
+            ? 'Lançamento conciliado no financeiro.'
+            : 'Despesa lançada no financeiro.',
+          'success',
+        );
+        if (!reconcile && selection.card && selection.effectiveDate) {
+          setLastInvoiceDate(selection.effectiveDate);
+        }
+        setSelections((previous) => {
+          const { [ride.id]: _removed, ...rest } = previous;
+          return rest;
+        });
+        setExpandedRideId(null);
+        await loadRides();
+      } catch (err) {
+        addToast(
+          errorMessageFrom(
+            err,
+            reconcile
+              ? 'Não foi possível conciliar o lançamento.'
+              : 'Não foi possível lançar a despesa.',
+          ),
+          'error',
+        );
+      } finally {
+        setLaunchingRideId(null);
+      }
+    },
+    [selections, addToast, loadRides],
+  );
+
+  const launchRide = useCallback((ride) => submitRide(ride), [submitRide]);
+
+  const reconcileRide = useCallback(
+    (ride) => submitRide(ride, { reconcile: true }),
+    [submitRide],
+  );
 
   // Deletes a ride the user discarded from the import list. Persisted in the
   // backend, so the row is gone for good; the list is refetched to keep the
@@ -342,15 +363,13 @@ export function useUberRides({ initialView = null } = {}) {
     summary,
     visibleSummary,
     selections,
-    selectedItems,
-    selectedTotalCents,
-    launching,
-    cardPayment,
-    setPaymentField,
-    toggleRide,
+    expandedRideId,
+    launchingRideId,
+    openRideForm,
     setRideField,
-    clearSelections,
-    launchSelected,
+    selectRideMatch,
+    launchRide,
+    reconcileRide,
     removingRideId: deletingId,
     removeRide,
     showImport,

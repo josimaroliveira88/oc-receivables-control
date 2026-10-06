@@ -5,10 +5,8 @@ import { useUberRides } from './useUberRides';
 import UberRidesTable from './components/UberRidesTable';
 import UberRideImportModal from './components/UberRideImportModal';
 import UberRidesWelcomeModal from './components/UberRidesWelcomeModal';
-import UberRideSelectionPanel from './components/UberRideSelectionPanel';
 import { fromCents, formatBRL } from '../../utils/money';
 import {
-  isRideSelectable,
   PROFILE_FILTER_OPTIONS,
   RIDE_STATUS_FILTER_OPTIONS,
   RIDE_TYPE_FILTER_OPTIONS,
@@ -34,7 +32,6 @@ const UberRides = ({
   initialView = null,
 }) => {
   const {
-    rides,
     visibleRides,
     loading,
     error,
@@ -45,15 +42,13 @@ const UberRides = ({
     summary,
     visibleSummary,
     selections,
-    selectedItems,
-    selectedTotalCents,
-    launching,
-    cardPayment,
-    setPaymentField,
-    toggleRide,
+    expandedRideId,
+    launchingRideId,
+    openRideForm,
     setRideField,
-    clearSelections,
-    launchSelected,
+    selectRideMatch,
+    launchRide,
+    reconcileRide,
     removingRideId,
     removeRide,
     showImport,
@@ -70,10 +65,6 @@ const UberRides = ({
     openWelcome,
     closeWelcome,
   } = useUberRides({ initialView });
-
-  const selectedRides = rides.filter(
-    (ride) => isRideSelectable(ride) && selections[ride.id]?.selected,
-  );
 
   const hasActiveFilters = Boolean(
     filters.status ||
@@ -285,29 +276,25 @@ const UberRides = ({
           <UberRidesTable
             rides={visibleRides}
             selections={selections}
-            onToggle={toggleRide}
+            categories={categories}
+            expandedRideId={expandedRideId}
+            launchingRideId={launchingRideId}
+            onToggle={openRideForm}
+            onFieldChange={setRideField}
+            onSelectMatch={selectRideMatch}
+            onLaunch={launchRide}
+            onReconcile={reconcileRide}
             onRemove={removeRide}
             removingRideId={removingRideId}
             hasActiveFilters={hasActiveFilters}
           />
 
-          <UberRideSelectionPanel
-            rides={selectedRides}
-            selections={selections}
-            categories={categories}
-            totalCents={selectedTotalCents}
-            launching={launching}
-            payment={cardPayment}
-            onPaymentChange={setPaymentField}
-            onFieldChange={setRideField}
-            onLaunch={launchSelected}
-            onClear={clearSelections}
-          />
-
-          {selectedItems.length > 0 && (
+          {!loading && visibleRides.length > 0 && (
             <p className="mt-3 text-xs text-ink-faint">
-              As despesas serão lançadas no financeiro com origem “Corrida
-              Uber”.
+              Clique em uma corrida para ajustar os detalhes e efetivar o
+              lançamento no financeiro com origem “Corrida Uber”. Quando o valor
+              já existe em Finanças, você pode conciliar com o lançamento
+              existente.
             </p>
           )}
         </div>
