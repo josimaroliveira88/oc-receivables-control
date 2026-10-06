@@ -22,6 +22,19 @@ vi.mock('../src/services/api', () => ({
   },
 }));
 
+const match = (overrides = {}) => ({
+  transactionId: 'tx-1',
+  origin: 'MANUAL',
+  description: 'Custo entrega',
+  transactionDate: '2026-09-20T00:00:00.000Z',
+  amountCents: 3293,
+  orderId: null,
+  orderNumber: null,
+  clientName: null,
+  saleTotalValue: null,
+  ...overrides,
+});
+
 const ride = (overrides = {}) => ({
   id: 'ride-1',
   externalId: 'ext-1',
@@ -34,6 +47,7 @@ const ride = (overrides = {}) => ({
   launched: false,
   transactionId: null,
   requestedAt: '2026-09-26T16:02:00.000Z',
+  matches: [],
   ...overrides,
 });
 
@@ -184,7 +198,7 @@ describe('UberRidesPage', () => {
     ).toHaveTextContent('Entrega');
   });
 
-  it('marks an already launched ride', async () => {
+  it('marks an already launched ride and hides its expand control', async () => {
     mockApi({
       rides: [ride({ launched: true, transactionId: 'tx-1' })],
     });
@@ -193,7 +207,9 @@ describe('UberRidesPage', () => {
     expect(
       await screen.findByTestId('uber-ride-launched-ride-1'),
     ).toHaveTextContent('Lançada');
-    expect(screen.getByTestId('uber-ride-select-ride-1')).toBeDisabled();
+    expect(
+      screen.queryByTestId('uber-ride-expand-ride-1'),
+    ).not.toBeInTheDocument();
   });
 
   it('imports rides from the pasted JSON', async () => {
@@ -249,26 +265,42 @@ describe('UberRidesPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('launches the selected rides as expenses with the default category', async () => {
+  it('opens the inline row form by clicking the row', async () => {
+    mockApi({ rides: [ride()] });
+    renderPage();
+
+    await screen.findByText('Duo Residence Mall');
+    expect(
+      screen.queryByTestId('uber-ride-form-ride-1'),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('uber-ride-row-ride-1'));
+
+    expect(
+      await screen.findByTestId('uber-ride-form-ride-1'),
+    ).toBeInTheDocument();
+  });
+
+  it('launches a ride as an expense from the inline row form', async () => {
     mockApi({ rides: [ride()] });
     mockPost.mockResolvedValue({ data: [{ id: 'tx-1' }] });
     renderPage();
 
-    const checkbox = await screen.findByTestId('uber-ride-select-ride-1');
-    fireEvent.click(checkbox);
+    fireEvent.click(await screen.findByTestId('uber-ride-expand-ride-1'));
 
-    const panel = await screen.findByTestId('uber-ride-selected-ride-1');
-    expect(within(panel).getByTestId('uber-ride-category-ride-1')).toHaveValue(
+    const form = await screen.findByTestId('uber-ride-form-ride-1');
+    expect(within(form).getByTestId('uber-ride-category-ride-1')).toHaveValue(
       'cat-transporte',
     );
-
     // Credit card is the default payment, so the invoice date is required.
-    expect(screen.getByTestId('uber-ride-card-payment')).toBeChecked();
-    fireEvent.change(screen.getByTestId('uber-ride-invoice-date'), {
+    expect(
+      within(form).getByTestId('uber-ride-card-payment-ride-1'),
+    ).toBeChecked();
+
+    fireEvent.change(within(form).getByTestId('uber-ride-invoice-ride-1'), {
       target: { value: '2026-10-05' },
     });
-
-    fireEvent.click(screen.getByTestId('uber-ride-launch'));
+    fireEvent.click(within(form).getByTestId('uber-ride-launch-ride-1'));
 
     await waitFor(() =>
       expect(mockPost).toHaveBeenCalledWith('/uber/rides/expenses', {
@@ -289,10 +321,8 @@ describe('UberRidesPage', () => {
     mockApi({ rides: [ride()] });
     renderPage();
 
-    fireEvent.click(await screen.findByTestId('uber-ride-select-ride-1'));
-    await screen.findByTestId('uber-ride-selected-ride-1');
-
-    fireEvent.click(screen.getByTestId('uber-ride-launch'));
+    fireEvent.click(await screen.findByTestId('uber-ride-expand-ride-1'));
+    fireEvent.click(await screen.findByTestId('uber-ride-launch-ride-1'));
 
     expect(
       await screen.findByText(/Informe a data da fatura/i),
@@ -305,12 +335,11 @@ describe('UberRidesPage', () => {
     mockPost.mockResolvedValue({ data: [{ id: 'tx-1' }] });
     renderPage();
 
-    fireEvent.click(await screen.findByTestId('uber-ride-select-ride-1'));
-    await screen.findByTestId('uber-ride-selected-ride-1');
+    fireEvent.click(await screen.findByTestId('uber-ride-expand-ride-1'));
+    const form = await screen.findByTestId('uber-ride-form-ride-1');
 
-    fireEvent.click(screen.getByTestId('uber-ride-card-payment'));
-
-    fireEvent.click(screen.getByTestId('uber-ride-launch'));
+    fireEvent.click(within(form).getByTestId('uber-ride-card-payment-ride-1'));
+    fireEvent.click(within(form).getByTestId('uber-ride-launch-ride-1'));
 
     await waitFor(() =>
       expect(mockPost).toHaveBeenCalledWith('/uber/rides/expenses', {
@@ -326,7 +355,7 @@ describe('UberRidesPage', () => {
     );
   });
 
-  it('links a selected ride to a sale through the autocomplete', async () => {
+  it('links a ride to a sale through the autocomplete', async () => {
     mockApi({
       rides: [ride()],
       saleOptions: [
@@ -342,9 +371,10 @@ describe('UberRidesPage', () => {
     mockPost.mockResolvedValue({ data: [{ id: 'tx-1' }] });
     renderPage();
 
-    fireEvent.click(await screen.findByTestId('uber-ride-select-ride-1'));
+    fireEvent.click(await screen.findByTestId('uber-ride-expand-ride-1'));
+    const form = await screen.findByTestId('uber-ride-form-ride-1');
 
-    const input = await screen.findByTestId('uber-ride-order-ride-1-input');
+    const input = within(form).getByTestId('uber-ride-order-ride-1-input');
     fireEvent.focus(input);
     fireEvent.change(input, { target: { value: 'V-00' } });
 
@@ -359,10 +389,10 @@ describe('UberRidesPage', () => {
       params: { q: 'V-00', limit: 20 },
     });
 
-    fireEvent.change(screen.getByTestId('uber-ride-invoice-date'), {
+    fireEvent.change(within(form).getByTestId('uber-ride-invoice-ride-1'), {
       target: { value: '2026-10-05' },
     });
-    fireEvent.click(screen.getByTestId('uber-ride-launch'));
+    fireEvent.click(within(form).getByTestId('uber-ride-launch-ride-1'));
 
     await waitFor(() =>
       expect(mockPost).toHaveBeenCalledWith('/uber/rides/expenses', {
@@ -379,14 +409,149 @@ describe('UberRidesPage', () => {
     );
   });
 
-  it('blocks launching when nothing is selected', async () => {
+  it('does not show a launch form before a row is opened', async () => {
     mockApi({ rides: [ride()] });
     renderPage();
 
     await screen.findByText('Duo Residence Mall');
-    // No selection panel and no launch button before selecting.
-    expect(screen.queryByTestId('uber-ride-launch')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('uber-ride-form-ride-1'),
+    ).not.toBeInTheDocument();
     expect(mockPost).not.toHaveBeenCalled();
+  });
+
+  it('suggests a matching ledger row and reconciles it', async () => {
+    mockApi({ rides: [ride({ matches: [match()] })] });
+    mockPost.mockResolvedValue({ data: [{ id: 'tx-1' }] });
+    renderPage();
+
+    expect(
+      await screen.findByTestId('uber-ride-match-ride-1'),
+    ).toHaveTextContent('Conciliação sugerida');
+
+    fireEvent.click(screen.getByTestId('uber-ride-expand-ride-1'));
+    const form = await screen.findByTestId('uber-ride-form-ride-1');
+
+    // The most recent suggestion is pre-selected.
+    expect(
+      within(form).getByTestId('uber-ride-match-option-tx-1'),
+    ).toBeChecked();
+    // No category/card in the reconcile path.
+    expect(
+      within(form).queryByTestId('uber-ride-category-ride-1'),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(within(form).getByTestId('uber-ride-reconcile-ride-1'));
+
+    await waitFor(() =>
+      expect(mockPost).toHaveBeenCalledWith('/uber/rides/expenses', {
+        items: [
+          {
+            rideId: 'ride-1',
+            categoryId: null,
+            description: 'Uber — Duo Residence Mall (Cássia)',
+            orderId: null,
+            matchTransactionId: 'tx-1',
+          },
+        ],
+      }),
+    );
+  });
+
+  it('shows the matched row sale read-only instead of the picker', async () => {
+    mockApi({
+      rides: [
+        ride({
+          matches: [
+            match({
+              orderId: 'sale-9',
+              orderNumber: 'V-0009',
+              clientName: 'João',
+              saleTotalValue: '100.00',
+            }),
+          ],
+        }),
+      ],
+    });
+    renderPage();
+
+    fireEvent.click(await screen.findByTestId('uber-ride-expand-ride-1'));
+    const form = await screen.findByTestId('uber-ride-form-ride-1');
+
+    expect(
+      within(form).getByTestId('uber-ride-match-sale-ride-1'),
+    ).toHaveTextContent('V-0009 — João');
+    expect(
+      within(form).queryByTestId('uber-ride-order-ride-1-input'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('offers the sale picker when the matched row has no sale', async () => {
+    mockApi({ rides: [ride({ matches: [match()] })] });
+    renderPage();
+
+    fireEvent.click(await screen.findByTestId('uber-ride-expand-ride-1'));
+    const form = await screen.findByTestId('uber-ride-form-ride-1');
+
+    expect(
+      within(form).getByTestId('uber-ride-order-ride-1-input'),
+    ).toBeInTheDocument();
+  });
+
+  it('switches to a new expense when no suggestion is chosen', async () => {
+    mockApi({ rides: [ride({ matches: [match()] })] });
+    renderPage();
+
+    fireEvent.click(await screen.findByTestId('uber-ride-expand-ride-1'));
+    const form = await screen.findByTestId('uber-ride-form-ride-1');
+
+    fireEvent.click(within(form).getByTestId('uber-ride-match-none-ride-1'));
+
+    expect(
+      within(form).getByTestId('uber-ride-category-ride-1'),
+    ).toBeInTheDocument();
+    expect(
+      within(form).getByTestId('uber-ride-card-payment-ride-1'),
+    ).toBeInTheDocument();
+    expect(
+      within(form).queryByTestId('uber-ride-reconcile-ride-1'),
+    ).not.toBeInTheDocument();
+    expect(
+      within(form).getByTestId('uber-ride-launch-ride-1'),
+    ).toBeInTheDocument();
+  });
+
+  it('reuses the last invoice date when opening the next row', async () => {
+    let rides = [ride({ id: 'r1' }), ride({ id: 'r2', destination: 'Centro' })];
+    mockGet.mockImplementation((url) => {
+      if (url === '/uber/rides') return Promise.resolve({ data: rides });
+      if (url === '/finances/categories')
+        return Promise.resolve({ data: categories });
+      return Promise.resolve({ data: [] });
+    });
+    mockPost.mockImplementation(() => {
+      rides = [
+        ride({ id: 'r1', launched: true, transactionId: 'tx-1' }),
+        ride({ id: 'r2', destination: 'Centro' }),
+      ];
+      return Promise.resolve({ data: [{ id: 'tx-1' }] });
+    });
+    renderPage();
+
+    fireEvent.click(await screen.findByTestId('uber-ride-expand-r1'));
+    const first = await screen.findByTestId('uber-ride-form-r1');
+    fireEvent.change(within(first).getByTestId('uber-ride-invoice-r1'), {
+      target: { value: '2026-10-05' },
+    });
+    fireEvent.click(within(first).getByTestId('uber-ride-launch-r1'));
+
+    fireEvent.click(await screen.findByTestId('uber-ride-expand-r2'));
+    const second = await screen.findByTestId('uber-ride-form-r2');
+    await waitFor(() =>
+      expect(within(second).getByTestId('uber-ride-invoice-r2')).toHaveValue(
+        '2026-10-05',
+      ),
+    );
   });
 
   it('renders the embedded variant with its own action bar', async () => {

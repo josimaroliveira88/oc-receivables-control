@@ -1,15 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import {
-  buildExpenseItems,
+  buildRideLaunchItem,
   defaultRideDescription,
   filterRides,
   formatRideDateTime,
+  formatRideMatchLabel,
   formatSaleOptionLabel,
   isRideSelectable,
   makeSelection,
+  matchOriginLabel,
+  pickDefaultMatch,
   profileTypeLabel,
   rideStatusLabel,
   rideTypeLabel,
+  saleLabelFromMatch,
   summarizeRides,
 } from '../src/pages/UberRides/utils/uberRideHelpers';
 
@@ -25,6 +29,20 @@ const ride = (overrides = {}) => ({
   launched: false,
   transactionId: null,
   requestedAt: '2026-09-26T16:02:00.000Z',
+  matches: [],
+  ...overrides,
+});
+
+const match = (overrides = {}) => ({
+  transactionId: 'tx-1',
+  origin: 'MANUAL',
+  description: 'Custo entrega',
+  transactionDate: '2026-09-20T00:00:00.000Z',
+  amountCents: 3293,
+  orderId: null,
+  orderNumber: null,
+  clientName: null,
+  saleTotalValue: null,
   ...overrides,
 });
 
@@ -59,58 +77,118 @@ describe('uberRideHelpers', () => {
     expect(rideTypeLabel(undefined)).toBe('—');
   });
 
-  it('only treats completed, not-launched rides as selectable', () => {
+  it('only treats completed, not-launched rides as launchable', () => {
     expect(isRideSelectable(ride())).toBe(true);
     expect(isRideSelectable(ride({ launched: true }))).toBe(false);
     expect(isRideSelectable(ride({ status: 'CANCELLED' }))).toBe(false);
   });
 
-  it('builds expense items from selections, ignoring blank descriptions', () => {
-    const rides = [ride(), ride({ id: 'ride-2', launched: true })];
-    const selections = {
-      'ride-1': makeSelection(ride(), 'cat-transporte'),
-      'ride-2': makeSelection(rides[1], 'cat-transporte'),
-    };
-
-    expect(buildExpenseItems(rides, selections)).toEqual([
-      {
-        rideId: 'ride-1',
-        categoryId: 'cat-transporte',
-        description: 'Uber — Duo Residence Mall (Cássia)',
-        orderId: null,
-      },
-    ]);
+  it('builds a selection with the create defaults', () => {
+    expect(
+      makeSelection(ride(), { defaultCategoryId: 'cat-transporte' }),
+    ).toEqual({
+      categoryId: 'cat-transporte',
+      description: 'Uber — Duo Residence Mall (Cássia)',
+      orderId: null,
+      orderLabel: '',
+      matchTransactionId: null,
+      card: true,
+      effectiveDate: '',
+    });
   });
 
-  it('includes the linked sale in the expense payload', () => {
-    const rides = [ride()];
-    const selections = {
-      'ride-1': {
-        ...makeSelection(ride(), 'cat-transporte'),
+  it('pre-selects the matched row and its sale', () => {
+    const selection = makeSelection(ride(), {
+      defaultCategoryId: 'cat-transporte',
+      defaultMatch: match({
+        transactionId: 'tx-9',
         orderId: 'sale-9',
-        orderLabel: 'V-0009 — João',
-      },
+        orderNumber: 'V-0009',
+        clientName: 'João',
+        saleTotalValue: '100.00',
+      }),
+      defaultEffectiveDate: '2026-10-05',
+    });
+
+    expect(selection).toMatchObject({
+      matchTransactionId: 'tx-9',
+      orderId: 'sale-9',
+      effectiveDate: '2026-10-05',
+    });
+    expect(selection.orderLabel).toBe('V-0009 — João — R$\u00a0100,00');
+  });
+
+  it('picks the first suggested match as the default', () => {
+    const withMatches = ride({ matches: [match({ transactionId: 'a' })] });
+    expect(pickDefaultMatch(withMatches).transactionId).toBe('a');
+    expect(pickDefaultMatch(ride())).toBeNull();
+  });
+
+  it('formats a match label and its origin', () => {
+    expect(
+      formatRideMatchLabel(
+        match({
+          transactionDate: '2026-09-20T00:00:00.000Z',
+          description: 'Custo entrega',
+        }),
+      ),
+    ).toBe('20/09/2026 — Custo entrega');
+    expect(matchOriginLabel('MANUAL')).toBe('Manual');
+    expect(matchOriginLabel('VENDA_ADICIONAL')).toBe('Venda adicional');
+  });
+
+  it('builds the sale label from a matched row', () => {
+    expect(
+      saleLabelFromMatch({
+        orderNumber: 'V-0007',
+        clientName: 'Maria',
+        saleTotalValue: '100.00',
+      }),
+    ).toBe('V-0007 — Maria — R$\u00a0100,00');
+    expect(saleLabelFromMatch(match())).toBe('');
+  });
+
+  it('builds a create payload, ignoring a selected match', () => {
+    const selection = {
+      ...makeSelection(ride(), { defaultCategoryId: 'cat-transporte' }),
+      matchTransactionId: 'tx-1',
+      orderId: 'sale-9',
     };
 
-    expect(buildExpenseItems(rides, selections)).toEqual([
+    expect(buildRideLaunchItem(ride(), selection)).toEqual({
+      rideId: 'ride-1',
+      categoryId: 'cat-transporte',
+      description: 'Uber — Duo Residence Mall (Cássia)',
+      orderId: 'sale-9',
+    });
+  });
+
+  it('builds a reconcile payload with the matched transaction and no category', () => {
+    const selection = {
+      ...makeSelection(ride(), { defaultCategoryId: 'cat-transporte' }),
+      matchTransactionId: 'tx-1',
+      orderId: 'sale-9',
+    };
+
+    expect(buildRideLaunchItem(ride(), selection, { reconcile: true })).toEqual(
       {
         rideId: 'ride-1',
-        categoryId: 'cat-transporte',
+        categoryId: null,
         description: 'Uber — Duo Residence Mall (Cássia)',
         orderId: 'sale-9',
+        matchTransactionId: 'tx-1',
       },
-    ]);
+    );
   });
 
   it('sends null category and description when cleared', () => {
-    const rides = [ride()];
-    const selections = {
-      'ride-1': { selected: true, categoryId: '', description: '   ' },
-    };
-
-    expect(buildExpenseItems(rides, selections)).toEqual([
-      { rideId: 'ride-1', categoryId: null, description: null, orderId: null },
-    ]);
+    const selection = { categoryId: '', description: '   ', orderId: null };
+    expect(buildRideLaunchItem(ride(), selection)).toEqual({
+      rideId: 'ride-1',
+      categoryId: null,
+      description: null,
+      orderId: null,
+    });
   });
 
   it('formats a sale option label with client name and value', () => {
