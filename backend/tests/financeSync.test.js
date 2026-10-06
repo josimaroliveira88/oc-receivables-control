@@ -597,6 +597,81 @@ describe('Finances automatic sync', () => {
       expect(Number(rows[0].amount)).toBe(20);
     });
 
+    it('does not recreate the additional expense once a ride represents it', async () => {
+      const sale = await saleWithAdditional();
+      const [row] = await getRows({
+        origin: 'VENDA_ADICIONAL',
+        orderId: sale.body.id,
+      });
+
+      // Simulates the outcome of reconciling the row with an Uber ride.
+      const ride = await prisma.rideRecord.create({
+        data: {
+          userId: user.userId,
+          source: 'MANUAL',
+          externalId: `guard-${sale.body.id}`,
+          requestedAt: new Date('2026-09-15T00:00:00.000Z'),
+          amountCents: 2000,
+          status: 'COMPLETED',
+          rideType: 'RIDE',
+        },
+      });
+      await prisma.financialTransaction.update({
+        where: { id: row.id },
+        data: { origin: 'UBER', rideId: ride.id },
+      });
+
+      const updated = await updateSale(sale.body.id, {
+        additionalExpenseDescription: 'Frete revisado',
+      });
+      expect(updated.status).toBe(200);
+
+      expect(
+        await getRows({ origin: 'VENDA_ADICIONAL', orderId: sale.body.id }),
+      ).toHaveLength(0);
+      const rows = await getRows({ orderId: sale.body.id });
+      expect(rows).toHaveLength(1);
+      expect(rows[0].origin).toBe('UBER');
+    });
+
+    it('recreates the additional expense when the additional value diverges from the ride', async () => {
+      const sale = await saleWithAdditional();
+      const [row] = await getRows({
+        origin: 'VENDA_ADICIONAL',
+        orderId: sale.body.id,
+      });
+
+      const ride = await prisma.rideRecord.create({
+        data: {
+          userId: user.userId,
+          source: 'MANUAL',
+          externalId: `guard-diverge-${sale.body.id}`,
+          requestedAt: new Date('2026-09-15T00:00:00.000Z'),
+          amountCents: 2000,
+          status: 'COMPLETED',
+          rideType: 'RIDE',
+        },
+      });
+      await prisma.financialTransaction.update({
+        where: { id: row.id },
+        data: { origin: 'UBER', rideId: ride.id },
+      });
+
+      const updated = await updateSale(sale.body.id, {
+        additionalValue: 35,
+        additionalExpenseCategoryId: expenseCategory.id,
+        additionalExpenseDescription: 'Frete corrigido',
+      });
+      expect(updated.status).toBe(200);
+
+      const rows = await getRows({
+        origin: 'VENDA_ADICIONAL',
+        orderId: sale.body.id,
+      });
+      expect(rows).toHaveLength(1);
+      expect(Number(rows[0].amount)).toBe(35);
+    });
+
     it('updates the row when editing through the full items payload', async () => {
       const sale = await saleWithAdditional();
       const updated = await updateSale(sale.body.id, {
