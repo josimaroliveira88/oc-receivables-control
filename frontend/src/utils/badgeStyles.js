@@ -27,9 +27,9 @@ export const ORDER_STATUS_FALLBACK = {
   dot: 'bg-ink-faint',
 };
 
-// Imported dōTERRA orders still awaiting the user's review. Kept separate from
-// the order status badge.
-export const ORDER_REVIEW_CLASSES = 'bg-warning-soft text-warning-fg';
+// Imported dōTERRA orders still awaiting the user's review. Uses an info token
+// so it never reads as the same thing as the pending-payment (`warning`) status.
+export const ORDER_REVIEW_CLASSES = 'bg-info-soft text-info-fg';
 
 export const PAYMENT_TYPE_CLASSES = {
   PIX: 'bg-badge-pix-bg text-badge-pix-fg',
