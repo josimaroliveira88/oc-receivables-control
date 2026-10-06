@@ -3,14 +3,17 @@ import {
   buildRideLaunchItem,
   defaultRideDescription,
   filterRides,
+  formatRideDate,
   formatRideDateTime,
   formatRideMatchLabel,
   formatSaleOptionLabel,
   isRideSelectable,
   makeSelection,
+  matchDateValue,
   matchOriginLabel,
   pickDefaultMatch,
   profileTypeLabel,
+  rideDateValue,
   rideStatusLabel,
   rideTypeLabel,
   saleLabelFromMatch,
@@ -92,16 +95,18 @@ describe('uberRideHelpers', () => {
       orderId: null,
       orderLabel: '',
       matchTransactionId: null,
+      transactionDate: '',
       card: true,
       effectiveDate: '',
     });
   });
 
-  it('pre-selects the matched row and its sale', () => {
+  it('pre-selects the matched row, its sale and its date', () => {
     const selection = makeSelection(ride(), {
       defaultCategoryId: 'cat-transporte',
       defaultMatch: match({
         transactionId: 'tx-9',
+        transactionDate: '2026-08-24T00:00:00.000Z',
         orderId: 'sale-9',
         orderNumber: 'V-0009',
         clientName: 'João',
@@ -112,6 +117,7 @@ describe('uberRideHelpers', () => {
 
     expect(selection).toMatchObject({
       matchTransactionId: 'tx-9',
+      transactionDate: '2026-08-24',
       orderId: 'sale-9',
       effectiveDate: '2026-10-05',
     });
@@ -135,6 +141,14 @@ describe('uberRideHelpers', () => {
     ).toBe('20/09/2026 — Custo entrega');
     expect(matchOriginLabel('MANUAL')).toBe('Manual');
     expect(matchOriginLabel('VENDA_ADICIONAL')).toBe('Venda adicional');
+  });
+
+  it('reads the ride and match dates for the reconciliation shortcut', () => {
+    expect(rideDateValue(ride())).toBe('2026-09-26');
+    expect(rideDateValue({})).toBe('');
+    expect(formatRideDate(ride())).toBe('26/09/2026');
+    expect(matchDateValue(match())).toBe('2026-09-20');
+    expect(matchDateValue(null)).toBe('');
   });
 
   it('builds the sale label from a matched row', () => {
@@ -177,6 +191,25 @@ describe('uberRideHelpers', () => {
         description: 'Uber — Duo Residence Mall (Cássia)',
         orderId: 'sale-9',
         matchTransactionId: 'tx-1',
+      },
+    );
+  });
+
+  it('sends the corrected date in the reconcile payload', () => {
+    const selection = {
+      ...makeSelection(ride(), { defaultCategoryId: 'cat-transporte' }),
+      matchTransactionId: 'tx-1',
+      transactionDate: '2026-08-23',
+    };
+
+    expect(buildRideLaunchItem(ride(), selection, { reconcile: true })).toEqual(
+      {
+        rideId: 'ride-1',
+        categoryId: null,
+        description: 'Uber — Duo Residence Mall (Cássia)',
+        orderId: null,
+        matchTransactionId: 'tx-1',
+        transactionDate: '2026-08-23',
       },
     );
   });

@@ -452,6 +452,48 @@ describe('UberRidesPage', () => {
             description: 'Uber — Duo Residence Mall (Cássia)',
             orderId: null,
             matchTransactionId: 'tx-1',
+            // Pre-filled with the matched row's date: sending it unchanged
+            // keeps the stored date.
+            transactionDate: '2026-09-20',
+          },
+        ],
+      }),
+    );
+  });
+
+  it('lets the user correct the reconciled date to the ride date', async () => {
+    mockApi({
+      rides: [
+        ride({
+          requestedAt: '2026-08-23T16:02:00.000Z',
+          matches: [match({ transactionDate: '2026-08-24T00:00:00.000Z' })],
+        }),
+      ],
+    });
+    mockPost.mockResolvedValue({ data: [{ id: 'tx-1' }] });
+    renderPage();
+
+    fireEvent.click(await screen.findByTestId('uber-ride-expand-ride-1'));
+    const form = await screen.findByTestId('uber-ride-form-ride-1');
+
+    const dateInput = within(form).getByTestId('uber-ride-date-ride-1');
+    expect(dateInput).toHaveValue('2026-08-24');
+
+    fireEvent.click(within(form).getByTestId('uber-ride-use-ride-date-ride-1'));
+    expect(dateInput).toHaveValue('2026-08-23');
+
+    fireEvent.click(within(form).getByTestId('uber-ride-reconcile-ride-1'));
+
+    await waitFor(() =>
+      expect(mockPost).toHaveBeenCalledWith('/uber/rides/expenses', {
+        items: [
+          {
+            rideId: 'ride-1',
+            categoryId: null,
+            description: 'Uber — Duo Residence Mall (Cássia)',
+            orderId: null,
+            matchTransactionId: 'tx-1',
+            transactionDate: '2026-08-23',
           },
         ],
       }),
