@@ -512,6 +512,125 @@ describe('dōTERRA orders import and lookup', () => {
     });
   });
 
+  describe('import — shipping value (frete)', () => {
+    // The detail page carries the order-level freight; the captured value is
+    // passed through `Order.shippingValue` and must roll into `totalValue`,
+    // the derived `doterraValue` and the `PEDIDO_DOTERRA` ledger expense.
+    it('persists the captured freight into the order, total and ledger', async () => {
+      const knownCode = uniqueCode();
+      const draftCode = uniqueCode();
+      await createCatalogProduct(knownCode);
+      const orderNumber = uniqueOrderNumber();
+
+      const response = await importOrders({
+        orders: [
+          orderFixture({
+            orderNumber,
+            knownCode,
+            draftCode,
+            shippingValue: 12.5,
+            listValue: 312.5,
+          }),
+        ],
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.created).toHaveLength(1);
+      // The informed list value already includes the freight, so the mismatch
+      // warning must not fire.
+      expect(response.body.created[0].warnings.join(' ')).not.toMatch(
+        /difere/i,
+      );
+
+      const order = await prisma.order.findFirst({
+        where: { userId: user.user.id, orderNumber },
+      });
+      expect(order.shippingValue.toString()).toBe('12.5');
+      expect(order.totalValue.toString()).toBe('312.5');
+      expect(order.doterraValue.toString()).toBe('312.5');
+
+      const ledger = await prisma.financialTransaction.findFirst({
+        where: { orderId: order.id, origin: 'PEDIDO_DOTERRA' },
+      });
+      expect(ledger.amount.toString()).toBe('312.5');
+    });
+
+    it('includes the freight in the credit card bill total', async () => {
+      const orderNumber = uniqueOrderNumber();
+      const cardCode = uniqueCode();
+
+      const response = await importOrders({
+        orders: [
+          orderFixture({
+            orderNumber,
+            paymentType: 'CARTAO_CREDITO',
+            installments: 4,
+            installmentValue: 78.125,
+            shippingValue: 12.5,
+            listValue: 312.5,
+            items: [
+              {
+                code: cardCode,
+                description: 'Kit',
+                quantity: 1,
+                unitPrice: 300,
+                unitPv: 40,
+              },
+            ],
+          }),
+        ],
+      });
+
+      expect(response.status).toBe(200);
+      const order = await prisma.order.findFirst({
+        where: { userId: user.user.id, orderNumber },
+      });
+      const bill = await prisma.creditCardBill.findFirst({
+        where: { userId: user.user.id, orderId: order.id },
+        include: { transactions: true },
+      });
+      expect(bill.installments).toBe(4);
+      expect(bill.totalCents).toBe(31250);
+      const sum = bill.transactions.reduce(
+        (acc, row) => acc + Math.round(parseFloat(row.amount) * 100),
+        0,
+      );
+      expect(sum).toBe(31250);
+    });
+
+    it('defaults the freight to zero when the payload omits it', async () => {
+      const orderNumber = uniqueOrderNumber();
+      const fixture = orderFixture({ orderNumber });
+      delete fixture.shippingValue;
+
+      const response = await importOrders({ orders: [fixture] });
+
+      expect(response.status).toBe(200);
+      const order = await prisma.order.findFirst({
+        where: { userId: user.user.id, orderNumber },
+      });
+      expect(order.shippingValue.toString()).toBe('0');
+      expect(order.totalValue.toString()).toBe('300');
+    });
+
+    it('warns when the informed list value does not include the freight', async () => {
+      const orderNumber = uniqueOrderNumber();
+      const response = await importOrders({
+        // `listValue` keeps the product-only total (300) while the detail
+        // added a freight, so the cross-check flags the divergence.
+        orders: [orderFixture({ orderNumber, shippingValue: 12.5 })],
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.created[0].warnings.join(' ')).toMatch(/difere/i);
+      const order = await prisma.order.findFirst({
+        where: { userId: user.user.id, orderNumber },
+      });
+      expect(order.shippingValue.toString()).toBe('12.5');
+      expect(order.totalValue.toString()).toBe('312.5');
+    });
+  });
+
   describe('import — credit card', () => {
     it('creates a bill with installments and defaults the first installment to the order date', async () => {
       const orderNumber = uniqueOrderNumber();
