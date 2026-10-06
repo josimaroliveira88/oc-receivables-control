@@ -9,6 +9,17 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 126 — Correção da data do lançamento na conciliação de corridas (2026-10-06)
+
+### Added
+- **Correção da data na conciliação**: o formulário inline de conciliação ganhou o campo **"Data do lançamento"** (pré-preenchido com a data do lançamento existente) e o atalho **"Usar a data da corrida (DD/MM/AAAA)"**, além de um lembrete comparando "Data do lançamento existente" e "Data da corrida". `POST /api/uber/rides/expenses` aceita `transactionDate` (opcional) por item na conciliação e substitui a data do lançamento existente; quando omitido, a data é preservada. Resolve o caso em que o lançamento manual foi registrado com a data errada (ex.: 24/08 em vez da corrida de 23/08).
+- Helpers `rideDateValue`/`formatRideDate`/`matchDateValue` em `frontend/src/pages/UberRides/utils/uberRideHelpers.js` — a data da corrida é lida das partes UTC do `requestedAt`, que guarda o relógio local sem fuso.
+
+### Tests
+- Backend: `uberRideReconcile.test.js` cobre a substituição da data informada na conciliação (e a preservação quando omitida, no caso de conciliação in-place).
+- Frontend: `uberRideHelpers.test.js` (helpers de data e payload com `transactionDate`) e `UberRidesPage.test.jsx` (campo + atalho "Usar a data da corrida" → payload com a data corrigida).
+- Verificação final: **1023 backend + 1167 frontend passando**, `npm run lint` (backend e frontend), `npm run build` e `npm run format:check` limpos.
+
 ## Phase 125 — Conciliação de corridas por valor e lançamento inline na linha (2026-10-05)
 
 ### Added
