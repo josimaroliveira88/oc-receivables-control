@@ -9,6 +9,23 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 130 — Correção da captura do frete dōTERRA na importação (2026-10-06)
+
+### Fixed
+- **Frete capturado como zero na importação dōTERRA**: pedidos cujo método de envio continha a letra "r" (ex.: `Frete (Envio Normal)`) eram importados com `shippingValue` R$ 0,00 mesmo tendo frete no detalhe. A busca usava `matchAmount` com a lacuna `[^0-9R]*` e a flag `i`, e o `R` negado também excluía o `r` minúsculo — a regex parava em "No**r**mal" e devolvia `null`. O frete agora é lido preferencialmente pela célula rotulada da tabela de totais (DOM) e a regex ficou como fallback com `[\s\S]*?`, robusta a letras e dígitos entre o rótulo e o valor.
+
+### Added
+- **Aviso de frete não capturado na extensão dōTERRA**: quando o detalhe não traz um frete reconhecível, `parseDetail` passa a devolver `warnings` e a caixa flutuante registra `Pedido <n>: Frete não capturado no detalhe — confira o pedido.`; a importação não é bloqueada e o `shippingValue` continua caindo para `0`.
+
+### Changed
+- **Docs**: `AGENTS.md` registra o helper `extractShipping`, o fallback textual e a proibição de reintroduzir a lacuna `[^0-9R]*` (que, com `/i`, também excluía o `r` minúsculo).
+
+### Tests
+- Backend: `doterraOrdersImport.test.js` ganhou 4 casos cobrindo frete não-zero em `Order.shippingValue`/`totalValue`/`doterraValue` e no lançamento `PEDIDO_DOTERRA`, a fatura de cartão com frete, o default `0` quando o payload omite o campo e o aviso de divergência contra `listValue`. **1055 backend** passando.
+- Frontend: sem mudanças de comportamento; **1184 frontend** passando.
+- Extensão: sem suíte de testes; validação manual contra o HTML real de um pedido com frete (`Frete (Envio Normal)` / `R$ 32.00`, total `R$ 330.80`) retornou `32` com `warnings: []`, enquanto a regex anterior devolvia `null` no mesmo trecho.
+- Verificação: `npm run lint` (backend/frontend), `npm run build` e `npm run format:check` limpos.
+
 ## Phase 129 — Ajustes da revisão da importação dōTERRA (2026-10-06)
 
 ### Added
