@@ -194,6 +194,30 @@ describe('Uber ride reconciliation', () => {
     expect(stored.paymentType).toBeNull();
   });
 
+  it('overrides the row date with the informed one (e.g. the ride date)', async () => {
+    const rideId = await importRide('rec-date', '67,89');
+    const transaction = await createTransaction({
+      amount: '67.89',
+      transactionDate: new Date('2026-08-24T00:00:00.000Z'),
+    });
+
+    const response = await launch([
+      {
+        rideId,
+        matchTransactionId: transaction.id,
+        transactionDate: '2026-08-23',
+      },
+    ]);
+
+    expect(response.status).toBe(201);
+    const stored = await prisma.financialTransaction.findUnique({
+      where: { id: transaction.id },
+    });
+    expect(stored.transactionDate.toISOString().slice(0, 10)).toBe(
+      '2026-08-23',
+    );
+  });
+
   it('links the sale informed for a manual row without one, suffixing the description', async () => {
     const rideId = await importRide('rec-manual-sale', '55,55');
     const transaction = await createTransaction({ amount: '55.55' });
