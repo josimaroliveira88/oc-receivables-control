@@ -455,6 +455,32 @@ describe('dōTERRA orders import and lookup', () => {
       expect(response.body.created).toHaveLength(1);
     });
 
+    it('adds a warning when the order total is zero (reposição)', async () => {
+      const promoCode = uniqueCode();
+      const orderNumber = uniqueOrderNumber();
+      const response = await importOrders({
+        orders: [
+          orderFixture({
+            orderNumber,
+            listValue: 0,
+            items: [
+              {
+                code: promoCode,
+                description: 'Reposição',
+                quantity: 1,
+                unitPrice: 0,
+                unitPv: 0,
+              },
+            ],
+          }),
+        ],
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.created).toHaveLength(1);
+      expect(response.body.created[0].warnings.join(' ')).toMatch(/sem valor/i);
+    });
+
     it('imports zero-price promo items at zero', async () => {
       const promoCode = uniqueCode();
       const orderNumber = uniqueOrderNumber();
@@ -805,6 +831,50 @@ describe('dōTERRA orders import and lookup', () => {
 
       expect(
         await prisma.product.findUnique({ where: { id: product.id } }),
+      ).not.toBeNull();
+    });
+
+    it('keeps a draft referenced as a kit component of another product', async () => {
+      const draftCode = uniqueCode();
+      const kitCode = uniqueCode();
+      const orderNumber = uniqueOrderNumber();
+      await importOrders({
+        orders: [
+          orderFixture({
+            orderNumber,
+            listValue: 150,
+            items: [
+              {
+                code: draftCode,
+                description: 'Componente',
+                quantity: 1,
+                unitPrice: 150,
+                unitPv: 20,
+              },
+            ],
+          }),
+        ],
+      });
+
+      const draft = await prisma.product.findUnique({
+        where: { code: draftCode },
+      });
+      const kit = await createCatalogProduct(kitCode, { productType: 'KIT' });
+      await prisma.kitComposition.create({
+        data: {
+          kitProductId: kit.id,
+          componentProductId: draft.id,
+          quantity: 1,
+        },
+      });
+      const order = await prisma.order.findFirst({
+        where: { userId: user.user.id, orderNumber },
+      });
+
+      await request(app).delete(`/api/orders/${order.id}`).set(auth());
+
+      expect(
+        await prisma.product.findUnique({ where: { id: draft.id } }),
       ).not.toBeNull();
     });
 
