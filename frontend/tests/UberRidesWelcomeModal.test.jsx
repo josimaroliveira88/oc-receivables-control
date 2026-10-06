@@ -65,21 +65,28 @@ describe('UberRidesWelcomeModal', () => {
     });
     renderModal();
 
-    fireEvent.click(screen.getByTestId('uber-rides-generate-token'));
+    fireEvent.click(screen.getByTestId('uber-token-generate'));
 
     await waitFor(() =>
       expect(mockPost).toHaveBeenCalledWith('/api-tokens', {
         name: 'Extensão Corridas Uber',
-        scope: 'uber:import',
+        scopes: ['uber:import', 'doterra:import'],
         ttlDays: 30,
       }),
     );
 
-    expect(
-      await screen.findByTestId('uber-rides-token-value'),
-    ).toHaveTextContent('cr_secret-token-ABCD');
-    expect(screen.getByTestId('uber-rides-token-copy')).toBeInTheDocument();
+    expect(await screen.findByTestId('uber-token-value')).toHaveTextContent(
+      'cr_secret-token-ABCD',
+    );
+    expect(screen.getByTestId('uber-token-copy')).toBeInTheDocument();
     expect(screen.getByText(/só aparece agora/)).toBeInTheDocument();
+  });
+
+  it('checks both capture scopes by default', async () => {
+    renderModal();
+
+    expect(screen.getByTestId('uber-token-scope-uber:import')).toBeChecked();
+    expect(screen.getByTestId('uber-token-scope-doterra:import')).toBeChecked();
   });
 
   it('persists the "não mostrar de novo" flag and closes', async () => {

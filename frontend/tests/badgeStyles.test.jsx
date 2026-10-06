@@ -72,6 +72,7 @@ describe('badgeStyles', () => {
       ATIVO: 'bg-success-soft text-success-fg',
       INDISPONIVEL: 'bg-warning-soft text-warning-fg',
       INATIVO: 'bg-base text-ink-soft',
+      PENDENTE_CADASTRO: 'bg-mystic-soft text-mystic-fg',
     });
     expect(MOVEMENT_TYPE_CLASSES).toEqual({
       ENTRADA: 'bg-success-soft text-success-fg',
