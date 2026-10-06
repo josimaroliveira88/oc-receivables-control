@@ -9,6 +9,23 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 125 — Conciliação de corridas por valor e lançamento inline na linha (2026-10-05)
+
+### Added
+- **Sugestão de conciliação por valor**: `GET /api/uber/rides` passa a decorar cada corrida concluída e não lançada com `matches` — os lançamentos `DESPESA` existentes de origem **Manual** ou **Venda Adicional**, **sem corrida vinculada** e com **valor igual ao da corrida** (mais recente primeiro). Os candidatos são agrupados por centavos no novo helper puro `backend/src/utils/uberRideMatch.js`. Outras origens (derivadas de pedido/fatura) nunca são sugeridas, pois pertencem à sua fonte e são re-sincronizadas a partir dela. Swagger ganhou o schema `RideMatch` e `RideRecord.matches`.
+- **Conciliação de um lançamento existente**: `POST /api/uber/rides/expenses` aceita `matchTransactionId` por item e, em vez de criar, **atualiza o lançamento existente**. Validações: dono (404), `DESPESA` (400), origem `MANUAL`/`VENDA_ADICIONAL` (400), sem corrida vinculada (400) e valor igual ao da corrida (400). Converte para `origin UBER`, vincula `rideId`, atualiza a descrição (com sufixo `— Venda V-nnnn` quando há venda) e mantém **valor, data, categoria, pagamento e observações**. A venda já vinculada ao lançamento prevalece sobre o `orderId` do payload (o lançamento de Venda Adicional preserva a sua venda); quando não há, a venda informada é associada.
+- **Guarda do sync da despesa de Valor Adicional**: `financeSyncService.syncAdditionalExpenseFromSale` deixa de recriar a despesa quando uma linha `UBER` com corrida vinculada e mesmo valor já representa aquele adicional — editar a venda depois não duplica o custo (a despesa reaparece só quando o valor adicional divergir do da corrida).
+- **Formulário inline por linha**: novo `frontend/src/pages/UberRides/components/UberRideRowForm.jsx` — clicar na corrida (ou no chevron) abre categoria, descrição, venda opcional e o toggle "Pago no cartão de crédito" (com "Data da fatura" obrigatória quando marcado) **na própria linha**, junto do botão de efetivação. Com match, o formulário pré-seleciona a sugestão mais recente (rádio com a opção "Nenhum — lançar nova despesa"), mostra a **venda do lançamento read-only** quando já vinculada (ou o autocomplete quando não há) e a ação primária vira **"Conciliar com lançamento"**. A data da fatura usada fica "pegajosa" e pré-preenche a próxima linha aberta.
+
+### Changed
+- **Lançamento sem checkbox nem painel de selecionados**: a tabela de corridas perdeu a coluna de checkbox e o `UberRideSelectionPanel` foi removido; o `useUberRides` passou a controlar a linha expandida (`expandedRideId`), o estado por linha (`selections`) e as ações `launchRide`/`reconcileRide` (um item por chamada). Linhas com sugestão exibem o chip **"Conciliação sugerida"**. Corridas lançadas/canceladas não expandem e continuam sem ação de remoção.
+- **Swagger**: `RideExpenseInput` passa a documentar `orderId`, `matchTransactionId` e o bloco `payment`.
+
+### Tests
+- Backend: novo `backend/tests/uberRideMatch.test.js` (helper puro: origens, valor em centavos, ordenação, venda vinculada) e `backend/tests/uberRideReconcile.test.js` (sugestões na listagem e conciliação — inclusões/exclusões por origem/valor/dono, preservação de valor/data/categoria/observações, venda preservada/associada, 400 de valor/origem/vínculo, 404 de posse, reenvio rejeitado); `financeSync.test.js` ganhou a guarda (não recria o adicional com corrida vinculada; recria ao divergir o valor).
+- Frontend: `UberRidesPage.test.jsx` reescrito para o fluxo inline (abrir pela linha, conciliar, venda read-only vs autocomplete, "Nenhum — lançar nova despesa", cartão por linha com data pegajosa) e `uberRideHelpers.test.js` para `makeSelection`/`buildRideLaunchItem`/labels de match.
+- Verificação final: **1022 backend + 1164 frontend passando**, `npm run lint` (backend e frontend), `npm run build` e `npm run format:check` limpos. Endpoint alterado testado ao vivo (importar → `matches` → conciliar → corrida lançada e `matches` vazio → linha no financeiro com origem `UBER`), com o usuário descartável removido do banco.
+
 ## Phase 124 — Corrida Uber no cartão de crédito, abas do modal de edição e ajustes das corridas (2026-10-05)
 
 ### Added
