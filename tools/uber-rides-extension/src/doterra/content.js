@@ -1,12 +1,16 @@
 /**
- * ISOLATED-world content script for the dōTERRA Back Office order history
- * (single self-contained file).
+ * ISOLATED-world content script for the dōTERRA Back Office (single
+ * self-contained file).
  *
- * Mounts a floating box on `evo_Modules.OrderHistoryFull` (Rastreamento de
- * Pedidos e Pacotes). It parses the order table, can auto-paginate the page's
- * "Ver mais" flow, fetches the detail page of orders the backend does not have
- * yet, and either copies a capture JSON or sends it straight to the app.
+ * Mounts a floating box on two Back Office pages:
+ * - `evo_Modules.OrderHistoryFull` (Rastreamento de Pedidos e Pacotes): parses
+ *   the order table and can auto-paginate the page's "Ver mais" flow.
+ * - `evo_Modules.AccountInquiry` (Consulta da Conta): month-by-month ledger;
+ *   the box keeps only wholesale rows (type `I`) and navigates the page's own
+ *   month AJAX.
  *
+ * On both pages it fetches the detail page of orders the backend does not have
+ * yet, then either copies a capture JSON or sends it straight to the app.
  * Deliberately self-contained: no imports, no shared `globalThis` namespace
  * with the Uber scripts. The only cross-context bridges are
  * `chrome.runtime.sendMessage` (background: lookup + import POST) and
@@ -100,17 +104,36 @@
 
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  const fetchWithTimeout = async (url, timeoutMs) => {
+  const fetchWithTimeout = async (url, timeoutMs, headers) => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       return await fetch(url, {
         credentials: 'same-origin',
+        headers,
         signal: controller.signal,
       });
     } finally {
       clearTimeout(timer);
     }
+  };
+
+  // --- Module detection -----------------------------------------------------
+
+  // The Back Office exposes the capture on two pages, each with its own URL:
+  // `OrderHistoryFull` (a paginated order list) and `AccountInquiry` (a
+  // month-by-month ledger). Both feed the same import flow; only the listing
+  // differs, so the module decides the parser and the box's navigation buttons.
+  const orderHistoryPage = () =>
+    /fuseaction=evo_modules\.orderhistoryfull/i.test(location.search);
+
+  const accountInquiryPage = () =>
+    /fuseaction=evo_modules\.accountinquiry/i.test(location.search);
+
+  const activeModule = () => {
+    if (accountInquiryPage()) return 'accountInquiry';
+    if (orderHistoryPage()) return 'orderHistory';
+    return null;
   };
 
   // --- Storage --------------------------------------------------------------
@@ -251,6 +274,136 @@
       if (parsed) orders.push(parsed);
     });
     return orders;
+  };
+
+  // --- AccountInquiry parsing ----------------------------------------------
+
+  const INQUIRY_TABLE_ID = 'AITableDiv';
+  const INQUIRY_MONTH_INPUT_ID = 'FromDate';
+
+  const inquiryOwner = () => {
+    const headings = document.querySelectorAll(`#${INQUIRY_TABLE_ID} h4`);
+    for (const heading of headings) {
+      const text = heading.textContent.trim();
+      if (text && !/Total de Registros/i.test(text)) return text;
+    }
+    return null;
+  };
+
+  // The ledger mixes transaction types (I = wholesale, P = payment, BC/BE/BP…
+  // = bonus adjustments). Only the wholesale order rows (type `I`) map to a
+  // dōTERRA order; the rest are intentionally skipped — the app derives the
+  // matching ledger entries from the order itself.
+  const parseInquiryRow = (row, owner) => {
+    const cells = row.cells;
+    if (!cells || cells.length < 6) return null;
+
+    const type = cells[0].textContent.trim().toUpperCase();
+    if (type !== 'I') return null;
+
+    const numberLink = cells[3].querySelector('a');
+    const orderNumber = (
+      numberLink ? numberLink.textContent : cells[3].textContent
+    ).trim();
+    if (!orderNumber) return null;
+
+    return {
+      orderNumber,
+      detailHref: numberLink ? numberLink.getAttribute('href') : null,
+      orderDate: toIsoDate(cells[2].textContent),
+      accountOwner: owner,
+      listTypeCode: type,
+      listOriginCode: null,
+      pvMonth: null,
+      // The detail page is authoritative for items/freight/payment; the ledger
+      // columns only feed the server-side value cross-check.
+      doterraPv: parseMoney(cells[4].textContent),
+      listValue: parseMoney(cells[5].textContent),
+      paymentHint: null,
+      items: [],
+    };
+  };
+
+  const parseInquiryOrders = () => {
+    const owner = inquiryOwner();
+    const rows = document.querySelectorAll(
+      `#${INQUIRY_TABLE_ID} table.evotable tbody tr`,
+    );
+    const orders = [];
+    rows.forEach((row) => {
+      const parsed = parseInquiryRow(row, owner);
+      if (parsed) orders.push(parsed);
+    });
+    return orders;
+  };
+
+  // --- AccountInquiry month navigation -------------------------------------
+
+  const monthLabel = (iso) => {
+    const [year, month] = iso.split('-');
+    return `${Number(month)}/${year}`;
+  };
+
+  const currentMonthInput = () =>
+    document.getElementById(INQUIRY_MONTH_INPUT_ID);
+
+  // Month currently shown: the page input (`MM/YYYY`), then the `?to=YYYYMM`
+  // query string, then the current month.
+  const currentInquiryMonth = () => {
+    const input = currentMonthInput();
+    const fromInput = input ? toIsoMonth(input.value) : null;
+    if (fromInput) return fromInput;
+
+    const param = new URLSearchParams(location.search).get('to');
+    if (param && /^\d{6}$/.test(param)) {
+      return `${param.slice(0, 4)}-${param.slice(4)}`;
+    }
+
+    const now = new Date();
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
+  };
+
+  const shiftInquiryMonth = (iso, delta) => {
+    const [year, month] = iso.split('-').map(Number);
+    const shifted = new Date(year, month - 1 + delta, 1);
+    return `${shifted.getFullYear()}-${pad(shifted.getMonth() + 1)}`;
+  };
+
+  const inquiryResultsUrl = (iso) => {
+    const params = new URLSearchParams({
+      Fuseaction: 'evo_Modules.AccountInquiry',
+      axn: 'ResultsTable',
+      to: iso.replace('-', ''),
+      from: iso.replace('-', ''),
+      _: String(Date.now()),
+    });
+    return `index.cfm?${params.toString()}`;
+  };
+
+  // Reproduces the page's own `getAIResults` AJAX (the `#AITableDiv` swap).
+  // That function lives in the MAIN world and cannot be called from this
+  // ISOLATED script, so the request is reissued here (with jQuery's
+  // `X-Requested-With` header) and the fragment is injected back into the page,
+  // keeping the month input in sync.
+  const loadInquiryMonth = async (iso) => {
+    const response = await fetchWithTimeout(inquiryResultsUrl(iso), 15000, {
+      'X-Requested-With': 'XMLHttpRequest',
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    const html = await response.text();
+    const hasRows = /evotable/i.test(html);
+    if (!hasRows && /login/i.test(html)) {
+      throw new Error('Sessão expirada — faça login novamente.');
+    }
+
+    const input = currentMonthInput();
+    if (input) input.value = monthLabel(iso);
+
+    const container = document.getElementById(INQUIRY_TABLE_ID);
+    if (container) container.innerHTML = hasRows ? html : '';
+
+    return { hasRows };
   };
 
   // --- Auto-pagination ("Carregar mais antigos") ----------------------------
@@ -551,7 +704,7 @@
 
   // --- Floating box ---------------------------------------------------------
 
-  const createBox = () => {
+  const createBox = (module) => {
     const box = document.createElement('div');
     box.id = BOX_ID;
     box.style.cssText = [
@@ -569,14 +722,33 @@
       'padding:12px',
     ].join(';');
 
+    const isInquiry = module === 'accountInquiry';
+    const importLabel = isInquiry
+      ? 'Importar pedidos do mês'
+      : 'Importar novos pedidos';
+
+    // The AccountInquiry has no "Ver mais" cursor: the ledger is month-scoped,
+    // so the box navigates the page's own month AJAX instead of paginating.
+    const navButtons = isInquiry
+      ? `
+      <div style="display:flex;gap:6px;margin-bottom:6px">
+        <button data-role="prev" type="button" style="flex:1;padding:6px;border:1px solid #ccc;border-radius:6px;background:#fff;color:#333;cursor:pointer">‹ Mês anterior</button>
+        <button data-role="next" type="button" style="flex:1;padding:6px;border:1px solid #ccc;border-radius:6px;background:#fff;color:#333;cursor:pointer">Mês seguinte ›</button>
+      </div>
+      <button data-role="goto" type="button" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:6px;background:#fff;color:#333;cursor:pointer;margin-bottom:6px">IR PARA o mês exibido</button>
+      `
+      : `
+      <button data-role="more" type="button" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:6px;background:#fff;color:#333;cursor:pointer;margin-bottom:6px">Carregar mais antigos</button>
+      `;
+
     box.innerHTML = `
       <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px">
         <span style="font-weight:600">Pedidos dōTERRA</span>
         <span data-role="version" style="font-size:10px;color:#999"></span>
       </div>
       <div data-role="status" style="font-size:11px;color:#555;margin-bottom:8px"></div>
-      <button data-role="more" type="button" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:6px;background:#fff;color:#333;cursor:pointer;margin-bottom:6px">Carregar mais antigos</button>
-      <button data-role="import" type="button" style="width:100%;padding:8px;border:0;border-radius:6px;background:#1c7ed6;color:#fff;font-weight:600;cursor:pointer">Importar novos pedidos</button>
+      ${navButtons}
+      <button data-role="import" type="button" style="width:100%;padding:8px;border:0;border-radius:6px;background:#1c7ed6;color:#fff;font-weight:600;cursor:pointer">${importLabel}</button>
       <button data-role="copy" type="button" style="width:100%;padding:8px;border:0;border-radius:6px;background:#d6336c;color:#fff;font-weight:600;cursor:pointer;margin-top:6px">Capturar e copiar JSON</button>
       <div data-role="token" style="margin-top:6px;font-size:10px;color:#999"></div>
       <div data-role="log" style="margin-top:6px;max-height:110px;overflow:auto;font-size:10px;color:#888"></div>
@@ -586,11 +758,19 @@
 
     const versionEl = box.querySelector('[data-role="version"]');
     const statusEl = box.querySelector('[data-role="status"]');
-    const moreEl = box.querySelector('[data-role="more"]');
     const importEl = box.querySelector('[data-role="import"]');
     const copyEl = box.querySelector('[data-role="copy"]');
     const tokenEl = box.querySelector('[data-role="token"]');
     const logEl = box.querySelector('[data-role="log"]');
+
+    const elements = {
+      more: box.querySelector('[data-role="more"]'),
+      prev: box.querySelector('[data-role="prev"]'),
+      next: box.querySelector('[data-role="next"]'),
+      goTo: box.querySelector('[data-role="goto"]'),
+      import: importEl,
+      copy: copyEl,
+    };
 
     versionEl.textContent = `v${VERSION} · ${BUILD_LABEL}`;
 
@@ -620,9 +800,9 @@
     };
 
     const setBusy = (busy) => {
-      moreEl.disabled = busy;
-      importEl.disabled = busy;
-      copyEl.disabled = busy;
+      Object.values(elements).forEach((el) => {
+        if (el) el.disabled = busy;
+      });
     };
 
     return {
@@ -631,7 +811,7 @@
       clearLog,
       setTokenState,
       setBusy,
-      elements: { more: moreEl, import: importEl, copy: copyEl },
+      elements,
     };
   };
 
@@ -639,16 +819,27 @@
 
   const renderCounts = (controller, orders) => {
     const total = orders.length;
+    if (activeKind === 'accountInquiry') {
+      controller.setStatus(
+        `${total} pedido(s) do tipo I em ${monthLabel(currentInquiryMonth())}.`,
+      );
+      return;
+    }
     controller.setStatus(`${total} pedido(s) capturado(s) na página.`);
   };
 
   let controller = null;
   let busy = false;
   let lastCount = -1;
+  let activeKind = null;
+
+  // Reads the orders from whichever module the tab is on.
+  const pullOrders = () =>
+    activeKind === 'accountInquiry' ? parseInquiryOrders() : parseOrders();
 
   const refreshCounts = () => {
     if (!controller) return;
-    const orders = parseOrders();
+    const orders = pullOrders();
     lastCount = orders.length;
     renderCounts(controller, orders);
   };
@@ -660,7 +851,7 @@
 
   const importFlow = async () => {
     if (!controller || busy) return;
-    const orders = parseOrders();
+    const orders = pullOrders();
     if (orders.length === 0) {
       controller.setStatus('Nenhum pedido encontrado na página.', 'error');
       return;
@@ -766,7 +957,7 @@
 
   const copyFlow = async () => {
     if (!controller || busy) return;
-    const orders = parseOrders();
+    const orders = pullOrders();
     if (orders.length === 0) {
       controller.setStatus('Nenhum pedido encontrado na página.', 'error');
       return;
@@ -803,22 +994,8 @@
 
   let currentToken = '';
 
-  const isOrderHistoryPage = () =>
-    /fuseaction=evo_modules\.orderhistoryfull/i.test(location.search);
-
-  const mount = async () => {
-    if (document.getElementById(BOX_ID)) return;
-    if (!isOrderHistoryPage()) return;
-
-    controller = createBox();
-    refreshCounts();
-    controller.setStatus('Lendo os pedidos da página...');
-
-    currentToken = await loadStoredToken();
-    controller.setTokenState(currentToken);
-    controller.setBusy(false);
-
-    controller.elements.more.addEventListener('click', async () => {
+  const mountOrderHistory = (controller) => {
+    controller.elements.more?.addEventListener('click', async () => {
       if (busy) return;
       busy = true;
       controller.setBusy(true);
@@ -839,21 +1016,98 @@
       }
     });
 
-    controller.elements.import.addEventListener('click', importFlow);
-    controller.elements.copy.addEventListener('click', copyFlow);
-
     const target = document.querySelector('#OrderhistoryRows');
     if (target && typeof MutationObserver !== 'undefined') {
       let debounce = null;
       const observer = new MutationObserver(() => {
         clearTimeout(debounce);
         debounce = setTimeout(() => {
-          const orders = parseOrders();
+          const orders = pullOrders();
           if (orders.length !== lastCount) refreshCounts();
         }, 250);
       });
       observer.observe(target, { childList: true });
     }
+  };
+
+  const mountAccountInquiry = (controller) => {
+    // Reuses the page's month AJAX (reproduced in the ISOLATED world). The
+    // `IR PARA` button reloads the displayed month; the arrows shift by one.
+    const loadMonth = async (iso, label) => {
+      if (busy) return;
+      busy = true;
+      controller.setBusy(true);
+      controller.setStatus(`Carregando ${label}...`);
+      try {
+        const { hasRows } = await loadInquiryMonth(iso);
+        refreshCounts();
+        controller.setStatus(
+          hasRows ? `Mês ${label} carregado.` : `Nenhum registro em ${label}.`,
+          hasRows ? 'success' : 'warning',
+        );
+      } catch (err) {
+        controller.setStatus(
+          `Falha ao carregar o mês: ${String(err.message || err)}`,
+          'error',
+        );
+      } finally {
+        busy = false;
+        controller.setBusy(false);
+        controller.setTokenState(currentToken);
+      }
+    };
+
+    controller.elements.prev?.addEventListener('click', () => {
+      const target = shiftInquiryMonth(currentInquiryMonth(), -1);
+      loadMonth(target, monthLabel(target));
+    });
+    controller.elements.next?.addEventListener('click', () => {
+      const target = shiftInquiryMonth(currentInquiryMonth(), 1);
+      loadMonth(target, monthLabel(target));
+    });
+    controller.elements.goTo?.addEventListener('click', () => {
+      const target = currentInquiryMonth();
+      loadMonth(target, monthLabel(target));
+    });
+
+    const aiTable = document.getElementById(INQUIRY_TABLE_ID);
+    if (aiTable && typeof MutationObserver !== 'undefined') {
+      let debounce = null;
+      const observer = new MutationObserver(() => {
+        clearTimeout(debounce);
+        debounce = setTimeout(() => {
+          const orders = pullOrders();
+          if (orders.length !== lastCount) refreshCounts();
+        }, 250);
+      });
+      observer.observe(aiTable, { childList: true });
+    }
+  };
+
+  const mount = async () => {
+    if (document.getElementById(BOX_ID)) return;
+    activeKind = activeModule();
+    if (!activeKind) return;
+
+    controller = createBox(activeKind);
+
+    // `setBusy(false)` re-enables every button, so the token gate must be
+    // reapplied afterwards (no token → import stays disabled).
+    currentToken = await loadStoredToken();
+    controller.setBusy(false);
+    controller.setTokenState(currentToken);
+
+    if (activeKind === 'accountInquiry') {
+      mountAccountInquiry(controller);
+    } else {
+      mountOrderHistory(controller);
+    }
+
+    controller.elements.import?.addEventListener('click', importFlow);
+    controller.elements.copy?.addEventListener('click', copyFlow);
+
+    controller.setStatus('Lendo os pedidos da página...');
+    refreshCounts();
   };
 
   if (document.readyState === 'loading') {
