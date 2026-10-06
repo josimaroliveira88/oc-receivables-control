@@ -22,8 +22,17 @@
 
   const STATUS_COLORS = {
     error: '#d6336c',
+    warning: '#e8590c',
     success: '#2f9e44',
     info: '#555',
+  };
+
+  const describeFailure = (failure) => {
+    const order = failure?.orderNumber
+      ? `pedido ${failure.orderNumber}`
+      : 'pedido sem número';
+    const reason = failure?.error || 'erro desconhecido';
+    return `${order}: ${reason}`;
   };
 
   console.info(
@@ -661,9 +670,22 @@
 
       if (sendResult.ok) {
         const summary = sendResult.summary ?? {};
+        const serverFailures = summary.failed ?? [];
+
+        // Surface every server-side failure (parse, validation or transaction)
+        // so the reason is visible without opening DevTools.
+        serverFailures.forEach((failure) => {
+          controller.appendLog(`Falha em ${describeFailure(failure)}`);
+        });
+
+        const counts = `${(summary.created ?? []).length} criado(s), ${(summary.existing ?? []).length} já existia(m), ${serverFailures.length} falha(s)`;
+        const detail = serverFailures.length
+          ? ` Falha: ${describeFailure(serverFailures[0])}${serverFailures.length > 1 ? ` (+${serverFailures.length - 1})` : ''}.`
+          : '';
+
         controller.setStatus(
-          `Importado: ${(summary.created ?? []).length} criado(s), ${(summary.existing ?? []).length} já existia(m), ${(summary.failed ?? []).length} falha(s). Abrindo o app…`,
-          'success',
+          `Importado: ${counts}.${detail} Abrindo o app…`,
+          serverFailures.length ? 'warning' : 'success',
         );
         return;
       }

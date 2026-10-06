@@ -218,6 +218,9 @@ O envio para o app envolve o mesmo JSON dentro de:
    `Pedidos` com os pedidos importados marcados como **"Pendente de revisão"**.
    No app, revise cada pedido; códigos desconhecidos viram produtos
    **"Pendente de cadastro"** que você completa e ativa na tela de Produtos.
+   Se algum pedido falhar, o status mostra o motivo da primeira falha e o log
+   da caixa lista cada uma (número do pedido + causa: parsing, validação ou
+   erro do app).
 6. **Capturar e copiar JSON**: gera o mesmo JSON e copia, para você colar em
    Pedidos → **"Importar pedidos"** (caminho manual, sem token).
 
