@@ -73,19 +73,20 @@ const createImportedOrder = async (tx, { userId, order }) => {
   const warnings = [];
   const allowedProductIds = [];
   const newProducts = [];
-  const productIdByCode = new Map();
+  const productByCode = new Map();
   const resolvedItems = [];
+  const warnedKitCodes = new Set();
 
   for (const item of order.items) {
-    let productId = productIdByCode.get(item.code);
+    let info = productByCode.get(item.code);
 
-    if (!productId) {
+    if (!info) {
       const existing = await tx.product.findUnique({
         where: { code: item.code },
       });
 
       if (existing) {
-        productId = existing.id;
+        info = { productId: existing.id, productType: existing.productType };
         if (
           existing.status === 'INATIVO' ||
           existing.status === 'PENDENTE_CADASTRO'
@@ -97,7 +98,7 @@ const createImportedOrder = async (tx, { userId, order }) => {
           );
           // The order is pending review, so an unavailable catalog product can
           // still be linked (the user resolves it during review).
-          allowedProductIds.push(productId);
+          allowedProductIds.push(info.productId);
         }
       } else {
         const name = cleanProductName(item.description, `Produto ${item.code}`);
@@ -118,21 +119,34 @@ const createImportedOrder = async (tx, { userId, order }) => {
             pv: item.unitPv ?? 0,
           },
         });
-        productId = draft.id;
+        info = { productId: draft.id, productType: draft.productType };
         allowedProductIds.push(draft.id);
         newProducts.push({ code: item.code, name });
       }
 
-      productIdByCode.set(item.code, productId);
+      productByCode.set(item.code, info);
+    }
+
+    // A catalog KIT item cannot be stocked without a mode. The import defaults
+    // to KIT (always yields a valid movement for the kit itself) and warns so
+    // the user can switch to COMPONENTS during review; the frozen snapshot is
+    // kept either way, so changing the mode adjusts stock through the diff.
+    const isKit = info.productType === 'KIT';
+    if (isKit && !warnedKitCodes.has(item.code)) {
+      warnedKitCodes.add(item.code);
+      warnings.push(
+        `Produto KIT ${item.code} importado no modo de estoque KIT; troque para COMPONENTS na revisão se o kit for controlado por componentes.`,
+      );
     }
 
     resolvedItems.push({
-      productId,
+      productId: info.productId,
       description: item.description ?? null,
       chargedValue: item.unitPrice ?? 0,
       memberPrice: item.unitPrice ?? 0,
       quantity: item.quantity,
       chargedValueMode: 'UNIT',
+      kitStockMode: isKit ? 'KIT' : null,
     });
   }
 
