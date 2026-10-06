@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   ORDER_STATUS_CLASSES,
   ORDER_STATUS_FALLBACK,
+  ORDER_REVIEW_CLASSES,
   PAYMENT_TYPE_CLASSES,
   PAYMENT_TYPE_FALLBACK,
   DELIVERY_CLASSES,
@@ -36,6 +37,13 @@ describe('badgeStyles', () => {
     );
     expect(ORDER_STATUS_CLASSES.EQUIPE.className).toBe(
       'bg-mystic-soft text-mystic-fg',
+    );
+  });
+
+  it('gives the review badge a token distinct from the pending-payment status', () => {
+    expect(ORDER_REVIEW_CLASSES).toBe('bg-info-soft text-info-fg');
+    expect(ORDER_REVIEW_CLASSES).not.toBe(
+      ORDER_STATUS_CLASSES.PENDENTE.className,
     );
   });
 
