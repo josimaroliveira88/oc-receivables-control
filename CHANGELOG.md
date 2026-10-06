@@ -9,6 +9,20 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 129 — Ajustes da revisão da importação dōTERRA (2026-10-06)
+
+### Added
+- **Aviso de pedido sem valor na importação dōTERRA**: além do aviso de divergência do total, pedidos cujo total calculado é R$ 0,00 (reposições) passam a trazer o aviso "Pedido sem valor (R$ 0,00) — provavelmente reposição; confira os itens" nas observações, sinalizando a revisão.
+
+### Changed
+- **Badge "Pendente de revisão"**: deixa de reutilizar o token do status `PENDENTE` (`warning`) e passa a usar `info` (`bg-info-soft text-info-fg`), distinguindo "precisa revisar" de "falta pagar".
+- **Docs**: `AGENTS.md` registra que a limpeza do pedido importado apaga os movimentos do próprio pedido mesmo quando o rascunho sobrevive (referenciado por outro pedido), evitando histórico órfão que bloquearia uma limpeza futura; e atualiza a contagem de testes.
+
+### Tests
+- Backend: `doterraOrdersImport.test.js` ganhou o caso do aviso de total zero (reposição) e o caso do rascunho usado como componente de kit de outro produto (sobrevive à exclusão). **1051 backend** passando.
+- Frontend: `badgeStyles.test.jsx` cobre o token distinto do badge de revisão. **1184 frontend** passando.
+- Verificação: `npm run lint` (backend/frontend), `npm run build` e `npm run format:check` limpos.
+
 ## Phase 128 — Robustez da importação dōTERRA e revisão de rascunhos (2026-10-06)
 
 ### Added
