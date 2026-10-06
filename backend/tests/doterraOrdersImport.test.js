@@ -386,6 +386,65 @@ describe('dōTERRA orders import and lookup', () => {
       );
     });
 
+    it('imports a KIT product defaulting kitStockMode to KIT with a warning', async () => {
+      const kitCode = uniqueCode();
+      const componentCode = uniqueCode();
+      const component = await createCatalogProduct(componentCode);
+      const kit = await createCatalogProduct(kitCode, { productType: 'KIT' });
+      await prisma.kitComposition.create({
+        data: {
+          kitProductId: kit.id,
+          componentProductId: component.id,
+          quantity: 2,
+        },
+      });
+      const orderNumber = uniqueOrderNumber();
+
+      const response = await importOrders({
+        orders: [
+          orderFixture({
+            orderNumber,
+            listValue: 300,
+            doterraPv: 40,
+            items: [
+              {
+                code: kitCode,
+                description: 'dōTERRA Kit Collector’s',
+                quantity: 1,
+                unitPrice: 300,
+                unitPv: 40,
+              },
+            ],
+          }),
+        ],
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.created).toHaveLength(1);
+      expect(response.body.failed).toEqual([]);
+      expect(response.body.created[0].warnings.join(' ')).toContain(kitCode);
+      expect(response.body.created[0].warnings.join(' ')).toMatch(/KIT/);
+
+      const order = await prisma.order.findFirst({
+        where: { userId: user.user.id, orderNumber },
+        include: { items: true },
+      });
+      expect(order.items).toHaveLength(1);
+      expect(order.items[0].kitStockMode).toBe('KIT');
+      // The composition is frozen at import time either way.
+      expect(order.items[0].kitSnapshot).toEqual([
+        { componentProductId: component.id, quantity: 2 },
+      ]);
+
+      // KIT mode stocks the kit itself, not its component.
+      const movements = await prisma.stockMovement.findMany({
+        where: { orderId: order.id },
+      });
+      expect(movements).toHaveLength(1);
+      expect(movements[0].productId).toBe(kit.id);
+      expect(movements[0].type).toBe('ENTRADA');
+    });
+
     it('adds a warning when the computed total differs from the informed value', async () => {
       const response = await importOrders({
         orders: [orderFixture({ listValue: 999 })],
