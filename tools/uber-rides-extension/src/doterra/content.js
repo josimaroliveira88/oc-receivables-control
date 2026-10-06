@@ -378,10 +378,50 @@
     return items;
   };
 
+  // Finds the first `R$` amount that follows `label`. The gap between the
+  // label and the amount may hold digits (a method, a percentage) and letters
+  // — notably the "r" of "Envio Normal" — so it is matched lazily with
+  // `[\s\S]*?`. The previous `[^0-9R]*` gap silently failed for every order
+  // whose freight method contained an "r" (the /i flag also removed lowercase
+  // "r" from the negated class), dropping the freight to zero.
   const matchAmount = (text, label) => {
-    const pattern = new RegExp(`${label}[^0-9R]*R\\$\\s*([\\d.,]+)`, 'i');
+    const pattern = new RegExp(`${label}[\\s\\S]*?R\\$\\s*([\\d.,]+)`, 'i');
     const match = text.match(pattern);
     return match ? parseMoney(match[1]) : null;
+  };
+
+  // Reads the order-level freight from the detail page. The totals table labels
+  // the row "Frete" and the amount sits either in the same cell ("Frete:
+  // R$ 12.50") or in the next cell of the row ("Frete | R$ 12.50" / "12.50").
+  // The DOM lookup is the primary path, robust to the label moving around or
+  // the value dropping the currency symbol; the textual scan stays as a
+  // fallback so a layout change never regresses to a silent zero. Every
+  // candidate whose label is "Frete" is tried in document order (a header in
+  // the items table must not shadow the real totals row). Returns null when
+  // nothing is found.
+  const extractShipping = (doc) => {
+    const candidates = [
+      ...doc.querySelectorAll('td, th, span, div, strong, b'),
+    ].filter((node) => {
+      const text = node.textContent.trim();
+      return /^Frete\b/i.test(text) && text.length <= 40;
+    });
+
+    for (const label of candidates) {
+      const inline = matchAmount(label.textContent, 'Frete');
+      if (inline != null) return inline;
+
+      const row = label.closest('tr');
+      if (!row) continue;
+      const cells = [...row.querySelectorAll('td, th')];
+      const index = cells.findIndex((cell) => cell.contains(label));
+      const valueCell =
+        index >= 0 ? (cells[index + 1] ?? cells[cells.length - 1]) : null;
+      const parsed = valueCell ? parseMoney(valueCell.textContent) : null;
+      if (parsed != null) return parsed;
+    }
+
+    return matchAmount(doc.body ? doc.body.textContent : '', 'Frete');
   };
 
   const parseDetail = (doc) => {
@@ -397,8 +437,16 @@
       ? parseMoney(installmentsMatch[2])
       : null;
 
-    const shippingValue = matchAmount(bodyText, 'Frete');
+    const shippingValue = extractShipping(doc);
     const total = matchAmount(bodyText, 'Total a Pagar');
+
+    // A null freight is ambiguous (the order may legitimately ship free). The
+    // capture never fails the order; it surfaces a line in the floating box so
+    // the user reviews that order during `pendingReview`.
+    const warnings = [];
+    if (shippingValue == null) {
+      warnings.push('Frete não capturado no detalhe — confira o pedido.');
+    }
 
     // Payment table: `Tipo de Pagamento` followed by its value cell.
     let paymentType = null;
@@ -424,6 +472,7 @@
       installments,
       installmentValue,
       paymentType,
+      warnings,
     };
   };
 
@@ -484,6 +533,9 @@
         if (!detail.items.length) {
           throw new Error('Sem itens no detalhe');
         }
+        (detail.warnings ?? []).forEach((warning) => {
+          log(`Pedido ${order.orderNumber}: ${warning}`);
+        });
         built.push(buildOrderPayload(order, detail));
       } catch (err) {
         failed.push({
