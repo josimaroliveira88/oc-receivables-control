@@ -9,9 +9,11 @@
 (() => {
   'use strict';
 
-  const VERSION = '0.5.0';
-  const BUILD_LABEL = 'app-token';
+  const VERSION = '0.6.0';
+  const BUILD_LABEL = 'doterra-orders';
   const UBER_URL = 'https://riders.uber.com/';
+  const DOTERRA_ORDERS_URL =
+    'https://office.doterra.com/index.cfm?Fuseaction=evo_Modules.OrderHistoryFull';
   const DEFAULT_SERVER = 'http://localhost:3000';
 
   const STORAGE_KEYS = {
@@ -188,6 +190,12 @@
 
   openEl.addEventListener('click', () => {
     chrome.tabs.create({ url: UBER_URL });
+    window.close();
+  });
+
+  const openDoterraEl = document.getElementById('open-doterra');
+  openDoterraEl.addEventListener('click', () => {
+    chrome.tabs.create({ url: DOTERRA_ORDERS_URL });
     window.close();
   });
 

@@ -1,22 +1,26 @@
-# Corridas Uber — extensão do Chrome
+# Capturas — Uber & dōTERRA — extensão do Chrome
 
 Extensão do Chrome **para uso pessoal** (não publicada na Chrome Web Store) que
-faz exatamente o que o script do Tampermonkey
-([`../uber-rides/uber-rides.user.js`](../uber-rides/uber-rides.user.js)) faz:
-roda na sua própria sessão do Uber, coleta as corridas dos perfis **pessoal** e
-**família** e entrega um JSON que chega ao Controle de Recebíveis de duas
-maneiras:
+faz a captura de duas fontes e entrega um JSON ao Controle de Recebíveis:
 
-1. **Enviar para o app** (botão dedicado): a extensão chama
-   `POST /api/uber/rides/import` do seu backend usando um token de API gerado
-   no app e abre a tela de Finanças em uma nova aba com as corridas já
-   importadas.
+1. **Corridas Uber** — roda na sua própria sessão do Uber, coleta as corridas
+   dos perfis **pessoal** e **família** (o mesmo que o script do Tampermonkey
+   [`../uber-rides/uber-rides.user.js`](../uber-rides/uber-rides.user.js) faz).
+2. **Pedidos dōTERRA** — roda no Back Office do dōTERRA
+   (`Rastreamento de Pedidos e Pacotes`) e captura os pedidos da tabela,
+   buscando o detalhe de cada um.
+
+Em ambos os casos o JSON chega ao app de duas maneiras:
+
+1. **Enviar para o app** (botão dedicado): a extensão chama o endpoint do seu
+   backend usando um token de API gerado no app e abre a tela correspondente em
+   uma nova aba (Finanças para as corridas, Pedidos para os pedidos dōTERRA).
 2. **Copiar JSON** (fallback, sempre disponível): copia o JSON para que você
-   cole na tela de importação (em Finanças → "Importar corridas"), como antes.
+   cole na tela de importação (Finanças → "Importar corridas" ou Pedidos →
+   "Importar pedidos").
 
-Os dois caminhos coexistem dentro da própria caixa flutuante — se o envio
-falhar (rede, token), o JSON é copiado automaticamente para você não perder a
-captura.
+Os dois caminhos coexistem dentro de cada caixa flutuante — se o envio falhar
+(rede, token), o JSON é copiado automaticamente para você não perder a captura.
 
 Nenhuma credencial do Uber sai do navegador: o `fetch` da captura roda no
 contexto da página, então o cookie de sessão (HttpOnly) é enviado
@@ -26,20 +30,22 @@ naturalmente pelo navegador. Para o app, a extensão usa o token de API salvo
 ## Arquivos
 
 ```text
-manifest.json                 Manifesto MV3 (2 content scripts + service worker)
-src/page/content.js           Mundo MAIN — gancho em fetch/XHR + coleta GraphQL
-src/ui/content.js             Mundo ISOLATED — UI, storage, clipboard, popup bridge
-src/background/background.js  Service worker — envio ao app + abertura da aba
+manifest.json                 Manifesto MV3 (3 content scripts + service worker)
+src/page/content.js           Uber, mundo MAIN — gancho em fetch/XHR + coleta GraphQL
+src/ui/content.js             Uber, mundo ISOLATED — UI, storage, clipboard, popup bridge
+src/doterra/content.js        dōTERRA, mundo ISOLATED — leitura da tabela + detalhe
+src/background/background.js  Service worker — envios ao app + abertura das abas
 src/popup/popup.html          Popup da barra de ferramentas (status + token/servidor)
 src/popup/popup.js            Lógica do popup
 icons/{16,48,128}.png         Ícones
 ```
 
-Cada um dos três componentes é um **arquivo único e autocontido**. Isso é
-intencional: elimina qualquer dependência de ordem de injeção ou de um
-namespace global compartilhado — a causa de uma classe de bug que apareceu
-durante o desenvolvimento. Não divida esses arquivos sem revalidar o
-carregamento no navegador.
+Cada componente é um **arquivo único e autocontido**. Isso é intencional:
+elimina qualquer dependência de ordem de injeção ou de um namespace global
+compartilhado — a causa de uma classe de bug que apareceu durante o
+desenvolvimento. Não divida esses arquivos sem revalidar o carregamento no
+navegador. O script do dōTERRA roda apenas no mundo ISOLATED (ele lê o DOM; não
+precisa interceptar rede).
 
 ## Instalação (modo desenvolvedor)
 
@@ -71,17 +77,21 @@ atual.
 
 ## Configurar o envio para o app (uma vez)
 
-1. No Controle de Recebíveis, abra **Finanças → "Importar corridas"**. Na
-   primeira vez aparece o modal **"Como capturar as corridas do Uber?"**, com o
-   passo a passo e o botão **"Gerar token para a extensão"** (escolha o nome e a
-   validade; o padrão são 30 dias). O token tem forma `cr_…`, é exibido **uma
-   única vez** e caduca conforme o prazo escolhido (7/30/90 dias).
-2. Abra o popup da extensão (ícone na barra do Chrome) e cole o token em
+1. No Controle de Recebíveis, abra **Finanças → "Importar corridas"** (ou
+   **Pedidos → "Importar pedidos"**). Na primeira vez aparece o modal de
+   orientação, com o passo a passo e o botão **"Gerar token para a extensão"**
+   (escolha o nome e a validade; o padrão são 30 dias). O token tem forma
+   `cr_…`, é exibido **uma única vez** e caduca conforme o prazo escolhido
+   (7/30/90 dias).
+2. Marque os **escopos** que o token deve valer: **Corridas Uber
+   (uber:import)** e **Pedidos dōTERRA (doterra:import)** já vêm marcados — um
+   único token cobre as duas capturas.
+3. Abra o popup da extensão (ícone na barra do Chrome) e cole o token em
    **Token de acesso**.
-3. Em **Servidor do app**, confirme o endereço (padrão
+4. Em **Servidor do app**, confirme o endereço (padrão
    `http://localhost:3000`; em produção use o endereço do app) e clique
    **Salvar**.
-4. O botão **Abrir o app para gerar o token** do popup abre `Finanças` com o
+5. O botão **Abrir o app para gerar o token** do popup abre `Finanças` com o
    modal de importação já aberto, para você gerar/regenerar o token quando
    precisar.
 
@@ -100,7 +110,7 @@ caixa flutuante fica liberado (abaixo dele aparece "Token salvo (termina em
 1. Abra <https://riders.uber.com/> e faça login (a extensão precisa estar
    ativa antes da página carregar; por isso `run_at: document_start`).
 2. A caixa **Corridas Uber** aparece no canto inferior direito, com a versão e
-   o rótulo de build no topo (ex.: `v0.5.0 · app-token`).
+   o rótulo de build no topo (ex.: `v0.6.0 · doterra-orders`).
 3. Ajuste **Início** e **Fim**. A janela deve cobrir o ciclo de fatura com
    folga — a data do lançamento no cartão costuma ser 1 a 3 dias depois da
    corrida. O padrão é hoje até 35 dias atrás.
@@ -126,8 +136,14 @@ Ao abrir `riders.uber.com` com a extensão ativa, o console (F12) deve mostrar
 **duas** linhas com o mesmo rótulo de build:
 
 ```text
-[Uber Rides Capture] MAIN v0.5.0 (app-token) carregado em …
-[Uber Rides Capture] ISOLATED v0.5.0 (app-token) carregado em …
+[Uber Rides Capture] MAIN v0.6.0 (doterra-orders) carregado em …
+[Uber Rides Capture] ISOLATED v0.6.0 (doterra-orders) carregado em …
+```
+
+Em `office.doterra.com`, a linha correspondente é:
+
+```text
+[Doterra Orders Capture] ISOLATED v0.6.0 (doterra-orders) carregado em …
 ```
 
 Se faltar uma delas (ou nenhuma), remova e re-adicione a extensão. O rótulo de
@@ -186,6 +202,28 @@ O envio para o app envolve o mesmo JSON dentro de:
   (`http://localhost:3000/*`, `http://localhost:4000/*`).
 - O token de app é lido pelo service worker, não pela página — a página que a
   extensão roda (a do Uber) nunca o vê.
+
+## Pedidos dōTERRA
+
+1. Abra <https://office.doterra.com/> e faça login.
+2. Acesse **Rastreamento de Pedidos e Pacotes**
+   (`evo_Modules.OrderHistoryFull`). A caixa **Pedidos dōTERRA** aparece no canto
+   inferior direito, com a versão e o rótulo de build no topo.
+3. A caixa mostra quantos pedidos estão na tabela. Pedidos com link
+   **Cancelar** (não pagos) são ignorados automaticamente.
+4. **Carregar mais antigos** pagina a própria tabela (o mesmo "Ver mais" da
+   página), acumulando os pedidos mais antigos.
+5. **Importar novos pedidos**: consulta quais pedidos o app ainda não tem
+   (apenas os números novos têm o detalhe buscado, um a um), envia e abre
+   `Pedidos` com os pedidos importados marcados como **"Pendente de revisão"**.
+   No app, revise cada pedido; códigos desconhecidos viram produtos
+   **"Pendente de cadastro"** que você completa e ativa na tela de Produtos.
+6. **Capturar e copiar JSON**: gera o mesmo JSON e copia, para você colar em
+   Pedidos → **"Importar pedidos"** (caminho manual, sem token).
+
+Ao excluir um pedido importado, o app remove junto o que a importação criou:
+movimentos de estoque, lançamentos financeiros (e fatura, no cartão) e os
+produtos rascunho que ninguém mais usa.
 
 ## Limitações
 

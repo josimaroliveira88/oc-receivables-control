@@ -11,8 +11,8 @@
 (() => {
   'use strict';
 
-  const VERSION = '0.5.0';
-  const BUILD_LABEL = 'app-token';
+  const VERSION = '0.6.0';
+  const BUILD_LABEL = 'doterra-orders';
   const BRIDGE_SOURCE = 'uber-rides-capture';
   const BOX_ID = 'uber-rides-capture-box';
   const DAY_MS = 86400000;
