@@ -171,15 +171,27 @@ const createImportedOrder = async (tx, { userId, order }) => {
     allowProductIds: allowedProductIds,
   });
 
-  // Cross-check: the detail items are authoritative, but a mismatch against
-  // the list total is flagged so the user can double-check during review.
+  // Post-creation cross-checks. The detail items are authoritative, but a zero
+  // total (a reposição) and a mismatch against the list total are both flagged
+  // so the user can double-check during review.
+  const computedTotalCents = toCents(createdOrder.totalValue);
+  let notesChanged = false;
+  if (computedTotalCents === 0) {
+    warnings.push(
+      'Pedido sem valor (R$ 0,00) — provavelmente reposição; confira os itens.',
+    );
+    notesChanged = true;
+  }
   if (
     order.listValue != null &&
-    Math.abs(toCents(createdOrder.totalValue) - toCents(order.listValue)) > 1
+    Math.abs(computedTotalCents - toCents(order.listValue)) > 1
   ) {
     warnings.push(
-      `Total calculado (${formatBRL(toCents(createdOrder.totalValue))}) difere do valor informado (${formatBRL(toCents(order.listValue))}); confira os itens.`,
+      `Total calculado (${formatBRL(computedTotalCents)}) difere do valor informado (${formatBRL(toCents(order.listValue))}); confira os itens.`,
     );
+    notesChanged = true;
+  }
+  if (notesChanged) {
     await tx.order.update({
       where: { id: createdOrder.id },
       data: { orderNotes: buildOrderNotes(order, warnings) },
