@@ -5,9 +5,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 Guidance for maintainers:
 
-- This changelog does **not** keep a running `## [Unreleased]` section. When the user signals more adjustments may follow, the agent records what was just done in `NOTES.md` instead of editing `CHANGELOG.md`. When the user signals that no more adjustments are pending, those notes are consolidated into a new dated `## Phase N` section (most recent at the top) and grouped under `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, and `Security` as applicable. The agent then clears the entries from `NOTES.md`. See the **New Feature Workflow** in `AGENTS.md` for the full protocol.
+- This changelog does **not** keep a running `## [Unreleased]` section. At the end of each adjustment the agent asks how to close it (see the **New Feature Workflow** in `AGENTS.md`): with more adjustments pending it records what was just done in `NOTES.md` instead of editing here; with none pending it consolidates those notes into a new dated `## Phase N` section (most recent at the top) grouped under `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, and `Security` as applicable and clears `NOTES.md`; either branch can optionally commit. A correction or new request identified before closing writes to neither file until it is handled.
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
+
+## Phase 128 — Robustez da importação dōTERRA e revisão de rascunhos (2026-10-06)
+
+### Added
+- **Falhas da importação visíveis na extensão dōTERRA** (`v0.6.0 · doterra-orders`): quando o envio é bem-sucedido mas alguns pedidos falham, a caixa flutuante de *Pedidos* passa a mostrar o motivo — a linha de status traz a causa da primeira falha (com `(+N)` para as demais) e o log lista cada pedido com a causa (parsing, validação ou erro do app). Falhas parciais usam novo status laranja `warning`; sucesso total segue verde. O helper `describeFailure` trata falha de parsing sem `orderNumber` como "pedido sem número".
+- **Link para o produto pendente no formulário do pedido**: itens que referenciam um produto `PENDENTE_CADASTRO` (rascunho criado pelo import) deixam de exibir o combobox vazio e passam a mostrar o **código como link**, nos dois modos de entrada (Formulário detalhado e Planilha). O clique navega para `/products?edit=<productId>`; a tela de Produtos consome esse parâmetro uma vez e abre a modal de edição do produto, para o usuário completar/ativar o rascunho. Rascunhos continuam fora dos pickers.
+
+### Fixed
+- **Modo de estoque KIT padrão na importação dōTERRA**: itens que resolvem para um produto `KIT` do catálogo falhavam o pedido inteiro ("Itens de estoque de produtos KIT exigem um modo de controle do kit (KIT ou COMPONENTS)") porque o payload de captura nunca informa `kitStockMode`. A importação agora assume `kitStockMode: 'KIT'` (único modo que sempre gera movimento válido) e adiciona aviso nas observações para trocar para `COMPONENTS` na revisão, se o kit for controlado por componentes; a composição segue congelada em `Item.kitSnapshot`, então a troca de modo na revisão ajusta o estoque pelo diff.
+
+### Changed
+- **Docs**: `AGENTS.md` (rascunhos seguem fora dos pickers, mas o item de pedido importado mostra o código como link para `/products?edit=<id>`), `ARCHITECTURE.md` (seção `/api/doterra`: modo KIT padrão na importação) e `tools/uber-rides-extension/README.md` (falhas visíveis no status/log).
+
+### Tests
+- Backend: `doterraOrdersImport.test.js` ganhou o caso de KIT (importa com `kitStockMode: 'KIT'`, snapshot congelado, movimento no próprio kit e aviso). **1049 backend** passando.
+- Frontend: `OrdersImportReview.test.jsx` cobre o link do rascunho e a navegação nos dois modos; `ProductsPage.test.jsx` cobre o deep link `?edit=` abrindo a modal de edição. **1183 frontend** passando.
+- Extensão: sem suíte de testes; verificação com `node --check` (sintaxe) e `prettier --check` (formatação).
+- Verificação: `npm run lint` (backend/frontend), `npm run build` e `npm run format:check` limpos.
 
 ## Phase 127 — Importação de pedidos dōTERRA pela extensão (2026-10-06)
 
