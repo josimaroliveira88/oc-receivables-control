@@ -172,6 +172,27 @@ const syncAdditionalExpenseFromSale = async (
     where: { orderId: order.id, origin: 'VENDA_ADICIONAL' },
   });
 
+  // The additional value may already be represented by a reconciled Uber ride:
+  // the rides flow turns the VENDA_ADICIONAL row into an UBER row (same amount,
+  // ride linked), so recreating the additional expense here would double-count
+  // the cost. Checked before the required category/description validation so a
+  // scalar edit of a ride-represented sale never fails. The skip only holds
+  // while the values still coincide — editing the additional value away from the
+  // ride amount recreates the row.
+  if (!existing) {
+    const representedByRide = await client.financialTransaction.findFirst({
+      where: {
+        orderId: order.id,
+        origin: 'UBER',
+        rideId: { not: null },
+        amount: order.additionalValue,
+      },
+      select: { id: true },
+    });
+
+    if (representedByRide) return null;
+  }
+
   // A scalar update that does not touch the expense (e.g. toggling delivery)
   // keeps the stored category/description; the required-again rule only bites
   // when there is nothing to fall back to.

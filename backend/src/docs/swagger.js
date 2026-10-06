@@ -483,6 +483,25 @@ const options = {
           type: 'string',
           enum: ['RIDE', 'DELIVERY', 'UNKNOWN'],
         },
+        RideMatch: {
+          type: 'object',
+          description:
+            'Lançamento existente com o mesmo valor da corrida, sugerido para conciliação',
+          properties: {
+            transactionId: { type: 'string', format: 'uuid' },
+            origin: {
+              type: 'string',
+              enum: ['MANUAL', 'VENDA_ADICIONAL'],
+            },
+            description: { type: 'string' },
+            transactionDate: { type: 'string', format: 'date-time' },
+            amountCents: { type: 'integer' },
+            orderId: { type: 'string', format: 'uuid', nullable: true },
+            orderNumber: { type: 'string', nullable: true },
+            clientName: { type: 'string', nullable: true },
+            saleTotalValue: { type: 'string', nullable: true },
+          },
+        },
         RideRecord: {
           type: 'object',
           properties: {
@@ -507,6 +526,12 @@ const options = {
               type: 'string',
               format: 'uuid',
               nullable: true,
+            },
+            matches: {
+              type: 'array',
+              description:
+                'Lançamentos existentes com o mesmo valor, sugeridos para conciliação (vazio quando não há ou a corrida já foi lançada)',
+              items: { $ref: '#/components/schemas/RideMatch' },
             },
           },
         },
@@ -560,7 +585,32 @@ const options = {
                     nullable: true,
                   },
                   description: { type: 'string', nullable: true },
+                  orderId: {
+                    type: 'string',
+                    format: 'uuid',
+                    nullable: true,
+                    description:
+                      'Venda (VENDA) a vincular ao lançamento da corrida',
+                  },
+                  matchTransactionId: {
+                    type: 'string',
+                    format: 'uuid',
+                    nullable: true,
+                    description:
+                      'Quando informado, concilia com o lançamento existente em vez de criar um novo',
+                  },
                 },
+              },
+            },
+            payment: {
+              type: 'object',
+              nullable: true,
+              description:
+                'Pagamento no cartão de crédito para as corridas criadas (a conciliação não altera o pagamento existente)',
+              required: ['type', 'effectiveDate'],
+              properties: {
+                type: { type: 'string', enum: ['CARTAO_CREDITO'] },
+                effectiveDate: { type: 'string', format: 'date' },
               },
             },
           },

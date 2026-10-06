@@ -4,11 +4,16 @@
 // (enforced by the unique `FinancialTransaction.rideId`). All reads/writes are
 // scoped by `userId`.
 import { randomUUID } from 'node:crypto';
-import { fromCents } from '../utils/money.js';
+import { fromCents, toCents } from '../utils/money.js';
 import { parseLocalDate } from '../utils/date.js';
 import { badRequest, notFound } from '../utils/httpError.js';
 import { assertCategoryMatches } from '../utils/financeCategory.js';
 import { parseUberActivities } from '../utils/uberActivityParser.js';
+import {
+  buildRideMatches,
+  MATCHABLE_ORIGINS,
+  selectMatchableRides,
+} from '../utils/uberRideMatch.js';
 import { resolveCategoryId } from './financeSyncService.js';
 
 const transactionSelect = {
@@ -76,6 +81,56 @@ const decorateRide = (ride) => ({
   transactionId: ride.transaction?.id ?? null,
 });
 
+// Ledger fields needed to render a match suggestion. The sale label mirrors the
+// sale picker shape (`orderNumber`, first item's client name, total value).
+const rideMatchTransactionSelect = {
+  select: {
+    id: true,
+    origin: true,
+    description: true,
+    transactionDate: true,
+    amount: true,
+    orderId: true,
+    order: {
+      select: {
+        orderNumber: true,
+        totalValue: true,
+        items: {
+          select: { person: { select: { name: true } } },
+          orderBy: { createdAt: 'asc' },
+          take: 1,
+        },
+      },
+    },
+  },
+};
+
+// Suggests, per eligible ride, the existing ledger rows with the same value. One
+// query fetches every candidate amount at once; the amount grouping lives in the
+// pure `buildRideMatches` helper.
+const findRideMatches = async (client, { userId, rides }) => {
+  const candidates = selectMatchableRides(rides);
+  if (candidates.length === 0) return new Map();
+
+  const amounts = [...new Set(candidates.map((ride) => ride.amountCents))].map(
+    (cents) => fromCents(cents).toFixed(2),
+  );
+
+  const transactions = await client.financialTransaction.findMany({
+    where: {
+      userId,
+      type: 'DESPESA',
+      rideId: null,
+      origin: { in: MATCHABLE_ORIGINS },
+      amount: { in: amounts },
+    },
+    ...rideMatchTransactionSelect,
+    orderBy: [{ transactionDate: 'desc' }, { createdAt: 'desc' }],
+  });
+
+  return buildRideMatches(candidates, transactions);
+};
+
 const listRides = async (client, { userId, query }) => {
   const rides = await client.rideRecord.findMany({
     where: buildRideWhere(userId, query),
@@ -83,7 +138,13 @@ const listRides = async (client, { userId, query }) => {
     orderBy: [{ requestedAt: 'desc' }, { createdAt: 'desc' }],
   });
 
-  return rides.map(decorateRide);
+  const decorated = rides.map(decorateRide);
+  const matches = await findRideMatches(client, { userId, rides: decorated });
+
+  return decorated.map((ride) => ({
+    ...ride,
+    matches: matches.get(ride.id) ?? [],
+  }));
 };
 
 // Upserts every parsed ride. Idempotent: the unique key keeps a re-import from
@@ -185,19 +246,144 @@ const buildRideCardFields = (ride, payment) => {
   };
 };
 
-// Creates one DESPESA ledger row per selected ride. The whole batch is
+// Resolves an optional sale link: it must be one of the user's own VENDA
+// orders. Returns the resolved id plus the order number used in the description.
+const resolveSale = async (client, { userId, orderId }) => {
+  if (!orderId) return { orderId: null, orderNumber: null };
+
+  const order = await client.order.findFirst({
+    where: { id: orderId, userId },
+    select: { id: true, orderType: true, orderNumber: true },
+  });
+
+  if (!order) {
+    throw notFound('Venda não encontrada');
+  }
+
+  if (order.orderType !== 'VENDA') {
+    throw badRequest('Apenas vendas podem ser vinculadas a uma corrida');
+  }
+
+  return { orderId: order.id, orderNumber: order.orderNumber };
+};
+
+// Ledger description for a launched/reconciled ride. Linked rows carry the sale
+// reference, mirroring the other automatic ledger rows ("Venda V-0001 — Cliente").
+const buildRowDescription = (item, ride, orderNumber) => {
+  const baseDescription =
+    item.description && item.description.trim()
+      ? item.description.trim()
+      : defaultRideDescription(ride);
+
+  return orderNumber
+    ? withSaleReference(baseDescription, orderNumber)
+    : baseDescription;
+};
+
+// Creates one DESPESA row for a ride. The category defaults to the user's
+// "Transporte" when not informed, and every informed category must be the user's
+// and of type DESPESA. An optional `orderId` links the expense to the sale the
+// ride delivered.
+const createExpenseForRide = async (tx, { userId, ride, item, payment }) => {
+  const { orderId, orderNumber } = await resolveSale(tx, {
+    userId,
+    orderId: item.orderId,
+  });
+
+  const categoryId =
+    item.categoryId ?? (await resolveCategoryId(tx, userId, 'UBER'));
+  await assertCategoryMatches(tx, userId, { categoryId, type: 'DESPESA' });
+
+  return tx.financialTransaction.create({
+    data: {
+      userId,
+      type: 'DESPESA',
+      origin: 'UBER',
+      amount: fromCents(ride.amountCents).toFixed(2),
+      description: buildRowDescription(item, ride, orderNumber),
+      transactionDate: ride.requestedAt,
+      categoryId,
+      orderId,
+      rideId: ride.id,
+      ...buildRideCardFields(ride, payment),
+    },
+    include: { category: true },
+  });
+};
+
+// Origins an existing row may have to be reconciled with a ride. Automatic
+// origins owned by their source (order, card bill) are rejected.
+const RECONCILABLE_ORIGINS = new Set(['MANUAL', 'VENDA_ADICIONAL']);
+
+// Turns an existing ledger row into the ride's expense: keeps its amount, date,
+// category and payment state, and only re-identifies it as the Uber ride
+// (origin, ride link, description) plus the sale link. A sale already linked to
+// the row wins over the payload, so reconciling never reassigns an existing
+// sale.
+const reconcileExpenseWithRide = async (tx, { userId, ride, item }) => {
+  const transaction = await tx.financialTransaction.findFirst({
+    where: { id: item.matchTransactionId, userId },
+  });
+
+  if (!transaction) {
+    throw notFound('Lançamento não encontrado');
+  }
+
+  if (transaction.type !== 'DESPESA') {
+    throw badRequest('Apenas despesas podem ser conciliadas com uma corrida');
+  }
+
+  if (!RECONCILABLE_ORIGINS.has(transaction.origin)) {
+    throw badRequest('Este lançamento não pode ser conciliado com uma corrida');
+  }
+
+  if (transaction.rideId) {
+    throw badRequest('Este lançamento já está vinculado a outra corrida');
+  }
+
+  if (toCents(transaction.amount) !== ride.amountCents) {
+    throw badRequest('O valor do lançamento não corresponde ao da corrida');
+  }
+
+  let orderId = transaction.orderId;
+  let orderNumber = null;
+  if (orderId) {
+    const order = await tx.order.findFirst({
+      where: { id: orderId, userId },
+      select: { orderNumber: true },
+    });
+    orderNumber = order?.orderNumber ?? null;
+  } else {
+    ({ orderId, orderNumber } = await resolveSale(tx, {
+      userId,
+      orderId: item.orderId,
+    }));
+  }
+
+  return tx.financialTransaction.update({
+    where: { id: transaction.id },
+    data: {
+      origin: 'UBER',
+      rideId: ride.id,
+      orderId,
+      description: buildRowDescription(item, ride, orderNumber),
+    },
+    include: { category: true },
+  });
+};
+
+// Creates one DESPESA ledger row per selected ride, or reconciles it with an
+// existing row when `matchTransactionId` is informed. The whole batch is
 // transactional: if any ride is missing, cancelled or already launched, nothing
-// is written. The category defaults to the user's "Transporte" when not
-// informed, and every informed category must be the user's and of type DESPESA.
-// An optional `orderId` links the expense to the sale the ride delivered; it
-// must be one of the user's own VENDA orders. An optional batch `payment`
-// (CARTAO_CREDITO + invoice date) turns every row into a pending card purchase.
+// is written. An optional batch `payment` (CARTAO_CREDITO + invoice date) turns
+// every newly created row into a pending card purchase; reconciliation never
+// touches the existing row's payment state.
 const createExpensesFromRides = async (
   client,
   { userId, items, payment = null },
 ) =>
   client.$transaction(async (tx) => {
-    const created = [];
+    const rows = [];
 
     for (const item of items) {
       const ride = await tx.rideRecord.findFirst({
@@ -221,61 +407,14 @@ const createExpensesFromRides = async (
         throw badRequest('Esta corrida já foi lançada no financeiro');
       }
 
-      let orderId = null;
-      let orderNumber = null;
-      if (item.orderId) {
-        const order = await tx.order.findFirst({
-          where: { id: item.orderId, userId },
-          select: { id: true, orderType: true, orderNumber: true },
-        });
-
-        if (!order) {
-          throw notFound('Venda não encontrada');
-        }
-
-        if (order.orderType !== 'VENDA') {
-          throw badRequest('Apenas vendas podem ser vinculadas a uma corrida');
-        }
-
-        orderId = order.id;
-        orderNumber = order.orderNumber;
-      }
-
-      const categoryId =
-        item.categoryId ?? (await resolveCategoryId(tx, userId, 'UBER'));
-      await assertCategoryMatches(tx, userId, { categoryId, type: 'DESPESA' });
-
-      const baseDescription =
-        item.description && item.description.trim()
-          ? item.description.trim()
-          : defaultRideDescription(ride);
-
-      // Linked rides carry the sale reference in the description, mirroring the
-      // other automatic ledger rows ("Venda V-0001 — Cliente").
-      const description = orderNumber
-        ? withSaleReference(baseDescription, orderNumber)
-        : baseDescription;
-
-      const row = await tx.financialTransaction.create({
-        data: {
-          userId,
-          type: 'DESPESA',
-          origin: 'UBER',
-          amount: fromCents(ride.amountCents).toFixed(2),
-          description,
-          transactionDate: ride.requestedAt,
-          categoryId,
-          orderId,
-          rideId: ride.id,
-          ...buildRideCardFields(ride, payment),
-        },
-        include: { category: true },
-      });
-
-      created.push(row);
+      rows.push(
+        item.matchTransactionId
+          ? await reconcileExpenseWithRide(tx, { userId, ride, item })
+          : await createExpenseForRide(tx, { userId, ride, item, payment }),
+      );
     }
 
-    return created;
+    return rows;
   });
 
 // Removes a single ride the user discarded from the import list. Rides already

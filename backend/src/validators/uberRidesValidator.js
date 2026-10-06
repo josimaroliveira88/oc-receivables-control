@@ -41,6 +41,14 @@ const rideExpenseItemSchema = z.object({
     .uuid('O ID da venda deve ser um UUID válido')
     .nullable()
     .optional(),
+  // Optional reconciliation: instead of creating a row, the informed existing
+  // DESPESA row is turned into the ride's expense (amount/date/category/payment
+  // preserved). Validated in the service for ownership, origin and value.
+  matchTransactionId: z
+    .string()
+    .uuid('O ID do lançamento deve ser um UUID válido')
+    .nullable()
+    .optional(),
   categoryId: z
     .string()
     .uuid('O ID da categoria deve ser um UUID válido')
