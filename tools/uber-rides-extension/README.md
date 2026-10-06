@@ -228,6 +228,23 @@ Ao excluir um pedido importado, o app remove junto o que a importação criou:
 movimentos de estoque, lançamentos financeiros (e fatura, no cartão) e os
 produtos rascunho que ninguém mais usa.
 
+### Consulta da Conta (`evo_Modules.AccountInquiry`)
+
+A mesma caixa **Pedidos dōTERRA** também aparece em **Serviços → Consulta da
+Conta**, onde os dados vêm mês a mês:
+
+1. O mês exibido segue o campo **Selecione o Mês** da página.
+2. **‹ Mês anterior** / **Mês seguinte ›** trocam o mês (refazendo a mesma
+   consulta AJAX da página) e **IR PARA o mês exibido** recarrega o mês atual.
+3. A caixa usa **apenas as linhas do tipo `I`** (pedido por atacado/
+   substituição); pagamentos (`P`) e ajustes de bônus (`BC`, `BE`, `BP`…) são
+   ignorados — o app gera os lançamentos financeiros a partir do próprio pedido.
+4. **Importar pedidos do mês** e **Capturar e copiar JSON** funcionam igual à
+   lista de pedidos, inclusive a checagem de duplicados pelo número do pedido.
+
+> Não há "Carregar mais antigos" aqui: a consulta é sempre de um mês, então a
+> navegação é feita pelos botões de mês.
+
 ## Limitações
 
 - O endpoint do Uber é privado e não documentado; a Uber pode alterá-lo sem

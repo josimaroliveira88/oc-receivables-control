@@ -9,6 +9,19 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 131 — Consulta da Conta dōTERRA na extensão: captura por mês (2026-10-06)
+
+### Added
+- **Importação dōTERRA pela Consulta da Conta (`evo_Modules.AccountInquiry`)**: a mesma caixa **Pedidos dōTERRA** da extensão (`tools/uber-rides-extension/src/doterra/content.js`) passa a aparecer também na tela **Serviços → Consulta da Conta**, onde o Back Office lista as transações mês a mês. A caixa usa **apenas as linhas do tipo `I`** (pedido por atacado/substituição) e ignora pagamentos (`P`) e ajustes de bônus (`BC`/`BE`/`BP`…) — o app deriva os lançamentos financeiros do próprio pedido. O detalhe continua vindo de `evo_Modules.OrderInvoice` (mesmo `parseDetail`, mesmo frete e mesmos itens) e o `lookup`/import idempotente por número é o mesmo do fluxo de Rastreamento de Pedidos.
+- **Navegação por mês na caixa**: botões **‹ Mês anterior**, **Mês seguinte ›** e **IR PARA o mês exibido** navegam os meses. Como `getAIResults` roda no MAIN world e não pode ser chamado pelo content script ISOLATED, a extensão refaz a mesma consulta AJAX (`…&axn=ResultsTable&to=YYYYMM&from=YYYYMM`, com o header `X-Requested-With` do jQuery) e reinjeta o fragmento em `#AITableDiv`, mantendo o input **Selecione o Mês** (`#FromDate`) em sincronia — os botões nativos da página continuam funcionando.
+
+### Changed
+- **Detecção de página na extensão dōTERRA**: `src/doterra/content.js` decide parser e botões pelo módulo da URL (`OrderHistoryFull` vs `AccountInquiry`); o fluxo de import/cópia é compartilhado (`pullOrders`). `manifest.json`, `background.js` e `popup.js` não mudaram (o `match` de `office.doterra.com` já cobria a página).
+- **Docs**: `tools/uber-rides-extension/README.md` ganha a subseção **Consulta da Conta**; `AGENTS.md` registra as duas páginas suportadas e o motivo de reproduzir o AJAX no mundo ISOLATED.
+
+### Tests
+- Extensão: sem suíte automatizada no repositório. Parser validado contra o HTML real da Consulta da Conta (linha `I` lida como pedido `143410338`, 09/02/2024, PV `15`, valor `117`; a linha `P` foi ignorada). `node --check` no `content.js` e `npm run format:check` limpos; `scripts/package-extension.mjs` gerou o ZIP (11 arquivos) sem erro. Backend e frontend não foram alterados (última contagem registrada: 1055 backend + 1184 frontend).
+
 ## Phase 130 — Correção da captura do frete dōTERRA na importação (2026-10-06)
 
 ### Fixed
