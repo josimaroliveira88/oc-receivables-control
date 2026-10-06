@@ -10,11 +10,15 @@ It exists so the agent can stop and check with the user after each adjustment wi
 
 After finishing an adjustment, the agent asks the user:
 
-> Você tem mais algum ajuste a adicionar nesta versão?
+> Como deseja encerrar este ajuste?
 
-If the user answers **yes**, the agent appends a new note block below describing the adjustment that was just verified. The agent then ends the turn without touching `CHANGELOG.md`.
+and offers every applicable option:
 
-If the user answers **no**, the agent consolidates every block in this file plus the just-completed work into a new dated `## Phase N` section at the top of `CHANGELOG.md`, grouped under `Added`, `Changed`, `Fixed`, `Tests`, etc. The agent then deletes the consolidated entries from this file.
+- **Sem mais ajustes — consolidar e commitar**: consolidate every block here plus the just-completed work into a new dated `## Phase N` section at the top of `CHANGELOG.md`, then delete the consolidated entries from this file and create the commits.
+- **Sem mais ajustes — apenas consolidar**: same consolidation and cleanup, but do **not** commit.
+- **Com mais ajustes — registrar no `NOTES.md` e commitar**: append a new note block below describing the adjustment that was just verified, do **not** touch `CHANGELOG.md`, and commit the code change (never this file).
+- **Com mais ajustes — apenas registrar no `NOTES.md`**: append the note block, do **not** touch `CHANGELOG.md`, and do not commit.
+- **Há uma correção ou pedido novo**: when a correction or new request was identified, ask the user to describe it and write **nothing** here or in `CHANGELOG.md`; handle the request before any consolidation.
 
 ## Entry format
 
