@@ -27,6 +27,10 @@ export const ORDER_STATUS_FALLBACK = {
   dot: 'bg-ink-faint',
 };
 
+// Imported dōTERRA orders still awaiting the user's review. Kept separate from
+// the order status badge.
+export const ORDER_REVIEW_CLASSES = 'bg-warning-soft text-warning-fg';
+
 export const PAYMENT_TYPE_CLASSES = {
   PIX: 'bg-badge-pix-bg text-badge-pix-fg',
   BOLETO: 'bg-badge-boleto-bg text-badge-boleto-fg',
@@ -81,6 +85,7 @@ export const PRODUCT_STATUS_CLASSES = {
   ATIVO: 'bg-success-soft text-success-fg',
   INDISPONIVEL: 'bg-warning-soft text-warning-fg',
   INATIVO: 'bg-base text-ink-soft',
+  PENDENTE_CADASTRO: 'bg-mystic-soft text-mystic-fg',
 };
 
 export const MOVEMENT_TYPE_CLASSES = {

@@ -2,7 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AlertCircle, Check, ChevronDown } from 'lucide-react';
 import { PRODUCT_STATUS } from '../utils/productHelpers';
 
-const STATUS_OPTIONS = ['ATIVO', 'INDISPONIVEL', 'INATIVO'];
+const STATUS_OPTIONS = [
+  'ATIVO',
+  'INDISPONIVEL',
+  'INATIVO',
+  'PENDENTE_CADASTRO',
+];
 
 const StatusBadgeDropdown = ({ product, onStatusChange }) => {
   const [open, setOpen] = useState(false);

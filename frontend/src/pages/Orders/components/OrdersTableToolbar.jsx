@@ -1,6 +1,9 @@
 import React from 'react';
 import { Search } from 'lucide-react';
-import { SEARCH_FIELD_OPTIONS } from '../utils/orderHelpers';
+import {
+  SEARCH_FIELD_OPTIONS,
+  ORDER_REVIEW_FILTER_OPTIONS,
+} from '../utils/orderHelpers';
 
 const selectClass =
   'w-full sm:w-auto px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors';
@@ -8,8 +11,10 @@ const selectClass =
 const OrdersTableToolbar = ({
   search,
   searchField,
+  reviewFilter,
   onSearchChange,
   onSearchFieldChange,
+  onReviewFilterChange,
   onSearchSubmit,
 }) => {
   return (
@@ -39,6 +44,22 @@ const OrdersTableToolbar = ({
             aria-label="Coluna de busca"
           >
             {SEARCH_FIELD_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-sm font-medium text-ink-soft">
+          <span className="sr-only">Revisão</span>
+          <select
+            value={reviewFilter}
+            onChange={(e) => onReviewFilterChange(e.target.value)}
+            className={selectClass}
+            aria-label="Filtrar por revisão"
+            data-testid="orders-filter-review"
+          >
+            {ORDER_REVIEW_FILTER_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>

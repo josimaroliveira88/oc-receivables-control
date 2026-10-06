@@ -6,6 +6,7 @@ import {
   Paperclip,
   Pencil,
   Trash,
+  Check,
 } from 'lucide-react';
 import { formatBRL } from '../../../utils/money';
 import { formatDateBR } from '../../../utils/dates';
@@ -18,7 +19,7 @@ import {
   getPaymentActionLabel,
   shouldShowPaymentAction,
 } from '../utils/receivablesHelpers';
-import { PaymentTypeBadge, OrderOriginBadge } from './Badges';
+import { PaymentTypeBadge, OrderOriginBadge, OrderReviewBadge } from './Badges';
 import ActionMenu from '../../../components/ActionMenu';
 import SortableHeader from '../../../components/SortableHeader';
 import OrdersTableToolbar from './OrdersTableToolbar';
@@ -29,9 +30,11 @@ const OrdersTable = ({
   searchField,
   sortBy,
   sortDir,
+  reviewFilter,
   hasActiveFilters,
   onSearchChange,
   onSearchFieldChange,
+  onReviewFilterChange,
   onSearchSubmit,
   onSort,
   onEdit,
@@ -39,14 +42,17 @@ const OrdersTable = ({
   onPayment,
   onDetails,
   onViewAttachment,
+  onMarkReviewed,
 }) => {
   return (
     <div>
       <OrdersTableToolbar
         search={search}
         searchField={searchField}
+        reviewFilter={reviewFilter}
         onSearchChange={onSearchChange}
         onSearchFieldChange={onSearchFieldChange}
+        onReviewFilterChange={onReviewFilterChange}
         onSearchSubmit={onSearchSubmit}
       />
 
@@ -171,6 +177,11 @@ const OrdersTable = ({
                         </span>
                         <ExternalLink className="w-3.5 h-3.5 shrink-0" />
                       </a>
+                      {order.pendingReview && (
+                        <div className="mt-1 lg:flex lg:justify-end">
+                          <OrderReviewBadge pendingReview />
+                        </div>
+                      )}
                     </td>
                     <td
                       data-label="Data"
@@ -259,6 +270,15 @@ const OrdersTable = ({
                                     label: 'Visualizar Anexo',
                                     icon: Paperclip,
                                     onClick: () => onViewAttachment(order),
+                                  },
+                                ]
+                              : []),
+                            ...(order.pendingReview
+                              ? [
+                                  {
+                                    label: 'Marcar revisado',
+                                    icon: Check,
+                                    onClick: () => onMarkReviewed(order),
                                   },
                                 ]
                               : []),

@@ -93,6 +93,13 @@ export const SEARCH_FIELD_OPTIONS = [
   { value: 'orderNotes', label: 'Descrição' },
 ];
 
+// Options for the review filter (imported orders awaiting/after review).
+export const ORDER_REVIEW_FILTER_OPTIONS = [
+  { value: '', label: 'Todas as revisões' },
+  { value: 'yes', label: 'Pendentes de revisão' },
+  { value: 'no', label: 'Revisados' },
+];
+
 // Reconstructs the promotion percentage shown in the order forms from a
 // persisted item. Legacy cashback items map to the equivalent 70% promotion;
 // UNIT items derive the percentage from the member price, while TOTAL items

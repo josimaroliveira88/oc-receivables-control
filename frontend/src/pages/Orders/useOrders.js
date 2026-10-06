@@ -32,8 +32,10 @@ export function useOrders() {
     searchField,
     sortBy,
     sortDir,
+    reviewFilter,
     setSearch,
     setSearchField,
+    setReviewFilter,
     buildOrderParams,
     handleSort,
     hasActiveFilters,
@@ -790,6 +792,17 @@ export function useOrders() {
     setConfirmDeleteId(id);
   };
 
+  // Marks an imported order as reviewed (quick action from the row menu).
+  const markReviewed = async (order) => {
+    try {
+      await api.patch(`/orders/${order.id}/review`);
+      addToast('Pedido marcado como revisado.', 'success');
+      fetchOrders({ showLoading: false });
+    } catch (_err) {
+      addToast('Não foi possível marcar o pedido como revisado.', 'error');
+    }
+  };
+
   const cancelDeleteOrder = () => {
     setConfirmDeleteId(null);
   };
@@ -897,7 +910,7 @@ export function useOrders() {
   // clicks the search button (handleSearchSubmit).
   useEffect(() => {
     fetchOrdersRef.current();
-  }, [searchField, sortBy, sortDir]);
+  }, [searchField, sortBy, sortDir, reviewFilter]);
 
   // Support deep-linking from the Stock history ("Ver pedido") via ?editOrder=.
   // Opens the edit modal for the referenced order once data is loaded.
@@ -922,9 +935,11 @@ export function useOrders() {
     searchField,
     sortBy,
     sortDir,
+    reviewFilter,
     hasActiveFilters,
     setSearch,
     setSearchField,
+    setReviewFilter,
     handleSearchSubmit,
     handleSort,
     showCreateModal,
@@ -987,6 +1002,7 @@ export function useOrders() {
     handleDeleteOrder,
     cancelDeleteOrder,
     confirmDeleteOrder,
+    markReviewed,
     openCreateOrder,
   };
 }

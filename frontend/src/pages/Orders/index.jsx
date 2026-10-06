@@ -11,8 +11,10 @@ import DetailsModal from './components/DetailsModal';
 import EditPaymentModal from './components/EditPaymentModal';
 import AttachmentPreviewModal from '../../components/AttachmentPreviewModal';
 import OrderSimulatorModal from './components/OrderSimulatorModal';
+import DoterraImportModal from './components/DoterraImportModal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { useOrderSimulator } from './useOrderSimulator';
+import { useDoterraImport } from './useDoterraImport';
 import { ENTRY_MODES } from './useOrderEntryMode';
 
 const OrdersPage = () => {
@@ -28,9 +30,11 @@ const OrdersPage = () => {
     searchField,
     sortBy,
     sortDir,
+    reviewFilter,
     hasActiveFilters,
     setSearch,
     setSearchField,
+    setReviewFilter,
     handleSearchSubmit,
     handleSort,
     showCreateModal,
@@ -93,6 +97,7 @@ const OrdersPage = () => {
     handleDeleteOrder,
     cancelDeleteOrder,
     confirmDeleteOrder,
+    markReviewed,
     openCreateOrder,
   } = useOrders();
 
@@ -175,6 +180,18 @@ const OrdersPage = () => {
     clearAll: clearSimulator,
   } = useOrderSimulator();
 
+  const {
+    showImport: showDoterraImport,
+    form: doterraImportForm,
+    importing: doterraImporting,
+    importError: doterraImportError,
+    summary: doterraImportSummary,
+    openImport: openDoterraImport,
+    closeImport: closeDoterraImport,
+    setImportField: setDoterraImportField,
+    submitImport: submitDoterraImport,
+  } = useDoterraImport({ onImported: refreshOrders });
+
   const editOrder = orders.find((o) => o.id === editOrderId);
 
   if (loading) {
@@ -200,6 +217,13 @@ const OrdersPage = () => {
               Simulador
             </button>
             <button
+              onClick={openDoterraImport}
+              data-testid="doterra-import-open"
+              className="px-4 py-2 text-sm font-medium text-accent-on-soft bg-accent-soft hover:bg-accent-soft/80 rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
+            >
+              Importar pedidos
+            </button>
+            <button
               onClick={() => openCreateOrder()}
               className="px-4 py-2 bg-accent hover:bg-accent-hover text-accent-on font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
             >
@@ -221,9 +245,11 @@ const OrdersPage = () => {
             searchField={searchField}
             sortBy={sortBy}
             sortDir={sortDir}
+            reviewFilter={reviewFilter}
             hasActiveFilters={hasActiveFilters}
             onSearchChange={setSearch}
             onSearchFieldChange={setSearchField}
+            onReviewFilterChange={setReviewFilter}
             onSearchSubmit={handleSearchSubmit}
             onSort={handleSort}
             onEdit={handleEditOrder}
@@ -231,6 +257,7 @@ const OrdersPage = () => {
             onPayment={openPaymentModal}
             onDetails={openDetailsModal}
             onViewAttachment={setViewAttachmentOrder}
+            onMarkReviewed={markReviewed}
           />
         </div>
       </div>
@@ -246,6 +273,17 @@ const OrdersPage = () => {
         onRemoveRow={removeSimulatorRow}
         onChangeShipping={updateSimulatorShipping}
         onClearAll={clearSimulator}
+      />
+
+      <DoterraImportModal
+        isOpen={showDoterraImport}
+        form={doterraImportForm}
+        error={doterraImportError}
+        submitting={doterraImporting}
+        summary={doterraImportSummary}
+        onChange={setDoterraImportField}
+        onSubmit={submitDoterraImport}
+        onClose={closeDoterraImport}
       />
 
       <Modal

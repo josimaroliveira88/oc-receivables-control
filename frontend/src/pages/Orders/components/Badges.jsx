@@ -4,6 +4,7 @@ import {
   ORDER_STATUS_CLASSES,
   ORDER_STATUS_FALLBACK,
   ORDER_ORIGIN_CLASSES,
+  ORDER_REVIEW_CLASSES,
   PAYMENT_TYPE_CLASSES,
   PAYMENT_TYPE_FALLBACK,
 } from '../../../utils/badgeStyles';
@@ -50,6 +51,19 @@ export const OrderOriginBadge = ({ isTeamOrder }) => {
       }`}
     >
       {isTeam ? 'Equipe' : 'Usuário'}
+    </span>
+  );
+};
+
+// Badge for an imported order that still awaits the user's review.
+export const OrderReviewBadge = ({ pendingReview }) => {
+  if (!pendingReview) return null;
+  return (
+    <span
+      data-testid="order-review-badge"
+      className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${ORDER_REVIEW_CLASSES}`}
+    >
+      Pendente de revisão
     </span>
   );
 };

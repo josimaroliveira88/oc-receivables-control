@@ -34,6 +34,10 @@ export const PRODUCT_STATUS = {
     label: 'Inativo',
     className: PRODUCT_STATUS_CLASSES.INATIVO,
   },
+  PENDENTE_CADASTRO: {
+    label: 'Pendente de cadastro',
+    className: PRODUCT_STATUS_CLASSES.PENDENTE_CADASTRO,
+  },
 };
 
 export const inputClass =

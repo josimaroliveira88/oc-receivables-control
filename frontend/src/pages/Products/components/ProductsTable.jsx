@@ -52,6 +52,7 @@ const ProductsTable = ({
                 <option value="ATIVO">Somente ativos</option>
                 <option value="INDISPONIVEL">Somente indisponíveis</option>
                 <option value="INATIVO">Somente inativos</option>
+                <option value="PENDENTE_CADASTRO">Pendentes de cadastro</option>
               </select>
             </label>
           </div>

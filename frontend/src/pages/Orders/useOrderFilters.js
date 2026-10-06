@@ -8,6 +8,7 @@ export function useOrderFilters() {
   const [searchField, setSearchField] = useState('all');
   const [sortBy, setSortBy] = useState('');
   const [sortDir, setSortDir] = useState('asc');
+  const [reviewFilter, setReviewFilter] = useState('');
 
   const buildOrderParams = useCallback(() => {
     const params = {};
@@ -17,12 +18,15 @@ export function useOrderFilters() {
     if (searchField !== 'all') {
       params.searchField = searchField;
     }
+    if (reviewFilter) {
+      params.pendingReview = reviewFilter;
+    }
     if (sortBy) {
       params.sortBy = sortBy;
       params.sortDir = sortDir;
     }
     return params;
-  }, [search, searchField, sortBy, sortDir]);
+  }, [search, searchField, sortBy, sortDir, reviewFilter]);
 
   const handleSort = (field, dir) => {
     setSortBy(field);
@@ -30,15 +34,20 @@ export function useOrderFilters() {
   };
 
   const hasActiveFilters =
-    search.trim() !== '' || searchField !== 'all' || sortBy !== '';
+    search.trim() !== '' ||
+    searchField !== 'all' ||
+    sortBy !== '' ||
+    reviewFilter !== '';
 
   return {
     search,
     searchField,
     sortBy,
     sortDir,
+    reviewFilter,
     setSearch,
     setSearchField,
+    setReviewFilter,
     buildOrderParams,
     handleSort,
     hasActiveFilters,
