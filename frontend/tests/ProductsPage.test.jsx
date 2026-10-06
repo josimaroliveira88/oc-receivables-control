@@ -1662,6 +1662,24 @@ describe('ProductsPage', () => {
         expect(screen.getByText('Editar Produto')).toBeInTheDocument();
       });
     });
+
+    it('should open the edit modal from the ?edit= deep link', async () => {
+      mockGet.mockResolvedValue({ data: fullResponse([mockProduct]) });
+      render(
+        <MemoryRouter initialEntries={['/products?edit=1']}>
+          <ToastProvider>
+            <ProductsPage />
+          </ToastProvider>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Editar Produto')).toBeInTheDocument();
+      });
+      expect(
+        screen.getByDisplayValue('Adaptiv® Pastilhas'),
+      ).toBeInTheDocument();
+    });
   });
 
   describe('Clipboard copy', () => {

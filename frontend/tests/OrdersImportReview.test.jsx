@@ -1,8 +1,9 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import OrdersPage from '../src/pages/OrdersPage';
 import { ToastProvider } from '../src/components/Toast';
+import { ORDER_ENTRY_MODE_KEY } from '../src/pages/Orders/useOrderEntryMode';
 
 const mockGet = vi.fn();
 const mockPost = vi.fn();
@@ -60,6 +61,35 @@ const mockGetImplementation = (ordersData) => {
   });
 };
 
+// Product auto-registered by the import as a draft (PENDENTE_CADASTRO). It is
+// intentionally absent from the products list, so the order form must render
+// its code as a link to the Products edit modal instead of the picker.
+const draftProduct = {
+  id: 'pr-draft',
+  name: 'Produto do Mês',
+  code: '5025',
+  status: 'PENDENTE_CADASTRO',
+  productType: 'SIMPLES',
+};
+
+const draftOrder = {
+  ...pendingOrder,
+  items: [
+    {
+      id: 'i1',
+      description: 'Produto do Mês',
+      chargedValue: '0.00',
+      quantity: 1,
+      chargedValueMode: 'UNIT',
+      personId: 'self-1',
+      person: { name: 'Eu Mesmo', isSelf: true },
+      productId: 'pr-draft',
+      memberPrice: null,
+      product: draftProduct,
+    },
+  ],
+};
+
 const renderPage = () =>
   render(
     <MemoryRouter>
@@ -69,9 +99,31 @@ const renderPage = () =>
     </MemoryRouter>,
   );
 
+const LocationProbe = () => {
+  const location = useLocation();
+  return (
+    <div data-testid="location">{`${location.pathname}${location.search}`}</div>
+  );
+};
+
+// Renders the orders page with a /products route that reports the current
+// location, so navigation from the order form can be asserted.
+const renderWithRoutes = (initialEntries) =>
+  render(
+    <MemoryRouter initialEntries={initialEntries}>
+      <ToastProvider>
+        <Routes>
+          <Route path="/" element={<OrdersPage />} />
+          <Route path="/products" element={<LocationProbe />} />
+        </Routes>
+      </ToastProvider>
+    </MemoryRouter>,
+  );
+
 describe('Orders import and review workflow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
   });
 
   it('lists imported orders by sending the pendingReview filter', async () => {
@@ -167,6 +219,43 @@ describe('Orders import and review workflow', () => {
     await waitFor(() => {
       expect(screen.getByTestId('doterra-import-created')).toHaveTextContent(
         '1',
+      );
+    });
+  });
+
+  it('shows a draft product as a code link and opens its Products edit modal (detailed form)', async () => {
+    mockGetImplementation([draftOrder]);
+    renderWithRoutes(['/?editOrder=p1']);
+
+    const link = await screen.findByTestId('order-item-pending-product-0');
+    expect(link).toHaveTextContent('5025');
+    // The picker is replaced by the link for draft products.
+    expect(
+      screen.queryByPlaceholderText('Busque um produto...'),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(link);
+    await waitFor(() => {
+      expect(screen.getByTestId('location')).toHaveTextContent(
+        '/products?edit=pr-draft',
+      );
+    });
+  });
+
+  it('shows the draft product code link in spreadsheet mode too', async () => {
+    window.localStorage.setItem(ORDER_ENTRY_MODE_KEY, 'spreadsheet');
+    mockGetImplementation([draftOrder]);
+    renderWithRoutes(['/?editOrder=p1']);
+
+    const link = await screen.findByTestId(
+      'order-spreadsheet-pending-product-0',
+    );
+    expect(link).toHaveTextContent('5025');
+
+    fireEvent.click(link);
+    await waitFor(() => {
+      expect(screen.getByTestId('location')).toHaveTextContent(
+        '/products?edit=pr-draft',
       );
     });
   });
