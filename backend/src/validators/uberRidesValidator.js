@@ -49,6 +49,9 @@ const rideExpenseItemSchema = z.object({
     .uuid('O ID do lançamento deve ser um UUID válido')
     .nullable()
     .optional(),
+  // Reconciliation only: when informed, replaces the existing row's date (e.g.
+  // the user corrects a manual entry to the ride's date). Omitted = preserved.
+  transactionDate: dateSchema.optional(),
   categoryId: z
     .string()
     .uuid('O ID da categoria deve ser um UUID válido')

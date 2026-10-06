@@ -599,6 +599,13 @@ const options = {
                     description:
                       'Quando informado, concilia com o lançamento existente em vez de criar um novo',
                   },
+                  transactionDate: {
+                    type: 'string',
+                    format: 'date',
+                    nullable: true,
+                    description:
+                      'Somente na conciliação: substitui a data do lançamento existente (ex.: corrigir para a data da corrida). Omitido = preservada',
+                  },
                 },
               },
             },

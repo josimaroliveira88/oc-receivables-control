@@ -319,7 +319,8 @@ const RECONCILABLE_ORIGINS = new Set(['MANUAL', 'VENDA_ADICIONAL']);
 // category and payment state, and only re-identifies it as the Uber ride
 // (origin, ride link, description) plus the sale link. A sale already linked to
 // the row wins over the payload, so reconciling never reassigns an existing
-// sale.
+// sale. An informed `transactionDate` overrides the stored date, so the user can
+// correct a manual entry to the ride's actual date.
 const reconcileExpenseWithRide = async (tx, { userId, ride, item }) => {
   const transaction = await tx.financialTransaction.findFirst({
     where: { id: item.matchTransactionId, userId },
@@ -367,6 +368,9 @@ const reconcileExpenseWithRide = async (tx, { userId, ride, item }) => {
       rideId: ride.id,
       orderId,
       description: buildRowDescription(item, ride, orderNumber),
+      ...(item.transactionDate && {
+        transactionDate: parseLocalDate(item.transactionDate),
+      }),
     },
     include: { category: true },
   });
