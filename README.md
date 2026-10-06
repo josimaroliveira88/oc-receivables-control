@@ -219,6 +219,6 @@ receivables-control/
 │   │   ├── context/     # AuthContext, ThemeContext
 │   │   └── utils/       # formatBRL, exportExcel
 │   └── tests/           # Testes automatizados
-├── docs/                # ROADMAP.md
+├── docs/                # Guia de implantação (DEPLOYMENT.md)
 └── docker-compose.yml   # Orquestração dos serviços
 ```

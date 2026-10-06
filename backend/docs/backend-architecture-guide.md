@@ -157,11 +157,16 @@ backend/src/
 │                                    # deleteOrder, addItem, updateItem,
 │                                    # deleteItem, getOrders, getOrderById
 ├── validators/
-│   └── ordersValidator.js           # itemSchema, orderDescriptiveSchema,
-│                                    # createOrderSchema, updateOrderSchema
+│   └── ordersValidator.js           # itemSchema, createOrderSchema,
+│                                    # updateOrderSchema
 ├── utils/
-│   ├── ordersHelpers.js             # itemCreateData, statusItemFromItem,
-│   │                                # orderLineTotalCents, selfPersonIdSet
+│   ├── ordersValidation.js          # validateProducts, validateStockItemRules,
+│   │                                # selfPersonIdSet, assertNotSaleOrder
+│   ├── ordersItemTransform.js       # itemCreateData, resolveItemDefaults,
+│   │                                # orderLineTotalCents
+│   ├── ordersKitResolution.js       # resolveKitFields, resolveEditedKitFields,
+│   │                                # resolveOrderUpdateItems
+│   ├── ordersStatusSync.js          # syncOrderStatus
 │   ├── ordersSort.js                # ORDER_SORTABLE_FIELDS, orderSortValue,
 │   │                                # sortOrdersInMemory
 │   ├── receivables.js               # computeOrderStatus, personBalances, ...

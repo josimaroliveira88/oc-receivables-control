@@ -88,7 +88,7 @@
 ### 6. Documentação
 - ✅ README com instruções de execução
 - ✅ Documentação de arquitetura (ARCHITECTURE.md)
-- ✅ Roadmap com todas as 16 fases (ROADMAP.md)
+- ✅ Histórico completo de fases (CHANGELOG.md)
 - ✅ Especificações técnicas (AGENTS.md)
 - ✅ Guia de workflow (PHASE_WORKFLOW.md)
 - ✅ 12 lições aprendidas documentadas (evita futuros problemas)
@@ -233,7 +233,7 @@ Quando você tiver novas funcionalidades para adicionar:
 Todos os arquivos de documentação estão no projeto:
 
 - **Para entender a arquitetura**: Leia `ARCHITECTURE.md`
-- **Para ver roadmap de 16 fases**: Leia `docs/ROADMAP.md`
+- **Para ver o histórico de fases**: Leia `CHANGELOG.md`
 - **Para especificações técnicas**: Leia `AGENTS.md`
 - **Para implementar novas features**: Leia `PHASE_WORKFLOW.md`
 - **Para ver lições aprendidas**: Procure "Lessons Learned" em `AGENTS.md`

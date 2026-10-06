@@ -120,7 +120,7 @@ All project documentation has been updated and is **current**:
 - Technology stack and ports documented
 - Instructions for running the system
 
-✅ **ROADMAP.md**
+✅ **CHANGELOG.md**
 - All 16 phases documented with Context, Stack, Task, Deliverable
 - "MVP PROJECT COMPLETION" section added
 - Summary of deliverables provided
@@ -214,14 +214,14 @@ The system is now **ready to accept new client feature requests**.
 
 ### When client requests new features:
 
-1. **Create a new phase** in `docs/ROADMAP.md` (Phase 17+)
+1. **Create a new phase** in `CHANGELOG.md` (Phase 17+)
 2. **Define acceptance criteria** with PT-BR labels and edge cases
 3. **Plan test coverage** (backend + frontend tests)
 4. **Implement with TDD** (write tests first)
 5. **Verify** all 164+ existing tests still pass
-6. **Update documentation** (ROADMAP.md, ARCHITECTURE.md, AGENTS.md)
+6. **Update documentation** (CHANGELOG.md, ARCHITECTURE.md, AGENTS.md)
 
-See `docs/ROADMAP.md` "Next Steps: Handling New Client Requests" for detailed instructions.
+See the **New Feature Workflow** in `AGENTS.md` for detailed instructions.
 
 ---
 
@@ -274,4 +274,4 @@ The Receivables Control System MVP is **complete, tested, and production-ready**
 
 ---
 
-*For future development, refer to `PHASE_WORKFLOW.md` for implementing new client features and `docs/ROADMAP.md` for the detailed roadmap.*
+*For future development, refer to `PHASE_WORKFLOW.md` for implementing new client features and `CHANGELOG.md` for the detailed history.*

@@ -2,27 +2,27 @@
 
 **⚠️ NOTE**: All 16 MVP phases are **COMPLETED**. This workflow document is now used for implementing **new features requested by the client**.
 
-When the client requests new features, create a new phase plan following the same principles below, adding it to `docs/ROADMAP.md` after Phase 16.
+When the client requests new features, create a new phase plan following the same principles below, recording it in `CHANGELOG.md` as a new `## Phase N` section.
 
 To implement a new client feature as a new phase:
 
 ## Standard File References (Case-Sensitive)
 - Technology specs: `AGENTS.md` (root)
 - Architecture docs: `ARCHITECTURE.md` (root)
-- Phase roadmap: `docs/ROADMAP.md`
+- Change history: `CHANGELOG.md`
 - Skills & patterns: `.opencode/skills/` directory
 
 ## Implementation Process for New Features
 1. **Verify current state**:
    - Read `AGENTS.md` for tech stack, rules, and completed MVP phases
    - Read `ARCHITECTURE.md` to understand current implementation
-   - Read `docs/ROADMAP.md` — note that all 16 MVP phases are complete
+   - Read `CHANGELOG.md` — all MVP phases are complete
    - Review "Lessons Learned / Pitfalls to Avoid" in AGENTS.md (critical knowledge)
 
 2. **Plan new feature phase**:
    - Gather client requirements clearly
    - Define acceptance criteria in PT-BR
-   - Add new phase section to ROADMAP.md following the template
+   - Record the new phase in `CHANGELOG.md` following its documented format
    - Plan database schema changes (if any) via Prisma migrations
    - Identify backend endpoints needed (if any)
    - Identify frontend pages/components needed (if any)
@@ -50,9 +50,9 @@ To implement a new client feature as a new phase:
    - Confirm no regressions in People, Orders, Payments, Finances, or Export features
 
 6. **Update documentation upon completion**:
-   - In `ROADMAP.md`:
-     - Change new phase status to `✅ COMPLETED`
-     - Document deliverables with test count
+   - In `CHANGELOG.md`:
+     - Add the `## Phase N` section with the deliverables
+     - Include the test counts and verification result
    - In `ARCHITECTURE.md`:
      - Update folder structure if new files/folders added
      - Document new endpoints if new backend features
@@ -66,7 +66,7 @@ To implement a new client feature as a new phase:
    - Update this PHASE_WORKFLOW.md if new patterns emerge
 
 7. **Verification protocol**:
-   - Test phase-specific deliverables as described in ROADMAP.md
+   - Test phase-specific deliverables as described in the phase plan
    - Run automated test suite (`npm test` / `npm run test`) and confirm all pass
    - Confirm no degradation in previously completed phases
    - Do not deploy, start, or reference next phase work
@@ -94,6 +94,6 @@ To implement a new client feature as a new phase:
 - **Always** run the automated test suite and confirm all tests pass before marking a phase complete
 - **Always** verify using the exact test cases described in the phase's deliverable section
 - Test phases must cover the implementation from the immediately preceding phase
-- When in doubt, re-read the specific phase section in ROADMAP.md
+- When in doubt, re-read the corresponding phase section in `CHANGELOG.md`
 
 This workflow ensures phased implementation remains isolated, verifiable, and testable.

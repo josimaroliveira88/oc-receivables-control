@@ -30,7 +30,7 @@
 
 ---
 
-### 3. ✏️ docs/ROADMAP.md (MODIFICADO)
+### 3. ✏️ CHANGELOG.md (MODIFICADO)
 **Mudanças**:
 - ✅ Adicionada nova seção "## 🎉 MVP PROJECT COMPLETION"
 - ✅ Criado sumário de entregas com checkboxes (✅)
@@ -86,7 +86,7 @@
 
 ---
 
-### 3. ✨ Repository Memory File: /memories/repo/MVP-completion-summary.md (NOVO)
+### 3. ✨ Nota de continuidade de sessão (ai-memory) (NOVO)
 **Conteúdo**:
 - Resumo executivo do MVP completo
 - Métricas finais
@@ -130,10 +130,10 @@
 
 Quando o cliente pedir uma **nova feature**:
 
-1. **Criar nova fase** em `ROADMAP.md` (Phase 17+)
+1. **Criar nova fase** em `CHANGELOG.md` (Phase 17+)
 2. **Seguir padrão TDD**: testes primeiro
 3. **Verificar** que todos 164+ testes ainda passam
-4. **Atualizar docs**: ROADMAP.md, AGENTS.md, ARCHITECTURE.md
+4. **Atualizar docs**: CHANGELOG.md, AGENTS.md, ARCHITECTURE.md
 5. **Comittar changes**: `git add . && git commit -m "Phase 17: [Feature Name]"`
 
 ---
@@ -144,11 +144,11 @@ Quando o cliente pedir uma **nova feature**:
 |-----------|--------|----------|
 | AGENTS.md | Atualizado | ✅ MVP Status + Next Steps |
 | ARCHITECTURE.md | Atualizado | ✅ MVP Complete badge |
-| docs/ROADMAP.md | Atualizado | ✅ Completion section + Template |
+| CHANGELOG.md | Atualizado | ✅ Histórico de fases |
 | PHASE_WORKFLOW.md | Atualizado | ✅ Novo workflow para features |
 | MVP_COMPLETION_REPORT.md | Novo | ✅ Relatório executivo |
 | CLIENTE_ENTREGA.md | Novo | ✅ Entrega para cliente |
-| /memories/repo/MVP-summary | Novo | ✅ Quick reference |
+| Nota de continuidade (ai-memory) | Novo | ✅ Quick reference |
 
 ---
 
