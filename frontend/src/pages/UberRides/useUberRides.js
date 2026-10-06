@@ -8,6 +8,7 @@ import {
   buildRideLaunchItem,
   filterRides,
   makeSelection,
+  matchDateValue,
   pickDefaultMatch,
   saleLabelFromMatch,
   summarizeRides,
@@ -176,6 +177,7 @@ export function useUberRides({ initialView = null } = {}) {
         matchTransactionId: match?.transactionId ?? null,
         orderId: match?.orderId ?? null,
         orderLabel: saleLabelFromMatch(match),
+        transactionDate: matchDateValue(match),
       },
     }));
   }, []);

@@ -81,8 +81,33 @@ export const saleLabelFromMatch = (match) =>
       })
     : '';
 
+// `@db.Date` values arrive as an ISO instant at UTC midnight; a date input wants
+// the plain calendar day.
+export const matchDateValue = (match) =>
+  match?.transactionDate?.slice(0, 10) ?? '';
+
+// The ride's calendar day, read from the UTC parts (the captured wall clock is
+// stored timezone-free), shaped for a date input. Used by the "use the ride
+// date" shortcut when reconciling a manual entry whose date was mistyped.
+export const rideDateValue = (ride) => {
+  if (!ride?.requestedAt) return '';
+  const date = new Date(ride.requestedAt);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (number) => String(number).padStart(2, '0');
+  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(
+    date.getUTCDate(),
+  )}`;
+};
+
+// Local `dd/mm/aaaa` of the ride date, for the shortcut label.
+export const formatRideDate = (ride) => {
+  const value = rideDateValue(ride);
+  return value ? formatDateBR(value) : '';
+};
+
 // Per-row form state. A matched row starts with the most recent suggestion
-// pre-selected (see `pickDefaultMatch`), so the user only confirms it.
+// pre-selected (see `pickDefaultMatch`), so the user only confirms it; the date
+// follows the matched row and can be corrected to the ride's date in the form.
 export const makeSelection = (
   ride,
   {
@@ -97,6 +122,7 @@ export const makeSelection = (
   orderId: defaultMatch?.orderId ?? null,
   orderLabel: defaultMatch ? saleLabelFromMatch(defaultMatch) : '',
   matchTransactionId: defaultMatch?.transactionId ?? null,
+  transactionDate: matchDateValue(defaultMatch),
   card: defaultCard,
   effectiveDate: defaultEffectiveDate,
 });
@@ -105,8 +131,8 @@ export const makeSelection = (
 export const pickDefaultMatch = (ride) => ride?.matches?.[0] ?? null;
 
 // Payload for one row: a single-item batch. Reconciling sends the matched
-// transaction id and no category/payment (the existing row keeps both); a plain
-// launch sends the create fields.
+// transaction id, the (possibly corrected) date and no category/payment (the
+// existing row keeps those); a plain launch sends the create fields.
 export const buildRideLaunchItem = (
   ride,
   selection,
@@ -118,6 +144,9 @@ export const buildRideLaunchItem = (
   orderId: selection.orderId || null,
   ...(reconcile && selection.matchTransactionId
     ? { matchTransactionId: selection.matchTransactionId }
+    : {}),
+  ...(reconcile && selection.transactionDate
+    ? { transactionDate: selection.transactionDate }
     : {}),
 });
 

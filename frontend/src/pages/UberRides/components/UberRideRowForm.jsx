@@ -1,9 +1,13 @@
 import React from 'react';
 import OrderAutocomplete from '../../../components/OrderAutocomplete';
 import { formatSaleOptionLabel } from '../../../utils/saleOption';
+import { formatDateBR } from '../../../utils/dates';
 import {
+  formatRideDate,
   formatRideMatchLabel,
+  matchDateValue,
   matchOriginLabel,
+  rideDateValue,
 } from '../utils/uberRideHelpers';
 
 const fieldClass =
@@ -170,6 +174,48 @@ const UberRideRowForm = ({
           </div>
         )}
 
+        {reconciling && (
+          <div className="lg:col-span-12">
+            <label
+              htmlFor={`uber-ride-date-${ride.id}`}
+              className="block text-xs font-medium text-ink-faint mb-1"
+            >
+              Data do lançamento
+            </label>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                id={`uber-ride-date-${ride.id}`}
+                data-testid={`uber-ride-date-${ride.id}`}
+                type="date"
+                value={selection.transactionDate ?? ''}
+                onChange={(event) =>
+                  onFieldChange(ride.id, {
+                    transactionDate: event.target.value,
+                  })
+                }
+                className={`${fieldClass} sm:w-auto`}
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  onFieldChange(ride.id, {
+                    transactionDate: rideDateValue(ride),
+                  })
+                }
+                data-testid={`uber-ride-use-ride-date-${ride.id}`}
+                className="px-3 py-1.5 text-sm font-medium text-accent-on-soft bg-accent-soft hover:bg-accent hover:text-accent-on rounded-md transition-colors"
+              >
+                Usar a data da corrida ({formatRideDate(ride)})
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-ink-faint">
+              Data do lançamento existente:{' '}
+              {formatDateBR(matchDateValue(selectedMatch))} · Data da corrida:{' '}
+              {formatRideDate(ride)}
+            </p>
+          </div>
+        )}
+
         {!reconciling && (
           <div className="lg:col-span-6">
             <label className="inline-flex items-center gap-2 text-sm text-ink-soft">
@@ -212,8 +258,8 @@ const UberRideRowForm = ({
 
       {reconciling && (
         <p className="text-xs text-ink-faint">
-          A conciliação atualiza a descrição e o vínculo da corrida no
-          lançamento existente; valor, data, categoria e pagamento são mantidos.
+          A conciliação atualiza a descrição, o vínculo da corrida e a data do
+          lançamento existente; valor, categoria e pagamento são mantidos.
         </p>
       )}
 
