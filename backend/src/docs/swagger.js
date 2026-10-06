@@ -469,10 +469,140 @@ const options = {
             name: { type: 'string', maxLength: 60 },
             scope: {
               type: 'string',
-              enum: ['uber:import'],
-              default: 'uber:import',
+              enum: ['uber:import', 'doterra:import'],
+              description: 'Forma legada de um único escopo',
+            },
+            scopes: {
+              type: 'array',
+              minItems: 1,
+              items: {
+                type: 'string',
+                enum: ['uber:import', 'doterra:import'],
+              },
+              description:
+                'Escopos do token (um token pode servir as capturas Uber e dōTERRA)',
             },
             ttlDays: { type: 'integer', enum: [7, 30, 90], default: 30 },
+          },
+        },
+        DoterraLookupInput: {
+          type: 'object',
+          required: ['numbers'],
+          properties: {
+            numbers: {
+              type: 'array',
+              minItems: 1,
+              items: { type: 'string' },
+            },
+          },
+        },
+        DoterraLookupOutput: {
+          type: 'object',
+          properties: {
+            existing: { type: 'array', items: { type: 'string' } },
+            missing: { type: 'array', items: { type: 'string' } },
+          },
+        },
+        DoterraOrderItemInput: {
+          type: 'object',
+          required: ['code', 'quantity'],
+          properties: {
+            code: { type: 'string', maxLength: 20 },
+            description: { type: 'string', maxLength: 500, nullable: true },
+            quantity: { type: 'integer', minimum: 1 },
+            unitPrice: { type: 'number', minimum: 0, default: 0 },
+            unitPv: { type: 'number', minimum: 0, default: 0 },
+          },
+        },
+        DoterraOrderImportInput: {
+          type: 'object',
+          required: ['orders'],
+          properties: {
+            orders: {
+              type: 'array',
+              minItems: 1,
+              items: {
+                type: 'object',
+                required: ['orderNumber', 'orderDate', 'items'],
+                properties: {
+                  orderNumber: { type: 'string' },
+                  orderDate: { type: 'string', example: '2026-09-02' },
+                  accountOwner: {
+                    type: 'string',
+                    maxLength: 120,
+                    nullable: true,
+                  },
+                  listTypeCode: { type: 'string', nullable: true },
+                  listOriginCode: { type: 'string', nullable: true },
+                  pvMonth: { type: 'string', nullable: true },
+                  doterraPv: { type: 'number', minimum: 0, nullable: true },
+                  listValue: { type: 'number', minimum: 0, nullable: true },
+                  shippingValue: { type: 'number', minimum: 0 },
+                  installmentValue: {
+                    type: 'number',
+                    minimum: 0,
+                    nullable: true,
+                  },
+                  paymentType: {
+                    $ref: '#/components/schemas/PaymentType',
+                    nullable: true,
+                  },
+                  installments: {
+                    type: 'integer',
+                    minimum: 1,
+                    maximum: 24,
+                    nullable: true,
+                  },
+                  items: {
+                    type: 'array',
+                    minItems: 1,
+                    items: {
+                      $ref: '#/components/schemas/DoterraOrderItemInput',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        DoterraOrderImportSummary: {
+          type: 'object',
+          properties: {
+            created: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  orderNumber: { type: 'string' },
+                  id: { type: 'string', format: 'uuid' },
+                  warnings: {
+                    type: 'array',
+                    items: { type: 'string' },
+                  },
+                },
+              },
+            },
+            existing: { type: 'array', items: { type: 'string' } },
+            failed: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  orderNumber: { type: 'string' },
+                  error: { type: 'string' },
+                },
+              },
+            },
+            createdProducts: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  name: { type: 'string' },
+                },
+              },
+            },
           },
         },
         RideStatus: {
@@ -768,6 +898,11 @@ const options = {
             },
             totalValue: { type: 'number' },
             shippingValue: { type: 'number', nullable: true },
+            pendingReview: {
+              type: 'boolean',
+              description:
+                'Pedido importado pela extensão dōTERRA que ainda aguarda revisão',
+            },
             isTeamOrder: { type: 'boolean' },
             attachmentFilename: { type: 'string', nullable: true },
             items: {

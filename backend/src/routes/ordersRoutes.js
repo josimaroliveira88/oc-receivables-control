@@ -90,6 +90,35 @@ router.get('/:id', ordersController.getOrderById);
 
 /**
  * @openapi
+ * /api/orders/{id}/review:
+ *   patch:
+ *     tags: [Orders]
+ *     summary: Marca um pedido importado como revisado
+ *     description: Limpa a flag `pendingReview` sem passar pelo formulário de edição.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Pedido atualizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Order'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+// PATCH /api/orders/:id/review
+router.patch('/:id/review', ordersController.reviewOrder);
+
+/**
+ * @openapi
  * /api/orders:
  *   post:
  *     tags: [Orders]

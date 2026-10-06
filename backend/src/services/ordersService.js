@@ -37,9 +37,21 @@ import {
 } from '../utils/ordersSort.js';
 import { syncExpenseFromOrder } from './financeSyncService.js';
 import { removeBillForOrder } from './creditCardService.js';
+import {
+  collectDraftCleanup,
+  cleanupDraftProducts,
+} from './draftProductCleanup.js';
 
 const getOrders = async (client, { userId, query }) => {
-  const { q, searchField, status, paymentType, sortBy, sortDir } = query;
+  const {
+    q,
+    searchField,
+    status,
+    paymentType,
+    pendingReview,
+    sortBy,
+    sortDir,
+  } = query;
 
   const where = { userId, orderType: 'COMPRA' };
 
@@ -84,6 +96,12 @@ const getOrders = async (client, { userId, query }) => {
   if (paymentType) {
     where.paymentType = paymentType;
   }
+
+  // `pendingReview=yes|no` narrows the list to imported orders still awaiting
+  // the user's review (or the already-reviewed ones). Mirrors the rides
+  // `launched` filter.
+  if (pendingReview === 'yes') where.pendingReview = true;
+  if (pendingReview === 'no') where.pendingReview = false;
 
   // The pendingValue column is derived from items and payments, so it is
   // sorted in-memory after fetching the filtered set.
@@ -145,127 +163,137 @@ const getOrderById = async (client, { id, userId }) => {
   return order;
 };
 
-const createOrder = async (client, { userId, payload }) => {
-  return client.$transaction(async (tx) => {
-    const isTeamOrder = payload.isTeamOrder ?? false;
+// Transactional core of a purchase-order creation, shared by the manual
+// create path and the dōTERRA orders import (which must create its draft
+// products and the order inside the SAME transaction). `pendingReview` flags
+// the imported orders; `allowProductIds` accepts the draft product ids the
+// import just created so product validation does not reject them.
+const createOrderInTx = async (
+  tx,
+  { userId, payload, pendingReview = false, allowProductIds = [] },
+) => {
+  const isTeamOrder = payload.isTeamOrder ?? false;
 
-    // The self person (the logged-in user) owns every non-team order; items
-    // without an explicit person are bound to them when the self person
-    // exists. Explicitly-provided persons (legacy data) are preserved so
-    // records can be migrated gradually.
-    const selfPerson = await tx.person.findFirst({
-      where: { userId, isSelf: true },
-    });
-    const selfPersonId = selfPerson?.id ?? null;
-
-    // Verify explicitly-provided persons exist and belong to the user. Team
-    // orders and legacy non-team items reference real persons; new non-team
-    // items are bound to the self person below, so they need no validation.
-    const personIds = [
-      ...new Set(payload.items.map((item) => item.personId).filter(Boolean)),
-    ];
-    if (personIds.length > 0) {
-      const persons = await tx.person.findMany({
-        where: { id: { in: personIds }, userId },
-      });
-      if (persons.length !== personIds.length) {
-        throw badRequest('Uma ou mais pessoas não foram encontradas');
-      }
-    }
-
-    const items = resolveItemDefaults({
-      items: payload.items,
-      isTeamOrder,
-      selfPersonId,
-    });
-
-    // Verify all products exist and are available (ATIVO or INDISPONIVEL)
-    await validateProducts(tx, items);
-
-    const selfIds = new Set(selfPersonId ? [selfPersonId] : []);
-    if (!isTeamOrder) {
-      validateStockItemRules(items, selfIds);
-    }
-
-    // Attach frozen kit snapshots and validate the stock mode for kit items.
-    await resolveKitFields(tx, items);
-
-    const personMap = new Map();
-    if (selfPerson) personMap.set(selfPerson.id, selfPerson);
-
-    // Calculate total value in integer cents, honoring price mode × quantity
-    // plus the order-level shipping value. The doTERRA value always equals the
-    // total (sum of products + shipping), so it is derived, not informed.
-    const shippingCents = toCents(payload.shippingValue ?? 0);
-    const totalCents = orderLineTotalCents(items) + shippingCents;
-    const status = computeOrderStatus({
-      items: items.map((item) => ({
-        personId: item.personId,
-        chargedValue: item.chargedValue,
-        quantity: item.quantity,
-        chargedValueMode: item.chargedValueMode,
-        person: item.personId ? personMap.get(item.personId) : undefined,
-      })),
-      payments: [],
-      shippingCents,
-      isTeamOrder,
-    });
-
-    // Create order with items
-    const order = await tx.order.create({
-      data: {
-        orderNumber: payload.orderNumber,
-        totalValue: fromCents(totalCents).toFixed(2),
-        shippingValue: fromCents(shippingCents).toFixed(2),
-        orderDate: payload.orderDate
-          ? parseLocalDate(payload.orderDate)
-          : undefined,
-        isTeamOrder,
-        accountOwner: payload.accountOwner ?? null,
-        paymentType: payload.paymentType ?? null,
-        orderNotes: payload.orderNotes ?? null,
-        doterraPv:
-          payload.doterraPv != null
-            ? fromCents(toCents(payload.doterraPv)).toFixed(2)
-            : null,
-        installments: payload.installments ?? null,
-        firstInstallmentAt: payload.firstInstallmentAt
-          ? parseLocalDate(payload.firstInstallmentAt)
-          : null,
-        doterraValue: fromCents(totalCents).toFixed(2),
-        status,
-        userId,
-        items: {
-          create: items.map(itemCreateData),
-        },
-      },
-      include: {
-        items: {
-          include: {
-            person: true,
-            product: true,
-          },
-        },
-      },
-    });
-
-    // Apply stock for self + forStock items (not for team orders)
-    if (!isTeamOrder) {
-      for (const movement of itemStockMovements(tx, {
-        order,
-        items: order.items,
-      })) {
-        await applyMovement(tx, movement);
-      }
-    }
-
-    // Mirror the purchase order into the financial ledger (expense). Team
-    // orders produce no transaction.
-    await syncExpenseFromOrder(tx, { userId, order });
-
-    return order;
+  // The self person (the logged-in user) owns every non-team order; items
+  // without an explicit person are bound to them when the self person
+  // exists. Explicitly-provided persons (legacy data) are preserved so
+  // records can be migrated gradually.
+  const selfPerson = await tx.person.findFirst({
+    where: { userId, isSelf: true },
   });
+  const selfPersonId = selfPerson?.id ?? null;
+
+  // Verify explicitly-provided persons exist and belong to the user. Team
+  // orders and legacy non-team items reference real persons; new non-team
+  // items are bound to the self person below, so they need no validation.
+  const personIds = [
+    ...new Set(payload.items.map((item) => item.personId).filter(Boolean)),
+  ];
+  if (personIds.length > 0) {
+    const persons = await tx.person.findMany({
+      where: { id: { in: personIds }, userId },
+    });
+    if (persons.length !== personIds.length) {
+      throw badRequest('Uma ou mais pessoas não foram encontradas');
+    }
+  }
+
+  const items = resolveItemDefaults({
+    items: payload.items,
+    isTeamOrder,
+    selfPersonId,
+  });
+
+  // Verify all products exist and are available (ATIVO or INDISPONIVEL)
+  await validateProducts(tx, items, allowProductIds);
+
+  const selfIds = new Set(selfPersonId ? [selfPersonId] : []);
+  if (!isTeamOrder) {
+    validateStockItemRules(items, selfIds);
+  }
+
+  // Attach frozen kit snapshots and validate the stock mode for kit items.
+  await resolveKitFields(tx, items);
+
+  const personMap = new Map();
+  if (selfPerson) personMap.set(selfPerson.id, selfPerson);
+
+  // Calculate total value in integer cents, honoring price mode × quantity
+  // plus the order-level shipping value. The doTERRA value always equals the
+  // total (sum of products + shipping), so it is derived, not informed.
+  const shippingCents = toCents(payload.shippingValue ?? 0);
+  const totalCents = orderLineTotalCents(items) + shippingCents;
+  const status = computeOrderStatus({
+    items: items.map((item) => ({
+      personId: item.personId,
+      chargedValue: item.chargedValue,
+      quantity: item.quantity,
+      chargedValueMode: item.chargedValueMode,
+      person: item.personId ? personMap.get(item.personId) : undefined,
+    })),
+    payments: [],
+    shippingCents,
+    isTeamOrder,
+  });
+
+  // Create order with items
+  const order = await tx.order.create({
+    data: {
+      orderNumber: payload.orderNumber,
+      totalValue: fromCents(totalCents).toFixed(2),
+      shippingValue: fromCents(shippingCents).toFixed(2),
+      orderDate: payload.orderDate
+        ? parseLocalDate(payload.orderDate)
+        : undefined,
+      isTeamOrder,
+      accountOwner: payload.accountOwner ?? null,
+      paymentType: payload.paymentType ?? null,
+      orderNotes: payload.orderNotes ?? null,
+      doterraPv:
+        payload.doterraPv != null
+          ? fromCents(toCents(payload.doterraPv)).toFixed(2)
+          : null,
+      installments: payload.installments ?? null,
+      firstInstallmentAt: payload.firstInstallmentAt
+        ? parseLocalDate(payload.firstInstallmentAt)
+        : null,
+      doterraValue: fromCents(totalCents).toFixed(2),
+      status,
+      pendingReview,
+      userId,
+      items: {
+        create: items.map(itemCreateData),
+      },
+    },
+    include: {
+      items: {
+        include: {
+          person: true,
+          product: true,
+        },
+      },
+    },
+  });
+
+  // Apply stock for self + forStock items (not for team orders)
+  if (!isTeamOrder) {
+    for (const movement of itemStockMovements(tx, {
+      order,
+      items: order.items,
+    })) {
+      await applyMovement(tx, movement);
+    }
+  }
+
+  // Mirror the purchase order into the financial ledger (expense). Team
+  // orders produce no transaction.
+  await syncExpenseFromOrder(tx, { userId, order });
+
+  return order;
 };
+
+const createOrder = async (client, { userId, payload }) =>
+  client.$transaction((tx) => createOrderInTx(tx, { userId, payload }));
 
 const updateOrder = async (client, { id, userId, payload }) => {
   return client.$transaction(async (tx) => {
@@ -330,6 +358,8 @@ const updateOrder = async (client, { id, userId, payload }) => {
           shippingValue: fromCents(newShippingCents).toFixed(2),
           totalValue: fromCents(newTotalCents).toFixed(2),
           doterraValue: fromCents(newTotalCents).toFixed(2),
+          // Saving an imported order marks it reviewed.
+          pendingReview: false,
         },
         include: {
           items: {
@@ -468,6 +498,8 @@ const updateOrder = async (client, { id, userId, payload }) => {
         totalValue: fromCents(totalCents).toFixed(2),
         shippingValue: fromCents(shippingCents).toFixed(2),
         doterraValue: fromCents(totalCents).toFixed(2),
+        // Saving an imported order marks it reviewed.
+        pendingReview: false,
         orderDate: payload.orderDate
           ? parseLocalDate(payload.orderDate)
           : undefined,
@@ -570,7 +602,7 @@ const deleteOrder = async (client, { id, userId }) => {
     // Check if order exists and belongs to user
     const existingOrder = await tx.order.findFirst({
       where: { id, userId },
-      include: { items: { include: { person: true } } },
+      include: { items: { include: { person: true, product: true } } },
     });
 
     if (!existingOrder) {
@@ -596,13 +628,41 @@ const deleteOrder = async (client, { id, userId }) => {
       });
     }
 
+    // Collect the draft products this order created and its own stock
+    // movements before the order (and the movement orderId link) is gone.
+    const draftCleanup = await collectDraftCleanup(tx, {
+      order: existingOrder,
+    });
+
     await removeBillForOrder(tx, { userId, orderId: id });
 
     await tx.order.delete({ where: { id } });
+
+    // Remove the drafts the import created, when nothing else depends on them.
+    await cleanupDraftProducts(tx, { userId, ...draftCleanup });
+
     return { message: 'Pedido excluído com sucesso' };
   });
 
   return { message: result.message, attachmentFilename };
+};
+
+// Marks an imported order as reviewed without going through the full edit
+// form. Used by the orders list quick action.
+const reviewOrder = async (client, { id, userId }) => {
+  const existing = await client.order.findFirst({ where: { id, userId } });
+  if (!existing) {
+    throw notFound('Pedido não encontrado');
+  }
+
+  return client.order.update({
+    where: { id },
+    data: { pendingReview: false },
+    include: {
+      items: { include: { person: true, product: true } },
+      payments: { include: { person: true } },
+    },
+  });
 };
 
 const addItemToOrder = async (client, { orderId, userId, payload }) => {
@@ -952,6 +1012,8 @@ export {
   getOrders,
   getOrderById,
   createOrder,
+  createOrderInTx,
+  reviewOrder,
   updateOrder,
   deleteOrder,
   addItemToOrder,

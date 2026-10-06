@@ -89,6 +89,11 @@ model Order {
   // on to the client, so the amount charged is higher than the sale total.
   passesGatewayFeeToClient       Boolean                @default(false)
   orderNotes                     String?                @db.VarChar(2000)
+  // Set by the dōTERRA orders import: the order was created from captured
+  // evidence and still needs the user's review. Cleared when the user saves
+  // the order or uses the "mark reviewed" quick action. Manual orders are
+  // always false.
+  pendingReview                  Boolean                @default(false)
   doterraPv                      Decimal?               @db.Decimal(10, 2)
   doterraValue                   Decimal?               @db.Decimal(10, 2)
   attachmentFilename             String?                @db.VarChar(255)
@@ -219,6 +224,11 @@ enum ProductStatus {
   ATIVO
   INDISPONIVEL
   INATIVO
+  // Draft product auto-registered by the dōTERRA orders import for a code that
+  // was missing from the catalog. The user completes its prices and activates
+  // it; drafts are never offered in order/sale forms and can be hard-deleted
+  // with the imported order that created them.
+  PENDENTE_CADASTRO
 }
 
 enum ProductType {

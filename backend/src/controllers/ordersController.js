@@ -35,6 +35,20 @@ const getOrderById = async (req, res) => {
   }
 };
 
+// Mark an imported order as reviewed (quick action from the orders list).
+const reviewOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await ordersService.reviewOrder(prisma, {
+      id,
+      userId: req.user.userId,
+    });
+    res.status(200).json(result);
+  } catch (error) {
+    handleError(res, error, { label: 'Error reviewing order' });
+  }
+};
+
 // Create new order with items
 const createOrder = async (req, res) => {
   try {
@@ -144,6 +158,7 @@ const deleteItem = async (req, res) => {
 export {
   getOrders,
   getOrderById,
+  reviewOrder,
   createOrder,
   updateOrder,
   deleteOrder,

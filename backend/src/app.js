@@ -82,6 +82,10 @@ app.use('/api/credit-cards', creditCardsRoutes);
 import uberRoutes from './routes/uberRoutes.js';
 app.use('/api/uber', uberRoutes);
 
+// dōTERRA order routes (extension capture import)
+import doterraRoutes from './routes/doterraRoutes.js';
+app.use('/api/doterra', doterraRoutes);
+
 // API tokens for first-party integrations (the Chrome extension)
 import apiTokenRoutes from './routes/apiTokenRoutes.js';
 app.use('/api/api-tokens', apiTokenRoutes);

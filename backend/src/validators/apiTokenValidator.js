@@ -11,7 +11,12 @@ const apiTokenCreateSchema = z.object({
     .trim()
     .min(1, 'O nome do token é obrigatório')
     .max(MAX_NAME, `O nome deve ter no máximo ${MAX_NAME} caracteres`),
-  scope: tokenScopeSchema.default(API_TOKEN_SCOPES[0]),
+  // Legacy single scope; the multi-scope form sends `scopes`.
+  scope: tokenScopeSchema.optional(),
+  scopes: z
+    .array(tokenScopeSchema)
+    .min(1, 'Selecione ao menos um escopo')
+    .optional(),
   ttlDays: z.union([z.literal(7), z.literal(30), z.literal(90)]).default(30),
 });
 

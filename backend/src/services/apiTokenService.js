@@ -10,9 +10,25 @@ import { forbidden, notFound } from '../utils/httpError.js';
 // session JWT (`cr_` never appears in a JWT, which starts with `eyJ`).
 export const API_TOKEN_PREFIX = 'cr_';
 
-export const API_TOKEN_SCOPES = ['uber:import'];
+export const API_TOKEN_SCOPES = ['uber:import', 'doterra:import'];
 
 const hashToken = (token) => createHash('sha256').update(token).digest('hex');
+
+// Normalizes the requested scopes (accepting the legacy single `scope` string)
+// into a non-empty, deduplicated, known-scope list. Unknown values are
+// dropped; an empty result falls back to `uber:import` so existing callers
+// that send nothing keep working.
+const normalizeScopes = (requested) => {
+  const list = Array.isArray(requested)
+    ? requested
+    : requested
+      ? [requested]
+      : [];
+  const unique = [
+    ...new Set(list.filter((value) => API_TOKEN_SCOPES.includes(value))),
+  ];
+  return unique.length > 0 ? unique : ['uber:import'];
+};
 
 // Public shape (everything except the hash): safe to return on every endpoint.
 const publicToken = (record) => ({
@@ -27,16 +43,17 @@ const publicToken = (record) => ({
 
 const createApiToken = async (
   client,
-  { userId, name, scope = 'uber:import', ttlDays = 30 },
+  { userId, name, scopes, scope, ttlDays = 30 },
 ) => {
   const token = `${API_TOKEN_PREFIX}${randomBytes(32).toString('base64url')}`;
   const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
+  const scopeValue = normalizeScopes(scopes ?? scope).join(',');
 
   const record = await client.apiToken.create({
     data: {
       userId,
       name,
-      scope,
+      scope: scopeValue,
       tokenHash: hashToken(token),
       lastFour: token.slice(-4),
       expiresAt,
@@ -99,7 +116,7 @@ const authorizeApiToken = async (client, { token, scope }) => {
     throw unauthorized('Token expirado. Gere um novo no app');
   }
 
-  if (record.scope !== scope) {
+  if (!record.scope.split(',').includes(scope)) {
     throw forbidden('Token sem permissão para esta ação');
   }
 

@@ -1,6 +1,12 @@
 import { z } from 'zod';
 
-const productStatusSchema = z.enum(['ATIVO', 'INDISPONIVEL', 'INATIVO']);
+const productStatusSchema = z.enum([
+  'ATIVO',
+  'INDISPONIVEL',
+  'INATIVO',
+  'PENDENTE_CADASTRO',
+]);
+
 const productTypeSchema = z.enum(['SIMPLES', 'KIT']);
 
 const componentSchema = z.object({

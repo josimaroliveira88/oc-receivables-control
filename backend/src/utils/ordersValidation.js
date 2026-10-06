@@ -3,21 +3,32 @@
 // response.
 import { badRequest } from './httpError.js';
 
-// Verify all products exist and are available (ATIVO or INDISPONIVEL; INATIVO is rejected)
-const validateProducts = async (client, items) => {
+// Verify all products exist and are available (ATIVO or INDISPONIVEL; INATIVO
+// is rejected). `extraAllowedIds` lets the dōTERRA import reference the draft
+// products (PENDENTE_CADASTRO) it just created inside the same transaction,
+// without loosening the rule for every other write path.
+const validateProducts = async (client, items, extraAllowedIds = []) => {
   const productIds = [
     ...new Set(items.map((item) => item.productId).filter(Boolean)),
   ];
   if (productIds.length === 0) return;
 
+  const allowedIds = new Set(extraAllowedIds);
+
   const products = await client.product.findMany({
     where: {
       id: { in: productIds },
-      status: { in: ['ATIVO', 'INDISPONIVEL'] },
     },
   });
 
-  if (products.length !== productIds.length) {
+  const usable = products.filter(
+    (product) =>
+      allowedIds.has(product.id) ||
+      product.status === 'ATIVO' ||
+      product.status === 'INDISPONIVEL',
+  );
+
+  if (usable.length !== productIds.length) {
     throw badRequest('Um ou mais produtos estão inativos ou não existem');
   }
 };
