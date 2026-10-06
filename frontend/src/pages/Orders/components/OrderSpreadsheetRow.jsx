@@ -4,7 +4,7 @@ import CurrencyInput from '../../../components/CurrencyInput';
 import NumericInput from '../../../components/NumericInput';
 import ProductCombobox from '../../../components/ProductCombobox';
 import { formatBRL, fromCents } from '../../../utils/money';
-import { isKitItem } from '../utils/orderHelpers';
+import { isKitItem, isPendingProduct } from '../utils/orderHelpers';
 import { formatMemberCents, formatPv } from '../utils/simulatorHelpers';
 import { spreadsheetRowTotals } from '../utils/orderSpreadsheetHelpers';
 
@@ -23,6 +23,7 @@ const OrderSpreadsheetRow = ({
   error,
   isTeamOrder,
   onUpdateField,
+  onOpenProduct,
   onRemove,
 }) => {
   const totals = spreadsheetRowTotals(row, products);
@@ -34,13 +35,25 @@ const OrderSpreadsheetRow = ({
       className="border-b border-line last:border-b-0 hover:bg-accent-soft transition-colors"
     >
       <td className="px-3 py-2 align-top min-w-[220px]">
-        <ProductCombobox
-          products={products}
-          value={row.productId}
-          onChange={(productId) =>
-            onUpdateField(row.id, 'productId', productId)
-          }
-        />
+        {isPendingProduct(row.productStatus) ? (
+          <button
+            type="button"
+            data-testid={`order-spreadsheet-pending-product-${index}`}
+            onClick={() => onOpenProduct?.(row.productId)}
+            title="Produto pendente de cadastro — clique para revisar e salvar"
+            className="text-sm font-medium text-accent underline underline-offset-2 hover:text-accent-hover transition-colors"
+          >
+            {row.productCode || row.productId}
+          </button>
+        ) : (
+          <ProductCombobox
+            products={products}
+            value={row.productId}
+            onChange={(productId) =>
+              onUpdateField(row.id, 'productId', productId)
+            }
+          />
+        )}
         {error && (
           <p
             data-testid={`order-spreadsheet-error-${row.id}`}

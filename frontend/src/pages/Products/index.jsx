@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useProducts } from './useProducts';
 import ProductsTable from './components/ProductsTable';
 import Modal from '../../components/Modal';
@@ -50,6 +51,31 @@ const ProductsPage = () => {
     copyField,
     copyRow,
   } = useProducts();
+
+  // Deep-link from the order form: opening /products?edit=<productId> (e.g. the
+  // code of a PENDENTE_CADASTRO draft) opens the edit modal for that product
+  // once the catalog is loaded, then drops the param.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editParam = searchParams.get('edit');
+  const editHandledRef = useRef(false);
+  useEffect(() => {
+    if (!editParam || editHandledRef.current || loading) return;
+    const product = allProducts.find((p) => p.id === editParam);
+    if (!product) return;
+    editHandledRef.current = true;
+    // Preserve any other params; only drop `edit` after opening.
+    const next = new URLSearchParams(searchParams);
+    next.delete('edit');
+    setSearchParams(next, { replace: true });
+    openEditModal(product);
+  }, [
+    editParam,
+    loading,
+    allProducts,
+    openEditModal,
+    searchParams,
+    setSearchParams,
+  ]);
 
   if (loading) {
     return (

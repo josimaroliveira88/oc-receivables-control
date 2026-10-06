@@ -47,6 +47,7 @@ const OrderSpreadsheetForm = ({
   onAddRow,
   onRemoveRow,
   onUpdateRow,
+  onOpenProduct,
   onClearRows,
   onSubmit,
   onCancel,
@@ -145,6 +146,7 @@ const OrderSpreadsheetForm = ({
                     error={rowErrors[row.id]}
                     isTeamOrder={isTeamOrder}
                     onUpdateField={onUpdateRow}
+                    onOpenProduct={onOpenProduct}
                     onRemove={onRemoveRow}
                   />
                 ))}

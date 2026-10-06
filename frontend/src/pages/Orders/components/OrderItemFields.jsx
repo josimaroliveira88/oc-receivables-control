@@ -9,6 +9,7 @@ import {
   personSelectLabel,
   isItemForSelf,
   isKitItem,
+  isPendingProduct,
   memberLineTotal,
   lineValueCents,
 } from '../utils/orderHelpers';
@@ -23,6 +24,7 @@ const OrderItemFields = ({
   onUpdateField,
   onPersonSelect,
   onProductSelect,
+  onOpenProduct,
   onRemove,
   isTeamOrder = false,
   showPersonSelect = false,
@@ -95,13 +97,29 @@ const OrderItemFields = ({
           <label className="block text-xs font-medium text-ink-faint mb-1">
             Produto
           </label>
-          <ProductCombobox
-            products={products}
-            value={item.productId}
-            selectedName={item.productName}
-            selectedCode={item.productCode}
-            onChange={onProductSelect}
-          />
+          {isPendingProduct(item.productStatus) ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                data-testid={`order-item-pending-product-${index}`}
+                onClick={() => onOpenProduct?.(item.productId)}
+                className="text-sm font-medium text-accent underline underline-offset-2 hover:text-accent-hover transition-colors"
+              >
+                {item.productCode || item.productId}
+              </button>
+              <span className="text-xs text-ink-faint">
+                Pendente de cadastro — clique para revisar e salvar o produto.
+              </span>
+            </div>
+          ) : (
+            <ProductCombobox
+              products={products}
+              value={item.productId}
+              selectedName={item.productName}
+              selectedCode={item.productCode}
+              onChange={onProductSelect}
+            />
+          )}
         </div>
 
         <div>

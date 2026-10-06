@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { formatBRL, toCents } from '../../utils/money';
 import { useOrders } from './useOrders';
 import { useOrderPayments } from './useOrderPayments';
@@ -19,6 +20,16 @@ import { ENTRY_MODES } from './useOrderEntryMode';
 
 const OrdersPage = () => {
   const [viewAttachmentOrder, setViewAttachmentOrder] = useState(null);
+  const navigate = useNavigate();
+
+  // Opens the Products screen with the edit modal for a draft product
+  // (PENDENTE_CADASTRO) referenced by an order item, so the user can complete
+  // and activate it. Drafts stay hidden from the product pickers.
+  const openPendingProduct = (productId) => {
+    if (!productId) return;
+    navigate(`/products?edit=${productId}`);
+  };
+
   const {
     orders,
     people,
@@ -332,6 +343,7 @@ const OrdersPage = () => {
               onAddRow={addSpreadsheetRow}
               onRemoveRow={removeSpreadsheetRow}
               onUpdateRow={updateSpreadsheetRow}
+              onOpenProduct={openPendingProduct}
               onClearRows={clearSpreadsheetRows}
               onSubmit={showEditModal ? handleUpdateOrder : handleCreateOrder}
               onCancel={requestClose}
@@ -370,6 +382,7 @@ const OrdersPage = () => {
               onItemPersonSelect={onPersonSelect}
               onTeamPersonSelect={onTeamPersonSelect}
               onItemProductSelect={onProductSelect}
+              onOpenProduct={openPendingProduct}
               onAddItem={addItem}
               onRemoveItem={removeItem}
               addItemBtnRef={addItemBtnRef}

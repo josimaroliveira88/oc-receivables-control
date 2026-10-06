@@ -225,6 +225,7 @@ export function useOrders() {
           productId,
           productName: product ? product.name : '',
           productCode: product ? product.code : '',
+          productStatus: product ? product.status : '',
           description: product ? product.name : '',
           memberPrice,
           kitStockMode: '',
@@ -376,6 +377,8 @@ export function useOrders() {
         if (field === 'productId') {
           const product = products.find((p) => p.id === value) || null;
           next.forStock = !isTeamOrder && !!product;
+          next.productCode = product ? product.code : '';
+          next.productStatus = product ? product.status : '';
           if (!product) next.kitStockMode = '';
           next.chargedValue = derivedChargedValueString(next, products);
         } else if (field === 'discountPercent') {

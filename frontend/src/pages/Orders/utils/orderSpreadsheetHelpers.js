@@ -36,6 +36,8 @@ export const createEmptySpreadsheetRow = () => ({
   id: `srow-${Date.now()}-${rowSequence++}`,
   itemId: null,
   productId: '',
+  productCode: '',
+  productStatus: '',
   quantity: 1,
   discountPercent: 0,
   chargedValue: '',
@@ -181,6 +183,8 @@ export const spreadsheetRowFromItem = (item) => {
     id: `srow-${Date.now()}-${rowSequence++}`,
     itemId: typeof item.id === 'string' && item.id ? item.id : null,
     productId: item.productId || '',
+    productCode: item.productCode || '',
+    productStatus: item.productStatus || '',
     quantity,
     discountPercent: reconstructDiscountPercent(item),
     chargedValue:

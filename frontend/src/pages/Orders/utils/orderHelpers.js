@@ -14,6 +14,7 @@ export const emptyItem = () => ({
   productId: '',
   productName: '',
   productCode: '',
+  productStatus: '',
   memberPrice: '',
   details: '',
   quantity: 1,
@@ -161,6 +162,7 @@ export const editItemFromApi = (item) => ({
   productId: item.productId || '',
   productName: item.product ? item.product.name : '',
   productCode: item.product ? item.product.code : '',
+  productStatus: item.product ? item.product.status : '',
   memberPrice:
     item.memberPrice != null ? parseFloat(item.memberPrice).toString() : '',
   details: item.details || '',
@@ -212,6 +214,13 @@ export const isKitItem = (item, products) => {
   const product = (products || []).find((p) => p.id === item.productId);
   return !!product && product.productType === 'KIT';
 };
+
+// Whether an item references a product still pending registration (a draft
+// auto-registered by the dōTERRA import). Drafts are intentionally hidden from
+// the product pickers, so the order form shows the code as a link to the
+// Products edit modal instead of the combobox.
+export const isPendingProduct = (productStatus) =>
+  productStatus === 'PENDENTE_CADASTRO';
 
 // Whether an order item belongs to the logged-in user themselves.
 export const isItemForSelf = (item, people) => {

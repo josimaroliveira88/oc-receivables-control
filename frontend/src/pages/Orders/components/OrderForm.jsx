@@ -39,6 +39,7 @@ const OrderForm = ({
   onItemPersonSelect,
   onTeamPersonSelect,
   onItemProductSelect,
+  onOpenProduct,
   onAddItem,
   onRemoveItem,
   addItemBtnRef,
@@ -113,6 +114,7 @@ const OrderForm = ({
             onProductSelect={(productId) =>
               onItemProductSelect(index, productId)
             }
+            onOpenProduct={onOpenProduct}
             onRemove={() => onRemoveItem(index)}
           />
         ))}
