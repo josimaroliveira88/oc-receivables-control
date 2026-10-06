@@ -277,4 +277,43 @@ describe('API tokens for the Uber rides extension', () => {
       expect(response.status).toBe(403);
     });
   });
+
+  describe('multi-scope tokens', () => {
+    it('creates a token carrying both scopes and authorizes both imports', async () => {
+      const created = await post(
+        '/api/api-tokens',
+        { name: 'Ambos', scopes: ['uber:import', 'doterra:import'] },
+        user.token,
+      );
+
+      expect(created.status).toBe(201);
+      expect(created.body.scope).toBe('uber:import,doterra:import');
+      const token = created.body.token;
+
+      const lookup = await request(app)
+        .post('/api/doterra/orders/lookup')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ numbers: ['nao-existe'] });
+      expect(lookup.status).toBe(200);
+
+      const rides = await request(app)
+        .post('/api/uber/rides/import')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          json: JSON.stringify(
+            envelope([activity({ uuid: 'multi-scope-ride' })]),
+          ),
+        });
+      expect(rides.status).toBe(200);
+    });
+
+    it('rejects an unknown scope in the scopes array', async () => {
+      const response = await post(
+        '/api/api-tokens',
+        { name: 'Ruim', scopes: ['outra:coisa'] },
+        user.token,
+      );
+      expect(response.status).toBe(400);
+    });
+  });
 });
