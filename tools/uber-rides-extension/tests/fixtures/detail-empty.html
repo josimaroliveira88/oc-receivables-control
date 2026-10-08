@@ -1,0 +1,16 @@
+<!doctype html>
+<!--
+  Empty OrderInvoice (no items table). `parseDetailItems` must return `[]`
+  and `buildPayload` will then surface the "Sem itens no detalhe" failure
+  — the expected fallback when the Back Office serves a blank detail page.
+-->
+<html>
+  <head>
+    <title>Detalhes do Pedido</title>
+  </head>
+  <body>
+    <div class="ui basic segment nopadding InvoiceMain">
+      <p>Nenhum item encontrado para este pedido.</p>
+    </div>
+  </body>
+</html>

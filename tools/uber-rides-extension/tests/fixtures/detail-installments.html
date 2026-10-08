@@ -1,0 +1,68 @@
+<!doctype html>
+<!--
+  Fixture exercising the installment parser: the totals side of the page
+  carries `3 Parcelas de R$ 250.00` and the payment table says
+  `Card Payment`. The items table itself uses the 6-column layout (no PV),
+  so the parser must hit both code paths together.
+-->
+<html>
+  <head>
+    <title>Detalhes do Pedido</title>
+  </head>
+  <body>
+    <div class="ui basic segment tabledivnm">
+      <table class="ui striped unstackable table bigEVOTable celled evotable">
+        <thead>
+          <tr class="InvoiceHeader">
+            <th class="center aligned">Item</th>
+            <th class="center aligned">Qtde enviada</th>
+            <th class="center aligned">Qtde encomendada</th>
+            <th>Descrição</th>
+            <th class="right aligned">Preço</th>
+            <th class="right aligned">Preço total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="center aligned">60201234</td>
+            <td class="center aligned">2</td>
+            <td class="center aligned">2</td>
+            <td>Breathe Vapor Stick<br /></td>
+            <td class="right aligned">R$ 80.00</td>
+            <td class="right aligned">R$ 160.00</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ui mobile reversed stackable grid nomargin">
+      <div class="six wide tablet five wide computer column">
+        <table>
+          <tr>
+            <td><b>Frete</b> (Envio Normal)</td>
+            <td class="right aligned">R$ 0.00</td>
+          </tr>
+          <tr>
+            <td><b>Imposto</b> 0%</td>
+            <td class="right aligned">R$ 0.00</td>
+          </tr>
+          <tr>
+            <td><b>Total a Pagar</b></td>
+            <td class="right aligned">R$ 160.00</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <p>3 Parcelas de R$ 53,33</p>
+
+    <div class="ui right floated compact basic segment nomargin">
+      <table>
+        <tr>
+          <td><b>Tipo de Pagamento</b></td>
+          <td class="right aligned">Card Payment</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

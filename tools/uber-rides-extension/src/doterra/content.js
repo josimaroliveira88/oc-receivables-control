@@ -1115,4 +1115,40 @@
   } else {
     mount();
   }
+
+  // --- Test escape hatch -----------------------------------------------------
+  //
+  // The dōTERRA content script is intentionally a single self-contained file
+  // (see AGENTS.md): it must not import modules or share a namespace with
+  // the other content scripts. The trade-off is that the parsers live
+  // inside the IIFE and would otherwise be untestable from Vitest.
+  //
+  // When `globalThis.__DOTERRA_PARSERS__` is set (only by `tests/setup.js`,
+  // which runs before this file in the Vitest environment), we hand the
+  // pure helpers to the test runner. In production the sentinel is missing
+  // and nothing is exposed. The list is intentionally narrow: parsers,
+  // never the UI orchestrators, so the floating box stays bound to the
+  // live DOM. When adding a new parser, extend this list — otherwise it
+  // stays private and untested.
+  if (typeof globalThis !== 'undefined' && globalThis.__DOTERRA_PARSERS__) {
+    globalThis.__DOTERRA_PARSERS__ = {
+      parseDetail,
+      parseDetailItems,
+      parseMoney,
+      parseQuantity,
+      parseRow,
+      parseOrders,
+      parseInquiryRow,
+      parseInquiryOrders,
+      findItemsTable,
+      extractShipping,
+      matchAmount,
+      toIsoDate,
+      toIsoMonth,
+      cleanDetailDescription,
+      buildOrderPayload,
+      viewMoreUrl,
+      currentCursor,
+    };
+  }
 })();

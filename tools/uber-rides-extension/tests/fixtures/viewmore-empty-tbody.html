@@ -1,0 +1,11 @@
+<!--
+  Fragment that the Back Office returns on the first click for some accounts:
+  empty `<tbody></tbody>` but the cursor already advanced to a previous
+  month. The actual order rows only come back on the second click against
+  the new cursor. This is the "border page" scenario that broke the auto
+  pagination loop.
+-->
+<input type="hidden" class="startdate" value="202605" />
+<table id="ajaxrowstable" style="display: none">
+  <tbody></tbody>
+</table>

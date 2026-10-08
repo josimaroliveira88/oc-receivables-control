@@ -1,5 +1,6 @@
 backend/node_modules
 frontend/node_modules
+tools/uber-rides-extension/node_modules
 .tool-versions
 backend/backend.log
 backend/uploads/
