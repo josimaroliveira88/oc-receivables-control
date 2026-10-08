@@ -9,6 +9,21 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 132 — Captura dōTERRA: layouts 6/7 colunas, vírgula como decimal, paginação de borda (2026-10-08)
+
+### Fixed
+- **Importação dōTERRA falhando com "Sem itens no detalhe" para pedidos sem coluna PV**: a tabela de itens de `evo_Modules.OrderInvoice` tem **dois layouts** dependendo do tipo de pedido — 7 colunas com PV por linha (Item | Qtde enviada | Qtde encomendada | Descrição | PV | Preço | Preço total) para itens individuais e 6 colunas (sem PV) para kits / pacotes BOGO / Loyalty / Fast Start / pedidos de reposição. O parser assumia `cells.length >= 7` e descartava toda linha com 6 células; consultantes que compraram só pacotes viam cada pedido terminar em `Error('Sem itens no detalhe')` na caixa flutuante. `parseDetailItems` agora detecta o layout lendo os `<th>` do cabeçalho (`detectItemsColumns`) e mapeia `unitPv`/`unitPrice` dinamicamente — sem hard-code de `cells[N]`.
+- **`parseMoney` inflando valores em 100× para decimais com vírgula**: o helper tratava toda vírgula como separador de milhar, então `R$ 7,00` virava 700 e `R$ 53,33` virava 5333. A regra nova usa a posição da **última** vírgula vs. último ponto: vírgula após o ponto = decimal BR (`R$ 1.045,63` e `R$ 7,00`); caso contrário a vírgula é milhar. `installmentValue` e `total` voltam a refletir o detalhe.
+- **`paymentType = null` para pagamentos no cartão**: o detector de "Tipo de Pagamento" caía na linha de header `<td colspan="2">Tipo de Pagamento</td>` (sem células vizinhas) e nunca olhava a linha com `<b>Tipo de Pagamento</b> | <value>`. O parser agora itera **todos** os candidatos e pula o header até encontrar a linha cujo rótulo está num `<b>`/`<strong>`; compras em cartão voltam a ser importadas como `CARTAO_CREDITO`.
+- **"Carregar mais antigos" parando no primeiro clique vazio**: a paginação automática abortava quando o servidor retornava `<tbody></tbody>` vazio (mesmo com cursor avançado) — exatamente o que algumas contas veem como "página de borda" onde o Back Office devolve o cursor do mês anterior sem os pedidos e só entrega as linhas no próximo clique. A nova função `paginate` (extraída de `loadMore` para testes) trata a primeira como **border page** (continua) e só considera fim real quando duas respostas vazias vêm em sequência ou quando o cursor trava. O cursor é monotonicamente decrescente, então não há risco de loop infinito; o cap de `maxIterations = 40` segue como rede de segurança.
+
+### Added
+- **Suíte de testes da extensão Chrome**: `tools/uber-rides-extension/` ganhou `package.json`, `vitest.config.js` (jsdom) e o script `npm test`; `tools/uber-rides-extension/tests/` traz fixtures HTML (BOGO 6-colunas, 7-colunas, parcelado, detalhe vazio, fragmentos de paginação) e dois arquivos de teste (`doterraParser.test.js`, `paginate.test.js`). A nova regra do `AGENTS.md` (`cd tools/uber-rides-extension && npm test`) entra na lista de comandos.
+- **Porta de escape para testes do content script**: o fim do IIFE em `src/doterra/content.js` expõe os parsers puros em `globalThis.__DOTERRA_PARSERS__` **apenas** quando o sentinel já estiver setado (em produção não está); o setup do Vitest seta antes de carregar o script. Mantém a diretriz de "arquivo único e autocontido" e dá cobertura sem DOM ao vivo.
+
+### Tests
+- Extensão: 21 testes passando (4 de paginação, 17 do parser de detalhe). Cobertos: layouts6/7 colunas, BOGO com frete "Envio Normal", parcelas + cartão, detalhe vazio, helpers de money/data, **border page com 2 cliques** (`viewmore-empty-tbody.html` + `viewmore-with-rows.html`), parada por 2 páginas vazias consecutivas, parada por `maxIterations`. Backend 1055/1055 e frontend 1184/1184 inalterados. `npm run format:check` e o `package:extension` (ZIP gerado) limpos.
+
 ## Phase 131 — Consulta da Conta dōTERRA na extensão: captura por mês (2026-10-06)
 
 ### Added
