@@ -53,9 +53,24 @@
     return (area.textContent || '').replace(/\u00a0/g, ' ').trim();
   };
 
-  // Money in both pages appears as `R$ 150.00` (dot decimal) or
-  // `R$ 1,045.63` (comma thousands + dot decimal). Strip the currency/spaces,
-  // drop the thousands comma, then parse the decimal.
+  // Money appears in two shapes on the Back Office pages:
+  //
+  //   - Brazilian: `R$ 1.045,63` — dot thousands, comma decimal. The list
+  //     table, the totals block, and the freight label all use this format.
+  //   - Decimal-only: `R$ 199.00` — dot decimal, no thousands. The items
+  //     table sometimes drops the thousands separator for single-line orders.
+  //
+  // The previous implementation treated every comma as a thousands separator
+  // (the safe choice for English-shaped numbers), which silently inflated
+  // BRL amounts by 100× whenever the value had a decimal comma (e.g.
+  // `R$ 7,00` → 700, `R$ 53,33` → 5333). The detail parser only sees the
+  // totals block for `installmentValue` and `total`, so the bug stayed
+  // quiet on lists and showed up in installment math.
+  //
+  // Detection rule: if a comma is the **last** numeric separator (i.e. the
+  // string ends with `,dd` or `,ddd`), it is the decimal mark; otherwise
+  // commas are thousands. This covers every shape seen in the wild without
+  // needing a locale library.
   const parseMoney = (value) => {
     if (value == null) return null;
     const cleaned = String(value)
@@ -63,9 +78,18 @@
       .replace(/[\s\u00a0]/g, '')
       .trim();
     if (!cleaned) return null;
-    const normalized = cleaned.includes(',')
-      ? cleaned.replace(/,/g, '')
-      : cleaned;
+
+    const lastComma = cleaned.lastIndexOf(',');
+    const lastDot = cleaned.lastIndexOf('.');
+    let normalized;
+    if (lastComma > lastDot) {
+      // Comma is the decimal mark: drop dots (thousands) and swap comma → dot.
+      normalized = cleaned.replace(/\./g, '').replace(',', '.');
+    } else {
+      // Dot is the decimal mark: drop commas (thousands, if any).
+      normalized = cleaned.replace(/,/g, '');
+    }
+
     const parsed = parseFloat(normalized);
     return Number.isNaN(parsed) ? null : parsed;
   };
@@ -429,24 +453,41 @@
     return `index.cfm?${params.toString()}`;
   };
 
-  // Replicates the page's own VIEWMORE handler: fetch the fragment, move its
-  // rows into `#OrderhistoryRows`, keep the returned hidden `.startdate` cursor
-  // and drop the fragment table so the page's "Ver mais" keeps working.
-  const loadMore = async (log) => {
-    const target = document.querySelector('#OrderhistoryRows');
-    if (!target) return { added: 0, done: true };
-
-    let cursor = currentCursor();
-    if (!cursor) return { added: 0, done: true };
-
-    const maxIterations = 40;
+  // Pure pagination core. Extracted from `loadMore` so the empty-response
+  // ("border page") handling can be unit-tested without a real DOM or
+  // network — the production caller still does the I/O and DOM work and
+  // delegates only the iteration decisions to this function.
+  //
+  // `fetcher(cursor)` must return the fragment HTML for the given cursor.
+  // `target` is the live DOM node to which rows are appended (the live
+  // DOM, not a stub, keeps `document.importNode` consistent with the
+  // rest of the content script). `log` receives human-readable status
+  // lines.
+  //
+  // Returns `{ added, done, iterations }`. `done: true` means the loop
+  // reached a real end (empty body, stalled cursor, or max iterations).
+  const paginate = async ({
+    initialCursor,
+    target,
+    fetcher,
+    log,
+    maxIterations = 40,
+    sleepMs = 300,
+  }) => {
+    let cursor = initialCursor;
     let totalAdded = 0;
+    let emptyStreak = 0;
+    let iterations = 0;
+
+    const advance = async (nextCursor, hiddenNode) => {
+      if (hiddenNode) target.ownerDocument.body.appendChild(hiddenNode);
+      cursor = nextCursor;
+      await sleep(sleepMs);
+    };
 
     for (let i = 0; i < maxIterations; i += 1) {
-      const response = await fetchWithTimeout(viewMoreUrl(cursor), 15000);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const html = await response.text();
-
+      iterations = i + 1;
+      const html = await fetcher(cursor);
       const doc = new DOMParser().parseFromString(html, 'text/html');
       const rows = doc.querySelectorAll('#ajaxrowstable tbody tr');
       const rowList = rows.length
@@ -454,32 +495,83 @@
         : doc.querySelectorAll('#ajaxrowstable tr');
 
       const hidden = doc.querySelector('input.startdate');
+      const hiddenNode = hidden
+        ? target.ownerDocument.importNode(hidden, true)
+        : null;
       const newCursor = hidden ? hidden.value : '';
 
       if (rowList.length === 0) {
+        emptyStreak += 1;
+
+        // Border page: empty rows but the cursor advanced — keep going.
+        // The server may hand back a month whose orders only resolve on
+        // the next click (this is the "click twice to see the rows" quirk
+        // reproduced in `paginate.test.js`).
+        if (newCursor && newCursor !== cursor && emptyStreak < 2) {
+          log(
+            `Página de borda em ${cursor}; tentando ${newCursor} (sem pedidos nesta resposta).`,
+          );
+          await advance(newCursor, hiddenNode);
+          continue;
+        }
+
         log('Sem mais pedidos antigos.');
-        return { added: totalAdded, done: true };
+        return { added: totalAdded, done: true, iterations };
       }
 
+      emptyStreak = 0;
+      const ownerDoc = target.ownerDocument;
       rowList.forEach((row) =>
-        target.appendChild(document.importNode(row, true)),
+        target.appendChild(ownerDoc.importNode(row, true)),
       );
       totalAdded += rowList.length;
-
-      // Keep the fragment's cursor visible to the page's own handler.
-      if (hidden) document.body.appendChild(document.importNode(hidden, true));
 
       log(`Carregados ${totalAdded} pedido(s) antigos...`);
 
       if (!newCursor || newCursor === cursor) {
         log('Cursor não avançou; parando a paginação.');
-        return { added: totalAdded, done: true };
+        return { added: totalAdded, done: true, iterations };
       }
-      cursor = newCursor;
-      await sleep(300);
+      await advance(newCursor, hiddenNode);
     }
 
-    return { added: totalAdded, done: true };
+    log('Limite de paginação atingido.');
+    return { added: totalAdded, done: true, iterations };
+  };
+
+  // Replicates the page's own VIEWMORE handler: fetch the fragment, move its
+  // rows into `#OrderhistoryRows`, keep the returned hidden `.startdate` cursor
+  // and drop the fragment table so the page's "Ver mais" keeps working.
+  //
+  // The Back Office has a quirk on some accounts where a `ViewMoreCount`
+  // call returns an empty `<tbody></tbody>` **together with a new cursor**
+  // (the page bumped to the previous month but did not attach any rows).
+  // The next click on that same cursor then returns the rows. The previous
+  // loop bailed out on the first empty response and left the user with a
+  // half-loaded table — exactly what the bug report showed. `paginate`
+  // treats an empty response as "border page" (continue) unless the cursor
+  // stalled **or** we have seen two empties in a row, in which case the
+  // real end is reached and the loop stops. The cursor is monotonically
+  // decreasing (each click moves one or more months back), so there is no
+  // risk of looping forever even without that guard — the empty-twice rule
+  // is belt-and-braces against a server that returns the same cursor twice.
+  const loadMore = async (log) => {
+    const target = document.querySelector('#OrderhistoryRows');
+    if (!target) return { added: 0, done: true };
+
+    const initialCursor = currentCursor();
+    if (!initialCursor) return { added: 0, done: true };
+
+    return paginate({
+      initialCursor,
+      target,
+      fetcher: async (cursor) => {
+        const response = await fetchWithTimeout(viewMoreUrl(cursor), 15000);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.text();
+      },
+      log,
+    });
   };
 
   // --- Detail parsing -------------------------------------------------------
@@ -501,30 +593,107 @@
     return (clone.textContent || '').replace(/\s+/g, ' ').trim() || null;
   };
 
+  // Identifies the columns of the items table by reading the header labels.
+  // The Back Office emits the items table in two layouts depending on the
+  // order type:
+  //
+  //   - 7 columns for items with a PV column:
+  //     `Item | Qtde enviada | Qtde encomendada | Descrição | PV | Preço | Preço total`
+  //   - 6 columns for kits / promo bundles (`BOGO`, `Loyalty`, `Fast Start`),
+  //     replacement orders, or any order where PV is not broken out per line:
+  //     `Item | Qtde enviada | Qtde encomendada | Descrição | Preço | Preço total`
+  //
+  // The first layout has `PV` between Descrição and Preço; the second omits
+  // PV entirely. Returning `null` here means `parseDetailItems` falls back to
+  // a positional read so a layout change in the header is enough to update
+  // the parser — no hard-coded index surgery on `cells[N]`.
+  const detectItemsColumns = (headerCells) => {
+    if (!headerCells.length) return null;
+    const labels = [...headerCells].map((cell) =>
+      cell.textContent.trim().toLowerCase(),
+    );
+    const findIndex = (regex) => labels.findIndex((label) => regex.test(label));
+
+    const codeIdx = findIndex(/^item$/);
+    const shippedIdx = findIndex(/qtde\s+enviada|qtde\s+enviado/);
+    const orderedIdx = findIndex(/qtde\s+encomendada/);
+    const descriptionIdx = findIndex(/^descri[çc][ãa]o$/);
+    const pvIdx = findIndex(/^pv$/);
+    const unitPriceIdx = findIndex(/^pre[çc]o$/);
+    const totalIdx = findIndex(/pre[çc]o\s+total/);
+
+    if (codeIdx < 0 || orderedIdx < 0 || descriptionIdx < 0) return null;
+
+    return {
+      codeIdx,
+      shippedIdx,
+      orderedIdx,
+      descriptionIdx,
+      pvIdx,
+      unitPriceIdx,
+      totalIdx,
+    };
+  };
+
   const parseDetailItems = (doc) => {
     const table = findItemsTable(doc);
     if (!table) return [];
-    const rows = [...table.querySelectorAll('tr')];
+    const headerCells = table.querySelectorAll('thead th');
+    // Fall back to the first body row's <th> cells if the layout uses <th>
+    // inside <tbody> for the header.
+    const headerSource = headerCells.length
+      ? headerCells
+      : (
+          table.querySelector('tbody tr.InvoiceHeader') ||
+          table.querySelector('tbody tr')
+        ).querySelectorAll('th');
+    const columns = detectItemsColumns(headerSource);
     const items = [];
 
-    for (const row of rows) {
+    for (const row of table.querySelectorAll('tbody tr')) {
       const cells = row.querySelectorAll('td');
-      if (cells.length < 7) continue; // header / totals rows
       const rowText = row.textContent;
       if (/Volume total:|Subtotal:|Total:/i.test(rowText)) continue;
 
-      const code = cells[0].textContent.trim();
+      // Totals / subtotal rows have colspan; an empty item code is also a
+      // strong "not an item" signal. Both bail before the column lookup.
+      const codeCell = columns ? cells[columns.codeIdx] : cells[0];
+      if (!codeCell) continue;
+      const code = codeCell.textContent.trim();
       if (!code) continue;
 
-      const ordered = parseQuantity(cells[2].textContent);
-      const shipped = parseQuantity(cells[1].textContent);
+      const valueAt = (idx) =>
+        idx >= 0 && idx < cells.length ? cells[idx] : null;
+
+      const ordered = columns
+        ? parseQuantity(valueAt(columns.orderedIdx)?.textContent ?? '')
+        : parseQuantity(cells[2]?.textContent ?? '');
+      const shipped = columns
+        ? parseQuantity(valueAt(columns.shippedIdx)?.textContent ?? '')
+        : parseQuantity(cells[1]?.textContent ?? '');
+
+      // Layout-driven mapping. 7-column tables expose `PV`; 6-column tables
+      // do not — in that case `Preço` is the only monetary column and the
+      // table total is `Preço total`. The previous hard-coded `[4]`/`[6]`
+      // read silently returned `0` for every 6-column order, which is the
+      // bug that produced "Sem itens no detalhe" for BOGO / replacement
+      // orders.
+      const unitPv = columns
+        ? parseMoney(valueAt(columns.pvIdx)?.textContent ?? '')
+        : null;
+      const unitPriceCell = columns
+        ? (valueAt(columns.unitPriceIdx) ?? valueAt(columns.totalIdx))
+        : cells[4];
+      const unitPrice = parseMoney(unitPriceCell?.textContent ?? '');
 
       items.push({
         code,
-        description: cleanDetailDescription(cells[3]),
+        description: cleanDetailDescription(
+          columns ? valueAt(columns.descriptionIdx) : cells[3],
+        ),
         quantity: ordered > 0 ? ordered : shipped || 1,
-        unitPv: parseMoney(cells[4].textContent),
-        unitPrice: parseMoney(cells[6].textContent),
+        unitPv,
+        unitPrice: unitPrice ?? 0,
       });
     }
 
@@ -602,18 +771,30 @@
     }
 
     // Payment table: `Tipo de Pagamento` followed by its value cell.
+    //
+    // The OrderInvoice payment block has a structural pitfall: the first row
+    // uses `<td colspan="2">Tipo de Pagamento</td>` as a section header, then
+    // a later row carries the real `<b>Tipo de Pagamento</b> | <value>`
+    // pair. Picking the first match would land on the section header — a
+    // colspan cell whose row has no sibling cells — and silently produce
+    // `paymentType = null` even when the page clearly shows "Card Payment".
+    // Iterate every candidate and prefer the one whose own text is just the
+    // label (a heading or a `<b>`), so the value cell sits next to it.
     let paymentType = null;
-    const paymentLabel = [...doc.querySelectorAll('td, th, span, div')].find(
-      (node) => /Tipo de Pagamento/i.test(node.textContent.trim()),
+    const paymentLabels = [...doc.querySelectorAll('td, th, span, div')].filter(
+      (node) => /^\s*Tipo de Pagamento\s*$/i.test(node.textContent.trim()),
     );
-    if (paymentLabel) {
+    for (const paymentLabel of paymentLabels) {
       const row = paymentLabel.closest('tr');
       const cells = row ? [...row.querySelectorAll('td')] : [];
       const valueCell =
         cells.find((cell) => !/Tipo de Pagamento/i.test(cell.textContent)) ||
         null;
       const value = valueCell ? valueCell.textContent.trim() : '';
-      if (/^Card Payment/i.test(value)) paymentType = 'CARTAO_CREDITO';
+      if (/^Card Payment/i.test(value)) {
+        paymentType = 'CARTAO_CREDITO';
+        break;
+      }
     }
     // Fallback: the installments line only exists on card purchases.
     if (!paymentType && installments) paymentType = 'CARTAO_CREDITO';
@@ -1119,19 +1300,18 @@
   // --- Test escape hatch -----------------------------------------------------
   //
   // The dōTERRA content script is intentionally a single self-contained file
-  // (see AGENTS.md): it must not import modules or share a namespace with
-  // the other content scripts. The trade-off is that the parsers live
-  // inside the IIFE and would otherwise be untestable from Vitest.
+  // (see AGENTS.md): it must not import modules or share a namespace with the
+  // other content scripts. The trade-off is that the parsers live inside the
+  // IIFE and would otherwise be untestable from Vitest.
   //
   // When `globalThis.__DOTERRA_PARSERS__` is set (only by `tests/setup.js`,
-  // which runs before this file in the Vitest environment), we hand the
-  // pure helpers to the test runner. In production the sentinel is missing
-  // and nothing is exposed. The list is intentionally narrow: parsers,
-  // never the UI orchestrators, so the floating box stays bound to the
-  // live DOM. When adding a new parser, extend this list — otherwise it
-  // stays private and untested.
+  // which runs before this file in the Vitest environment), we hand the pure
+  // helpers to the test runner. In production the sentinel is missing and
+  // nothing is exposed. The list is intentionally narrow: parsers, never the
+  // UI orchestrators, so the floating box stays bound to the live DOM.
   if (typeof globalThis !== 'undefined' && globalThis.__DOTERRA_PARSERS__) {
     globalThis.__DOTERRA_PARSERS__ = {
+      detectItemsColumns,
       parseDetail,
       parseDetailItems,
       parseMoney,
@@ -1149,6 +1329,7 @@
       buildOrderPayload,
       viewMoreUrl,
       currentCursor,
+      paginate,
     };
   }
 })();
