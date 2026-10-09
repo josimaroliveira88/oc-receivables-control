@@ -121,8 +121,8 @@ describe('UberRidesWelcomeModal', () => {
   it('offers the extension ZIP download', () => {
     renderModal();
 
-    const download = screen.getByTestId('uber-rides-extension-download');
-    expect(download).toHaveAttribute('href', '/uber-rides-extension.zip');
+    const download = screen.getByTestId('captures-extension-download');
+    expect(download).toHaveAttribute('href', '/captures-extension.zip');
     expect(download).toHaveAttribute('download');
   });
 });

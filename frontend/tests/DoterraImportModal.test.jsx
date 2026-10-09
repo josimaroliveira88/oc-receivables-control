@@ -48,7 +48,7 @@ describe('DoterraImportModal', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByTestId('doterra-import-extension-download'),
-    ).toHaveAttribute('href', '/uber-rides-extension.zip');
+    ).toHaveAttribute('href', '/captures-extension.zip');
   });
 
   it('checks both token scopes by default', () => {
