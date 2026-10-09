@@ -1,4 +1,4 @@
-# Capturas — Uber & dōTERRA — extensão do Chrome
+# Capturas — Controle de Recebíveis — extensão do Chrome
 
 Extensão do Chrome **para uso pessoal** (não publicada na Chrome Web Store) que
 faz a captura de duas fontes e entrega um JSON ao Controle de Recebíveis:
@@ -9,6 +9,16 @@ faz a captura de duas fontes e entrega um JSON ao Controle de Recebíveis:
 2. **Pedidos dōTERRA** — roda no Back Office do dōTERRA
    (`Rastreamento de Pedidos e Pacotes`) e captura os pedidos da tabela,
    buscando o detalhe de cada um.
+
+> **Nota histórica (v0.7.0):** a pasta desta extensão foi renomeada de
+> `tools/uber-rides-extension/` para `tools/captures-extension/` e o nome
+> visível, de "Capturas — Uber & dōTERRA" para "Capturas — Controle de
+> Recebíveis". A versão 0.7.0 também troca o rótulo de build para `rebrand` e
+> migra as chaves de `chrome.storage.local` (`uber-rides:api-token`,
+> `uber-rides:server-url`, `uber-rides:start`, `uber-rides:end`) para o
+> prefixo neutro `captures:`. **Quem já tinha a v0.6.0 instalada vai
+> precisar colar o token de novo no popup** — o token salvo na chave antiga
+> é silenciosamente ignorado.
 
 Em ambos os casos o JSON chega ao app de duas maneiras:
 
@@ -59,12 +69,12 @@ desta pasta no `dev`/`build` do frontend, então ele sempre reflete o código
 atual.
 
 **b) Direto desta pasta.** Se você tem o repositório, carregue
-`tools/uber-rides-extension/` mesmo.
+`tools/captures-extension/` mesmo.
 
 1. Abra `chrome://extensions/`.
 2. Ative o **Modo do desenvolvedor** (canto superior direito).
 3. Clique em **Carregar sem compactação** e selecione a pasta da extensão
-   (a descompactada do ZIP ou `tools/uber-rides-extension/`).
+   (a descompactada do ZIP ou `tools/captures-extension/`).
 4. A extensão fica instalada e sobrevive a reinícios do Chrome.
 
 > Não é necessário publicar nem pagar nada.
@@ -110,7 +120,7 @@ caixa flutuante fica liberado (abaixo dele aparece "Token salvo (termina em
 1. Abra <https://riders.uber.com/> e faça login (a extensão precisa estar
    ativa antes da página carregar; por isso `run_at: document_start`).
 2. A caixa **Corridas Uber** aparece no canto inferior direito, com a versão e
-   o rótulo de build no topo (ex.: `v0.6.0 · doterra-orders`).
+   o rótulo de build no topo (ex.: `v0.7.0 · rebrand`).
 3. Ajuste **Início** e **Fim**. A janela deve cobrir o ciclo de fatura com
    folga — a data do lançamento no cartão costuma ser 1 a 3 dias depois da
    corrida. O padrão é hoje até 35 dias atrás.
@@ -136,14 +146,14 @@ Ao abrir `riders.uber.com` com a extensão ativa, o console (F12) deve mostrar
 **duas** linhas com o mesmo rótulo de build:
 
 ```text
-[Uber Rides Capture] MAIN v0.6.0 (doterra-orders) carregado em …
-[Uber Rides Capture] ISOLATED v0.6.0 (doterra-orders) carregado em …
+[Captures] MAIN v0.7.0 (rebrand) carregado em …
+[Captures] ISOLATED v0.7.0 (rebrand) carregado em …
 ```
 
 Em `office.doterra.com`, a linha correspondente é:
 
 ```text
-[Doterra Orders Capture] ISOLATED v0.6.0 (doterra-orders) carregado em …
+[Captures · dōTERRA] ISOLATED v0.7.0 (rebrand) carregado em …
 ```
 
 Se faltar uma delas (ou nenhuma), remova e re-adicione a extensão. O rótulo de
@@ -188,7 +198,7 @@ O envio para o app envolve o mesmo JSON dentro de:
   - **ISOLATED** (`src/ui/content.js`) — dono da UI, do `chrome.storage.local`,
     da área de transferência e da conversa com o popup e o background.
 - Os mundos se comunicam por `window.postMessage` com uma marca própria
-  (`uber-rides-capture`).
+  (`captures:bridge`).
 - **O envio ao app** acontece no **service worker**
   (`src/background/background.js`): contexts de extensão atendem a
   `host_permissions`, então a chamada não passa por CORS da página e o
@@ -248,8 +258,8 @@ Conta**, onde os dados vêm mês a mês:
 ## Limitações
 
 - O endpoint do Uber é privado e não documentado; a Uber pode alterá-lo sem
-  aviso. Se a captura quebrar, ainda é possível colar um JSON no formato acima
-  manualmente.
+   aviso. Se a captura quebrar, ainda é possível colar um JSON no formato acima
+   manualmente.
 - A extensão não publica nada, não contorna proteção de automação e não roda
-  em segundo plano além do listener de mensagem do service worker.
+   em segundo plano além do listener de mensagem do service worker.
 - Requer Chrome 111+ (por causa de `"world": "MAIN"` nos content scripts).

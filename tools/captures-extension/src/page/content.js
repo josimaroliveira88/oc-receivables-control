@@ -15,12 +15,12 @@
 (() => {
   'use strict';
 
-  const BRIDGE_SOURCE = 'uber-rides-capture';
+  const BRIDGE_SOURCE = 'captures:bridge';
   const GRAPHQL_URL = 'https://riders.uber.com/graphql';
   const PROFILES = ['PERSONAL', 'FAMILY'];
   const MAX_PAGES = 50;
-  const VERSION = '0.5.0';
-  const BUILD_LABEL = 'app-token';
+  const VERSION = '0.7.0';
+  const BUILD_LABEL = 'rebrand';
 
   const DROP_HEADERS = new Set([
     'content-length',
@@ -58,7 +58,7 @@ fragment RVWebCommonActivityFragment on RVWebCommonActivity {
 }`;
 
   console.info(
-    `[Uber Rides Capture] MAIN v${VERSION} (${BUILD_LABEL}) carregado em ${location.href}`,
+    `[Captures] MAIN v${VERSION} (${BUILD_LABEL}) carregado em ${location.href}`,
   );
 
   const cleanHeaders = (headers) => {

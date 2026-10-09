@@ -11,10 +11,10 @@
 (() => {
   'use strict';
 
-  const VERSION = '0.6.0';
-  const BUILD_LABEL = 'doterra-orders';
-  const BRIDGE_SOURCE = 'uber-rides-capture';
-  const BOX_ID = 'uber-rides-capture-box';
+  const VERSION = '0.7.0';
+  const BUILD_LABEL = 'rebrand';
+  const BRIDGE_SOURCE = 'captures:bridge';
+  const BOX_ID = 'captures-box';
   const DAY_MS = 86400000;
   const DEFAULT_WINDOW_DAYS = 35;
 
@@ -25,15 +25,15 @@
   };
 
   const STORAGE_KEYS = {
-    START: 'uber-rides:start',
-    END: 'uber-rides:end',
+    START: 'captures:start',
+    END: 'captures:end',
   };
   const INTEGRATION_KEYS = {
-    TOKEN: 'uber-rides:api-token',
-    SERVER: 'uber-rides:server-url',
+    TOKEN: 'captures:api-token',
+    SERVER: 'captures:server-url',
   };
   console.info(
-    `[Uber Rides Capture] ISOLATED v${VERSION} (${BUILD_LABEL}) carregado em ${location.href}`,
+    `[Captures] ISOLATED v${VERSION} (${BUILD_LABEL}) carregado em ${location.href}`,
   );
 
   // --- Dates ----------------------------------------------------------------

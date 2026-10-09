@@ -19,10 +19,10 @@
 (() => {
   'use strict';
 
-  const VERSION = '0.6.0';
-  const BUILD_LABEL = 'doterra-orders';
-  const BOX_ID = 'doterra-orders-capture-box';
-  const TOKEN_KEY = 'uber-rides:api-token';
+  const VERSION = '0.7.0';
+  const BUILD_LABEL = 'rebrand';
+  const BOX_ID = 'captures-box';
+  const TOKEN_KEY = 'captures:api-token';
 
   const STATUS_COLORS = {
     error: '#d6336c',
@@ -40,7 +40,7 @@
   };
 
   console.info(
-    `[Doterra Orders Capture] ISOLATED v${VERSION} (${BUILD_LABEL}) carregado em ${location.href}`,
+    `[Captures · dōTERRA] ISOLATED v${VERSION} (${BUILD_LABEL}) carregado em ${location.href}`,
   );
 
   // --- Helpers --------------------------------------------------------------

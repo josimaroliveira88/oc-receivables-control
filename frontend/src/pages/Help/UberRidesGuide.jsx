@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const EXTENSION_ZIP_URL = '/uber-rides-extension.zip';
+const EXTENSION_ZIP_URL = '/captures-extension.zip';
 
 const steps = [
   {

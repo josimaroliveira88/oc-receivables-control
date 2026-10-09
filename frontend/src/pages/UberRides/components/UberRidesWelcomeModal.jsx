@@ -7,7 +7,7 @@ import ApiTokenSection from '../../../components/ApiTokenSection';
 // the app. The browser cannot read local paths (and the backend may run in a
 // container that does not see the host filesystem), so the orientation hands
 // over a downloadable ZIP and the "extract then load unpacked" steps.
-const EXTENSION_ZIP_URL = '/uber-rides-extension.zip';
+const EXTENSION_ZIP_URL = '/captures-extension.zip';
 const EXTENSION_STEPS = [
   'Baixe o ZIP (botão acima) e descompacte em uma pasta.',
   'Abra chrome://extensions e ative o "Modo do desenvolvedor".',
@@ -69,7 +69,7 @@ const WelcomeModalBody = ({ onClose, onOpenImport, onOpenGuide, userName }) => {
           <a
             href={EXTENSION_ZIP_URL}
             download
-            data-testid="uber-rides-extension-download"
+            data-testid="captures-extension-download"
             className="inline-flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-accent-on font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
           >
             <Download className="w-4 h-4" aria-hidden="true" />

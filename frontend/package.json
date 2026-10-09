@@ -8,7 +8,7 @@
     "predev": "npm run package:extension",
     "build": "npm run package:extension && vite build",
     "preview": "vite preview",
-    "package:extension": "node ../tools/uber-rides-extension/scripts/package-extension.mjs",
+    "package:extension": "node ../tools/captures-extension/scripts/package-extension.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",

@@ -3,7 +3,7 @@ import { Download, Upload } from 'lucide-react';
 import Modal from '../../../components/Modal';
 import ApiTokenSection from '../../../components/ApiTokenSection';
 
-const EXTENSION_ZIP_URL = '/uber-rides-extension.zip';
+const EXTENSION_ZIP_URL = '/captures-extension.zip';
 
 const CaptureSummary = ({ summary }) => {
   if (!summary) return null;

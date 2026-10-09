@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Capturas — Uber & dōTERRA",
-  "version": "0.6.0",
-  "description": "Captura a lista de corridas do Uber e os pedidos do Back Office dōTERRA, copia um JSON para colar no Controle de Recebíveis ou envia direto ao app.",
+  "name": "Capturas — Controle de Recebíveis",
+  "version": "0.7.0",
+  "description": "Captura corridas do Uber e pedidos do Back Office dōTERRA e envia direto ao Controle de Recebíveis (ou copia um JSON como fallback).",
   "minimum_chrome_version": "111",
   "icons": {
     "16": "icons/16.png",
@@ -20,7 +20,7 @@
     "service_worker": "src/background/background.js"
   },
   "action": {
-    "default_title": "Capturas — Uber & dōTERRA",
+    "default_title": "Capturas — Controle de Recebíveis",
     "default_popup": "src/popup/popup.html",
     "default_icon": {
       "16": "icons/16.png",

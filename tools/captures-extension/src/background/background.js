@@ -12,14 +12,14 @@
 (() => {
   'use strict';
 
-  const VERSION = '0.6.0';
-  const BUILD_LABEL = 'doterra-orders';
+  const VERSION = '0.7.0';
+  const BUILD_LABEL = 'rebrand';
 
   console.info(`[Captures background] v${VERSION} (${BUILD_LABEL}) carregado`);
 
   const STORAGE_KEYS = {
-    TOKEN: 'uber-rides:api-token',
-    SERVER: 'uber-rides:server-url',
+    TOKEN: 'captures:api-token',
+    SERVER: 'captures:server-url',
   };
   const DEFAULT_SERVER = 'http://localhost:3000';
 

@@ -1,6 +1,6 @@
 /**
  * Tests for the dōTERRA auto-pagination core (`paginate`) extracted from
- * `tools/uber-rides-extension/src/doterra/content.js`.
+ * `tools/captures-extension/src/doterra/content.js`.
  *
  * The full `loadMore` flow fetches via `window.fetch` and mutates the live
  * `#OrderhistoryRows` DOM. Both are inconvenient to exercise from Vitest,

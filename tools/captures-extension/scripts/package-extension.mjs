@@ -1,13 +1,13 @@
 /**
  * Packages the unpacked Chrome extension into a ZIP that the app serves at
- * `/uber-rides-extension.zip` (copied verbatim from `frontend/public/` during
+ * `/captures-extension.zip` (copied verbatim from `frontend/public/` during
  * the frontend build).
  *
  * The browser cannot read local paths, and the backend may run in a container
  * that does not see the host filesystem, so the app ships the ZIP for the user
  * to download, extract and point chrome://extensions at. Run:
  *
- *   node tools/uber-rides-extension/scripts/package-extension.mjs
+ *   node tools/captures-extension/scripts/package-extension.mjs
  */
 import {
   createWriteStream,
@@ -29,7 +29,7 @@ const REPO_ROOT = join(ROOT, '..', '..');
 const OUTPUT_DIR = existsSync(join(REPO_ROOT, 'frontend'))
   ? join(REPO_ROOT, 'frontend', 'public')
   : join(process.cwd(), 'public');
-const OUTPUT_FILE = join(OUTPUT_DIR, 'uber-rides-extension.zip');
+const OUTPUT_FILE = join(OUTPUT_DIR, 'captures-extension.zip');
 
 const INCLUDED = ['manifest.json', 'README.md', 'icons', 'src'];
 

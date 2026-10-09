@@ -1,6 +1,6 @@
 /**
  * Tests for the dōTERRA Back Office detail-page parser inside
- * `tools/uber-rides-extension/src/doterra/content.js`.
+ * `tools/captures-extension/src/doterra/content.js`.
  *
  * The content script is a self-contained IIFE (no module exports, no
  * namespace sharing with the Uber scripts — see AGENTS.md), so the tests

@@ -1,13 +1,13 @@
 backend/node_modules
 frontend/node_modules
-tools/uber-rides-extension/node_modules
+tools/captures-extension/node_modules
 .tool-versions
 backend/backend.log
 backend/uploads/
 backend/backups/
 backend/.env
 frontend/dist
-frontend/public/uber-rides-extension.zip
+frontend/public/captures-extension.zip
 backend/dist
 frontend/screenshot.mjs
 frontend/test-results/
