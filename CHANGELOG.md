@@ -9,6 +9,23 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 133 — Rebrand da extensão para "Capturas — Controle de Recebíveis" (2026-10-09)
+
+### Changed
+- **Pasta da extensão renomeada**: `tools/uber-rides-extension/` → `tools/captures-extension/`. O nome de pasta não cita mais a fonte de captura, refletindo que a mesma extensão hoje cobre Uber e dōTERRA e está pronta para outras. `package.json` (incluindo o `package-lock.json` regenerado), o script de build `package.json#package:extension` do frontend e as duas entradas do `.gitignore` (`tools/.../node_modules` e `frontend/public/...-extension.zip`) foram atualizados em conjunto.
+- **Nome visível da extensão**: `manifest.json#name` e `manifest.json#action.default_title` passam de "Capturas — Uber & dōTERRA" para **Capturas — Controle de Recebíveis**, amarrando o cartão a Chrome ao app em vez de listar as fontes. O `<strong>` do `popup.html` segue o mesmo nome; o `description` do manifesto agora descreve o destino (envio direto ao app + fallback de cópia) em vez de listar o que captura.
+- **Identificadores neutros de fonte**: as constantes de runtime que ainda lembravam a fase só-Uber foram trocadas para o prefixo neutro `captures:` — `BRIDGE_SOURCE` (`uber-rides-capture` → `captures:bridge`), `BOX_ID` em `ui/content.js` e `doterra/content.js` (`uber-rides-capture-box` / `doterra-orders-capture-box` → `captures-box`), e as quatro chaves de `chrome.storage.local` (`uber-rides:api-token`, `uber-rides:server-url`, `uber-rides:start`, `uber-rides:end` → `captures:api-token`, `captures:server-url`, `captures:start`, `captures:end`). Quem atualizar da v0.6.0 perde o token salvo: a próxima captura com **Enviar para o app** falha com `NO_TOKEN` e o popup pede para colar de novo — comportamento já implementado, sem migração automática (extensão pessoal).
+- **Rótulos de log**: o `console.info` da `background`, do `page/content.js` (Uber MAIN), do `ui/content.js` (Uber ISOLATED) e do `doterra/content.js` (dōTERRA ISOLATED) trocam `[Uber Rides Capture] …` / `[Doterra Orders Capture] …` por `[Captures] …` / `[Captures · dōTERRA] …` — confirma visualmente o build em qualquer um dos três content scripts e no service worker.
+- **ZIP servido pelo app**: `scripts/package-extension.mjs` grava `frontend/public/captures-extension.zip`; os três componentes que linkam o botão **Baixar extensão (ZIP)** (`UberRidesWelcomeModal`, `UberRidesGuide` e `DoterraImportModal`) leem a URL `/captures-extension.zip` em vez de `/uber-rides-extension.zip`. O `data-testid` do botão de download (`captures-extension-download`) também é alinhado ao novo nome.
+- **Versão**: `0.6.0 · doterra-orders` → `0.7.0 · rebrand`, em todos os quatro pontos que carregam essa constante (`manifest.json`, `background.js`, `page/content.js`, `ui/content.js`, `doterra/content.js`, `popup.js`).
+- **Doc**: `AGENTS.md` (parágrafo da extensão no bloco "High-Value Pitfalls" e referências a testes/paths), `ARCHITECTURE.md` (árvore de `tools/` e referências em `/api/uber` e `/api/doterra`) e `tools/captures-extension/README.md` (revisão completa do guia de uso + bloco "Nota histórica (v0.7.0)" explicando o rename e a migração de token) seguem o rename. `CHANGELOG.md` mantém as referências históricas intactas.
+
+### Added
+- **Novo ícone da extensão**: três PNGs (`icons/16.png`, `icons/48.png`, `icons/128.png`) com a letra "C" branca centralizada em fundo azul `#2563EB` (Tailwind blue-600), cantos arredondados e alpha preservado nos 4 cantos. O script gerador `scripts/make-icons.mjs` (que desenhava programaticamente o "U" rosa do Uber) foi preservado como utilitário legado — não é mais executado pelo `package:extension`, que apenas empacota os PNGs commitados.
+
+### Tests
+- Extensão: 21/21 passando (4 de paginação, 17 do parser de detalhe), sem mudança de comportamento. Backend 1055/1055 e frontend 1184/1184 inalterados. `npm run lint`, `npm run format:check` e `npm run build` (que roda `package:extension`) limpos; o ZIP gerado contém `manifest.json` com `name: "Capturas — Controle de Recebíveis"`, `version: "0.7.0"` e os 3 ícones novos.
+
 ## Phase 132 — Captura dōTERRA: layouts 6/7 colunas, vírgula como decimal, paginação de borda (2026-10-08)
 
 ### Fixed
