@@ -175,9 +175,11 @@ for cross-session continuity.
   connecting that hook session id to MCP requests) must pass `workspace` and
   `project` together on every project-scoped call, including requests about "this
   project", "here", or "our work". Read the exact names from the nearest
-  `.ai-memory.toml` when it declares both. If it does not, obtain the names from
-  the operator or server configuration; never guess them from a directory name
-  and never rely on the server's last active project.
+  `.ai-memory.toml` when it declares both. Without a marker override, derive the
+  project from the normalized `upstream` remote, then `origin`, using the full
+  repository path without its host (`github.com/acme/api` → `acme-api`); use the
+  folder basename only when no valid remote exists. Never rely on the server's
+  last active project.
 
 This rule applies only to project-scoped calls. For cross-project retrieval,
 `global=true` must omit `workspace`, `project`, and `scopes`. For a standing
@@ -242,9 +244,9 @@ session start and reaches Claude Code only if the agent opens the file.
 
 If the rule is a standing *user/team* preference that should apply to
 every project (tech choices, code style, personal conventions), save it
-to ai-memory's reserved global scope instead — the durable-pages skill
-covers how. Default memory reads surface global-scope pages in every
-project automatically.
+to ai-memory's cross-project profile instead (`scope: "profile"`) — the
+durable-pages skill covers how. Every project receives the profile as
+defaults at session start, below its own rules file.
 
 ### Refreshing this snippet
 
