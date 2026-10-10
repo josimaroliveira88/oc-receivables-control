@@ -13,6 +13,12 @@ import {
 } from '../utils/productsProjection.js';
 import { sortProducts } from '../utils/productSort.js';
 import { paginate } from '../utils/pagination.js';
+import {
+  getProductUsage,
+  hardDeleteProduct,
+  removeProductReference,
+  purgeProduct,
+} from '../services/productUsageService.js';
 
 const getProducts = async (req, res) => {
   try {
@@ -320,22 +326,57 @@ const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const existingProduct = await prisma.product.findUnique({
-      where: { id },
+    const result = await hardDeleteProduct(prisma, {
+      userId: req.user.userId,
+      productId: id,
     });
 
-    if (!existingProduct) {
-      throw notFound('Produto não encontrado');
-    }
-
-    await prisma.product.update({
-      where: { id },
-      data: { status: 'INATIVO' },
-    });
-
-    res.status(200).json({ message: 'Produto desativado com sucesso' });
+    res.status(200).json({ message: result.message, counts: result.counts });
   } catch (error) {
-    handleError(res, error, { label: 'Error deactivating product' });
+    handleError(res, error, { label: 'Error deleting product' });
+  }
+};
+
+// Where the product is referenced and what blocks its physical deletion.
+const getProductUsageHandler = async (req, res) => {
+  try {
+    const snapshot = await getProductUsage(
+      prisma,
+      req.user.userId,
+      req.params.id,
+    );
+    res.status(200).json(snapshot);
+  } catch (error) {
+    handleError(res, error, { label: 'Error fetching product usage' });
+  }
+};
+
+// Removes one reference kind (inventory, stock-movements, exchange-lines or
+// kit-component) so a later hard-delete can proceed.
+const removeProductReferenceHandler = async (req, res) => {
+  try {
+    const result = await removeProductReference(prisma, {
+      userId: req.user.userId,
+      productId: req.params.id,
+      kind: req.params.kind,
+    });
+    res.status(200).json(result);
+  } catch (error) {
+    handleError(res, error, { label: 'Error removing product reference' });
+  }
+};
+
+// One-shot delete: clears every reference (including the blocking ones) and
+// removes the product. Used by the "Excluir produto" action.
+const purgeProductHandler = async (req, res) => {
+  try {
+    const result = await purgeProduct(prisma, {
+      userId: req.user.userId,
+      productId: req.params.id,
+    });
+    res.status(200).json(result);
+  } catch (error) {
+    handleError(res, error, { label: 'Error purging product' });
   }
 };
 
@@ -345,4 +386,7 @@ export {
   createProduct,
   updateProduct,
   deleteProduct,
+  getProductUsageHandler,
+  removeProductReferenceHandler,
+  purgeProductHandler,
 };

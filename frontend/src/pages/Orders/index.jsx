@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { formatBRL, toCents } from '../../utils/money';
+import { formatBRL, toCents, fromCents } from '../../utils/money';
 import { useOrders } from './useOrders';
 import { useOrderPayments } from './useOrderPayments';
 import OrdersTable from './components/OrdersTable';
@@ -86,6 +86,10 @@ const OrdersPage = () => {
     setFormField,
     addItem,
     removeItem,
+    pendingRemoveIndex,
+    confirmRemoveItem,
+    cancelRemoveItem,
+    removeItemImpact,
     updateItemField,
     onProductSelect,
     onPersonSelect,
@@ -519,6 +523,46 @@ const OrdersPage = () => {
         loading={deleting}
         onConfirm={confirmDeleteOrder}
         onCancel={cancelDeleteOrder}
+      />
+
+      <ConfirmDialog
+        open={pendingRemoveIndex !== null}
+        title="Remover item"
+        message={
+          removeItemImpact ? (
+            <>
+              Remover{' '}
+              <strong>
+                {removeItemImpact.item.productName ||
+                  removeItemImpact.item.description ||
+                  `item ${pendingRemoveIndex + 1}`}
+              </strong>
+              {removeItemImpact.item.quantity
+                ? ` (${removeItemImpact.item.quantity} un.)`
+                : ''}
+              ?
+              <br />
+              <br />
+              Impacto no pedido
+              {removeItemImpact.orderNumber
+                ? ` #${removeItemImpact.orderNumber}`
+                : ''}
+              : o total ficará em{' '}
+              <strong>
+                {formatBRL(fromCents(removeItemImpact.newTotalCents))}
+              </strong>{' '}
+              (era {formatBRL(fromCents(removeItemImpact.oldTotalCents))}). A
+              transação financeira vinculada será atualizada para o novo valor
+              quando o pedido for salvo.
+            </>
+          ) : (
+            ''
+          )
+        }
+        confirmLabel="Remover"
+        cancelLabel="Cancelar"
+        onConfirm={confirmRemoveItem}
+        onCancel={cancelRemoveItem}
       />
 
       <ConfirmDialog

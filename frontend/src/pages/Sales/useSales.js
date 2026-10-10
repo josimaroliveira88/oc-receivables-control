@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { useDirtyForm } from '../../hooks/useDirtyForm';
+import { toCents } from '../../utils/money';
 import { useSaleFilters } from './useSaleFilters';
 import {
   emptySaleItem,
@@ -10,6 +11,7 @@ import {
   saleItemPayload,
   editSaleItemFromApi,
   isKitItem,
+  lineValueCents,
 } from './utils/saleHelpers';
 
 // The additional-value expense can only use active DESPESA categories.
@@ -72,6 +74,7 @@ export function useSales() {
   const addItemBtnRef = useRef(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [pendingRemoveIndex, setPendingRemoveIndex] = useState(null);
   const [saleFormInitial, setSaleFormInitial] = useState(null);
   const salesAbortRef = useRef(null);
   const deepLinkHandledRef = useRef(false);
@@ -155,11 +158,44 @@ export function useSales() {
     }, 0);
   };
 
-  const removeItem = (index) => {
+  // Removing an item changes the sale total. The removal is confirmed with its
+  // impact; the linked "Valores Adicionais" expense is only affected when the
+  // additional value itself changes, so the copy states that clearly.
+  const applyRemoveItem = (index) => {
     if (items.length <= 1) return;
-    setItems(items.filter((_, i) => i !== index));
+    setItems((prev) => prev.filter((_, i) => i !== index));
     setItemErrors({});
   };
+
+  const removeItem = (index) => {
+    if (items.length <= 1) return;
+    setPendingRemoveIndex(index);
+  };
+
+  const confirmRemoveItem = () => {
+    if (pendingRemoveIndex == null) return;
+    applyRemoveItem(pendingRemoveIndex);
+    setPendingRemoveIndex(null);
+  };
+
+  const cancelRemoveItem = () => setPendingRemoveIndex(null);
+
+  const removeItemImpact = useMemo(() => {
+    if (pendingRemoveIndex == null) return null;
+    const item = items[pendingRemoveIndex];
+    if (!item) return null;
+    const shippingCents = toCents(parseFloat(shippingValue) || 0);
+    const itemsCents = items.reduce(
+      (total, current) => total + lineValueCents(current),
+      0,
+    );
+    const oldTotalCents = itemsCents + shippingCents;
+    return {
+      item,
+      oldTotalCents,
+      newTotalCents: oldTotalCents - lineValueCents(item),
+    };
+  }, [pendingRemoveIndex, items, shippingValue]);
 
   const updateItemField = (index, field, value) => {
     const target = items[index];
@@ -641,6 +677,10 @@ export function useSales() {
     setFormField,
     addItem,
     removeItem,
+    pendingRemoveIndex,
+    confirmRemoveItem,
+    cancelRemoveItem,
+    removeItemImpact,
     updateItemField,
     onProductSelect,
     resetForm,

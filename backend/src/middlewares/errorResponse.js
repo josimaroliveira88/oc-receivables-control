@@ -23,6 +23,10 @@ const handleError = (res, error, { fallback = 500, label = 'Error' } = {}) => {
     if (error.paidInstallmentIds !== undefined) {
       body.paidInstallmentIds = error.paidInstallmentIds;
     }
+    // productUsageService attaches the reference blockers on the product
+    // hard-delete conflict so the frontend can offer to clear them.
+    if (error.blockers !== undefined) body.blockers = error.blockers;
+    if (error.counts !== undefined) body.counts = error.counts;
     return res.status(error.status).json(body);
   }
 

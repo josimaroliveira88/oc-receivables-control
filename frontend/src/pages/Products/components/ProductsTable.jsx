@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, ExternalLink, Pencil, Copy } from 'lucide-react';
+import { Search, ExternalLink, Pencil, Copy, Link2 } from 'lucide-react';
 import { formatBRL, fromCents } from '../../../utils/money';
 import { calculateDiscountedPrice } from '../utils/productHelpers';
 import ProductsTableHeader from './ProductsTableHeader';
@@ -23,6 +23,7 @@ const ProductsTable = ({
   onEdit,
   onCopyField,
   onCopyRow,
+  onOpenUsage,
 }) => {
   return (
     <>
@@ -226,6 +227,11 @@ const ProductsTable = ({
                         <div className="flex items-center justify-end gap-2">
                           <ActionMenu
                             actions={[
+                              {
+                                label: 'Ver onde é usado',
+                                icon: Link2,
+                                onClick: () => onOpenUsage(product),
+                              },
                               {
                                 label: 'Copiar linha',
                                 icon: Copy,

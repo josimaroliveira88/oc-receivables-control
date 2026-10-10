@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { useDirtyForm } from '../../hooks/useDirtyForm';
 import { hasFormChanges } from '../../utils/formChanges';
+import { toCents } from '../../utils/money';
 import { useOrderFilters } from './useOrderFilters';
 import { useOrderEntryMode, ENTRY_MODES } from './useOrderEntryMode';
 import {
@@ -13,6 +14,7 @@ import {
   editItemFromApi,
   isKitItem,
   prefilledChargedValue,
+  lineValueCents,
   SELF_PERSON_ID,
   findSelfPerson,
   deriveTeamClientFromItems,
@@ -74,6 +76,7 @@ export function useOrders() {
   const addItemBtnRef = useRef(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [pendingRemoveIndex, setPendingRemoveIndex] = useState(null);
   const [orderFormInitial, setOrderFormInitial] = useState(null);
   const ordersAbortRef = useRef(null);
   const { addToast } = useToast();
@@ -174,11 +177,45 @@ export function useOrders() {
     }, 0);
   };
 
-  const removeItem = (index) => {
+  // Removing an item changes the order total and therefore the linked ledger
+  // expense. The removal is confirmed with its impact before it happens; the
+  // backend re-syncs the expense to the new total when the order is saved.
+  const applyRemoveItem = (index) => {
     if (items.length <= 1) return;
-    setItems(items.filter((_, i) => i !== index));
+    setItems((prev) => prev.filter((_, i) => i !== index));
     setItemErrors({});
   };
+
+  const removeItem = (index) => {
+    if (items.length <= 1) return;
+    setPendingRemoveIndex(index);
+  };
+
+  const confirmRemoveItem = () => {
+    if (pendingRemoveIndex == null) return;
+    applyRemoveItem(pendingRemoveIndex);
+    setPendingRemoveIndex(null);
+  };
+
+  const cancelRemoveItem = () => setPendingRemoveIndex(null);
+
+  const removeItemImpact = useMemo(() => {
+    if (pendingRemoveIndex == null) return null;
+    const item = items[pendingRemoveIndex];
+    if (!item) return null;
+    const shippingCents = toCents(parseFloat(shippingValue) || 0);
+    const itemsCents = items.reduce(
+      (total, current) => total + lineValueCents(current),
+      0,
+    );
+    const oldTotalCents = itemsCents + shippingCents;
+    return {
+      item,
+      orderNumber,
+      oldTotalCents,
+      newTotalCents: oldTotalCents - lineValueCents(item),
+    };
+  }, [pendingRemoveIndex, items, shippingValue, orderNumber]);
 
   const updateItemField = (index, field, value) => {
     const target = items[index];
@@ -983,6 +1020,10 @@ export function useOrders() {
     setFormField,
     addItem,
     removeItem,
+    pendingRemoveIndex,
+    confirmRemoveItem,
+    cancelRemoveItem,
+    removeItemImpact,
     updateItemField,
     onProductSelect,
     onPersonSelect,

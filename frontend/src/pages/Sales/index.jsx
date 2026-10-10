@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { formatBRL, toCents } from '../../utils/money';
+import { formatBRL, toCents, fromCents } from '../../utils/money';
 import { useSales } from './useSales';
 import { useSalePayments } from './useSalePayments';
 import { useSaleSettlements } from '../Finances/useSaleSettlements';
@@ -68,6 +68,10 @@ const SalesPage = () => {
     setFormField,
     addItem,
     removeItem,
+    pendingRemoveIndex,
+    confirmRemoveItem,
+    cancelRemoveItem,
+    removeItemImpact,
     updateItemField,
     onProductSelect,
     resetForm,
@@ -451,6 +455,42 @@ const SalesPage = () => {
         loading={deleting}
         onConfirm={confirmDeleteSale}
         onCancel={cancelDeleteSale}
+      />
+
+      <ConfirmDialog
+        open={pendingRemoveIndex !== null}
+        title="Remover item"
+        message={
+          removeItemImpact ? (
+            <>
+              Remover{' '}
+              <strong>
+                {removeItemImpact.item.productName ||
+                  removeItemImpact.item.description ||
+                  `item ${pendingRemoveIndex + 1}`}
+              </strong>
+              {removeItemImpact.item.quantity
+                ? ` (${removeItemImpact.item.quantity} un.)`
+                : ''}
+              ?
+              <br />
+              <br />
+              Impacto na venda: o total ficará em{' '}
+              <strong>
+                {formatBRL(fromCents(removeItemImpact.newTotalCents))}
+              </strong>{' '}
+              (era {formatBRL(fromCents(removeItemImpact.oldTotalCents))}). A
+              despesa de valores adicionais não é alterada enquanto o valor
+              adicional não mudar.
+            </>
+          ) : (
+            ''
+          )
+        }
+        confirmLabel="Remover"
+        cancelLabel="Cancelar"
+        onConfirm={confirmRemoveItem}
+        onCancel={cancelRemoveItem}
       />
     </>
   );

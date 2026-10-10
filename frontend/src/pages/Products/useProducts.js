@@ -3,6 +3,7 @@ import api from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { useDirtyForm } from '../../hooks/useDirtyForm';
 import { copyToClipboard } from '../../utils/clipboard';
+import { useProductUsage } from './hooks/useProductUsage';
 import {
   PAGE_SIZE,
   emptyForm,
@@ -54,6 +55,18 @@ export function useProducts() {
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
+
+  const {
+    usageProduct,
+    snapshot: usageSnapshot,
+    loading: usageLoading,
+    error: usageError,
+    openUsageModal,
+    closeUsageModal,
+    refreshUsage,
+    removeReference,
+    purgeProduct,
+  } = useProductUsage({ onChanged: loadProducts });
 
   const filteredProducts = useMemo(
     () =>
@@ -369,5 +382,14 @@ export function useProducts() {
     closeEditModal,
     copyField,
     copyRow,
+    usageProduct,
+    usageSnapshot,
+    usageLoading,
+    usageError,
+    openUsageModal,
+    closeUsageModal,
+    refreshUsage,
+    removeReference,
+    purgeProduct,
   };
 }

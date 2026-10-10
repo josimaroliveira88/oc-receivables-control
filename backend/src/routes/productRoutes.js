@@ -102,6 +102,87 @@ router.get('/:id', productController.getProductById);
 
 /**
  * @openapi
+ * /api/products/{id}/usage:
+ *   get:
+ *     tags: [Products]
+ *     summary: Locais onde o produto é usado e o que bloqueia sua exclusão
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Snapshot de uso do produto
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+// GET /api/products/:id/usage
+router.get('/:id/usage', productController.getProductUsageHandler);
+
+/**
+ * @openapi
+ * /api/products/{id}/references/{kind}:
+ *   delete:
+ *     tags: [Products]
+ *     summary: Remove um tipo de referência (inventory, stock-movements, exchange-lines, kit-component)
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *       - in: path
+ *         name: kind
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [inventory, stock-movements, exchange-lines, kit-component]
+ *     responses:
+ *       200:
+ *         description: Referência removida
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+// DELETE /api/products/:id/references/:kind
+router.delete(
+  '/:id/references/:kind',
+  productController.removeProductReferenceHandler,
+);
+
+/**
+ * @openapi
+ * /api/products/{id}/purge:
+ *   post:
+ *     tags: [Products]
+ *     summary: Exclui o produto e remove todas as referências em uma transação
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Produto excluído
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+// POST /api/products/:id/purge
+router.post('/:id/purge', productController.purgeProductHandler);
+
+/**
+ * @openapi
  * /api/products:
  *   post:
  *     tags: [Products]
@@ -170,7 +251,7 @@ router.put('/:id', productController.updateProduct);
  * /api/products/{id}:
  *   delete:
  *     tags: [Products]
- *     summary: Desativa um produto (soft-delete para INATIVO)
+ *     summary: Exclui fisicamente um produto (bloqueia com 409 se houver referências)
  *     parameters:
  *       - in: path
  *         name: id
@@ -180,7 +261,7 @@ router.put('/:id', productController.updateProduct);
  *           format: uuid
  *     responses:
  *       200:
- *         description: Produto desativado
+ *         description: Produto excluído
  *         content:
  *           application/json:
  *             schema:
@@ -189,6 +270,8 @@ router.put('/:id', productController.updateProduct);
  *         $ref: '#/components/responses/Unauthorized'
  *       404:
  *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
  */
 // DELETE /api/products/:id
 router.delete('/:id', productController.deleteProduct);

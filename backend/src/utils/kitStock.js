@@ -31,9 +31,12 @@ const expandItemToStockProducts = (item) => {
 
 // Expansion used by sale orders. Sale items always affect stock regardless of
 // the `forStock` flag (a purchase-order concept), so it is forced on while
-// keeping `expandItemToStockProducts` as the single kit-expansion point.
-const expandSaleItemToStockProducts = (item) =>
-  expandStockProduct({ ...item, forStock: true });
+// keeping `expandItemToStockProducts` as the single kit-expansion point. An item
+// whose product was hard-deleted (`productId` nulled) contributes no movement.
+const expandSaleItemToStockProducts = (item) => {
+  if (!item.productId) return [];
+  return expandStockProduct({ ...item, forStock: true });
+};
 
 const expandStockProduct = (item) => {
   const qty = Math.max(1, Number(item.quantity) || 1);
@@ -42,10 +45,12 @@ const expandStockProduct = (item) => {
     Array.isArray(item.kitSnapshot) &&
     item.kitSnapshot.length > 0
   ) {
-    return item.kitSnapshot.map((c) => ({
-      productId: c.componentProductId,
-      quantity: (Number(c.quantity) || 1) * qty,
-    }));
+    return item.kitSnapshot
+      .filter((component) => component.componentProductId)
+      .map((component) => ({
+        productId: component.componentProductId,
+        quantity: (Number(component.quantity) || 1) * qty,
+      }));
   }
   return [{ productId: item.productId, quantity: qty }];
 };

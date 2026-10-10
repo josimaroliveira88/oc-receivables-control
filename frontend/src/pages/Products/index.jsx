@@ -4,6 +4,7 @@ import { useProducts } from './useProducts';
 import ProductsTable from './components/ProductsTable';
 import Modal from '../../components/Modal';
 import ProductForm from './components/ProductForm';
+import ProductUsageModal from './components/ProductUsageModal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { PRODUCT_STATUS } from './utils/productHelpers';
 
@@ -50,6 +51,15 @@ const ProductsPage = () => {
     closeEditModal,
     copyField,
     copyRow,
+    usageProduct,
+    usageSnapshot,
+    usageLoading,
+    usageError,
+    openUsageModal,
+    closeUsageModal,
+    refreshUsage,
+    removeReference,
+    purgeProduct,
   } = useProducts();
 
   // Deep-link from the order form: opening /products?edit=<productId> (e.g. the
@@ -125,6 +135,7 @@ const ProductsPage = () => {
             onEdit={openEditModal}
             onCopyField={copyField}
             onCopyRow={copyRow}
+            onOpenUsage={openUsageModal}
           />
         </div>
       </div>
@@ -195,6 +206,17 @@ const ProductsPage = () => {
         loading={updatingStatus}
         onConfirm={confirmChangeStatus}
         onCancel={() => setConfirmStatus(null)}
+      />
+
+      <ProductUsageModal
+        product={usageProduct}
+        snapshot={usageSnapshot}
+        loading={usageLoading}
+        error={usageError}
+        onClose={closeUsageModal}
+        onRefresh={refreshUsage}
+        onRemoveReference={removeReference}
+        onHardDelete={purgeProduct}
       />
     </>
   );
