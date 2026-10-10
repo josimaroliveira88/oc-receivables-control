@@ -30,7 +30,7 @@ export const emptyExchangeForm = () => ({
 });
 
 // Resolve the unit value in cents for a single line, in the order documented
-// to the user: explicit value → catalog regularPrice → 0 (line contributes
+// to the user: explicit value → catalog member price → 0 (line contributes
 // nothing to the difference preview).
 const resolveLineUnitCents = (line, productPriceMap) => {
   if (
@@ -43,9 +43,22 @@ const resolveLineUnitCents = (line, productPriceMap) => {
   }
   const product = productPriceMap[line.productId];
   if (!product) return 0;
-  const raw = product.regularPrice;
+  const raw = product.memberPrice;
   if (raw === null || raw === undefined || raw === '') return 0;
   return toCents(parseFloat(raw));
+};
+
+// Catalog member price as a canonical decimal string, used to prefill the
+// editable "Valor Membro" field when a product is chosen. Returns '' when the
+// product or its price is unavailable so the field stays empty.
+export const memberUnitValue = (productId, productPriceMap) => {
+  if (!productId) return '';
+  const product = productPriceMap?.[productId];
+  if (!product) return '';
+  const raw = product.memberPrice;
+  if (raw === null || raw === undefined || raw === '') return '';
+  const parsed = parseFloat(raw);
+  return Number.isNaN(parsed) ? '' : String(parsed);
 };
 
 const resolveLineQuantity = (line) => {

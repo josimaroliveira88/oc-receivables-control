@@ -13,6 +13,7 @@ import {
   emptyExchangeLine,
   validateExchange,
   buildExchangePayload,
+  memberUnitValue,
 } from './utils/stockExchangeHelpers';
 
 export function useStock() {
@@ -252,9 +253,19 @@ export function useStock() {
 
   const setExchangeLine = (side, uid, fieldName, value) => {
     setExchangeForm((prev) => {
-      const nextLines = prev[side].map((line) =>
-        line.uid === uid ? { ...line, [fieldName]: value } : line,
-      );
+      const nextLines = prev[side].map((line) => {
+        if (line.uid !== uid) return line;
+        // Picking a product seeds the editable unit value with its current
+        // catalog member price; the user can still overwrite or clear it.
+        if (fieldName === 'productId') {
+          return {
+            ...line,
+            productId: value,
+            unitValue: memberUnitValue(value, productPriceMap),
+          };
+        }
+        return { ...line, [fieldName]: value };
+      });
       return { ...prev, [side]: nextLines };
     });
   };

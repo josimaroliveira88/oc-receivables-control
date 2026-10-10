@@ -162,17 +162,13 @@ const PersonCombobox = ({ people, value, onChange }) => {
 const inputClass =
   'w-full px-3 py-2 border border-line bg-surface text-ink rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors disabled:bg-base disabled:text-ink-faint disabled:cursor-not-allowed';
 
-const LineRow = ({
-  line,
-  products,
-  productPriceMap,
-  onChange,
-  onRemove,
-  side,
-}) => {
+const LineRow = ({ line, products, onChange, onRemove, side }) => {
   return (
-    <div className="grid grid-cols-12 gap-2 items-end mb-2">
-      <div className="col-span-12 sm:col-span-6">
+    // Mobile keeps the 12-column grid; from `sm` on, the quantity cell is pinned
+    // to a fixed 5rem so it never grows wider than the two digits it holds and
+    // never crowds the unit-value field.
+    <div className="grid grid-cols-12 gap-2 items-end mb-2 sm:grid-cols-[minmax(0,2fr)_5rem_minmax(0,1fr)_auto]">
+      <div className="col-span-12 sm:col-span-1">
         <label className="block text-xs font-medium text-ink-faint mb-1">
           Produto
         </label>
@@ -182,7 +178,7 @@ const LineRow = ({
           onChange={(id) => onChange('productId', id)}
         />
       </div>
-      <div className="col-span-5 sm:col-span-2">
+      <div className="col-span-3 sm:col-span-1">
         <label className="block text-xs font-medium text-ink-faint mb-1">
           Quantidade
         </label>
@@ -191,18 +187,19 @@ const LineRow = ({
           onChange={(e) => onChange('quantity', e.target.value)}
           required
           placeholder="Qtd"
+          className="w-full"
           aria-label="Quantidade"
         />
       </div>
-      <div className="col-span-5 sm:col-span-3">
+      <div className="col-span-7 sm:col-span-1">
         <label className="block text-xs font-medium text-ink-faint mb-1">
-          Valor unitário (opcional)
+          Valor Membro (opcional)
         </label>
         <CurrencyInput
           value={line.unitValue}
           onChange={(e) => onChange('unitValue', e.target.value)}
           placeholder="R$ 0,00"
-          aria-label="Valor unitário"
+          aria-label="Valor Membro"
         />
       </div>
       <div className="col-span-2 sm:col-span-1 flex justify-end">
@@ -329,7 +326,6 @@ const StockExchangeDialog = ({
                   key={line.uid}
                   line={line}
                   products={products}
-                  productPriceMap={productPriceMap}
                   onChange={handleLineChange('outgoingLines', line.uid)}
                   onRemove={() => onRemoveLine('outgoingLines', line.uid)}
                   side="out"
@@ -360,7 +356,6 @@ const StockExchangeDialog = ({
                   key={line.uid}
                   line={line}
                   products={products}
-                  productPriceMap={productPriceMap}
                   onChange={handleLineChange('incomingLines', line.uid)}
                   onRemove={() => onRemoveLine('incomingLines', line.uid)}
                   side="in"
