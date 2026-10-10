@@ -897,19 +897,18 @@ describe('Products CRUD', () => {
       productId = product.id;
     });
 
-    it('should soft-delete a product by setting active to false', async () => {
+    it('should physically delete a product with no blocking references', async () => {
       const response = await request(app)
         .delete(`/api/products/${productId}`)
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
-      expect(response.body.message).toBe('Produto desativado com sucesso');
+      expect(response.body.message).toBe('Produto excluído com sucesso');
 
       const product = await prisma.product.findUnique({
         where: { id: productId },
       });
-      expect(product.status).toBe('INATIVO');
-      expect(product).not.toBeNull();
+      expect(product).toBeNull();
     });
 
     it('should return 404 for non-existent product', async () => {

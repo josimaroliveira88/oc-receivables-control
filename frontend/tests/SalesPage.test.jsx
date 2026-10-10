@@ -1187,7 +1187,7 @@ describe('SalesPage', () => {
       });
     });
 
-    it('should remove an item row when clicking "Remover"', async () => {
+    it('should remove an item row after confirming the impact dialog', async () => {
       mockGetImplementation([]);
       renderPage();
       await openCreateModal();
@@ -1197,6 +1197,8 @@ describe('SalesPage', () => {
         expect(removeButtons).toHaveLength(2);
       });
       fireEvent.click(screen.getAllByText('Remover')[1]);
+      const dialog = await screen.findByRole('dialog');
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Remover' }));
       await waitFor(() => {
         expect(screen.queryByText('Item 2')).not.toBeInTheDocument();
       });

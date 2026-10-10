@@ -831,7 +831,7 @@ describe('OrdersPage', () => {
       });
     });
 
-    it('should remove an item row when clicking "Remover"', async () => {
+    it('should remove an item row after confirming the impact dialog', async () => {
       renderPage();
 
       await waitFor(() => {
@@ -854,9 +854,37 @@ describe('OrdersPage', () => {
       const removeButtons = screen.getAllByText('Remover');
       fireEvent.click(removeButtons[1]);
 
+      const dialog = await screen.findByRole('dialog');
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Remover' }));
+
       await waitFor(() => {
         expect(screen.queryByText('Item 2')).not.toBeInTheDocument();
       });
+    });
+
+    it('should warn about the financial impact before removing an item', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Novo Pedido')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Novo Pedido'));
+      fireEvent.click(await screen.findByText('Adicionar Item'));
+
+      await waitFor(() => {
+        expect(screen.getAllByText('Remover')).toHaveLength(2);
+      });
+
+      fireEvent.click(screen.getAllByText('Remover')[0]);
+
+      const dialog = await screen.findByRole('dialog');
+      expect(within(dialog).getByText(/Impacto no pedido/)).toBeInTheDocument();
+      expect(
+        within(dialog).getByText(
+          /A transação financeira vinculada será atualizada/,
+        ),
+      ).toBeInTheDocument();
     });
 
     it('should hide the person field in item rows for non-team orders', async () => {
