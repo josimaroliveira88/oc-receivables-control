@@ -1817,7 +1817,7 @@ describe('StockPage', () => {
       fireEvent.change(qtyInputs[0], { target: { value: '2' } });
       fireEvent.change(qtyInputs[1], { target: { value: '1' } });
 
-      const valueInputs = screen.getAllByLabelText('Valor unitário');
+      const valueInputs = screen.getAllByLabelText('Valor Membro');
       fireEvent.change(valueInputs[0], { target: { value: '5000' } });
       fireEvent.change(valueInputs[1], { target: { value: '12000' } });
 
@@ -1852,7 +1852,31 @@ describe('StockPage', () => {
       });
     });
 
-    it('omits unitValueCents when the user leaves the unit value empty', async () => {
+    it('prefills the unit value with the catalog price when a product is chosen', async () => {
+      setupExchangeLists();
+      renderPage();
+
+      await openExchangeDialog();
+
+      const addOut = screen.getAllByText('Adicionar produto')[0];
+      fireEvent.click(addOut);
+
+      const productInput = screen.getAllByLabelText('Produto')[0];
+      fireEvent.change(productInput, {
+        target: { value: exchangeProductOut.name },
+      });
+      const optOut = await screen.findByText(exchangeProductOut.name);
+      fireEvent.mouseDown(optOut);
+
+      // The catalog memberPrice (80.00) seeds the editable field.
+      await waitFor(() => {
+        expect(screen.getAllByLabelText('Valor Membro')[0]).toHaveValue(
+          '80,00',
+        );
+      });
+    });
+
+    it('omits unitValueCents when the user clears the prefilled unit value', async () => {
       setupExchangeLists();
       mockPost.mockResolvedValue({
         data: {
@@ -1893,6 +1917,11 @@ describe('StockPage', () => {
       const qtyInputs = screen.getAllByLabelText('Quantidade');
       fireEvent.change(qtyInputs[0], { target: { value: '1' } });
       fireEvent.change(qtyInputs[1], { target: { value: '1' } });
+
+      // Clear both prefilled unit values.
+      const valueInputs = screen.getAllByLabelText('Valor Membro');
+      fireEvent.change(valueInputs[0], { target: { value: '' } });
+      fireEvent.change(valueInputs[1], { target: { value: '' } });
 
       const submit = screen.getByRole('button', { name: 'Trocar' });
       fireEvent.click(submit);
@@ -2012,7 +2041,7 @@ describe('StockPage', () => {
       ).toBeInTheDocument();
     });
 
-    it('updates the totals using user-provided values when present and falls back to the catalog price otherwise', async () => {
+    it('updates the totals using user-provided values when present and the prefilled member price otherwise', async () => {
       setupExchangeLists();
       renderPage();
 
@@ -2044,10 +2073,10 @@ describe('StockPage', () => {
       fireEvent.change(qtyInputs[0], { target: { value: '2' } });
       fireEvent.change(qtyInputs[1], { target: { value: '1' } });
 
-      const valueInputs = screen.getAllByLabelText('Valor unitário');
+      const valueInputs = screen.getAllByLabelText('Valor Membro');
       // outgoing uses user value 5000 (cents) * 2 = 10000 cents = R$ 100,00
       fireEvent.change(valueInputs[0], { target: { value: '5000' } });
-      // incoming leaves user value empty → uses catalog regularPrice 150.00 × 1 = R$ 150,00
+      // incoming keeps the prefilled member price 120.00 × 1 = R$ 120,00
 
       await waitFor(() => {
         expect(screen.getByText(/Total que sai/i)).toBeInTheDocument();
@@ -2055,12 +2084,12 @@ describe('StockPage', () => {
 
       // Locate the totals box and inspect the rendered numbers.
       // Outgoing: 2 × R$ 50,00 = R$ 100,00
-      // Incoming: 1 × R$ 150,00 (catalog fallback) = R$ 150,00
-      // Difference: R$ 150,00 - R$ 100,00 = R$ 50,00 (positive → user receives)
+      // Incoming: 1 × R$ 120,00 (prefilled member price) = R$ 120,00
+      // Difference: R$ 120,00 - R$ 100,00 = R$ 20,00 (positive → user receives)
       const totals = screen.getByTestId('stock-exchange-totals');
       expect(totals.textContent).toContain('100,00');
-      expect(totals.textContent).toContain('150,00');
-      expect(totals.textContent).toMatch(/R\$\s*50,00/);
+      expect(totals.textContent).toContain('120,00');
+      expect(totals.textContent).toMatch(/R\$\s*20,00/);
     });
   });
 });
