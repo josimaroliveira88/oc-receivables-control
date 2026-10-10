@@ -18,6 +18,7 @@ export default function CurrencyInput({
   disabled = false,
   required = false,
   className = '',
+  'aria-label': ariaLabel,
   'data-testid': dataTestId,
 }) {
   const handleValueChange = ({ value: digits }) => {
@@ -40,6 +41,7 @@ export default function CurrencyInput({
       placeholder={placeholder}
       disabled={disabled}
       required={required}
+      aria-label={ariaLabel}
       data-testid={dataTestId}
       className={classes}
       onValueChange={handleValueChange}

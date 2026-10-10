@@ -1,5 +1,6 @@
 import express from 'express';
 import * as stockController from '../controllers/stockController.js';
+import * as stockExchangeController from '../controllers/stockExchangeController.js';
 import { authenticateToken } from '../middlewares/auth.js';
 
 const router = express.Router();
@@ -125,5 +126,88 @@ router.post('/movements', stockController.registerMovement);
  *         $ref: '#/components/responses/NotFound'
  */
 router.post('/movements/:id/undo', stockController.undoLastMovement);
+
+/**
+ * @openapi
+ * /api/stock/exchanges:
+ *   post:
+ *     tags: [Stock]
+ *     summary: Registra uma troca de produtos com outra pessoa
+ *     description: |
+ *       Cada linha de saída gera um StockMovement SAIDA e cada linha de entrada
+ *       gera um StockMovement ENTRADA, todos com `reason` padronizado
+ *       `Troca #<id> com <pessoa>: <observação>` e o mesmo `effectiveDate`.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [personId, effectiveDate, outgoingLines, incomingLines]
+ *             properties:
+ *               personId:
+ *                 type: string
+ *                 format: uuid
+ *               effectiveDate:
+ *                 type: string
+ *                 format: date
+ *               observation:
+ *                 type: string
+ *                 maxLength: 1000
+ *               outgoingLines:
+ *                 type: array
+ *                 minItems: 1
+ *                 items:
+ *                   type: object
+ *                   required: [productId, quantity]
+ *                   properties:
+ *                     productId:
+ *                       type: string
+ *                       format: uuid
+ *                     quantity:
+ *                       type: integer
+ *                       minimum: 1
+ *                     unitValueCents:
+ *                       type: integer
+ *                       minimum: 0
+ *               incomingLines:
+ *                 type: array
+ *                 minItems: 1
+ *                 items:
+ *                   $ref: '#/components/schemas/StockExchangeLineInput'
+ *     responses:
+ *       201:
+ *         description: Troca registrada
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.post('/exchanges', stockExchangeController.createStockExchange);
+
+/**
+ * @openapi
+ * /api/stock/exchanges/{id}:
+ *   get:
+ *     tags: [Stock]
+ *     summary: Busca uma troca pelo id
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Troca encontrada
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.get('/exchanges/:id', stockExchangeController.getStockExchange);
 
 export default router;

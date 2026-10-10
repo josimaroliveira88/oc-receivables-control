@@ -15,6 +15,7 @@ model User {
   orders                Order[]
   inventory             Inventory[]
   stockMovements        StockMovement[]
+  stockExchanges        StockExchange[]
   saleCounter           SaleCounter?
   financialCategories   FinancialCategory[]
   financialTransactions FinancialTransaction[]
@@ -64,6 +65,7 @@ model Person {
   userId          String
   items           Item[]
   payments        Payment[]
+  stockExchanges  StockExchange[]
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 }
@@ -210,12 +212,13 @@ model Product {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  prices          ProductPrice[]
-  items           Item[]
-  inventory       Inventory[]
-  stockMovements  StockMovement[]
-  kitComponents   KitComposition[] @relation("KitComponents") // composition when this product is a KIT
-  componentOfKits KitComposition[] @relation("ComponentOfKits") // kits that use this product as a component
+  prices            ProductPrice[]
+  items             Item[]
+  inventory         Inventory[]
+  stockMovements    StockMovement[]
+  stockExchangeLines StockExchangeLine[]
+  kitComponents     KitComposition[] @relation("KitComponents") // composition when this product is a KIT
+  componentOfKits   KitComposition[] @relation("ComponentOfKits") // kits that use this product as a component
 
   @@index([status])
 }
@@ -459,4 +462,54 @@ model RideRecord {
   @@index([userId, requestedAt])
   @@index([userId, status])
   @@index([userId, importBatchId])
+}
+
+// Stock exchange: a swap of products between the user and another Person. Each
+// line generates a StockMovement (OUT = SAIDA, IN = ENTRADA) so the inventory
+// stays accurate without resorting to a separate ledger entry. The exchange
+// itself only stores who, when and the optional free-text observation.
+enum StockExchangeDirection {
+  OUT
+  IN
+}
+
+model StockExchange {
+  id            String                 @id @default(uuid())
+  userId        String
+  personId      String
+  effectiveDate DateTime               @default(now())
+  // Free-text observation up to 1000 chars. Stored verbatim (not in the
+  // StockMovement reason, which carries a structured prefix + summary).
+  observation   String?                @db.VarChar(1000)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  user   User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  person Person              @relation(fields: [personId], references: [id], onDelete: Restrict)
+  lines  StockExchangeLine[]
+
+  @@index([userId])
+  @@index([userId, effectiveDate])
+}
+
+model StockExchangeLine {
+  id             String                @id @default(uuid())
+  exchangeId     String
+  productId      String
+  quantity       Int
+  // User-supplied unit value in integer cents; null when the user did not
+  // provide one (the catalog price is used only for the on-screen difference
+  // preview, never stored).
+  unitValueCents Int?
+  // Cached direction so we can filter "what comes out vs what comes in"
+  // without scanning the parent header.
+  direction      StockExchangeDirection
+
+  exchange StockExchange @relation(fields: [exchangeId], references: [id], onDelete: Cascade)
+  product  Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@index([exchangeId])
+  @@index([productId])
 }

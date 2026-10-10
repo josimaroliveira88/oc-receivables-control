@@ -8,6 +8,12 @@ import {
   validateMovement,
   filterAndSortStock,
 } from './utils/stockHelpers';
+import {
+  emptyExchangeForm,
+  emptyExchangeLine,
+  validateExchange,
+  buildExchangePayload,
+} from './utils/stockExchangeHelpers';
 
 export function useStock() {
   const [inventory, setInventory] = useState([]);
@@ -31,6 +37,15 @@ export function useStock() {
   const [historyProduct, setHistoryProduct] = useState(null);
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+
+  // Stock-exchange (swap) state.
+  const [showExchangeDialog, setShowExchangeDialog] = useState(false);
+  const [exchangeForm, setExchangeForm] = useState(emptyExchangeForm());
+  const [exchangeFormInitial, setExchangeFormInitial] = useState(null);
+  const [exchangeError, setExchangeError] = useState('');
+  const [submittingExchange, setSubmittingExchange] = useState(false);
+  const [people, setPeople] = useState([]);
+  const [exchangeProducts, setExchangeProducts] = useState([]);
 
   const { addToast } = useToast();
 
@@ -77,6 +92,14 @@ export function useStock() {
     );
     return (products || []).filter((p) => !inventoryIds.has(p.id));
   }, [products, inventory]);
+
+  const productPriceMap = useMemo(() => {
+    const map = {};
+    for (const product of exchangeProducts) {
+      map[product.id] = product;
+    }
+    return map;
+  }, [exchangeProducts]);
 
   const movementDirty = useDirtyForm(movementForm, movementFormInitial).isDirty;
 
@@ -180,6 +203,99 @@ export function useStock() {
     }
   };
 
+  // Stock-exchange helpers -------------------------------------------------
+
+  const ensureExchangeLookups = useCallback(async () => {
+    const tasks = [];
+    if (people.length === 0) {
+      tasks.push(
+        api
+          .get('/people')
+          .then((res) => setPeople(Array.isArray(res.data) ? res.data : []))
+          .catch(() => setPeople([])),
+      );
+    }
+    if (exchangeProducts.length === 0) {
+      tasks.push(
+        api
+          .get('/products?available=true&pageSize=all')
+          .then((res) =>
+            setExchangeProducts(
+              Array.isArray(res.data?.data) ? res.data.data : [],
+            ),
+          )
+          .catch(() => setExchangeProducts([])),
+      );
+    }
+    await Promise.all(tasks);
+  }, [people.length, exchangeProducts.length]);
+
+  const openExchangeDialog = async () => {
+    await ensureExchangeLookups();
+    const form = emptyExchangeForm();
+    setExchangeForm(form);
+    setExchangeFormInitial(form);
+    setExchangeError('');
+    setShowExchangeDialog(true);
+  };
+
+  const closeExchangeDialog = () => {
+    setShowExchangeDialog(false);
+    setExchangeForm(emptyExchangeForm());
+    setExchangeFormInitial(null);
+    setExchangeError('');
+  };
+
+  const setExchangeField = (field, value) => {
+    setExchangeForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const setExchangeLine = (side, uid, fieldName, value) => {
+    setExchangeForm((prev) => {
+      const nextLines = prev[side].map((line) =>
+        line.uid === uid ? { ...line, [fieldName]: value } : line,
+      );
+      return { ...prev, [side]: nextLines };
+    });
+  };
+
+  const addExchangeLine = (side) => {
+    setExchangeForm((prev) => ({
+      ...prev,
+      [side]: [...prev[side], emptyExchangeLine()],
+    }));
+  };
+
+  const removeExchangeLine = (side, uid) => {
+    setExchangeForm((prev) => ({
+      ...prev,
+      [side]: prev[side].filter((line) => line.uid !== uid),
+    }));
+  };
+
+  const handleSubmitExchange = async (e) => {
+    e.preventDefault();
+    const validationError = validateExchange(exchangeForm);
+    if (validationError) {
+      setExchangeError(validationError);
+      return;
+    }
+    setExchangeError('');
+    setSubmittingExchange(true);
+    try {
+      await api.post('/stock/exchanges', buildExchangePayload(exchangeForm));
+      addToast('Troca registrada com sucesso!', 'success');
+      closeExchangeDialog();
+      loadInventory();
+    } catch (_err) {
+      addToast('Erro ao registrar troca. Tente novamente.', 'error');
+    } finally {
+      setSubmittingExchange(false);
+    }
+  };
+
+  const exchangeDirty = useDirtyForm(exchangeForm, exchangeFormInitial).isDirty;
+
   return {
     inventory: visibleInventory,
     totalCount: visibleInventory.length,
@@ -215,5 +331,21 @@ export function useStock() {
     undoLastMovement,
     handleRegisterEntry: (item) => openMovementDialog(item, 'ENTRADA'),
     handleRegisterExit: (item) => openMovementDialog(item, 'SAIDA'),
+    // Stock exchange
+    showExchangeDialog,
+    exchangeForm,
+    exchangeDirty,
+    exchangeError,
+    submittingExchange,
+    exchangePeople: people,
+    exchangeProducts,
+    exchangeProductPriceMap: productPriceMap,
+    openExchangeDialog,
+    closeExchangeDialog,
+    setExchangeField,
+    setExchangeLine,
+    addExchangeLine,
+    removeExchangeLine,
+    handleSubmitExchange,
   };
 }

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowLeftRight } from 'lucide-react';
 import { useStock } from './useStock';
 import StockTable from './components/StockTable';
 import MovementDialog from './components/MovementDialog';
 import HistoryDialog from './components/HistoryDialog';
+import StockExchangeDialog from './components/StockExchangeDialog';
 import ConfirmDialog from '../../components/ConfirmDialog';
 
 const StockPage = () => {
@@ -41,6 +43,21 @@ const StockPage = () => {
     openHistoryDialog,
     closeHistoryDialog,
     undoLastMovement,
+    showExchangeDialog,
+    exchangeForm,
+    exchangeDirty,
+    exchangeError,
+    submittingExchange,
+    exchangePeople,
+    exchangeProducts,
+    exchangeProductPriceMap,
+    openExchangeDialog,
+    closeExchangeDialog,
+    setExchangeField,
+    setExchangeLine,
+    addExchangeLine,
+    removeExchangeLine,
+    handleSubmitExchange,
   } = useStock();
 
   const [confirmUndo, setConfirmUndo] = useState(false);
@@ -76,13 +93,23 @@ const StockPage = () => {
           <h2 className="text-xl font-semibold text-ink">
             Controle de Estoque
           </h2>
-          <button
-            type="button"
-            onClick={openAddStockDialog}
-            className="mt-3 sm:mt-0 px-4 py-2 bg-accent hover:bg-accent-hover text-accent-on font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
-          >
-            Adicionar Estoque
-          </button>
+          <div className="flex flex-col sm:flex-row gap-2 mt-3 sm:mt-0">
+            <button
+              type="button"
+              onClick={openExchangeDialog}
+              className="px-4 py-2 bg-base border border-line text-ink hover:bg-elevated font-medium rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface inline-flex items-center justify-center gap-2"
+            >
+              <ArrowLeftRight size={16} aria-hidden="true" />
+              Trocar produtos
+            </button>
+            <button
+              type="button"
+              onClick={openAddStockDialog}
+              className="px-4 py-2 bg-accent hover:bg-accent-hover text-accent-on font-medium rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
+            >
+              Adicionar Estoque
+            </button>
+          </div>
         </div>
 
         <div className="px-6 py-4">
@@ -148,6 +175,23 @@ const StockPage = () => {
         loading={undoing}
         onConfirm={handleConfirmUndo}
         onCancel={() => setConfirmUndo(false)}
+      />
+
+      <StockExchangeDialog
+        isOpen={showExchangeDialog}
+        people={exchangePeople}
+        products={exchangeProducts}
+        productPriceMap={exchangeProductPriceMap}
+        form={exchangeForm}
+        isDirty={exchangeDirty}
+        submitting={submittingExchange}
+        error={exchangeError}
+        onChange={setExchangeField}
+        onChangeLine={setExchangeLine}
+        onAddLine={addExchangeLine}
+        onRemoveLine={removeExchangeLine}
+        onSubmit={handleSubmitExchange}
+        onClose={closeExchangeDialog}
       />
     </>
   );
