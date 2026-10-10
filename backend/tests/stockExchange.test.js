@@ -537,4 +537,207 @@ describe('Stock Exchange API', () => {
       expect(response.status).toBe(404);
     });
   });
+
+  describe('GET /api/stock/exchanges', () => {
+    const createExchange = (effectiveDate, quantity = 1) =>
+      request(app)
+        .post('/api/stock/exchanges')
+        .set('Authorization', `Bearer ${userA.token}`)
+        .send({
+          personId: person.id,
+          effectiveDate,
+          outgoingLines: [{ productId: productOut.id, quantity }],
+          incomingLines: [{ productId: productIn.id, quantity }],
+        });
+
+    it('returns 401 without token', async () => {
+      const response = await request(app).get('/api/stock/exchanges');
+      expect(response.status).toBe(401);
+    });
+
+    it('lists the exchanges ordered by effectiveDate desc with product info', async () => {
+      const older = await createExchange('2026-10-05');
+      const newer = await createExchange('2026-10-10');
+
+      const response = await request(app)
+        .get('/api/stock/exchanges')
+        .set('Authorization', `Bearer ${userA.token}`);
+
+      expect(response.status).toBe(200);
+      expect(Array.isArray(response.body)).toBe(true);
+      expect(response.body).toHaveLength(2);
+      expect(response.body[0].id).toBe(newer.body.exchange.id);
+      expect(response.body[1].id).toBe(older.body.exchange.id);
+
+      const [first] = response.body;
+      expect(first.person.id).toBe(person.id);
+      expect(first.outgoingLines).toHaveLength(1);
+      expect(first.incomingLines).toHaveLength(1);
+      expect(first.outgoingLines[0].product).toEqual({
+        id: productOut.id,
+        code: productOut.code,
+        name: productOut.name,
+        size: productOut.size,
+      });
+      expect(first.incomingLines[0].product.id).toBe(productIn.id);
+    });
+
+    it('does not list exchanges from other users', async () => {
+      await createExchange('2026-10-10');
+
+      const response = await request(app)
+        .get('/api/stock/exchanges')
+        .set('Authorization', `Bearer ${userB.token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveLength(0);
+    });
+  });
+
+  describe('DELETE /api/stock/exchanges/:id', () => {
+    const createExchange = (quantity = 2) =>
+      request(app)
+        .post('/api/stock/exchanges')
+        .set('Authorization', `Bearer ${userA.token}`)
+        .send({
+          personId: person.id,
+          effectiveDate: '2026-10-10',
+          outgoingLines: [{ productId: productOut.id, quantity }],
+          incomingLines: [{ productId: productIn.id, quantity: 1 }],
+        });
+
+    it('returns 401 without token', async () => {
+      const response = await request(app).delete(
+        '/api/stock/exchanges/00000000-0000-0000-0000-000000000000',
+      );
+      expect(response.status).toBe(401);
+    });
+
+    it('returns 404 for an unknown exchange id', async () => {
+      const response = await request(app)
+        .delete('/api/stock/exchanges/00000000-0000-0000-0000-000000000000')
+        .set('Authorization', `Bearer ${userA.token}`);
+      expect(response.status).toBe(404);
+    });
+
+    it('returns 404 for an exchange that belongs to a different user', async () => {
+      const created = await createExchange();
+      const response = await request(app)
+        .delete(`/api/stock/exchanges/${created.body.exchange.id}`)
+        .set('Authorization', `Bearer ${userB.token}`);
+      expect(response.status).toBe(404);
+
+      const stillThere = await prisma.stockExchange.findUnique({
+        where: { id: created.body.exchange.id },
+      });
+      expect(stillThere).not.toBeNull();
+    });
+
+    it('removes the exchange, its lines and its movements, and reverses inventory', async () => {
+      const created = await createExchange(2);
+      const exchangeId = created.body.exchange.id;
+
+      // Outgoing went 5 -> 3, incoming 0 -> 1.
+      const beforeOut = await prisma.inventory.findUnique({
+        where: {
+          userId_productId: { userId: userA.userId, productId: productOut.id },
+        },
+      });
+      expect(beforeOut.quantity).toBe(3);
+
+      const response = await request(app)
+        .delete(`/api/stock/exchanges/${exchangeId}`)
+        .set('Authorization', `Bearer ${userA.token}`);
+      expect(response.status).toBe(204);
+
+      expect(
+        await prisma.stockExchange.findUnique({ where: { id: exchangeId } }),
+      ).toBeNull();
+
+      const lines = await prisma.stockExchangeLine.findMany({
+        where: { exchangeId },
+      });
+      expect(lines).toHaveLength(0);
+
+      const exchangeMovements = await prisma.stockMovement.findMany({
+        where: {
+          userId: userA.userId,
+          productId: { in: [productOut.id, productIn.id] },
+          reason: { startsWith: `Troca #${exchangeId}` },
+        },
+      });
+      expect(exchangeMovements).toHaveLength(0);
+
+      // Outgoing returns to the seed value; incoming had no other movement, so
+      // its inventory row is dropped (mirrors the manual undo path).
+      const afterOut = await prisma.inventory.findUnique({
+        where: {
+          userId_productId: { userId: userA.userId, productId: productOut.id },
+        },
+      });
+      expect(afterOut.quantity).toBe(5);
+
+      const afterIn = await prisma.inventory.findUnique({
+        where: {
+          userId_productId: { userId: userA.userId, productId: productIn.id },
+        },
+      });
+      expect(afterIn).toBeNull();
+    });
+
+    it('keeps later movements intact and recomputes the resulting balance', async () => {
+      const created = await createExchange(2);
+      const exchangeId = created.body.exchange.id;
+
+      // A later manual exit consumes one outgoing unit (inventory 3 -> 2).
+      await request(app)
+        .post('/api/stock/movements')
+        .set('Authorization', `Bearer ${userA.token}`)
+        .send({ productId: productOut.id, type: 'SAIDA', quantity: 1 });
+
+      const response = await request(app)
+        .delete(`/api/stock/exchanges/${exchangeId}`)
+        .set('Authorization', `Bearer ${userA.token}`);
+      expect(response.status).toBe(204);
+
+      // The manual exit survives: seed (+5) and the manual exit (-1) remain.
+      const movements = await prisma.stockMovement.findMany({
+        where: { userId: userA.userId, productId: productOut.id },
+      });
+      expect(movements).toHaveLength(2);
+
+      const inventory = await prisma.inventory.findUnique({
+        where: {
+          userId_productId: { userId: userA.userId, productId: productOut.id },
+        },
+      });
+      expect(inventory.quantity).toBe(4);
+    });
+
+    it('blocks the delete when reversing would leave negative stock', async () => {
+      const created = await createExchange(1);
+      const exchangeId = created.body.exchange.id;
+
+      // Consume the incoming unit so deleting the ENTRADA would go negative.
+      await request(app)
+        .post('/api/stock/movements')
+        .set('Authorization', `Bearer ${userA.token}`)
+        .send({ productId: productIn.id, type: 'SAIDA', quantity: 1 });
+
+      const response = await request(app)
+        .delete(`/api/stock/exchanges/${exchangeId}`)
+        .set('Authorization', `Bearer ${userA.token}`);
+      expect(response.status).toBe(400);
+      expect(response.body.error).toMatch(/ficaria negativo/);
+
+      // Nothing was removed.
+      expect(
+        await prisma.stockExchange.findUnique({ where: { id: exchangeId } }),
+      ).not.toBeNull();
+      const lines = await prisma.stockExchangeLine.findMany({
+        where: { exchangeId },
+      });
+      expect(lines.length).toBeGreaterThan(0);
+    });
+  });
 });

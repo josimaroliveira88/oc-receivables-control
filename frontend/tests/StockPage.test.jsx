@@ -12,11 +12,13 @@ import { ToastProvider } from '../src/components/Toast';
 
 const mockGet = vi.fn();
 const mockPost = vi.fn();
+const mockDelete = vi.fn();
 
 vi.mock('../src/services/api', () => ({
   default: {
     get: (...args) => mockGet(...args),
     post: (...args) => mockPost(...args),
+    delete: (...args) => mockDelete(...args),
   },
 }));
 
@@ -2090,6 +2092,245 @@ describe('StockPage', () => {
       expect(totals.textContent).toContain('100,00');
       expect(totals.textContent).toContain('120,00');
       expect(totals.textContent).toMatch(/R\$\s*20,00/);
+    });
+  });
+
+  describe('Stock exchanges list / detail / delete', () => {
+    const exchangeListFixture = [
+      {
+        id: 'exchange-2',
+        effectiveDate: '2026-10-10T00:00:00.000Z',
+        observation: 'Troca recente',
+        person: { id: 'person-1', name: 'João da Troca' },
+        outgoingLines: [
+          {
+            id: 'line-out-1',
+            productId: 'prod-out',
+            quantity: 2,
+            unitValueCents: 5000,
+            direction: 'OUT',
+            product: {
+              id: 'prod-out',
+              code: '60226006',
+              name: 'Adaptiv',
+              size: '60 caps',
+            },
+          },
+        ],
+        incomingLines: [
+          {
+            id: 'line-in-1',
+            productId: 'prod-in',
+            quantity: 1,
+            unitValueCents: 12000,
+            direction: 'IN',
+            product: {
+              id: 'prod-in',
+              code: '60215485',
+              name: 'Basil',
+              size: '5 ml',
+            },
+          },
+        ],
+      },
+      {
+        id: 'exchange-1',
+        effectiveDate: '2026-10-05T00:00:00.000Z',
+        observation: '',
+        person: { id: 'person-2', name: 'Maria da Troca' },
+        outgoingLines: [],
+        incomingLines: [
+          {
+            id: 'line-in-2',
+            productId: 'prod-in',
+            quantity: 1,
+            unitValueCents: null,
+            direction: 'IN',
+            product: {
+              id: 'prod-in',
+              code: '60215485',
+              name: 'Basil',
+              size: '5 ml',
+            },
+          },
+        ],
+      },
+    ];
+
+    const setupExchanges = (list = exchangeListFixture) => {
+      mockGet.mockImplementation((url) => {
+        if (url === '/stock')
+          return Promise.resolve({ data: [mockInventoryItem] });
+        if (url === '/stock/exchanges') return Promise.resolve({ data: list });
+        if (url.startsWith('/stock/exchanges/')) {
+          const id = url.split('/').pop();
+          return Promise.resolve({
+            data: list.find((exchange) => exchange.id === id) ?? null,
+          });
+        }
+        return Promise.resolve({ data: [] });
+      });
+    };
+
+    const openList = async () => {
+      await waitFor(() => {
+        expect(screen.getByText('Ver trocas')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByText('Ver trocas'));
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('stock-exchanges-list-dialog'),
+        ).toBeInTheDocument();
+      });
+    };
+
+    it('renders the "Ver trocas" button in the page header', async () => {
+      mockGet.mockResolvedValue({ data: [mockInventoryItem] });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Ver trocas')).toBeInTheDocument();
+      });
+    });
+
+    it('lists the exchanges with person and side summaries', async () => {
+      setupExchanges();
+      renderPage();
+
+      await openList();
+
+      expect(await screen.findByText('João da Troca')).toBeInTheDocument();
+      expect(screen.getByText('Maria da Troca')).toBeInTheDocument();
+      // Calendar date is not shifted by the browser timezone.
+      expect(
+        screen.getByTestId('stock-exchange-row-exchange-2').textContent,
+      ).toMatch(/10\/10\/2026 · Sai: 2 un\. · R\$\s100,00/);
+    });
+
+    it('opens the detail with both sides when a row is clicked', async () => {
+      setupExchanges();
+      renderPage();
+
+      await openList();
+      fireEvent.click(
+        await screen.findByTestId('stock-exchange-row-exchange-2'),
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('stock-exchange-detail-dialog'),
+        ).toBeInTheDocument();
+      });
+      expect(screen.getByText('Produtos que saíram')).toBeInTheDocument();
+      expect(screen.getByText('Produtos que entraram')).toBeInTheDocument();
+      expect(screen.getByText('Adaptiv')).toBeInTheDocument();
+      expect(screen.getByText('Basil')).toBeInTheDocument();
+      // Unit value of the outgoing line (R$ 5000 cents).
+      expect(screen.getByText('R$ 50,00')).toBeInTheDocument();
+    });
+
+    it('deletes from a list row after confirmation, keeping the list open', async () => {
+      setupExchanges();
+      mockDelete.mockResolvedValue({});
+      renderPage();
+
+      await openList();
+      fireEvent.click(
+        await screen.findByTestId('stock-exchange-delete-exchange-2'),
+      );
+      fireEvent.click(await screen.findByRole('button', { name: 'Excluir' }));
+
+      await waitFor(() => {
+        expect(mockDelete).toHaveBeenCalledWith('/stock/exchanges/exchange-2');
+      });
+      await waitFor(() => {
+        expect(
+          screen.getByText('Troca excluída com sucesso!'),
+        ).toBeInTheDocument();
+      });
+      // The list stays open and the deleted row is gone.
+      expect(
+        screen.getByTestId('stock-exchanges-list-dialog'),
+      ).toBeInTheDocument();
+      await waitFor(() => {
+        expect(
+          screen.queryByTestId('stock-exchange-row-exchange-2'),
+        ).not.toBeInTheDocument();
+      });
+    });
+
+    it('deletes from the detail after confirmation, returning to the list', async () => {
+      setupExchanges();
+      mockDelete.mockResolvedValue({});
+      renderPage();
+
+      await openList();
+      fireEvent.click(
+        await screen.findByTestId('stock-exchange-row-exchange-2'),
+      );
+      fireEvent.click(
+        await screen.findByTestId('stock-exchange-detail-delete'),
+      );
+      fireEvent.click(await screen.findByRole('button', { name: 'Excluir' }));
+
+      await waitFor(() => {
+        expect(mockDelete).toHaveBeenCalledWith('/stock/exchanges/exchange-2');
+      });
+      // Detail closes, list stays open.
+      await waitFor(() => {
+        expect(
+          screen.queryByTestId('stock-exchange-detail-dialog'),
+        ).not.toBeInTheDocument();
+      });
+      expect(
+        screen.getByTestId('stock-exchanges-list-dialog'),
+      ).toBeInTheDocument();
+    });
+
+    it('cancels the deletion and keeps the detail open', async () => {
+      setupExchanges();
+      renderPage();
+
+      await openList();
+      fireEvent.click(
+        await screen.findByTestId('stock-exchange-row-exchange-2'),
+      );
+      fireEvent.click(
+        await screen.findByTestId('stock-exchange-detail-delete'),
+      );
+      fireEvent.click(await screen.findByRole('button', { name: 'Cancelar' }));
+
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('button', { name: 'Excluir' }),
+        ).not.toBeInTheDocument();
+      });
+      expect(
+        screen.getByTestId('stock-exchange-detail-dialog'),
+      ).toBeInTheDocument();
+      expect(mockDelete).not.toHaveBeenCalled();
+    });
+
+    it('shows the empty state and can start a new exchange', async () => {
+      setupExchanges([]);
+      renderPage();
+
+      await openList();
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Nenhuma troca registrada ainda.'),
+        ).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Registrar troca'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Pessoa da troca')).toBeInTheDocument();
+      });
+      expect(
+        screen.queryByTestId('stock-exchanges-list-dialog'),
+      ).not.toBeInTheDocument();
     });
   });
 });
