@@ -130,6 +130,32 @@ export const validateExchange = (form) => {
   return null;
 };
 
+// Summary of one side of a persisted exchange, used by the list dialog. Money
+// stays in integer cents; lines without a unit value contribute only to the
+// item count.
+export const summarizeExchangeLines = (lines = []) => {
+  let itemCount = 0;
+  let totalCents = 0;
+  for (const line of lines) {
+    const quantity = Number(line.quantity ?? 0);
+    itemCount += quantity;
+    if (line.unitValueCents !== null && line.unitValueCents !== undefined) {
+      totalCents += quantity * Number(line.unitValueCents);
+    }
+  }
+  return { itemCount, totalCents };
+};
+
+// Maps a persisted exchange (API shape) to the flat row the list renders.
+export const formatExchangeRow = (exchange) => ({
+  id: exchange.id,
+  effectiveDate: exchange.effectiveDate,
+  personName: exchange.person?.name ?? '—',
+  observation: exchange.observation ?? '',
+  outgoingSummary: summarizeExchangeLines(exchange.outgoingLines),
+  incomingSummary: summarizeExchangeLines(exchange.incomingLines),
+});
+
 const buildLinePayload = (line) => {
   const payload = {
     productId: line.productId,

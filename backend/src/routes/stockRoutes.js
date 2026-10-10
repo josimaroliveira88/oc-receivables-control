@@ -189,6 +189,29 @@ router.post('/exchanges', stockExchangeController.createStockExchange);
 
 /**
  * @openapi
+ * /api/stock/exchanges:
+ *   get:
+ *     tags: [Stock]
+ *     summary: Lista as trocas de produtos do usuário
+ *     description: |
+ *       Retorna as trocas ordenadas por data efetiva decrescente, cada uma com a
+ *       pessoa, as linhas de saída/entrada e os dados do produto de cada linha.
+ *     responses:
+ *       200:
+ *         description: Trocas do usuário
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+router.get('/exchanges', stockExchangeController.listStockExchanges);
+
+/**
+ * @openapi
  * /api/stock/exchanges/{id}:
  *   get:
  *     tags: [Stock]
@@ -209,5 +232,34 @@ router.post('/exchanges', stockExchangeController.createStockExchange);
  *         $ref: '#/components/responses/NotFound'
  */
 router.get('/exchanges/:id', stockExchangeController.getStockExchange);
+
+/**
+ * @openapi
+ * /api/stock/exchanges/{id}:
+ *   delete:
+ *     tags: [Stock]
+ *     summary: Exclui uma troca e reverte o estoque
+ *     description: |
+ *       Remove a troca, suas linhas e as movimentações de estoque que ela gerou,
+ *       recalculando o saldo de cada produto afetado. Falha com 400 se a reversão
+ *       deixaria o estoque de algum produto negativo.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       204:
+ *         description: Troca excluída
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.delete('/exchanges/:id', stockExchangeController.deleteStockExchange);
 
 export default router;

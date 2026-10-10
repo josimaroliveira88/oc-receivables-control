@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeftRight } from 'lucide-react';
+import { ArrowLeftRight, History } from 'lucide-react';
 import { useStock } from './useStock';
 import StockTable from './components/StockTable';
 import MovementDialog from './components/MovementDialog';
 import HistoryDialog from './components/HistoryDialog';
 import StockExchangeDialog from './components/StockExchangeDialog';
+import StockExchangesListDialog from './components/StockExchangesListDialog';
+import StockExchangeDetailDialog from './components/StockExchangeDetailDialog';
 import ConfirmDialog from '../../components/ConfirmDialog';
 
 const StockPage = () => {
@@ -58,6 +60,19 @@ const StockPage = () => {
     addExchangeLine,
     removeExchangeLine,
     handleSubmitExchange,
+    showExchangesListDialog,
+    exchanges,
+    exchangesLoading,
+    showExchangeDetailDialog,
+    exchangeDetail,
+    loadingExchangeDetail,
+    deletingExchange,
+    openExchangesListDialog,
+    closeExchangesListDialog,
+    openExchangeDetail,
+    closeExchangeDetail,
+    startExchangeFromList,
+    handleDeleteExchange,
   } = useStock();
 
   const [confirmUndo, setConfirmUndo] = useState(false);
@@ -94,6 +109,14 @@ const StockPage = () => {
             Controle de Estoque
           </h2>
           <div className="flex flex-col sm:flex-row gap-2 mt-3 sm:mt-0">
+            <button
+              type="button"
+              onClick={openExchangesListDialog}
+              className="px-4 py-2 bg-base border border-line text-ink hover:bg-elevated font-medium rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface inline-flex items-center justify-center gap-2"
+            >
+              <History size={16} aria-hidden="true" />
+              Ver trocas
+            </button>
             <button
               type="button"
               onClick={openExchangeDialog}
@@ -192,6 +215,26 @@ const StockPage = () => {
         onRemoveLine={removeExchangeLine}
         onSubmit={handleSubmitExchange}
         onClose={closeExchangeDialog}
+      />
+
+      <StockExchangesListDialog
+        isOpen={showExchangesListDialog}
+        exchanges={exchanges}
+        loading={exchangesLoading}
+        deleting={deletingExchange}
+        onOpenDetail={openExchangeDetail}
+        onDelete={handleDeleteExchange}
+        onCreateNew={startExchangeFromList}
+        onClose={closeExchangesListDialog}
+      />
+
+      <StockExchangeDetailDialog
+        isOpen={showExchangeDetailDialog}
+        exchange={exchangeDetail}
+        loading={loadingExchangeDetail}
+        deleting={deletingExchange}
+        onDelete={handleDeleteExchange}
+        onClose={closeExchangeDetail}
       />
     </>
   );

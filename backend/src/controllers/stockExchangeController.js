@@ -37,4 +37,37 @@ const getStockExchange = async (req, res) => {
   }
 };
 
-export { createStockExchange, getStockExchange };
+const listStockExchanges = async (req, res) => {
+  try {
+    const result = await prisma.$transaction(async (tx) =>
+      stockExchangeService.listStockExchanges(tx, {
+        userId: req.user.userId,
+      }),
+    );
+    res.status(200).json(result);
+  } catch (error) {
+    handleError(res, error, { label: 'List stock exchanges', fallback: 400 });
+  }
+};
+
+const deleteStockExchange = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.$transaction(async (tx) =>
+      stockExchangeService.deleteStockExchange(tx, {
+        id,
+        userId: req.user.userId,
+      }),
+    );
+    res.status(204).send();
+  } catch (error) {
+    handleError(res, error, { label: 'Delete stock exchange', fallback: 400 });
+  }
+};
+
+export {
+  createStockExchange,
+  getStockExchange,
+  listStockExchanges,
+  deleteStockExchange,
+};

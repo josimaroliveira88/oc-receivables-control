@@ -48,6 +48,16 @@ export function useStock() {
   const [people, setPeople] = useState([]);
   const [exchangeProducts, setExchangeProducts] = useState([]);
 
+  // Stock-exchange listing / detail / delete state.
+  const [showExchangesListDialog, setShowExchangesListDialog] = useState(false);
+  const [exchanges, setExchanges] = useState([]);
+  const [exchangesLoading, setExchangesLoading] = useState(false);
+  const [showExchangeDetailDialog, setShowExchangeDetailDialog] =
+    useState(false);
+  const [exchangeDetail, setExchangeDetail] = useState(null);
+  const [loadingExchangeDetail, setLoadingExchangeDetail] = useState(false);
+  const [deletingExchange, setDeletingExchange] = useState(false);
+
   const { addToast } = useToast();
 
   const loadInventory = useCallback(async () => {
@@ -305,6 +315,72 @@ export function useStock() {
     }
   };
 
+  // Stock-exchange listing -------------------------------------------------
+
+  const loadExchanges = useCallback(async () => {
+    setExchangesLoading(true);
+    try {
+      const response = await api.get('/stock/exchanges');
+      setExchanges(Array.isArray(response.data) ? response.data : []);
+    } catch (_err) {
+      setExchanges([]);
+    } finally {
+      setExchangesLoading(false);
+    }
+  }, []);
+
+  const openExchangesListDialog = async () => {
+    setShowExchangesListDialog(true);
+    await loadExchanges();
+  };
+
+  const closeExchangesListDialog = () => {
+    setShowExchangesListDialog(false);
+  };
+
+  const openExchangeDetail = async (id) => {
+    setExchangeDetail(null);
+    setLoadingExchangeDetail(true);
+    setShowExchangeDetailDialog(true);
+    try {
+      const response = await api.get(`/stock/exchanges/${id}`);
+      setExchangeDetail(response.data);
+    } catch (_err) {
+      addToast('Erro ao carregar troca. Tente novamente.', 'error');
+      setShowExchangeDetailDialog(false);
+    } finally {
+      setLoadingExchangeDetail(false);
+    }
+  };
+
+  const closeExchangeDetail = () => {
+    setShowExchangeDetailDialog(false);
+    setExchangeDetail(null);
+  };
+
+  const startExchangeFromList = async () => {
+    closeExchangesListDialog();
+    await openExchangeDialog();
+  };
+
+  const handleDeleteExchange = async (id) => {
+    setDeletingExchange(true);
+    try {
+      await api.delete(`/stock/exchanges/${id}`);
+      addToast('Troca excluída com sucesso!', 'success');
+      setExchanges((prev) => prev.filter((exchange) => exchange.id !== id));
+      setShowExchangeDetailDialog(false);
+      setExchangeDetail(null);
+      await loadInventory();
+      return true;
+    } catch (_err) {
+      addToast('Erro ao excluir troca. Tente novamente.', 'error');
+      return false;
+    } finally {
+      setDeletingExchange(false);
+    }
+  };
+
   const exchangeDirty = useDirtyForm(exchangeForm, exchangeFormInitial).isDirty;
 
   return {
@@ -358,5 +434,19 @@ export function useStock() {
     addExchangeLine,
     removeExchangeLine,
     handleSubmitExchange,
+    // Stock exchange listing / detail / delete
+    showExchangesListDialog,
+    exchanges,
+    exchangesLoading,
+    showExchangeDetailDialog,
+    exchangeDetail,
+    loadingExchangeDetail,
+    deletingExchange,
+    openExchangesListDialog,
+    closeExchangesListDialog,
+    openExchangeDetail,
+    closeExchangeDetail,
+    startExchangeFromList,
+    handleDeleteExchange,
   };
 }

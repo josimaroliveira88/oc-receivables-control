@@ -15,6 +15,47 @@ const buildReason = ({ exchangeId, personName, observation }) => {
   return `${base}: ${trimmed}`;
 };
 
+// Shared query selections so the create, read and list responses always expose
+// the same shape (including the product the line refers to).
+const PERSON_SELECT = {
+  id: true,
+  name: true,
+  whatsapp: true,
+  instagram: true,
+  isSelf: true,
+  isVip: true,
+  isDoterraMember: true,
+  isTeamMember: true,
+};
+
+const LINE_SELECT = {
+  id: true,
+  productId: true,
+  quantity: true,
+  unitValueCents: true,
+  direction: true,
+  product: { select: { id: true, code: true, name: true, size: true } },
+};
+
+const EXCHANGE_INCLUDE = {
+  person: { select: PERSON_SELECT },
+  lines: { orderBy: { createdAt: 'asc' }, select: LINE_SELECT },
+};
+
+// Partitions the persisted lines into the two sides the API exposes. Shared by
+// every read path.
+const formatExchange = (exchange) => ({
+  ...exchange,
+  outgoingLines: exchange.lines.filter((l) => l.direction === 'OUT'),
+  incomingLines: exchange.lines.filter((l) => l.direction === 'IN'),
+});
+
+// Stock movements carry no exchange link; they are identified by the reason
+// prefix built in `buildReason` (the same convention used by
+// `productUsageService`). The full exchange id plus the trailing space keeps
+// one exchange from ever matching another.
+const exchangeReasonPrefix = (exchangeId) => `Troca #${exchangeId} `;
+
 const createStockExchange = async (
   client,
   {
@@ -126,38 +167,11 @@ const createStockExchange = async (
 
   const finalExchange = await client.stockExchange.findUnique({
     where: { id: exchange.id },
-    include: {
-      person: {
-        select: {
-          id: true,
-          name: true,
-          whatsapp: true,
-          instagram: true,
-          isSelf: true,
-          isVip: true,
-          isDoterraMember: true,
-          isTeamMember: true,
-        },
-      },
-      lines: {
-        orderBy: { createdAt: 'asc' },
-        select: {
-          id: true,
-          productId: true,
-          quantity: true,
-          unitValueCents: true,
-          direction: true,
-        },
-      },
-    },
+    include: EXCHANGE_INCLUDE,
   });
 
   return {
-    exchange: {
-      ...finalExchange,
-      outgoingLines: finalExchange.lines.filter((l) => l.direction === 'OUT'),
-      incomingLines: finalExchange.lines.filter((l) => l.direction === 'IN'),
-    },
+    exchange: formatExchange(finalExchange),
     outgoingMovements,
     incomingMovements,
   };
@@ -166,27 +180,36 @@ const createStockExchange = async (
 const getStockExchange = async (client, { id, userId }) => {
   const exchange = await client.stockExchange.findFirst({
     where: { id, userId },
+    include: EXCHANGE_INCLUDE,
+  });
+  if (!exchange) {
+    throw notFound('Troca não encontrada');
+  }
+  return formatExchange(exchange);
+};
+
+const listStockExchanges = async (client, { userId }) => {
+  const exchanges = await client.stockExchange.findMany({
+    where: { userId },
+    orderBy: [{ effectiveDate: 'desc' }, { createdAt: 'desc' }],
+    include: EXCHANGE_INCLUDE,
+  });
+  return exchanges.map(formatExchange);
+};
+
+// Deletes an exchange and reverses the stock it moved. The movements it
+// generated are matched by the `Troca #<id>` reason prefix and removed; each
+// affected product's inventory is then recomputed from what survives. Nothing
+// is written before every affected product is validated, so a delete that would
+// leave negative stock rolls back with a clear message.
+const deleteStockExchange = async (client, { id, userId }) => {
+  const exchange = await client.stockExchange.findFirst({
+    where: { id, userId },
     include: {
-      person: {
-        select: {
-          id: true,
-          name: true,
-          whatsapp: true,
-          instagram: true,
-          isSelf: true,
-          isVip: true,
-          isDoterraMember: true,
-          isTeamMember: true,
-        },
-      },
       lines: {
-        orderBy: { createdAt: 'asc' },
         select: {
-          id: true,
           productId: true,
-          quantity: true,
-          unitValueCents: true,
-          direction: true,
+          product: { select: { name: true, code: true } },
         },
       },
     },
@@ -194,11 +217,66 @@ const getStockExchange = async (client, { id, userId }) => {
   if (!exchange) {
     throw notFound('Troca não encontrada');
   }
-  return {
-    ...exchange,
-    outgoingLines: exchange.lines.filter((l) => l.direction === 'OUT'),
-    incomingLines: exchange.lines.filter((l) => l.direction === 'IN'),
-  };
+
+  const reasonPrefix = exchangeReasonPrefix(id);
+
+  const movements = await client.stockMovement.findMany({
+    where: { userId, reason: { startsWith: reasonPrefix } },
+    select: { productId: true, quantity: true },
+  });
+
+  // Net signed delta the exchange applied to each product's inventory.
+  const deltaByProduct = new Map();
+  for (const movement of movements) {
+    const current = deltaByProduct.get(movement.productId) ?? 0;
+    deltaByProduct.set(movement.productId, current + movement.quantity);
+  }
+
+  const inventories = new Map();
+  for (const [productId, delta] of deltaByProduct) {
+    const inventory = await client.inventory.findUnique({
+      where: { userId_productId: { userId, productId } },
+    });
+    const newQuantity = (inventory?.quantity ?? 0) - delta;
+    if (newQuantity < 0) {
+      const line = exchange.lines.find((l) => l.productId === productId);
+      const label = line?.product?.name || line?.product?.code || productId;
+      throw badRequest(
+        `Não é possível excluir a troca: o estoque de ${label} ficaria negativo`,
+      );
+    }
+    inventories.set(productId, inventory);
+  }
+
+  await client.stockMovement.deleteMany({
+    where: { userId, reason: { startsWith: reasonPrefix } },
+  });
+  await client.stockExchangeLine.deleteMany({ where: { exchangeId: id } });
+  await client.stockExchange.delete({ where: { id } });
+
+  // Apply the reversal only after the rows are gone. When no movement is left
+  // for a product, drop the inventory row (mirrors the undo path).
+  for (const [productId, inventory] of inventories) {
+    if (!inventory) continue;
+    const remaining = await client.stockMovement.count({
+      where: { userId, productId },
+    });
+    if (remaining === 0) {
+      await client.inventory.delete({
+        where: { userId_productId: { userId, productId } },
+      });
+    } else {
+      await client.inventory.update({
+        where: { userId_productId: { userId, productId } },
+        data: { quantity: inventory.quantity - deltaByProduct.get(productId) },
+      });
+    }
+  }
 };
 
-export { createStockExchange, getStockExchange };
+export {
+  createStockExchange,
+  getStockExchange,
+  listStockExchanges,
+  deleteStockExchange,
+};
