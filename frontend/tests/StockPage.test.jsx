@@ -1577,4 +1577,490 @@ describe('StockPage', () => {
       });
     });
   });
+
+  describe('Stock exchange dialog', () => {
+    const mockPerson = {
+      id: 'person-1',
+      name: 'João da Troca',
+      whatsapp: '11999990000',
+      isSelf: false,
+    };
+    const mockPerson2 = {
+      id: 'person-2',
+      name: 'Maria da Troca',
+      whatsapp: '11888880000',
+      isSelf: false,
+    };
+    const exchangeProductOut = {
+      id: 'prod-out',
+      code: '60226006',
+      name: 'Adaptiv',
+      size: '60 caps',
+      memberPrice: '80.00',
+      regularPrice: '100.00',
+    };
+    const exchangeProductIn = {
+      id: 'prod-in',
+      code: '60215485',
+      name: 'Basil',
+      size: '5 ml',
+      memberPrice: '120.00',
+      regularPrice: '150.00',
+    };
+
+    const setupExchangeLists = (outStock = true) => {
+      mockGet
+        .mockResolvedValueOnce({ data: [mockInventoryItem] }) // initial /stock
+        .mockResolvedValueOnce({ data: [mockPerson, mockPerson2] }) // /people
+        .mockResolvedValueOnce({
+          data: { data: [exchangeProductOut, exchangeProductIn] },
+        }); // /products
+      if (!outStock) {
+        mockGet.mockResolvedValueOnce({ data: [mockInventoryItem] });
+      }
+    };
+
+    const openExchangeDialog = async () => {
+      await waitFor(() => {
+        expect(screen.getByText('Trocar produtos')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByText('Trocar produtos'));
+      await waitFor(() => {
+        expect(screen.getByText('Pessoa da troca')).toBeInTheDocument();
+      });
+    };
+
+    it('renders the "Trocar produtos" button in the page header', async () => {
+      mockGet.mockResolvedValue({ data: [mockInventoryItem] });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Trocar produtos')).toBeInTheDocument();
+      });
+    });
+
+    it('opens the dialog with empty lists and a person autocomplete when clicked', async () => {
+      setupExchangeLists();
+      renderPage();
+
+      await openExchangeDialog();
+
+      expect(screen.getByLabelText('Pessoa da troca')).toBeInTheDocument();
+      expect(
+        screen.getByText('Produtos que saem do seu estoque'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('Produtos que entram no seu estoque'),
+      ).toBeInTheDocument();
+      expect(screen.getAllByText('Adicionar produto')).toHaveLength(2);
+    });
+
+    it('blocks submission without selecting a person', async () => {
+      setupExchangeLists();
+      renderPage();
+
+      await openExchangeDialog();
+
+      const addOut = screen.getAllByText('Adicionar produto')[0];
+      fireEvent.click(addOut);
+      const addIn = screen.getAllByText('Adicionar produto')[1];
+      fireEvent.click(addIn);
+
+      const qtyInputs = screen.getAllByLabelText('Quantidade');
+      fireEvent.change(qtyInputs[0], { target: { value: '1' } });
+      fireEvent.change(qtyInputs[1], { target: { value: '1' } });
+
+      const productInputs = screen.getAllByLabelText('Produto');
+      fireEvent.change(productInputs[0], {
+        target: { value: exchangeProductOut.name },
+      });
+      fireEvent.change(productInputs[1], {
+        target: { value: exchangeProductIn.name },
+      });
+      const optOut = await screen.findByText(exchangeProductOut.name);
+      fireEvent.mouseDown(optOut);
+      const optIn = await screen.findByText(exchangeProductIn.name);
+      fireEvent.mouseDown(optIn);
+
+      const submit = screen.getByRole('button', { name: 'Trocar' });
+      fireEvent.click(submit);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Selecione a pessoa da troca'),
+        ).toBeInTheDocument();
+      });
+      expect(mockPost).not.toHaveBeenCalled();
+    });
+
+    it('blocks submission when one of the sides has no lines', async () => {
+      setupExchangeLists();
+      renderPage();
+
+      await openExchangeDialog();
+
+      // Pick a person.
+      const personInput = screen.getByLabelText('Pessoa da troca');
+      fireEvent.change(personInput, { target: { value: mockPerson.name } });
+      const personOption = await screen.findByText(mockPerson.name);
+      fireEvent.mouseDown(personOption);
+
+      // Add only outgoing line.
+      const addOut = screen.getAllByText('Adicionar produto')[0];
+      fireEvent.click(addOut);
+      const productInput = screen.getAllByLabelText('Produto')[0];
+      fireEvent.change(productInput, {
+        target: { value: exchangeProductOut.name },
+      });
+      const opt = await screen.findByText(exchangeProductOut.name);
+      fireEvent.mouseDown(opt);
+      const qty = screen.getAllByLabelText('Quantidade')[0];
+      fireEvent.change(qty, { target: { value: '1' } });
+
+      const submit = screen.getByRole('button', { name: 'Trocar' });
+      fireEvent.click(submit);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Adicione ao menos um produto que entra'),
+        ).toBeInTheDocument();
+      });
+      expect(mockPost).not.toHaveBeenCalled();
+    });
+
+    it('rejects an observation longer than 1000 chars', async () => {
+      setupExchangeLists();
+      renderPage();
+
+      await openExchangeDialog();
+
+      const personInput = screen.getByLabelText('Pessoa da troca');
+      fireEvent.change(personInput, { target: { value: mockPerson.name } });
+      const personOption = await screen.findByText(mockPerson.name);
+      fireEvent.mouseDown(personOption);
+
+      const addOut = screen.getAllByText('Adicionar produto')[0];
+      fireEvent.click(addOut);
+      const addIn = screen.getAllByText('Adicionar produto')[1];
+      fireEvent.click(addIn);
+
+      const productInputs = screen.getAllByLabelText('Produto');
+      fireEvent.change(productInputs[0], {
+        target: { value: exchangeProductOut.name },
+      });
+      fireEvent.change(productInputs[1], {
+        target: { value: exchangeProductIn.name },
+      });
+      const optOut = await screen.findByText(exchangeProductOut.name);
+      fireEvent.mouseDown(optOut);
+      const optIn = await screen.findByText(exchangeProductIn.name);
+      fireEvent.mouseDown(optIn);
+      const qtyInputs = screen.getAllByLabelText('Quantidade');
+      fireEvent.change(qtyInputs[0], { target: { value: '1' } });
+      fireEvent.change(qtyInputs[1], { target: { value: '1' } });
+
+      const observation = screen.getByLabelText('Observação');
+      fireEvent.change(observation, {
+        target: { value: 'x'.repeat(1001) },
+      });
+
+      const submit = screen.getByRole('button', { name: 'Trocar' });
+      fireEvent.click(submit);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('A observação deve ter no máximo 1000 caracteres'),
+        ).toBeInTheDocument();
+      });
+      expect(mockPost).not.toHaveBeenCalled();
+    });
+
+    it('submits a balanced exchange with unitValueCents when the user provided them', async () => {
+      setupExchangeLists();
+      mockPost.mockResolvedValue({
+        data: {
+          exchange: {
+            id: 'exchange-1',
+            outgoingLines: [],
+            incomingLines: [],
+          },
+        },
+      });
+
+      renderPage();
+
+      await openExchangeDialog();
+
+      const personInput = screen.getByLabelText('Pessoa da troca');
+      fireEvent.change(personInput, { target: { value: mockPerson.name } });
+      const personOption = await screen.findByText(mockPerson.name);
+      fireEvent.mouseDown(personOption);
+
+      const addOut = screen.getAllByText('Adicionar produto')[0];
+      fireEvent.click(addOut);
+      const addIn = screen.getAllByText('Adicionar produto')[1];
+      fireEvent.click(addIn);
+
+      const productInputs = screen.getAllByLabelText('Produto');
+      fireEvent.change(productInputs[0], {
+        target: { value: exchangeProductOut.name },
+      });
+      fireEvent.change(productInputs[1], {
+        target: { value: exchangeProductIn.name },
+      });
+      const optOut = await screen.findByText(exchangeProductOut.name);
+      fireEvent.mouseDown(optOut);
+      const optIn = await screen.findByText(exchangeProductIn.name);
+      fireEvent.mouseDown(optIn);
+
+      const qtyInputs = screen.getAllByLabelText('Quantidade');
+      fireEvent.change(qtyInputs[0], { target: { value: '2' } });
+      fireEvent.change(qtyInputs[1], { target: { value: '1' } });
+
+      const valueInputs = screen.getAllByLabelText('Valor unitário');
+      fireEvent.change(valueInputs[0], { target: { value: '5000' } });
+      fireEvent.change(valueInputs[1], { target: { value: '12000' } });
+
+      const observation = screen.getByLabelText('Observação');
+      fireEvent.change(observation, {
+        target: { value: 'Combinado no escritório' },
+      });
+
+      const submit = screen.getByRole('button', { name: 'Trocar' });
+      fireEvent.click(submit);
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith('/stock/exchanges', {
+          personId: mockPerson.id,
+          effectiveDate: todayDate(),
+          observation: 'Combinado no escritório',
+          outgoingLines: [
+            {
+              productId: exchangeProductOut.id,
+              quantity: 2,
+              unitValueCents: 5000,
+            },
+          ],
+          incomingLines: [
+            {
+              productId: exchangeProductIn.id,
+              quantity: 1,
+              unitValueCents: 12000,
+            },
+          ],
+        });
+      });
+    });
+
+    it('omits unitValueCents when the user leaves the unit value empty', async () => {
+      setupExchangeLists();
+      mockPost.mockResolvedValue({
+        data: {
+          exchange: {
+            id: 'exchange-1',
+            outgoingLines: [],
+            incomingLines: [],
+          },
+        },
+      });
+
+      renderPage();
+
+      await openExchangeDialog();
+
+      const personInput = screen.getByLabelText('Pessoa da troca');
+      fireEvent.change(personInput, { target: { value: mockPerson.name } });
+      const personOption = await screen.findByText(mockPerson.name);
+      fireEvent.mouseDown(personOption);
+
+      const addOut = screen.getAllByText('Adicionar produto')[0];
+      fireEvent.click(addOut);
+      const addIn = screen.getAllByText('Adicionar produto')[1];
+      fireEvent.click(addIn);
+
+      const productInputs = screen.getAllByLabelText('Produto');
+      fireEvent.change(productInputs[0], {
+        target: { value: exchangeProductOut.name },
+      });
+      fireEvent.change(productInputs[1], {
+        target: { value: exchangeProductIn.name },
+      });
+      const optOut = await screen.findByText(exchangeProductOut.name);
+      fireEvent.mouseDown(optOut);
+      const optIn = await screen.findByText(exchangeProductIn.name);
+      fireEvent.mouseDown(optIn);
+
+      const qtyInputs = screen.getAllByLabelText('Quantidade');
+      fireEvent.change(qtyInputs[0], { target: { value: '1' } });
+      fireEvent.change(qtyInputs[1], { target: { value: '1' } });
+
+      const submit = screen.getByRole('button', { name: 'Trocar' });
+      fireEvent.click(submit);
+
+      await waitFor(() => {
+        const call = mockPost.mock.calls.find(
+          (c) => c[0] === '/stock/exchanges',
+        );
+        expect(call).toBeDefined();
+        const payload = call[1];
+        expect(payload.outgoingLines[0]).not.toHaveProperty('unitValueCents');
+        expect(payload.incomingLines[0]).not.toHaveProperty('unitValueCents');
+      });
+    });
+
+    it('shows success toast, closes the dialog and reloads inventory', async () => {
+      setupExchangeLists();
+      mockPost.mockResolvedValue({
+        data: {
+          exchange: { id: 'exchange-1', outgoingLines: [], incomingLines: [] },
+        },
+      });
+
+      renderPage();
+
+      await openExchangeDialog();
+
+      const personInput = screen.getByLabelText('Pessoa da troca');
+      fireEvent.change(personInput, { target: { value: mockPerson.name } });
+      const personOption = await screen.findByText(mockPerson.name);
+      fireEvent.mouseDown(personOption);
+
+      const addOut = screen.getAllByText('Adicionar produto')[0];
+      fireEvent.click(addOut);
+      const addIn = screen.getAllByText('Adicionar produto')[1];
+      fireEvent.click(addIn);
+
+      const productInputs = screen.getAllByLabelText('Produto');
+      fireEvent.change(productInputs[0], {
+        target: { value: exchangeProductOut.name },
+      });
+      fireEvent.change(productInputs[1], {
+        target: { value: exchangeProductIn.name },
+      });
+      const optOut = await screen.findByText(exchangeProductOut.name);
+      fireEvent.mouseDown(optOut);
+      const optIn = await screen.findByText(exchangeProductIn.name);
+      fireEvent.mouseDown(optIn);
+
+      const qtyInputs = screen.getAllByLabelText('Quantidade');
+      fireEvent.change(qtyInputs[0], { target: { value: '1' } });
+      fireEvent.change(qtyInputs[1], { target: { value: '1' } });
+
+      const submit = screen.getByRole('button', { name: 'Trocar' });
+      fireEvent.click(submit);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Troca registrada com sucesso!'),
+        ).toBeInTheDocument();
+      });
+      await waitFor(() => {
+        expect(
+          screen.queryByText('Produtos que saem do seu estoque'),
+        ).not.toBeInTheDocument();
+      });
+      // initial /stock + people + products + final /stock = 4 calls
+      await waitFor(() => {
+        expect(mockGet).toHaveBeenCalledTimes(4);
+      });
+    });
+
+    it('keeps the dialog open and shows an error toast when the API fails', async () => {
+      setupExchangeLists();
+      mockPost.mockRejectedValue(new Error('Saldo insuficiente'));
+
+      renderPage();
+
+      await openExchangeDialog();
+
+      const personInput = screen.getByLabelText('Pessoa da troca');
+      fireEvent.change(personInput, { target: { value: mockPerson.name } });
+      const personOption = await screen.findByText(mockPerson.name);
+      fireEvent.mouseDown(personOption);
+
+      const addOut = screen.getAllByText('Adicionar produto')[0];
+      fireEvent.click(addOut);
+      const addIn = screen.getAllByText('Adicionar produto')[1];
+      fireEvent.click(addIn);
+
+      const productInputs = screen.getAllByLabelText('Produto');
+      fireEvent.change(productInputs[0], {
+        target: { value: exchangeProductOut.name },
+      });
+      fireEvent.change(productInputs[1], {
+        target: { value: exchangeProductIn.name },
+      });
+      const optOut = await screen.findByText(exchangeProductOut.name);
+      fireEvent.mouseDown(optOut);
+      const optIn = await screen.findByText(exchangeProductIn.name);
+      fireEvent.mouseDown(optIn);
+
+      const qtyInputs = screen.getAllByLabelText('Quantidade');
+      fireEvent.change(qtyInputs[0], { target: { value: '1' } });
+      fireEvent.change(qtyInputs[1], { target: { value: '1' } });
+
+      const submit = screen.getByRole('button', { name: 'Trocar' });
+      fireEvent.click(submit);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Erro ao registrar troca. Tente novamente.'),
+        ).toBeInTheDocument();
+      });
+      expect(
+        screen.getByText('Produtos que saem do seu estoque'),
+      ).toBeInTheDocument();
+    });
+
+    it('updates the totals using user-provided values when present and falls back to the catalog price otherwise', async () => {
+      setupExchangeLists();
+      renderPage();
+
+      await openExchangeDialog();
+
+      const personInput = screen.getByLabelText('Pessoa da troca');
+      fireEvent.change(personInput, { target: { value: mockPerson.name } });
+      const personOption = await screen.findByText(mockPerson.name);
+      fireEvent.mouseDown(personOption);
+
+      const addOut = screen.getAllByText('Adicionar produto')[0];
+      fireEvent.click(addOut);
+      const addIn = screen.getAllByText('Adicionar produto')[1];
+      fireEvent.click(addIn);
+
+      const productInputs = screen.getAllByLabelText('Produto');
+      fireEvent.change(productInputs[0], {
+        target: { value: exchangeProductOut.name },
+      });
+      fireEvent.change(productInputs[1], {
+        target: { value: exchangeProductIn.name },
+      });
+      const optOut = await screen.findByText(exchangeProductOut.name);
+      fireEvent.mouseDown(optOut);
+      const optIn = await screen.findByText(exchangeProductIn.name);
+      fireEvent.mouseDown(optIn);
+
+      const qtyInputs = screen.getAllByLabelText('Quantidade');
+      fireEvent.change(qtyInputs[0], { target: { value: '2' } });
+      fireEvent.change(qtyInputs[1], { target: { value: '1' } });
+
+      const valueInputs = screen.getAllByLabelText('Valor unitário');
+      // outgoing uses user value 5000 (cents) * 2 = 10000 cents = R$ 100,00
+      fireEvent.change(valueInputs[0], { target: { value: '5000' } });
+      // incoming leaves user value empty → uses catalog regularPrice 150.00 × 1 = R$ 150,00
+
+      await waitFor(() => {
+        expect(screen.getByText(/Total que sai/i)).toBeInTheDocument();
+      });
+
+      // Locate the totals box and inspect the rendered numbers.
+      // Outgoing: 2 × R$ 50,00 = R$ 100,00
+      // Incoming: 1 × R$ 150,00 (catalog fallback) = R$ 150,00
+      // Difference: R$ 150,00 - R$ 100,00 = R$ 50,00 (positive → user receives)
+      const totals = screen.getByTestId('stock-exchange-totals');
+      expect(totals.textContent).toContain('100,00');
+      expect(totals.textContent).toContain('150,00');
+      expect(totals.textContent).toMatch(/R\$\s*50,00/);
+    });
+  });
 });
