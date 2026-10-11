@@ -257,6 +257,18 @@ describe('PeoplePage', () => {
       });
     });
 
+    it('should render the dōTERRA id column', async () => {
+      mockGet.mockResolvedValue({
+        data: [{ ...mockPeople[0], doterraId: '18296888' }, mockPeople[1]],
+      });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('ID dōTERRA')).toBeInTheDocument();
+        expect(screen.getByText('18296888')).toBeInTheDocument();
+      });
+    });
+
     it('should display one kebab trigger per row', async () => {
       mockGet.mockResolvedValue({ data: mockPeople });
       renderPage();
@@ -500,6 +512,13 @@ describe('PeoplePage', () => {
       fireEvent.change(screen.getByLabelText('Equipe'), {
         target: { value: 'true' },
       });
+      fireEvent.click(screen.getByLabelText('Membro doTERRA'));
+      fireEvent.change(screen.getByLabelText('ID dōTERRA'), {
+        target: { value: '18296888' },
+      });
+      fireEvent.change(screen.getByLabelText('Data do cadastro'), {
+        target: { value: '2025-03-14' },
+      });
       fireEvent.click(screen.getByText('Salvar'));
 
       await waitFor(() => {
@@ -511,11 +530,63 @@ describe('PeoplePage', () => {
           address: 'Rua Nova, 1',
           observacao: 'Cliente novo no grupo.',
           birthday: '15/08',
+          doterraId: '18296888',
+          registrationDate: '2025-03-14',
           isVip: true,
-          isDoterraMember: false,
+          isDoterraMember: true,
           isTeamMember: true,
           isSelf: false,
         });
+      });
+    });
+
+    it('should only allow the dōTERRA id when the member box is checked, clearing it otherwise', async () => {
+      mockGet.mockResolvedValue({ data: [] });
+      renderPage();
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByText('Novo'));
+      });
+
+      const memberCheckbox = await screen.findByLabelText('Membro doTERRA');
+      const doterraIdInput = screen.getByLabelText('ID dōTERRA');
+
+      expect(memberCheckbox).not.toBeChecked();
+      expect(doterraIdInput).toBeDisabled();
+
+      fireEvent.click(memberCheckbox);
+      expect(doterraIdInput).toBeEnabled();
+      fireEvent.change(doterraIdInput, { target: { value: '18296888' } });
+      expect(doterraIdInput).toHaveValue('18296888');
+
+      fireEvent.click(memberCheckbox);
+      expect(doterraIdInput).toBeDisabled();
+      expect(doterraIdInput).toHaveValue('');
+    });
+
+    it('should default the registration date to today and send a null dōTERRA id', async () => {
+      mockGet.mockResolvedValue({ data: [] });
+      mockPost.mockResolvedValue({ data: { id: '4', name: 'Sem ID' } });
+
+      renderPage();
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByText('Novo'));
+      });
+
+      const nameInput = await screen.findByPlaceholderText('Digite o nome');
+      fireEvent.change(nameInput, { target: { value: 'Sem ID' } });
+      fireEvent.click(screen.getByText('Salvar'));
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith(
+          '/people',
+          expect.objectContaining({
+            name: 'Sem ID',
+            doterraId: null,
+            registrationDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+          }),
+        );
       });
     });
 
@@ -586,6 +657,8 @@ describe('PeoplePage', () => {
           address: null,
           observacao: null,
           birthday: null,
+          doterraId: null,
+          registrationDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
           isVip: false,
           isDoterraMember: false,
           isTeamMember: false,
@@ -737,8 +810,12 @@ describe('PeoplePage', () => {
 
       const nameInput = await screen.findByDisplayValue('João Silva');
       fireEvent.change(nameInput, { target: { value: 'Updated' } });
-      fireEvent.change(screen.getByLabelText('Cadastrado/Membro doTERRA'), {
-        target: { value: 'false' },
+      fireEvent.click(screen.getByLabelText('Membro doTERRA'));
+      fireEvent.change(screen.getByLabelText('ID dōTERRA'), {
+        target: { value: '99988877' },
+      });
+      fireEvent.change(screen.getByLabelText('Data do cadastro'), {
+        target: { value: '2024-01-20' },
       });
 
       await waitFor(() => {
@@ -757,11 +834,40 @@ describe('PeoplePage', () => {
           address: 'Rua das Flores, 123',
           observacao: 'Cliente prefere retirar pessoalmente.',
           birthday: '15/08',
+          doterraId: '99988877',
+          registrationDate: '2024-01-20',
           isVip: true,
           isDoterraMember: false,
           isTeamMember: true,
           isSelf: false,
         });
+      });
+    });
+
+    it('should pre-fill the dōTERRA id and registration date on edit', async () => {
+      mockGet.mockResolvedValue({
+        data: [
+          {
+            ...mockPeople[0],
+            doterraId: '18296888',
+            registrationDate: '2025-03-14T00:00:00.000Z',
+          },
+        ],
+      });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('João Silva')).toBeInTheDocument();
+      });
+
+      await clickClientAction('1', 'Editar');
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('ID dōTERRA')).toHaveValue('18296888');
+        expect(screen.getByLabelText('Data do cadastro')).toHaveValue(
+          '2025-03-14',
+        );
+        expect(screen.getByLabelText('Membro doTERRA')).toBeChecked();
       });
     });
   });

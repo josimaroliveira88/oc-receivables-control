@@ -4,6 +4,8 @@ import {
   birthMonthOf,
   emptyForm,
   buildPayload,
+  maskDoterraId,
+  todayIsoDate,
   CLASSIFICATION_OPTIONS,
 } from '../src/pages/People/utils/peopleHelpers';
 
@@ -36,6 +38,44 @@ describe('emptyForm and buildPayload', () => {
       label: 'Somente Equipe',
     });
   });
+
+  it('starts doterraId empty and registrationDate on today', () => {
+    const form = emptyForm();
+    expect(form.doterraId).toBe('');
+    expect(form.registrationDate).toBe(todayIsoDate());
+  });
+
+  it('sends null for empty doterraId and registrationDate', () => {
+    const payload = buildPayload({
+      ...emptyForm(),
+      name: 'Ana',
+      doterraId: '   ',
+      registrationDate: '',
+    });
+    expect(payload.doterraId).toBeNull();
+    expect(payload.registrationDate).toBeNull();
+  });
+
+  it('carries doterraId and registrationDate through buildPayload', () => {
+    const payload = buildPayload({
+      ...emptyForm(),
+      name: 'Ana',
+      doterraId: '18296888',
+      registrationDate: '2025-03-14',
+    });
+    expect(payload).toMatchObject({
+      doterraId: '18296888',
+      registrationDate: '2025-03-14',
+    });
+  });
+});
+
+describe('maskDoterraId', () => {
+  it('keeps only digits and caps at 12 characters', () => {
+    expect(maskDoterraId('18.296-888')).toBe('18296888');
+    expect(maskDoterraId('abc')).toBe('');
+    expect(maskDoterraId('1234567890123456')).toBe('123456789012');
+  });
 });
 
 describe('birthMonthOf', () => {
@@ -60,6 +100,15 @@ describe('filterAndSortPeople', () => {
     ];
     const result = filterAndSortPeople(people, '', '', 'name', 'asc');
     expect(result.map((p) => p.name)).toEqual(['Ana', 'Zeca']);
+  });
+
+  it('should match the search query against the dōTERRA id', () => {
+    const people = [
+      person({ id: '1', name: 'Ana', doterraId: '18296888' }),
+      person({ id: '2', name: 'Bruno', doterraId: null }),
+    ];
+    const result = filterAndSortPeople(people, '18296', '', 'name', 'asc');
+    expect(result.map((p) => p.name)).toEqual(['Ana']);
   });
 
   describe('birthdayOnly filter', () => {

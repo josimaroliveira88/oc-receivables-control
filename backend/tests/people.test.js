@@ -268,6 +268,138 @@ describe('People CRUD', () => {
       expect(response.status).toBe(400);
     });
 
+    it('should create a person with a dōTERRA id and registration date', async () => {
+      const response = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          name: 'Membro doTERRA',
+          isDoterraMember: true,
+          doterraId: '18296888',
+          registrationDate: '2025-03-14',
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.doterraId).toBe('18296888');
+      expect(response.body.registrationDate).toContain('2025-03-14');
+      createdPersonId = response.body.id;
+    });
+
+    it('should accept a member without a dōTERRA id (id is optional)', async () => {
+      const response = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Membro sem ID', isDoterraMember: true });
+
+      expect(response.status).toBe(201);
+      expect(response.body.isDoterraMember).toBe(true);
+      expect(response.body.doterraId).toBeNull();
+      createdPersonId = response.body.id;
+    });
+
+    it('should default doterraId and registrationDate to null when omitted', async () => {
+      const response = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Sem ID nem Data' });
+
+      expect(response.status).toBe(201);
+      expect(response.body.doterraId).toBeNull();
+      expect(response.body.registrationDate).toBeNull();
+      createdPersonId = response.body.id;
+    });
+
+    it('should normalize a dōTERRA id by stripping non-digits', async () => {
+      const response = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'ID Formatado', doterraId: '  18.296-888 ' });
+
+      expect(response.status).toBe(201);
+      expect(response.body.doterraId).toBe('18296888');
+      createdPersonId = response.body.id;
+    });
+
+    it('should reject a dōTERRA id with more than 12 digits', async () => {
+      const response = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'ID Longo', doterraId: '1234567890123' });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should reject a registration date that is not YYYY-MM-DD', async () => {
+      const response = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Data Ruim', registrationDate: '14/03/2025' });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should reject two people with the same dōTERRA id for the same user', async () => {
+      const first = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Primeiro', doterraId: '77788899' });
+      expect(first.status).toBe(201);
+      createdPersonId = first.body.id;
+
+      const second = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Segundo', doterraId: '77788899' });
+
+      expect(second.status).toBe(409);
+      expect(second.body.error).toMatch(/ID dōTERRA/i);
+    });
+
+    it('should allow several people with a null dōTERRA id', async () => {
+      const first = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Sem ID A' });
+      const second = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Sem ID B' });
+
+      expect(first.status).toBe(201);
+      expect(second.status).toBe(201);
+
+      await prisma.person.deleteMany({
+        where: { id: { in: [first.body.id, second.body.id] } },
+      });
+    });
+
+    it('should allow the same dōTERRA id for a different user', async () => {
+      const first = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Dono do ID', doterraId: '55544433' });
+      expect(first.status).toBe(201);
+      createdPersonId = first.body.id;
+
+      const other = await request(app)
+        .post('/api/auth/register')
+        .send({ username: `other_id_${Date.now()}`, password: 'testpass123' });
+      const otherLogin = await request(app)
+        .post('/api/auth/login')
+        .send({ username: other.body.username, password: 'testpass123' });
+
+      const second = await request(app)
+        .post('/api/people')
+        .set('Authorization', `Bearer ${otherLogin.body.token}`)
+        .send({ name: 'Outro Dono', doterraId: '55544433' });
+
+      expect(second.status).toBe(201);
+
+      await prisma.user
+        .delete({ where: { id: other.body.id } })
+        .catch(() => {});
+    });
+
     it('should return 401 when no authentication token is provided', async () => {
       const response = await request(app)
         .post('/api/people')
@@ -1022,6 +1154,21 @@ describe('People CRUD', () => {
       expect(ids).not.toContain(nonePersonId);
     });
 
+    it('should search people by dōTERRA id', async () => {
+      await prisma.person.update({
+        where: { id: memberPersonId },
+        data: { doterraId: '18296888' },
+      });
+      const response = await request(app)
+        .get('/api/people?q=18296')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      const ids = response.body.map((p) => p.id);
+      expect(ids).toContain(memberPersonId);
+      expect(ids).not.toContain(vipPersonId);
+    });
+
     it('should filter by classification=member', async () => {
       const response = await request(app)
         .get('/api/people?classification=member')
@@ -1287,6 +1434,51 @@ describe('People CRUD', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.birthday).toBe('03/11');
+    });
+
+    it('should update the dōTERRA id and registration date', async () => {
+      const response = await request(app)
+        .put(`/api/people/${createdPersonId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          name: 'Member Updated',
+          isDoterraMember: true,
+          doterraId: '20250101',
+          registrationDate: '2024-12-01',
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.doterraId).toBe('20250101');
+      expect(response.body.registrationDate).toContain('2024-12-01');
+    });
+
+    it('should clear the dōTERRA id with explicit null', async () => {
+      await prisma.person.update({
+        where: { id: createdPersonId },
+        data: { doterraId: '99999999' },
+      });
+      const response = await request(app)
+        .put(`/api/people/${createdPersonId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'ID Cleared', doterraId: null });
+
+      expect(response.status).toBe(200);
+      expect(response.body.doterraId).toBeNull();
+    });
+
+    it('should reject updating to a dōTERRA id already used by another person', async () => {
+      const holder = await prisma.person.create({
+        data: { name: 'Holder', doterraId: '31415926', userId },
+      });
+
+      const response = await request(app)
+        .put(`/api/people/${createdPersonId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Conflito', doterraId: '31415926' });
+
+      expect(response.status).toBe(409);
+
+      await prisma.person.delete({ where: { id: holder.id } }).catch(() => {});
     });
 
     it('should clear the birthday with explicit null', async () => {
