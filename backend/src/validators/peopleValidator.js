@@ -25,6 +25,23 @@ const isValidBirthday = (value) => {
   );
 };
 
+// A dōTERRA member number: up to 12 digits. Punctuation and spaces are
+// stripped before validation so the user can type a formatted value; an empty
+// string is accepted and normalized to null by the controller.
+const doterraIdSchema = z
+  .string()
+  .max(32)
+  .optional()
+  .nullable()
+  .transform((value) => {
+    if (value == null) return value;
+    const digits = String(value).replace(/\D+/g, '');
+    return digits || null;
+  })
+  .refine((value) => value == null || /^\d{1,12}$/.test(value), {
+    message: 'ID dōTERRA deve conter no máximo 12 dígitos',
+  });
+
 // Zod schema for person validation
 const personSchema = z.object({
   name: z.string().min(1, 'O nome é obrigatório'),
@@ -43,10 +60,16 @@ const personSchema = z.object({
     .refine(isValidBirthday, 'Data de aniversário inválida')
     .optional()
     .nullable(),
+  doterraId: doterraIdSchema,
+  registrationDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Data de cadastro inválida (AAAA-MM-DD)')
+    .optional()
+    .nullable(),
   isVip: z.boolean().optional(),
   isDoterraMember: z.boolean().optional(),
   isTeamMember: z.boolean().optional(),
   isSelf: z.boolean().optional(),
 });
 
-export { personSchema, MAX_DAYS_BY_MONTH, isValidBirthday };
+export { personSchema, MAX_DAYS_BY_MONTH, isValidBirthday, doterraIdSchema };

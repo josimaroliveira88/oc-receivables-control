@@ -1,7 +1,8 @@
 import prisma from '../config/database.js';
 import { handleError } from '../middlewares/errorResponse.js';
-import { notFound } from '../utils/httpError.js';
+import { conflict, notFound } from '../utils/httpError.js';
 import { lineValueCents } from '../utils/money.js';
+import { parseLocalDate } from '../utils/date.js';
 import {
   syncOrderStatusesForPersons,
   personFinancialSummary,
@@ -13,6 +14,29 @@ import {
 } from '../utils/classification.js';
 import { findIdsByTextSearch } from '../utils/search.js';
 
+// Translates the validated payload into the Prisma write shape. The
+// `registrationDate` arrives as a `YYYY-MM-DD` string and is stored as a
+// calendar date (local midnight, no timezone shift).
+const buildPersonData = (validatedData) => {
+  const { registrationDate, ...rest } = validatedData;
+  return {
+    ...rest,
+    ...(registrationDate !== undefined
+      ? {
+          registrationDate: registrationDate
+            ? parseLocalDate(registrationDate)
+            : null,
+        }
+      : {}),
+  };
+};
+
+// Maps the unique-constraint violation on (userId, doterraId) to a clear
+// 409 so the user knows the ID already belongs to another client.
+const DOTERRA_ID_CONFLICT = 'Já existe um cliente com este ID dōTERRA';
+const asDoterraIdConflict = (error) =>
+  error?.code === 'P2002' ? conflict(DOTERRA_ID_CONFLICT) : error;
+
 // Get all people
 const getPeople = async (req, res) => {
   try {
@@ -23,7 +47,7 @@ const getPeople = async (req, res) => {
     if (q && q.trim()) {
       const matchingIds = await findIdsByTextSearch({
         table: 'Person',
-        columns: ['name', 'whatsapp', 'observacao'],
+        columns: ['name', 'whatsapp', 'observacao', 'doterraId'],
         q,
       });
       if (matchingIds !== null) {
@@ -153,8 +177,9 @@ const getPersonPurchases = async (req, res) => {
 const createPerson = async (req, res) => {
   try {
     const validatedData = personSchema.parse(req.body);
+    const data = buildPersonData(validatedData);
     const person = await prisma.$transaction(async (tx) => {
-      if (validatedData.isSelf) {
+      if (data.isSelf) {
         // At most one self person per user
         await tx.person.updateMany({
           where: { userId: req.user.userId, isSelf: true },
@@ -163,14 +188,16 @@ const createPerson = async (req, res) => {
       }
       return tx.person.create({
         data: {
-          ...validatedData,
+          ...data,
           userId: req.user.userId,
         },
       });
     });
     res.status(201).json(person);
   } catch (error) {
-    handleError(res, error, { label: 'Error creating person' });
+    handleError(res, asDoterraIdConflict(error), {
+      label: 'Error creating person',
+    });
   }
 };
 
@@ -179,6 +206,7 @@ const updatePerson = async (req, res) => {
   try {
     const { id } = req.params;
     const validatedData = personSchema.parse(req.body);
+    const data = buildPersonData(validatedData);
 
     // Check if person exists and belongs to user
     const existingPerson = await prisma.person.findFirst({
@@ -191,7 +219,7 @@ const updatePerson = async (req, res) => {
 
     let displacedSelfId = null;
     const person = await prisma.$transaction(async (tx) => {
-      if (validatedData.isSelf) {
+      if (data.isSelf) {
         // Unset any other self person for this user
         const displaced = await tx.person.findFirst({
           where: { userId: req.user.userId, isSelf: true, id: { not: id } },
@@ -206,7 +234,7 @@ const updatePerson = async (req, res) => {
       }
       return tx.person.update({
         where: { id },
-        data: validatedData,
+        data,
       });
     });
 
@@ -223,7 +251,9 @@ const updatePerson = async (req, res) => {
 
     res.status(200).json(person);
   } catch (error) {
-    handleError(res, error, { label: 'Error updating person' });
+    handleError(res, asDoterraIdConflict(error), {
+      label: 'Error updating person',
+    });
   }
 };
 

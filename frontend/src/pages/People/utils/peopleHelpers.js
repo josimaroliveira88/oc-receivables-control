@@ -39,6 +39,19 @@ export const maskBirthday = (value) => {
   return `${digits.slice(0, 2)}/${digits.slice(2)}`;
 };
 
+// dōTERRA member numbers are numeric; keep only digits, capped at 12.
+export const maskDoterraId = (value) =>
+  (value || '').replace(/\D/g, '').slice(0, 12);
+
+// Local `YYYY-MM-DD` for today (no UTC shift), used as the default
+// registration date.
+export const todayIsoDate = () => {
+  const d = new Date();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${month}-${day}`;
+};
+
 export const emptyForm = () => ({
   name: '',
   commonGroups: '',
@@ -47,6 +60,8 @@ export const emptyForm = () => ({
   address: '',
   observacao: '',
   birthday: '',
+  doterraId: '',
+  registrationDate: todayIsoDate(),
   isVip: false,
   isDoterraMember: false,
   isTeamMember: false,
@@ -61,6 +76,8 @@ export const buildPayload = (form) => ({
   address: form.address.trim() || null,
   observacao: form.observacao.trim() || null,
   birthday: form.birthday.trim() || null,
+  doterraId: (form.doterraId || '').trim() || null,
+  registrationDate: form.registrationDate || null,
   isVip: form.isVip,
   isDoterraMember: form.isDoterraMember,
   isTeamMember: form.isTeamMember,
@@ -129,6 +146,9 @@ export const filterAndSortPeople = (
         .toLowerCase()
         .includes(query) &&
       !String(person.observacao || '')
+        .toLowerCase()
+        .includes(query) &&
+      !String(person.doterraId || '')
         .toLowerCase()
         .includes(query)
     ) {

@@ -130,6 +130,12 @@ const PeopleTable = ({
                   onSort={onSort}
                   width="w-[9%]"
                 />
+                <th
+                  scope="col"
+                  className="w-[8%] px-6 py-3 text-left text-xs font-medium text-ink-faint tracking-wider"
+                >
+                  ID dōTERRA
+                </th>
                 <SortableHeader
                   label="Equipe"
                   field="isTeamMember"
@@ -262,6 +268,12 @@ const PeopleTable = ({
                       className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
                     >
                       <BoolBadge value={person.isDoterraMember} />
+                    </td>
+                    <td
+                      data-label="ID dōTERRA"
+                      className="block lg:table-cell px-3 lg:px-6 py-2 lg:py-4 lg:whitespace-nowrap text-sm text-ink-faint before:content-[attr(data-label)] before:block before:text-xs before:font-semibold before:text-ink-faint before:mb-1 lg:before:hidden"
+                    >
+                      {person.doterraId || '-'}
                     </td>
                     <td
                       data-label="Equipe"

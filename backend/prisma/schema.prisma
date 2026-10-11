@@ -57,6 +57,12 @@ model Person {
   address         String?   @db.VarChar(500)
   observacao      String?   @db.VarChar(2000)
   birthday        String?   @db.VarChar(5)
+  // dōTERRA Back Office member number (digits only), used to auto-link
+  // imported orders to the matching local client. Unique per user; null is
+  // allowed for any number of non-members (Postgres treats nulls as distinct).
+  doterraId       String?   @db.VarChar(32)
+  // User-informed enrollment date (distinct from the auto-managed createdAt).
+  registrationDate DateTime? @db.Date
   isVip           Boolean   @default(false)
   isDoterraMember Boolean   @default(false)
   isTeamMember    Boolean   @default(false)
@@ -68,6 +74,8 @@ model Person {
   stockExchanges  StockExchange[]
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+
+  @@unique([userId, doterraId])
 }
 
 model Order {

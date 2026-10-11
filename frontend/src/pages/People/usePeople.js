@@ -169,6 +169,9 @@ export function usePeople() {
       address: person.address || '',
       observacao: person.observacao || '',
       birthday: person.birthday || '',
+      doterraId: person.doterraId || '',
+      // The API returns a date-time; the native date input needs YYYY-MM-DD.
+      registrationDate: (person.registrationDate || '').slice(0, 10),
       isVip: person.isVip || false,
       isDoterraMember: person.isDoterraMember || false,
       isTeamMember: person.isTeamMember || false,

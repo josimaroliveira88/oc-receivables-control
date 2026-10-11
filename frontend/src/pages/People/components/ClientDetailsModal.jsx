@@ -214,6 +214,14 @@ const ClientDetailsModal = ({ person, onClose }) => {
               <DetailItem label="Membro doTERRA">
                 <BoolBadge value={person.isDoterraMember} />
               </DetailItem>
+              <DetailItem label="ID dōTERRA">
+                {person.doterraId || '—'}
+              </DetailItem>
+              <DetailItem label="Data do cadastro">
+                {person.registrationDate
+                  ? formatDateBR(person.registrationDate)
+                  : '—'}
+              </DetailItem>
               <DetailItem label="Equipe">
                 <BoolBadge value={person.isTeamMember} />
               </DetailItem>

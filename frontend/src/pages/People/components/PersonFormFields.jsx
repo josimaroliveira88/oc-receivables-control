@@ -5,6 +5,7 @@ import {
   fieldClass,
   inputLabelClass,
   maskBirthday,
+  maskDoterraId,
 } from '../utils/peopleHelpers';
 
 const PersonFormFields = ({ values, onChange, showSelfCheckbox = true }) => {
@@ -128,13 +129,59 @@ const PersonFormFields = ({ values, onChange, showSelfCheckbox = true }) => {
       </div>
 
       <div className="mb-4">
-        <label className={inputLabelClass} htmlFor="person-member">
-          Cadastrado/Membro doTERRA
+        <label
+          htmlFor="person-member"
+          className="inline-flex items-center gap-2 text-sm font-medium text-ink-soft cursor-pointer"
+        >
+          <input
+            id="person-member"
+            type="checkbox"
+            checked={values.isDoterraMember}
+            onChange={(e) => {
+              const checked = e.target.checked;
+              onChange('isDoterraMember', checked);
+              // The dōTERRA id only applies to a member; drop it when unmarked.
+              if (!checked) onChange('doterraId', '');
+            }}
+            className="h-4 w-4 rounded border-line text-accent focus:ring-accent"
+          />
+          Membro doTERRA
         </label>
-        <SimNaoSelect
-          id="person-member"
-          value={values.isDoterraMember}
-          onChange={(v) => onChange('isDoterraMember', v)}
+      </div>
+
+      <div className="mb-4">
+        <label className={inputLabelClass} htmlFor="person-doterra-id">
+          ID dōTERRA
+        </label>
+        <input
+          id="person-doterra-id"
+          type="text"
+          inputMode="numeric"
+          value={values.doterraId ?? ''}
+          onChange={(e) => onChange('doterraId', maskDoterraId(e.target.value))}
+          maxLength={12}
+          disabled={!values.isDoterraMember}
+          className={`${fieldClass} disabled:cursor-not-allowed disabled:opacity-60`}
+          placeholder="Ex.: 18296888"
+          aria-describedby="person-doterra-id-hint"
+        />
+        <p id="person-doterra-id-hint" className="mt-1 text-xs text-ink-faint">
+          {values.isDoterraMember
+            ? 'Número da conta dōTERRA (usado para vincular pedidos importados)'
+            : "Marque 'Membro doTERRA' para informar o ID"}
+        </p>
+      </div>
+
+      <div className="mb-4">
+        <label className={inputLabelClass} htmlFor="person-registration-date">
+          Data do cadastro
+        </label>
+        <input
+          id="person-registration-date"
+          type="date"
+          value={values.registrationDate ?? ''}
+          onChange={(e) => onChange('registrationDate', e.target.value)}
+          className={fieldClass}
         />
       </div>
 
