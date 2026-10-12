@@ -143,4 +143,33 @@ describe('OrderDetailsFields credit-card fields', () => {
       ),
     ).toBeInTheDocument();
   });
+
+  it('keeps the installment fields visible but optional for a team order', async () => {
+    mockPost.mockResolvedValue({ data: { id: 'new-order' } });
+    renderPage();
+    await openCreateModal();
+
+    fireEvent.click(screen.getByTestId('order-is-team-order'));
+    fireEvent.change(screen.getByLabelText('Tipo de Pagamento'), {
+      target: { value: 'CARTAO_CREDITO' },
+    });
+
+    // Visible: the information stays an annotation the user can fill in.
+    expect(screen.getByLabelText('Parcelas')).toBeInTheDocument();
+    expect(screen.getByLabelText('Primeira parcela')).toBeInTheDocument();
+
+    fillRequiredFields();
+    fireEvent.change(screen.getByTestId('order-team-person'), {
+      target: { value: 'p1' },
+    });
+    submitForm();
+
+    // Optional: submitting without a first installment date must not be
+    // blocked, so the backend never demands data it would discard.
+    await waitFor(() => expect(mockPost).toHaveBeenCalled());
+    const payload = mockPost.mock.calls.find(([url]) => url === '/orders')[1];
+    expect(payload.isTeamOrder).toBe(true);
+    expect(payload.paymentType).toBe('CARTAO_CREDITO');
+    expect(payload.firstInstallmentAt).toBeUndefined();
+  });
 });

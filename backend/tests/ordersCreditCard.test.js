@@ -146,4 +146,139 @@ describe('Orders credit-card fields', () => {
     });
     expect(income).toHaveLength(0);
   });
+
+  // A team order is only a record: another person placed it and paid for it, so
+  // it must never reach the finances. That covers the card bill and its pending
+  // installments too, which makes the installment fields optional there.
+  describe('team orders vs. credit-card installments', () => {
+    const billFor = (orderId) =>
+      prisma.creditCardBill.findFirst({
+        where: { orderId, userId: user.userId },
+      });
+
+    const installmentsOf = (billId) =>
+      prisma.financialTransaction.findMany({
+        where: { creditCardBillId: billId, userId: user.userId },
+        orderBy: { installmentNumber: 'asc' },
+      });
+
+    const ledgerRowsFor = (orderId) =>
+      prisma.financialTransaction.findMany({
+        where: { orderId, userId: user.userId },
+      });
+
+    const storedOrder = (orderId) =>
+      prisma.order.findUnique({ where: { id: orderId } });
+
+    const updateOrder = (orderId, body) =>
+      request(app)
+        .put(`/api/orders/${orderId}`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .send(body);
+
+    it('accepts a team credit-card order without installments', async () => {
+      const response = await createOrder(
+        baseBody({
+          isTeamOrder: true,
+          installments: undefined,
+          firstInstallmentAt: undefined,
+        }),
+      );
+
+      expect(response.status).toBe(201);
+      expect(response.body.status).toBe('EQUIPE');
+      expect(response.body.installments).toBeNull();
+      expect(response.body.firstInstallmentAt).toBeNull();
+    });
+
+    it('creates no bill and no pending installments for a team order', async () => {
+      const response = await createOrder(baseBody({ isTeamOrder: true }));
+      expect(response.status).toBe(201);
+
+      expect(await billFor(response.body.id)).toBeNull();
+      expect(await ledgerRowsFor(response.body.id)).toHaveLength(0);
+    });
+
+    it('keeps the installments on the team order as an annotation', async () => {
+      const response = await createOrder(baseBody({ isTeamOrder: true }));
+      expect(response.status).toBe(201);
+
+      // Stored on the order so the user can consult it, but never turned into
+      // pending parcels in the card bill control.
+      const stored = await storedOrder(response.body.id);
+      expect(stored.installments).toBe(3);
+      expect(stored.firstInstallmentAt).not.toBeNull();
+      expect(await billFor(response.body.id)).toBeNull();
+    });
+
+    it('removes the bill and its installments when an order becomes a team order', async () => {
+      const created = await createOrder(baseBody());
+      const bill = await billFor(created.body.id);
+      expect(bill).not.toBeNull();
+      expect(await installmentsOf(bill.id)).toHaveLength(3);
+
+      const updated = await updateOrder(created.body.id, { isTeamOrder: true });
+      expect(updated.status).toBe(200);
+      expect(updated.body.status).toBe('EQUIPE');
+
+      expect(await billFor(created.body.id)).toBeNull();
+      expect(await ledgerRowsFor(created.body.id)).toHaveLength(0);
+
+      const stored = await storedOrder(created.body.id);
+      expect(stored.installments).toBe(3);
+    });
+
+    it('rebuilds the bill when a team order is unflagged', async () => {
+      const created = await createOrder(baseBody({ isTeamOrder: true }));
+      expect(await billFor(created.body.id)).toBeNull();
+
+      const updated = await updateOrder(created.body.id, {
+        isTeamOrder: false,
+      });
+      expect(updated.status).toBe(200);
+      expect(updated.body.status).not.toBe('EQUIPE');
+
+      const bill = await billFor(created.body.id);
+      expect(bill).not.toBeNull();
+      expect(bill.installments).toBe(3);
+
+      const rows = await installmentsOf(bill.id);
+      expect(rows).toHaveLength(3);
+      expect(rows.every((row) => row.isEffective === false)).toBe(true);
+    });
+
+    it('still requires installments for a non-team credit-card order', async () => {
+      const response = await createOrder(
+        baseBody({
+          isTeamOrder: false,
+          installments: undefined,
+          firstInstallmentAt: undefined,
+        }),
+      );
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message:
+              'A quantidade de parcelas é obrigatória para pedidos com cartão de crédito',
+          }),
+        ]),
+      );
+    });
+
+    it('still creates the bill and the pending installments for a non-team order', async () => {
+      const response = await createOrder(baseBody({ isTeamOrder: false }));
+      expect(response.status).toBe(201);
+
+      const bill = await billFor(response.body.id);
+      expect(bill).not.toBeNull();
+      expect(bill.installments).toBe(3);
+
+      const rows = await installmentsOf(bill.id);
+      expect(rows).toHaveLength(3);
+      expect(rows.every((row) => row.isEffective === false)).toBe(true);
+      expect(rows.every((row) => row.origin === 'PEDIDO_DOTERRA')).toBe(true);
+    });
+  });
 });

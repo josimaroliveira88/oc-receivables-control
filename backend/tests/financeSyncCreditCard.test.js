@@ -2,6 +2,7 @@ import request from 'supertest';
 import { randomUUID } from 'node:crypto';
 import app from '../src/app.js';
 import prisma from '../src/config/database.js';
+import { syncExpenseFromOrder } from '../src/services/financeSyncService.js';
 import { parseLocalDate } from '../src/utils/date.js';
 
 const registerUser = async (prefix) => {
@@ -177,6 +178,56 @@ describe('Finances credit-card sync', () => {
     expect(rows[0].origin).toBe('PEDIDO_DOTERRA');
     expect(rows[0].isEffective).toBe(true);
     expect(rows[0].creditCardBillId).toBeNull();
+  });
+
+  // The team-order guard sits before the credit-card branch, so the sync must
+  // bail out without creating a bill, pending installments or an expense row.
+  describe('team orders never reach the credit-card branch', () => {
+    const rowsFor = (orderId) =>
+      prisma.financialTransaction.findMany({
+        where: { orderId, userId: user.userId },
+      });
+
+    const reload = (orderId) =>
+      prisma.order.findUnique({ where: { id: orderId } });
+
+    it('writes nothing when a team credit-card order is synced', async () => {
+      const created = await createCardOrder({ isTeamOrder: true });
+      expect(created.status).toBe(201);
+
+      const order = await reload(created.body.id);
+      expect(order.installments).toBe(3);
+
+      const result = await syncExpenseFromOrder(prisma, {
+        userId: user.userId,
+        order,
+      });
+
+      expect(result).toBeNull();
+      expect(await getBill(order.id)).toBeNull();
+      expect(await rowsFor(order.id)).toHaveLength(0);
+    });
+
+    it('drops an existing bill when the order turns into a team order', async () => {
+      const created = await createCardOrder();
+      const bill = await getBill(created.body.id);
+      expect(await getInstallments(bill.id)).toHaveLength(3);
+
+      const teamOrder = await prisma.order.update({
+        where: { id: created.body.id },
+        data: { isTeamOrder: true },
+      });
+
+      const result = await syncExpenseFromOrder(prisma, {
+        userId: user.userId,
+        order: teamOrder,
+      });
+
+      expect(result).toBeNull();
+      expect(await getBill(created.body.id)).toBeNull();
+      expect(await rowsFor(created.body.id)).toHaveLength(0);
+      expect(teamOrder.installments).toBe(3);
+    });
   });
 
   it('replaces the standalone expense with a bill when converting a purchase to card', async () => {
