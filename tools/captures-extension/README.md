@@ -10,6 +10,16 @@ faz a captura de duas fontes e entrega um JSON ao Controle de Recebíveis:
    (`Rastreamento de Pedidos e Pacotes`) e captura os pedidos da tabela,
    buscando o detalhe de cada um.
 
+> **Nota histórica (v0.9.0):** a caixa ganhou o botão **"Preencher Conta ID
+> (N)"**, que corrige a Conta ID dos pedidos **já importados** que ficaram em
+> branco quando a captura ainda não sabia nomear a pessoa. Ele aparece só depois
+> que a consulta ao app confirma que existe algum pedido em branco na listagem,
+> busca o valor nas mesmas fontes da importação (nome da listagem e, na falta,
+> o "ID do Consultor de Bem-Estar" do detalhe) e escreve **apenas** esse campo.
+> Nada é reimportado, nenhum pedido é criado e nenhum valor existente é
+> sobrescrito. O rótulo de build passou para `fill-owner`; nenhuma chave de
+> `chrome.storage.local` mudou, então o token salvo continua válido.
+>
 > **Nota histórica (v0.8.1):** quando a tela de listagem não identifica a
 > pessoa por trás do pedido, a captura preenche a **Conta ID** com o
 > **"ID do Consultor de Bem-Estar"** lido no detalhe do pedido (o valor sempre
@@ -135,7 +145,7 @@ caixa flutuante fica liberado (abaixo dele aparece "Token salvo (termina em
 1. Abra <https://riders.uber.com/> e faça login (a extensão precisa estar
    ativa antes da página carregar; por isso `run_at: document_start`).
 2. A caixa **Corridas Uber** aparece no canto inferior direito, com a versão e
-   o rótulo de build no topo (ex.: `v0.8.1 · conta-id`).
+   o rótulo de build no topo (ex.: `v0.9.0 · fill-owner`).
 3. Ajuste **Início** e **Fim**. A janela deve cobrir o ciclo de fatura com
    folga — a data do lançamento no cartão costuma ser 1 a 3 dias depois da
    corrida. O padrão é hoje até 35 dias atrás.
@@ -162,14 +172,14 @@ Ao abrir `riders.uber.com` com a extensão ativa, o console (F12) deve mostrar
 **duas** linhas com o mesmo rótulo de build:
 
 ```text
-[Captures] MAIN v0.8.1 (conta-id) carregado em …
-[Captures] ISOLATED v0.8.1 (conta-id) carregado em …
+[Captures] MAIN v0.9.0 (fill-owner) carregado em …
+[Captures] ISOLATED v0.9.0 (fill-owner) carregado em …
 ```
 
 Em `office.doterra.com`, a linha correspondente é:
 
 ```text
-[Captures · dōTERRA] ISOLATED v0.8.1 (conta-id) carregado em …
+[Captures · dōTERRA] ISOLATED v0.9.0 (fill-owner) carregado em …
 ```
 
 Se faltar uma delas (ou nenhuma), remova e re-adicione a extensão. O rótulo de
@@ -251,6 +261,10 @@ O envio para o app envolve o mesmo JSON dentro de:
    do app) e o log da caixa lista cada uma (número do pedido + causa).
 6. **Capturar e copiar JSON**: gera o mesmo JSON e copia, para você colar em
    Pedidos → **"Importar pedidos"** (caminho manual, sem token).
+7. **Preencher Conta ID (N)**: aparece depois do passo 5 quando a consulta
+   encontra pedidos já importados com a **Conta ID** em branco. Corrige apenas
+   esse campo, sem reimportar — ver
+   [Preencher Conta ID](#preencher-conta-id-corrigir-pedidos-já-importados).
 
 Ao excluir um pedido importado, o app remove junto o que a importação criou:
 movimentos de estoque, lançamentos financeiros (e fatura, no cartão) e os
@@ -274,6 +288,32 @@ O campo **"Conta ID"** do app ([`Order.accountOwner`](../../backend/prisma/schem
 Se nem a listagem nem o detalhe tiverem o valor, o campo fica vazio e você
 preenche na revisão do pedido.
 
+### Preencher Conta ID (corrigir pedidos já importados)
+
+Pedidos importados **antes** de a captura saber nomear a pessoa ficaram com a
+**Conta ID** vazia. A caixa corrige esses pedidos sem reimportar nada:
+
+1. Rode **Importar novos pedidos** (ou **Importar pedidos do mês**). A
+   importação continua ignorando o que já existe, mas a consulta ao app passa a
+   dizer quais desses pedidos têm a Conta ID em branco.
+2. Quando existe algum, aparece o botão **"Preencher Conta ID (N)"** — ele só
+   aparece nesse caso, e `N` é a quantidade de pedidos em branco na listagem
+   atual. Os pedidos que a caixa não está vendo (ainda não carregados com
+   "Carregar mais antigos", outro mês) entram na próxima rodada.
+3. Ao clicar, a captura procura o valor **exatamente como a importação faz**: o
+   nome da listagem primeiro e, só para os pedidos que a listagem não nomeou, o
+   "ID do Consultor de Bem-Estar" da página de detalhe. Nada mais do pedido é
+   lido, reenviado ou alterado.
+4. O app escreve **apenas** a coluna da Conta ID, e só nos pedidos que estavam
+   vazios. Um pedido que **já tem** valor nunca é sobrescrito, e um número que
+   não corresponde a nenhum pedido seu é apenas reportado — **nenhum pedido é
+   criado**. O painel de resumo mostra quantos foram preenchidos, quantos já
+   tinham valor e quais não foram encontrados.
+
+O campo é puramente descritivo: ele não entra em total, status, estoque nem
+lançamento financeiro, então nada é recalculado. A flag "Pendente de revisão"
+também não muda.
+
 ### Consulta da Conta (`evo_Modules.AccountInquiry`)
 
 A mesma caixa **Pedidos dōTERRA** também aparece em **Serviços → Consulta da
@@ -289,6 +329,9 @@ Conta**, onde os dados vêm mês a mês:
    lista de pedidos, inclusive a checagem de duplicados pelo número do pedido.
    O painel de resumo diferencia a origem, titulando o resultado **"Pedidos do
    mês importados"**, e nenhuma aba do app é aberta.
+5. **Preencher Conta ID (N)** também aparece aqui, com o mesmo comportamento
+   da lista de pedidos: como o ledger do mês não traz o nome por linha, o valor
+   vem do detalhe dos pedidos que precisam de correção.
 
 > Não há "Carregar mais antigos" aqui: a consulta é sempre de um mês, então a
 > navegação é feita pelos botões de mês.

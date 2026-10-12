@@ -4,25 +4,39 @@
 // partial success (one order failing never rolls back the others).
 import { formatBRL, toCents } from '../utils/money.js';
 import { translateZodIssues } from '../utils/zodMessages.js';
-import { importOrderSchema } from '../validators/doterraValidator.js';
+import {
+  importOrderSchema,
+  fillAccountOwnerEntrySchema,
+} from '../validators/doterraValidator.js';
 import { createOrderInTx } from './ordersService.js';
+
+// A captured order the user already has still has an empty `accountOwner` when
+// it was imported before the capture learned to name the person. The field is
+// purely descriptive (no ledger, total, status or stock reads it), so an empty
+// one is exactly what the account owner fill is meant to repair.
+const isBlankAccountOwner = (value) => !String(value ?? '').trim();
 
 // Which captured numbers already belong to the user. "Existing" means any
 // order (regardless of `orderType`), because the database unique is
 // `(orderNumber, userId)` — a collision with a manually-typed number can never
-// become a P2002 on import.
+// become a P2002 on import. `existingWithoutAccountOwner` narrows the existing
+// ones down to the orders the fill can still improve.
 const lookupOrders = async (client, { userId, numbers }) => {
   const unique = [...new Set(numbers)];
 
   const rows = await client.order.findMany({
     where: { userId, orderNumber: { in: unique } },
-    select: { orderNumber: true },
+    select: { orderNumber: true, accountOwner: true },
   });
   const existingSet = new Set(rows.map((row) => row.orderNumber));
 
   return {
     existing: unique.filter((number) => existingSet.has(number)),
     missing: unique.filter((number) => !existingSet.has(number)),
+    existingWithoutAccountOwner: unique.filter((number) => {
+      const row = rows.find((candidate) => candidate.orderNumber === number);
+      return row ? isBlankAccountOwner(row.accountOwner) : false;
+    }),
   };
 };
 
@@ -266,4 +280,75 @@ const importOrders = async (client, { userId, orders }) => {
   };
 };
 
-export { lookupOrders, importOrders, cleanProductName, buildOrderNotes };
+// Fills the "Conta ID" of orders that were imported while the capture could not
+// name the person. It is a correction, never a re-import: an order that does
+// not exist is reported instead of created, and an order that already carries a
+// value is left untouched. Only `accountOwner` is written — the field feeds no
+// total, status, stock or ledger computation, so nothing has to be resynced.
+const fillAccountOwner = async (client, { userId, updates }) => {
+  const updated = [];
+  const unchanged = [];
+  const notFound = [];
+  const failed = [];
+
+  for (const raw of updates) {
+    const parsed = fillAccountOwnerEntrySchema.safeParse(raw);
+    if (!parsed.success) {
+      failed.push({
+        orderNumber: raw?.orderNumber ?? '',
+        error: translateZodIssues(parsed.error.errors)
+          .map((issue) => issue.message)
+          .join('; '),
+      });
+      continue;
+    }
+
+    const { orderNumber, accountOwner } = parsed.data;
+
+    try {
+      const order = await client.order.findFirst({
+        where: { userId, orderNumber },
+        select: { id: true, accountOwner: true },
+      });
+      if (!order) {
+        notFound.push(orderNumber);
+        continue;
+      }
+
+      if (!isBlankAccountOwner(order.accountOwner)) {
+        unchanged.push(orderNumber);
+        continue;
+      }
+
+      // The previous value travels in the `where` so a value written between
+      // the read and this statement (the user editing the order by hand) wins
+      // over the capture instead of being silently overwritten.
+      const result = await client.order.updateMany({
+        where: { id: order.id, accountOwner: order.accountOwner },
+        data: { accountOwner },
+      });
+
+      if (result.count === 0) {
+        unchanged.push(orderNumber);
+        continue;
+      }
+
+      updated.push({ orderNumber, accountOwner });
+    } catch (error) {
+      failed.push({
+        orderNumber,
+        error: error?.message || 'Erro ao preencher a Conta ID do pedido',
+      });
+    }
+  }
+
+  return { updated, unchanged, notFound, failed };
+};
+
+export {
+  lookupOrders,
+  importOrders,
+  fillAccountOwner,
+  cleanProductName,
+  buildOrderNotes,
+};

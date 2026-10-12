@@ -19,8 +19,8 @@
 (() => {
   'use strict';
 
-  const VERSION = '0.8.1';
-  const BUILD_LABEL = 'conta-id';
+  const VERSION = '0.9.0';
+  const BUILD_LABEL = 'fill-owner';
   const BOX_ID = 'captures-box';
   const TOKEN_KEY = 'captures:api-token';
 
@@ -128,6 +128,63 @@
       lines,
       hint: created.length
         ? 'Revise os pedidos importados na tela Pedidos.'
+        : 'Nada foi alterado no app.',
+    };
+  };
+
+  // Feedback for the "Preencher Conta ID" run. The server reports the four
+  // buckets separately so the user can tell "fixed" apart from "the order I
+  // typed is not in this app" and "the value was already there".
+  // Feedback for the "Preencher Conta ID" run. The server reports the four
+  // buckets separately so the user can tell "fixed" apart from "the order I
+  // listed is not in this app" and "the value was already there".
+  const buildFillAccountOwnerSummary = (summary) => {
+    const data = summary ?? {};
+    const updated = Array.isArray(data.updated) ? data.updated : [];
+    const unchanged = Array.isArray(data.unchanged) ? data.unchanged : [];
+    const notFound = Array.isArray(data.notFound) ? data.notFound : [];
+    const failed = Array.isArray(data.failed) ? data.failed : [];
+
+    const lines = [
+      `${updated.length} preenchido(s), ${unchanged.length} já tinha(m) valor, ${notFound.length} não encontrado(s), ${failed.length} falha(s).`,
+    ];
+
+    if (updated.length > 0) {
+      lines.push(
+        `Pedidos: ${listWithOverflow(updated.map((entry) => entry?.orderNumber ?? '?'))}`,
+      );
+    }
+
+    if (notFound.length > 0) {
+      lines.push(
+        `Não estão no app: ${listWithOverflow(notFound.map((number) => number ?? '?'))}`,
+      );
+    }
+
+    failed.slice(0, MAX_LISTED).forEach((failure) => {
+      lines.push(`• Falha — ${describeFailure(failure)}`);
+    });
+    if (failed.length > MAX_LISTED) {
+      lines.push(`• +${failed.length - MAX_LISTED} outra(s) falha(s).`);
+    }
+
+    let title;
+    if (updated.length > 0 && failed.length > 0) {
+      title = 'Conta ID preenchida com falhas.';
+    } else if (updated.length > 0) {
+      title = 'Conta ID preenchida.';
+    } else if (failed.length > 0) {
+      title = 'Nenhuma Conta ID preenchida.';
+    } else {
+      title = 'Nada a preencher.';
+    }
+
+    return {
+      kind: failed.length > 0 ? 'warning' : 'success',
+      title,
+      lines,
+      hint: updated.length
+        ? 'Confira o campo Conta ID na tela Pedidos.'
         : 'Nada foi alterado no app.',
     };
   };
@@ -1062,6 +1119,58 @@
     return { orders: built, failed };
   };
 
+  // Resolves the "Conta ID" of orders that are already in the app but were
+  // imported without one. The value comes from exactly the same places the
+  // import reads it, in the same order: the listing value first, and only for
+  // the orders the listing could not name, the detail page's wellness
+  // consultant id. `buildOrderPayload` is deliberately not reused here — the
+  // fill needs the owner and nothing else, and keeping the rest of the payload
+  // out of reach is what makes "nothing else is written" obvious.
+  const buildAccountOwnerUpdates = async (orders, log) => {
+    const updates = [];
+    const failed = [];
+    const unresolved = [];
+
+    for (const order of orders) {
+      const fromListing = order.accountOwner;
+      if (fromListing) {
+        updates.push({
+          orderNumber: order.orderNumber,
+          accountOwner: fromListing,
+        });
+        continue;
+      }
+      unresolved.push(order);
+    }
+
+    for (let i = 0; i < unresolved.length; i += 1) {
+      const order = unresolved[i];
+      log(
+        `Conta ID ${i + 1}/${unresolved.length}: detalhe do pedido ${order.orderNumber}...`,
+      );
+      try {
+        const detail = await fetchDetail(order);
+        const accountOwner = detail.wellnessConsultantId ?? null;
+        if (!accountOwner) {
+          failed.push({
+            orderNumber: order.orderNumber,
+            error: 'Conta ID não encontrada na listagem nem no detalhe',
+          });
+          continue;
+        }
+        updates.push({ orderNumber: order.orderNumber, accountOwner });
+      } catch (err) {
+        failed.push({
+          orderNumber: order.orderNumber,
+          error: String(err.message || err),
+        });
+      }
+      if (i < unresolved.length - 1) await sleep(400);
+    }
+
+    return { updates, failed };
+  };
+
   // --- Floating box ---------------------------------------------------------
 
   const createBox = (module) => {
@@ -1110,6 +1219,7 @@
       ${navButtons}
       <button data-role="import" type="button" style="width:100%;padding:8px;border:0;border-radius:6px;background:#1c7ed6;color:#fff;font-weight:600;cursor:pointer">${importLabel}</button>
       <button data-role="copy" type="button" style="width:100%;padding:8px;border:0;border-radius:6px;background:#d6336c;color:#fff;font-weight:600;cursor:pointer;margin-top:6px">Capturar e copiar JSON</button>
+      <button data-role="fill" type="button" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;background:#fff;color:#333;font-weight:600;cursor:pointer;margin-top:6px;display:none">Preencher Conta ID</button>
       <div data-role="token" style="margin-top:6px;font-size:10px;color:#999"></div>
       <div data-role="result" style="display:none;margin-top:8px;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:11px">
         <ul data-role="result-list" style="margin:0;padding-left:16px"></ul>
@@ -1127,6 +1237,7 @@
     const resultHintEl = box.querySelector('[data-role="result-hint"]');
     const importEl = box.querySelector('[data-role="import"]');
     const copyEl = box.querySelector('[data-role="copy"]');
+    const fillEl = box.querySelector('[data-role="fill"]');
     const tokenEl = box.querySelector('[data-role="token"]');
     const logEl = box.querySelector('[data-role="log"]');
 
@@ -1137,6 +1248,7 @@
       goTo: box.querySelector('[data-role="goto"]'),
       import: importEl,
       copy: copyEl,
+      fill: fillEl,
     };
 
     versionEl.textContent = `v${VERSION} · ${BUILD_LABEL}`;
@@ -1198,6 +1310,24 @@
       });
     };
 
+    // The fill button stays hidden until a lookup proves that some order
+    // already in the app has an empty "Conta ID" — otherwise there is nothing
+    // to correct and the button would only add noise. It is shown again by any
+    // later lookup (a fresh month, a new "load more" round).
+    let fillCandidates = [];
+    const setFillCandidates = (numbers) => {
+      fillCandidates = Array.isArray(numbers) ? numbers : [];
+      fillEl.style.display = fillCandidates.length > 0 ? 'block' : 'none';
+      if (fillCandidates.length > 0) {
+        fillEl.textContent = `Preencher Conta ID (${fillCandidates.length})`;
+      }
+    };
+    const takeFillCandidates = () => {
+      const numbers = fillCandidates;
+      fillCandidates = [];
+      return numbers;
+    };
+
     return {
       setStatus,
       showResult,
@@ -1206,6 +1336,8 @@
       clearLog,
       setTokenState,
       setBusy,
+      setFillCandidates,
+      takeFillCandidates,
       elements,
     };
   };
@@ -1279,6 +1411,10 @@
       controller.appendLog(
         `${orders.length} pedido(s), ${existingCount} já importado(s), ${missing.length} novo(s).`,
       );
+
+      // Reveal the fill button only for the orders this very listing shows, so
+      // the next run corrects exactly what the user can see.
+      controller.setFillCandidates(lookup.data?.existingWithoutAccountOwner);
 
       if (missing.length === 0) {
         controller.showResult({
@@ -1355,6 +1491,110 @@
         ],
         hint: 'Nenhum pedido foi importado.',
       });
+    } catch (err) {
+      controller.setStatus(`Falha: ${String(err.message || err)}`, 'error');
+    } finally {
+      busy = false;
+      controller.setBusy(false);
+      if (controller) controller.setTokenState(currentToken);
+    }
+  };
+
+  // Corrects the "Conta ID" of orders that are already in the app but were
+  // imported while the capture could not name the person. It never re-imports:
+  // only the account owner travels to the server, and the server refuses to
+  // touch an order that already has a value or does not exist at all.
+  const fillAccountOwnerFlow = async () => {
+    if (!controller || busy) return;
+    const candidates = controller.takeFillCandidates();
+    if (candidates.length === 0) {
+      controller.setStatus(
+        'Nenhum pedido importado com a Conta ID em branco.',
+        'error',
+      );
+      return;
+    }
+
+    const orders = pullOrders();
+    const wanted = new Set(candidates);
+    const targets = orders.filter((order) => wanted.has(order.orderNumber));
+
+    if (targets.length === 0) {
+      // The listing changed (month switch, another pagination round) since the
+      // button appeared. Ask for a fresh lookup instead of acting on numbers
+      // that are no longer on screen.
+      controller.setStatus(
+        'Os pedidos não estão mais na listagem; rode "Importar" para Atualizar a lista.',
+        'error',
+      );
+      return;
+    }
+
+    busy = true;
+    controller.clearLog();
+    controller.clearResult();
+    controller.setBusy(true);
+    controller.setStatus(
+      `Buscando a Conta ID de ${targets.length} pedido(s)...`,
+    );
+
+    try {
+      const { updates, failed } = await buildAccountOwnerUpdates(
+        targets,
+        controller.appendLog,
+      );
+
+      failed.forEach((failure) => {
+        controller.appendLog(
+          `Falha no pedido ${failure.orderNumber}: ${failure.error}`,
+        );
+      });
+
+      if (updates.length === 0) {
+        controller.showResult(
+          buildFillAccountOwnerSummary({
+            updated: [],
+            unchanged: [],
+            notFound: [],
+            failed,
+          }),
+        );
+        return;
+      }
+
+      const sendResult = await sendBackground({
+        type: 'DOTERRA_FILL_ACCOUNT_OWNER',
+        updates,
+      });
+
+      if (!sendResult.ok) {
+        const reason =
+          sendResult.error === 'AUTH'
+            ? sendResult.message || 'token inválido ou expirado'
+            : sendResult.error === 'NO_TOKEN'
+              ? 'sem token salvo no popup'
+              : sendResult.message || `erro ${sendResult.error}`;
+        controller.showResult({
+          kind: 'error',
+          title: 'Preenchimento falhou.',
+          lines: [`Motivo: ${reason}.`],
+          hint: 'Nenhuma Conta ID foi alterada.',
+        });
+        return;
+      }
+
+      const summary = sendResult.summary ?? {};
+      // A value the user typed by hand while the flow was running counts as
+      // "unchanged" server-side; merge the client-side failures in so the panel
+      // reports every order the run could not fill.
+      controller.showResult(
+        buildFillAccountOwnerSummary({
+          updated: summary.updated ?? [],
+          unchanged: summary.unchanged ?? [],
+          notFound: summary.notFound ?? [],
+          failed: [...(summary.failed ?? []), ...failed],
+        }),
+      );
     } catch (err) {
       controller.setStatus(`Falha: ${String(err.message || err)}`, 'error');
     } finally {
@@ -1520,6 +1760,7 @@
 
     controller.elements.import?.addEventListener('click', importFlow);
     controller.elements.copy?.addEventListener('click', copyFlow);
+    controller.elements.fill?.addEventListener('click', fillAccountOwnerFlow);
 
     controller.setStatus('Lendo os pedidos da página...');
     refreshCounts();
@@ -1564,6 +1805,7 @@
       cleanDetailDescription,
       buildOrderPayload,
       buildImportSummary,
+      buildFillAccountOwnerSummary,
       viewMoreUrl,
       currentCursor,
       paginate,

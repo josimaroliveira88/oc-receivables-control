@@ -5,10 +5,10 @@ import { authenticateDoterraImport } from '../middlewares/apiTokenAuth.js';
 
 const router = express.Router();
 
-// `/orders/lookup` and `/orders/import` run FIRST with the composed middleware
-// that also accepts a scoped API token (`cr_…` with `doterra:import`; the
-// Chrome extension calls them without a session). Everything defined after
-// `router.use(authenticateToken)` is session-JWT only.
+// `/orders/lookup`, `/orders/import` and `/orders/fill-account-owner` run FIRST
+// with the composed middleware that also accepts a scoped API token (`cr_…`
+// with `doterra:import`; the Chrome extension calls them without a session).
+// Everything defined after `router.use(authenticateToken)` is session-JWT only.
 
 /**
  * @openapi
@@ -88,6 +88,49 @@ router.post(
   '/orders/import',
   authenticateDoterraImport,
   doterraOrdersController.importOrdersHandler,
+);
+
+/**
+ * @openapi
+ * /api/doterra/orders/fill-account-owner:
+ *   post:
+ *     tags: [Doterra]
+ *     summary: Preenche a Conta ID dos pedidos já importados que estão em branco
+ *     description: |
+ *       Correção, não reimportação: um pedido que não existe é reportado como
+ *       `notFound` (nunca criado) e um pedido que já tem valor é reportado como
+ *       `unchanged` (nunca sobrescrito). Só a coluna `accountOwner` é escrita —
+ *       o campo não participa de nenhum cálculo de total, status, estoque ou
+ *       lançamento, então nada é ressincronizado. Sucesso parcial: uma entrada
+ *       inválida não desfaz as demais. Aceita o JWT de sessão ou um token de API
+ *       com escopo `doterra:import`.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/DoterraAccountOwnerFillInput'
+ *     responses:
+ *       200:
+ *         description: Resumo do preenchimento
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/DoterraAccountOwnerFillSummary'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         description: Token sem o escopo doterra:import
+ */
+// POST /api/doterra/orders/fill-account-owner
+router.post(
+  '/orders/fill-account-owner',
+  authenticateDoterraImport,
+  doterraOrdersController.fillAccountOwnerHandler,
 );
 
 // Session-JWT-only from this point; API tokens are rejected here.

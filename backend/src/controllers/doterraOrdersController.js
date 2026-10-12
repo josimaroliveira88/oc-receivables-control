@@ -1,9 +1,14 @@
 import prisma from '../config/database.js';
 import { handleError } from '../middlewares/errorResponse.js';
-import { lookupSchema, importSchema } from '../validators/doterraValidator.js';
+import {
+  lookupSchema,
+  importSchema,
+  fillAccountOwnerSchema,
+} from '../validators/doterraValidator.js';
 import {
   lookupOrders,
   importOrders,
+  fillAccountOwner,
 } from '../services/doterraOrdersService.js';
 
 const lookupOrdersHandler = async (req, res) => {
@@ -32,4 +37,19 @@ const importOrdersHandler = async (req, res) => {
   }
 };
 
-export { lookupOrdersHandler, importOrdersHandler };
+const fillAccountOwnerHandler = async (req, res) => {
+  try {
+    const payload = fillAccountOwnerSchema.parse(req.body);
+    const summary = await fillAccountOwner(prisma, {
+      userId: req.user.userId,
+      updates: payload.updates,
+    });
+    res.status(200).json(summary);
+  } catch (error) {
+    handleError(res, error, {
+      label: 'Error filling the dōTERRA account owner',
+    });
+  }
+};
+
+export { lookupOrdersHandler, importOrdersHandler, fillAccountOwnerHandler };

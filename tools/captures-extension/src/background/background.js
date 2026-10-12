@@ -13,8 +13,8 @@
 (() => {
   'use strict';
 
-  const VERSION = '0.8.1';
-  const BUILD_LABEL = 'conta-id';
+  const VERSION = '0.9.0';
+  const BUILD_LABEL = 'fill-owner';
 
   console.info(`[Captures background] v${VERSION} (${BUILD_LABEL}) carregado`);
 
@@ -119,6 +119,15 @@
     return { ok: true, summary: result.data };
   };
 
+  const fillDoterraAccountOwner = async ({ updates }) => {
+    const result = await postWithToken(
+      '/api/doterra/orders/fill-account-owner',
+      { updates },
+    );
+    if (!result.ok) return result;
+    return { ok: true, summary: result.data };
+  };
+
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (!message || typeof message.type !== 'string') return false;
 
@@ -132,6 +141,10 @@
     }
     if (message.type === 'DOTERRA_SEND_TO_APP') {
       sendDoterra(message).then(sendResponse);
+      return true;
+    }
+    if (message.type === 'DOTERRA_FILL_ACCOUNT_OWNER') {
+      fillDoterraAccountOwner(message).then(sendResponse);
       return true;
     }
 

@@ -71,4 +71,30 @@ const importSchema = z.object({
   orders: z.array(z.unknown()).min(1, 'Informe ao menos um pedido'),
 });
 
-export { lookupSchema, doterraItemSchema, importOrderSchema, importSchema };
+// One entry of the account owner fill: the order number and the value the
+// capture recovered for it. The value is trimmed and must not be blank — the
+// extension drops the orders it found nothing for before sending them.
+const fillAccountOwnerEntrySchema = z.object({
+  orderNumber: z.string().trim().min(1, 'O número do pedido é obrigatório'),
+  accountOwner: z
+    .string()
+    .trim()
+    .min(1, 'Informe o ID dōTERRA ou o nome da conta')
+    .max(MAX_OWNER, `A Conta ID deve ter no máximo ${MAX_OWNER} caracteres`),
+});
+
+// Envelope only, for the same partial-success reason as `importSchema`.
+const fillAccountOwnerSchema = z.object({
+  updates: z
+    .array(z.unknown())
+    .min(1, 'Informe ao menos um pedido para preencher'),
+});
+
+export {
+  lookupSchema,
+  doterraItemSchema,
+  importOrderSchema,
+  importSchema,
+  fillAccountOwnerEntrySchema,
+  fillAccountOwnerSchema,
+};

@@ -501,6 +501,12 @@ const options = {
           properties: {
             existing: { type: 'array', items: { type: 'string' } },
             missing: { type: 'array', items: { type: 'string' } },
+            existingWithoutAccountOwner: {
+              type: 'array',
+              items: { type: 'string' },
+              description:
+                'Subconjunto de `existing` cuja Conta ID está vazia — os pedidos que o preenchimento ainda consegue corrigir.',
+            },
           },
         },
         DoterraOrderItemInput: {
@@ -600,6 +606,64 @@ const options = {
                 properties: {
                   code: { type: 'string' },
                   name: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        DoterraAccountOwnerFillInput: {
+          type: 'object',
+          required: ['updates'],
+          properties: {
+            updates: {
+              type: 'array',
+              minItems: 1,
+              items: {
+                type: 'object',
+                required: ['orderNumber', 'accountOwner'],
+                properties: {
+                  orderNumber: { type: 'string' },
+                  accountOwner: {
+                    type: 'string',
+                    maxLength: 120,
+                    description: 'ID dōTERRA ou nome da conta',
+                  },
+                },
+              },
+            },
+          },
+        },
+        DoterraAccountOwnerFillSummary: {
+          type: 'object',
+          properties: {
+            updated: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  orderNumber: { type: 'string' },
+                  accountOwner: { type: 'string' },
+                },
+              },
+            },
+            unchanged: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Pedidos que já tinham valor na Conta ID',
+            },
+            notFound: {
+              type: 'array',
+              items: { type: 'string' },
+              description:
+                'Números que não correspondem a nenhum pedido do usuário',
+            },
+            failed: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  orderNumber: { type: 'string' },
+                  error: { type: 'string' },
                 },
               },
             },
