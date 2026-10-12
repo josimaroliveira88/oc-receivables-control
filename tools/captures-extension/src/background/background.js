@@ -2,9 +2,10 @@
  * MV3 service worker (single self-contained file).
  *
  * Owns the operations that cannot happen in the isolated content scripts:
- * the Uber import POST, the dōTERRA lookup/import POSTs (an extension-context
- * fetch is covered by the host permissions, so the backend never sees CORS)
- * and the new-tab navigation (chrome.tabs lives in the extension context).
+ * the Uber import POST and the dōTERRA lookup/import POSTs (an extension-
+ * context fetch is covered by the host permissions, so the backend never sees
+ * CORS). It deliberately opens no tab: the floating boxes close the flow with
+ * their own feedback summary built from the response returned here.
  *
  * The token and the server URL live in `chrome.storage.local`; this worker
  * reads them itself so the content scripts never handle credentials.
@@ -12,8 +13,8 @@
 (() => {
   'use strict';
 
-  const VERSION = '0.7.0';
-  const BUILD_LABEL = 'rebrand';
+  const VERSION = '0.8.0';
+  const BUILD_LABEL = 'resumo';
 
   console.info(`[Captures background] v${VERSION} (${BUILD_LABEL}) carregado`);
 
@@ -84,7 +85,7 @@
       };
     }
 
-    return { ok: true, data: parsed, base };
+    return { ok: true, data: parsed };
   };
 
   const sendToApp = async ({ json, windowStart, windowEnd }) => {
@@ -96,9 +97,8 @@
     });
     if (!result.ok) return result;
 
-    // The first tab of the app opens with the freshly imported rides already
-    // listed (Finances loads the rides when it mounts).
-    await chrome.tabs.create({ url: `${result.base}/finances` });
+    // The summary reaches the floating box, which reports created/updated/
+    // cancelled counts and where to find the rides in the app.
     return { ok: true, summary: result.data };
   };
 
@@ -114,8 +114,8 @@
     const result = await postWithToken('/api/doterra/orders/import', payload);
     if (!result.ok) return result;
 
-    // The orders list opens with the newly imported pending-review orders.
-    await chrome.tabs.create({ url: `${result.base}/orders` });
+    // Same as Uber: the pending-review summary is rendered in the page the
+    // capture came from, not in a tab opened behind the user's back.
     return { ok: true, summary: result.data };
   };
 

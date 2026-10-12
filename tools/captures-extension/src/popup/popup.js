@@ -9,8 +9,8 @@
 (() => {
   'use strict';
 
-  const VERSION = '0.7.0';
-  const BUILD_LABEL = 'rebrand';
+  const VERSION = '0.8.0';
+  const BUILD_LABEL = 'resumo';
   const UBER_URL = 'https://riders.uber.com/';
   const DOTERRA_ORDERS_URL =
     'https://office.doterra.com/index.cfm?Fuseaction=evo_Modules.OrderHistoryFull';

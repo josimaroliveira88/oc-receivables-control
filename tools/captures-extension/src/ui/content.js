@@ -11,8 +11,8 @@
 (() => {
   'use strict';
 
-  const VERSION = '0.7.0';
-  const BUILD_LABEL = 'rebrand';
+  const VERSION = '0.8.0';
+  const BUILD_LABEL = 'resumo';
   const BRIDGE_SOURCE = 'captures:bridge';
   const BOX_ID = 'captures-box';
   const DAY_MS = 86400000;
@@ -21,8 +21,19 @@
   const STATUS_COLORS = {
     error: '#d6336c',
     success: '#2f9e44',
+    warning: '#e8590c',
     info: '#555',
   };
+
+  // Palette of the post-import feedback panel, shown in place of the app tab
+  // the worker used to open.
+  const RESULT_COLORS = {
+    success: { border: '#b7e4c7', background: '#f0fbf4' },
+    warning: { border: '#ffe1a3', background: '#fff9e6' },
+    error: { border: '#f3c2ce', background: '#fff1f4' },
+  };
+
+  const MAX_LISTED = 3;
 
   const STORAGE_KEYS = {
     START: 'captures:start',
@@ -248,6 +259,84 @@
     });
   };
 
+  // --- Import feedback -------------------------------------------------------
+
+  // The send flow no longer opens the app in a new tab: the box closes with a
+  // summary of what the backend did instead. `buildRideSummary` is pure so the
+  // wording stays unit-testable (see `tests/uberUiSummary.test.js`).
+
+  const toCount = (value) => Number(value) || 0;
+
+  const formatBrDate = (value) => {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value ?? '');
+    return match ? `${match[3]}/${match[2]}/${match[1]}` : '';
+  };
+
+  const buildRideSummary = (summary, { period } = {}) => {
+    const data = summary ?? {};
+    const total = toCount(data.total);
+    const created = toCount(data.created);
+    const updated = toCount(data.updated);
+    const cancelled = toCount(data.cancelled);
+    const warnings = Array.isArray(data.warnings) ? data.warnings : [];
+
+    if (total === 0) {
+      return {
+        kind: 'warning',
+        title: 'Nenhuma corrida importada.',
+        lines: [
+          `O período selecionado não retornou corrida válida${
+            period ? ` (${period})` : ''
+          }.`,
+          ...(warnings.length
+            ? [`${warnings.length} atividade(s) ignorada(s) na captura.`]
+            : []),
+        ],
+        hint: 'Amplie o período no box ou confira se as corridas já foram importadas.',
+      };
+    }
+
+    const lines = [
+      `${total} corrida(s) importada(s) para o app${
+        period ? ` (${period})` : ''
+      }.`,
+      `${created} nova(s) e ${updated} atualizada(s).`,
+    ];
+
+    if (cancelled > 0) {
+      lines.push(`${cancelled} cancelada(s), marcada(s) como tal no app.`);
+    }
+
+    if (warnings.length > 0) {
+      lines.push(`${warnings.length} atividade(s) ignorada(s) na captura.`);
+      warnings.slice(0, MAX_LISTED).forEach((warning) => {
+        lines.push(`• ${warning}`);
+      });
+    }
+
+    return {
+      kind: warnings.length > 0 ? 'warning' : 'success',
+      title: 'Corridas importadas.',
+      lines,
+      hint: 'Consulte as corridas em Finanças › Corridas.',
+    };
+  };
+
+  // Maps the stable error codes returned by the service worker into the reason
+  // shown in the feedback panel.
+  const describeSendError = (response) => {
+    if (response?.error === 'NO_TOKEN') {
+      return 'sem token salvo no popup da extensão';
+    }
+    if (response?.error === 'NETWORK') {
+      return 'sem conexão com o servidor';
+    }
+    if (response?.error === 'AUTH') {
+      return response.message || 'token inválido ou expirado';
+    }
+    return response?.message || `erro ${response?.status ?? 'desconhecido'}`;
+  };
+
   // --- Floating box ---------------------------------------------------------
 
   const createBox = ({ start, end, onCapture }) => {
@@ -281,6 +370,10 @@
       <button data-role="send" type="button" style="width:100%;padding:8px;border:0;border-radius:6px;background:#1c7ed6;color:#fff;font-weight:600;cursor:pointer;margin-top:6px">Enviar para o Controle de Recebíveis</button>
       <div data-role="token" style="margin-top:6px;font-size:10px;color:#999"></div>
       <div data-role="status" style="margin-top:8px;font-size:11px;color:#555"></div>
+      <div data-role="result" style="display:none;margin-top:8px;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:11px">
+        <ul data-role="result-list" style="margin:0;padding-left:16px"></ul>
+        <div data-role="result-hint" style="margin-top:6px;font-size:10px;color:#666"></div>
+      </div>
       <div data-role="log" style="margin-top:6px;max-height:90px;overflow:auto;font-size:10px;color:#888"></div>
     `;
 
@@ -292,6 +385,9 @@
     const sendEl = box.querySelector('[data-role="send"]');
     const tokenEl = box.querySelector('[data-role="token"]');
     const statusEl = box.querySelector('[data-role="status"]');
+    const resultEl = box.querySelector('[data-role="result"]');
+    const resultListEl = box.querySelector('[data-role="result-list"]');
+    const resultHintEl = box.querySelector('[data-role="result-hint"]');
     const logEl = box.querySelector('[data-role="log"]');
     const versionEl = box.querySelector('[data-role="version"]');
 
@@ -303,6 +399,32 @@
       statusEl.textContent = message;
       statusEl.dataset.kind = kind;
       statusEl.style.color = STATUS_COLORS[kind] ?? STATUS_COLORS.info;
+    };
+
+    // Terminal feedback of a capture/import run: the one-line status carries the
+    // headline and the panel below spells out what the backend did.
+    const showResult = ({ kind = 'success', title, lines = [], hint = '' }) => {
+      const palette = RESULT_COLORS[kind] ?? RESULT_COLORS.success;
+
+      resultListEl.textContent = '';
+      lines.forEach((text) => {
+        const item = document.createElement('li');
+        item.textContent = text;
+        resultListEl.appendChild(item);
+      });
+      resultHintEl.textContent = hint;
+      resultHintEl.style.display = hint ? 'block' : 'none';
+      resultEl.style.display = 'block';
+      resultEl.style.borderColor = palette.border;
+      resultEl.style.background = palette.background;
+
+      setStatus(title, kind);
+    };
+
+    const clearResult = () => {
+      resultEl.style.display = 'none';
+      resultListEl.textContent = '';
+      resultHintEl.textContent = '';
     };
 
     const appendLog = (message) => {
@@ -350,6 +472,8 @@
 
     return {
       setStatus,
+      showResult,
+      clearResult,
       appendLog,
       setBusy,
       setSendBusy,
@@ -377,8 +501,9 @@
 
   // Shared capture pipeline: `target` = 'copy' replicates the legacy flow
   // (clipboard, paste on the app); `target` = 'send' posts the captured JSON
-  // straight to the backend and opens Finances in a new tab, falling back to
-  // the clipboard when the send fails.
+  // straight to the backend and closes with the import summary, falling back to
+  // the clipboard when the send fails. Neither target opens the app: the
+  // feedback panel points at the screen where the data landed.
   const handleCapture = async (target = 'copy') => {
     if (!controller || capturing) return;
 
@@ -397,8 +522,12 @@
 
     const fromIso = toIsoInstant(startValue, false);
     const toIso = toIsoInstant(endValue, true);
+    const period = [formatBrDate(startValue), formatBrDate(endValue)]
+      .filter(Boolean)
+      .join(' a ');
 
     capturing = true;
+    controller.clearResult();
     controller.setBusy(true);
     controller.setSendBusy(true, 'Capturando…');
     controller.setStatus('Capturando corridas...');
@@ -424,44 +553,46 @@
         const response = await sendToApp(result.json, fromIso, toIso);
 
         if (response.ok) {
-          const parts = [
-            `${response.summary?.total ?? 0} corrida(s) processada(s)`,
-          ];
-          if (response.summary?.cancelled > 0) {
-            parts.push(`${response.summary.cancelled} cancelada(s)`);
-          }
-          controller.setStatus(
-            `Importado: ${parts.join(', ')}. Abrindo o Controle de Recebíveis…`,
-            'success',
+          const warnings = Array.isArray(response.summary?.warnings)
+            ? response.summary.warnings
+            : [];
+          warnings.forEach((warning) =>
+            controller.appendLog(`Aviso: ${warning}`),
           );
+          controller.showResult(buildRideSummary(response.summary, { period }));
           return;
         }
 
         // Failure fallback: the capture is never lost.
-        const reason =
-          response.error === 'NO_TOKEN'
-            ? 'sem token salvo no popup da extensão'
-            : response.error === 'NETWORK'
-              ? 'sem conexão com o servidor'
-              : response.error === 'AUTH'
-                ? response.message || 'token inválido ou expirado'
-                : response.message ||
-                  `erro ${response.status ?? 'desconhecido'}`;
-        controller.setStatus(
-          `Envio falhou (${reason}). JSON copiado: cole na tela de importação do app.`,
-          'error',
-        );
-        await copyToClipboard(result.json);
+        const reason = describeSendError(response);
+        const copied = await copyToClipboard(result.json);
+        controller.showResult({
+          kind: 'error',
+          title: 'Envio falhou.',
+          lines: [
+            `Motivo: ${reason}.`,
+            copied
+              ? 'JSON copiado: cole na tela de importação do app.'
+              : 'Não foi possível copiar o JSON — refaça a captura.',
+          ],
+          hint: 'Nenhuma corrida foi importada.',
+        });
         return;
       }
 
       const copied = await copyToClipboard(result.json);
-      controller.setStatus(
-        copied
-          ? `JSON copiado (${sizeKb} KB). Cole na tela de importação do Controle de Recebíveis.`
-          : `JSON gerado (${sizeKb} KB), mas a cópia falhou. Veja o console (F12).`,
-        copied ? 'success' : 'error',
-      );
+      const scope = period ? ` (${period})` : '';
+      controller.showResult({
+        kind: copied ? 'success' : 'error',
+        title: copied ? 'JSON copiado.' : 'Cópia falhou.',
+        lines: [
+          copied
+            ? `${sizeKb} KB de corridas${scope}.`
+            : `${sizeKb} KB de corridas${scope}, mas a cópia falhou.`,
+          'Cole na tela de importação do Controle de Recebíveis.',
+        ],
+        hint: 'Nada foi enviado para o app.',
+      });
       if (!copied) console.log(result.json);
     } finally {
       capturing = false;
@@ -523,5 +654,23 @@
     document.addEventListener('DOMContentLoaded', mount);
   } else {
     mount();
+  }
+
+  // --- Test escape hatch -----------------------------------------------------
+  //
+  // This file is intentionally self-contained (no imports, no shared namespace
+  // with the MAIN-world script); the trade-off is that the summary wording
+  // would be locked inside the IIFE and untestable from Vitest. When
+  // `globalThis.__UBER_UI__` is set (only by `tests/setup.js`, before this file
+  // loads) the pure feedback helpers are handed to the test runner. In
+  // production the sentinel is missing and nothing is exposed — same contract
+  // as the dōTERRA content script's `__DOTERRA_PARSERS__` hatch. Only pure
+  // helpers are exported; the box stays bound to the live DOM.
+  if (typeof globalThis !== 'undefined' && globalThis.__UBER_UI__) {
+    globalThis.__UBER_UI__ = {
+      buildRideSummary,
+      describeSendError,
+      formatBrDate,
+    };
   }
 })();

@@ -29,7 +29,7 @@ const steps = [
   },
   {
     title: 'Capture na página do Uber',
-    body: 'Abra riders.uber.com, faça login, ajuste Início e Fim e clique em "Enviar para o Controle de Recebíveis". O app abre em nova aba com as corridas importadas.',
+    body: 'Abra riders.uber.com, faça login, ajuste Início e Fim e clique em "Enviar para o Controle de Recebíveis". Ao final, a caixa da extensão mostra um resumo do que foi importado e em qual tela do app conferir — nenhuma aba nova é aberta.',
   },
 ];
 

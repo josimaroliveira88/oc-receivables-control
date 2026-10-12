@@ -19,8 +19,8 @@
 (() => {
   'use strict';
 
-  const VERSION = '0.7.0';
-  const BUILD_LABEL = 'rebrand';
+  const VERSION = '0.8.0';
+  const BUILD_LABEL = 'resumo';
   const BOX_ID = 'captures-box';
   const TOKEN_KEY = 'captures:api-token';
 
@@ -37,6 +37,99 @@
       : 'pedido sem número';
     const reason = failure?.error || 'erro desconhecido';
     return `${order}: ${reason}`;
+  };
+
+  // Palette of the post-import feedback panel, shown in place of the app tab
+  // the worker used to open.
+  const RESULT_COLORS = {
+    success: { border: '#b7e4c7', background: '#f0fbf4' },
+    warning: { border: '#ffe1a3', background: '#fff9e6' },
+    error: { border: '#f3c2ce', background: '#fff1f4' },
+  };
+
+  const MAX_LISTED = 5;
+
+  // The send flow no longer opens the app in a new tab: both Back Office pages
+  // close it with this summary instead. `buildImportSummary` is pure so the
+  // wording stays unit-testable (see `tests/doterraSummary.test.js`).
+  const listWithOverflow = (items) => {
+    const shown = items.slice(0, MAX_LISTED);
+    return items.length > MAX_LISTED
+      ? `${shown.join(', ')} (+${items.length - MAX_LISTED})`
+      : shown.join(', ');
+  };
+
+  const buildImportSummary = (summary, { source = 'orderHistory' } = {}) => {
+    const data = summary ?? {};
+    const created = Array.isArray(data.created) ? data.created : [];
+    const existing = Array.isArray(data.existing) ? data.existing : [];
+    const failed = Array.isArray(data.failed) ? data.failed : [];
+    const newProducts = Array.isArray(data.createdProducts)
+      ? data.createdProducts
+      : [];
+    const isMonth = source === 'accountInquiry';
+
+    // Cross-check warnings the backend stored in each order's notes (zero
+    // total, total mismatch): worth showing right away so the user opens the
+    // review screen already knowing what to double-check.
+    const orderWarnings = created.flatMap((order) =>
+      (Array.isArray(order?.warnings) ? order.warnings : []).map(
+        (warning) => `${order?.orderNumber ?? '?'}: ${warning}`,
+      ),
+    );
+
+    const lines = [
+      `${created.length} criado(s), ${existing.length} já existia(m), ${failed.length} falha(s).`,
+    ];
+
+    if (created.length > 0) {
+      lines.push(
+        `Pedidos: ${listWithOverflow(created.map((order) => order?.orderNumber ?? '?'))}`,
+      );
+    }
+
+    if (newProducts.length > 0) {
+      lines.push(
+        `${newProducts.length} produto(s) novo(s) como PENDENTE_CADASTRO: ${listWithOverflow(newProducts.map((product) => product?.code ?? '?'))}`,
+      );
+    }
+
+    if (orderWarnings.length > 0) {
+      lines.push(
+        `${orderWarnings.length} aviso(s) nos pedidos importados — confira as observações de cada pedido.`,
+      );
+      orderWarnings.slice(0, MAX_LISTED).forEach((warning) => {
+        lines.push(`• Aviso — ${warning}`);
+      });
+    }
+
+    failed.slice(0, MAX_LISTED).forEach((failure) => {
+      lines.push(`• Falha — ${describeFailure(failure)}`);
+    });
+    if (failed.length > MAX_LISTED) {
+      lines.push(`• +${failed.length - MAX_LISTED} outra(s) falha(s).`);
+    }
+
+    let title;
+    if (created.length > 0 && failed.length > 0) {
+      title = 'Importação concluída com falhas.';
+    } else if (created.length > 0) {
+      title = isMonth ? 'Pedidos do mês importados.' : 'Pedidos importados.';
+    } else if (failed.length > 0) {
+      title = 'Nenhum pedido importado.';
+    } else {
+      title = 'Nenhum pedido novo.';
+    }
+
+    return {
+      kind:
+        failed.length > 0 || orderWarnings.length > 0 ? 'warning' : 'success',
+      title,
+      lines,
+      hint: created.length
+        ? 'Revise os pedidos importados na tela Pedidos.'
+        : 'Nada foi alterado no app.',
+    };
   };
 
   console.info(
@@ -932,6 +1025,10 @@
       <button data-role="import" type="button" style="width:100%;padding:8px;border:0;border-radius:6px;background:#1c7ed6;color:#fff;font-weight:600;cursor:pointer">${importLabel}</button>
       <button data-role="copy" type="button" style="width:100%;padding:8px;border:0;border-radius:6px;background:#d6336c;color:#fff;font-weight:600;cursor:pointer;margin-top:6px">Capturar e copiar JSON</button>
       <div data-role="token" style="margin-top:6px;font-size:10px;color:#999"></div>
+      <div data-role="result" style="display:none;margin-top:8px;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:11px">
+        <ul data-role="result-list" style="margin:0;padding-left:16px"></ul>
+        <div data-role="result-hint" style="margin-top:6px;font-size:10px;color:#666"></div>
+      </div>
       <div data-role="log" style="margin-top:6px;max-height:110px;overflow:auto;font-size:10px;color:#888"></div>
     `;
 
@@ -939,6 +1036,9 @@
 
     const versionEl = box.querySelector('[data-role="version"]');
     const statusEl = box.querySelector('[data-role="status"]');
+    const resultEl = box.querySelector('[data-role="result"]');
+    const resultListEl = box.querySelector('[data-role="result-list"]');
+    const resultHintEl = box.querySelector('[data-role="result-hint"]');
     const importEl = box.querySelector('[data-role="import"]');
     const copyEl = box.querySelector('[data-role="copy"]');
     const tokenEl = box.querySelector('[data-role="token"]');
@@ -959,6 +1059,32 @@
       statusEl.textContent = message;
       statusEl.dataset.kind = kind;
       statusEl.style.color = STATUS_COLORS[kind] ?? STATUS_COLORS.info;
+    };
+
+    // Terminal feedback of an import/copy run: the one-line status carries the
+    // headline and the panel below spells out what the backend did.
+    const showResult = ({ kind = 'success', title, lines = [], hint = '' }) => {
+      const palette = RESULT_COLORS[kind] ?? RESULT_COLORS.success;
+
+      resultListEl.textContent = '';
+      lines.forEach((text) => {
+        const item = document.createElement('li');
+        item.textContent = text;
+        resultListEl.appendChild(item);
+      });
+      resultHintEl.textContent = hint;
+      resultHintEl.style.display = hint ? 'block' : 'none';
+      resultEl.style.display = 'block';
+      resultEl.style.borderColor = palette.border;
+      resultEl.style.background = palette.background;
+
+      setStatus(title, kind);
+    };
+
+    const clearResult = () => {
+      resultEl.style.display = 'none';
+      resultListEl.textContent = '';
+      resultHintEl.textContent = '';
     };
 
     const appendLog = (message) => {
@@ -988,6 +1114,8 @@
 
     return {
       setStatus,
+      showResult,
+      clearResult,
       appendLog,
       clearLog,
       setTokenState,
@@ -1040,6 +1168,7 @@
 
     busy = true;
     controller.clearLog();
+    controller.clearResult();
     controller.setBusy(true);
     controller.setStatus('Consultando pedidos já importados...');
 
@@ -1066,7 +1195,13 @@
       );
 
       if (missing.length === 0) {
-        controller.setStatus('Nenhum pedido novo para importar.', 'success');
+        controller.showResult({
+          title: 'Nenhum pedido novo.',
+          lines: [
+            `${orders.length} pedido(s) na página, ${existingCount} já importado(s).`,
+          ],
+          hint: 'Nada foi enviado para o app.',
+        });
         return;
       }
 
@@ -1094,22 +1229,22 @@
 
       if (sendResult.ok) {
         const summary = sendResult.summary ?? {};
-        const serverFailures = summary.failed ?? [];
 
         // Surface every server-side failure (parse, validation or transaction)
         // so the reason is visible without opening DevTools.
-        serverFailures.forEach((failure) => {
+        (summary.created ?? []).forEach((order) => {
+          (order?.warnings ?? []).forEach((warning) => {
+            controller.appendLog(
+              `Aviso no pedido ${order?.orderNumber ?? '?'}: ${warning}`,
+            );
+          });
+        });
+        (summary.failed ?? []).forEach((failure) => {
           controller.appendLog(`Falha em ${describeFailure(failure)}`);
         });
 
-        const counts = `${(summary.created ?? []).length} criado(s), ${(summary.existing ?? []).length} já existia(m), ${serverFailures.length} falha(s)`;
-        const detail = serverFailures.length
-          ? ` Falha: ${describeFailure(serverFailures[0])}${serverFailures.length > 1 ? ` (+${serverFailures.length - 1})` : ''}.`
-          : '';
-
-        controller.setStatus(
-          `Importado: ${counts}.${detail} Abrindo o app…`,
-          serverFailures.length ? 'warning' : 'success',
+        controller.showResult(
+          buildImportSummary(summary, { source: activeKind }),
         );
         return;
       }
@@ -1120,13 +1255,20 @@
           : sendResult.error === 'NO_TOKEN'
             ? 'sem token salvo no popup'
             : sendResult.message || `erro ${sendResult.error}`;
-      controller.setStatus(
-        `Envio falhou (${reason}). JSON copiado: cole na tela de importação do app.`,
-        'error',
-      );
-      await copyToClipboard(
+      const copied = await copyToClipboard(
         JSON.stringify({ orders: payload.orders }, null, 2),
       );
+      controller.showResult({
+        kind: 'error',
+        title: 'Envio falhou.',
+        lines: [
+          `Motivo: ${reason}.`,
+          copied
+            ? 'JSON copiado: cole na tela de importação do app.'
+            : 'Não foi possível copiar o JSON — refaça a captura.',
+        ],
+        hint: 'Nenhum pedido foi importado.',
+      });
     } catch (err) {
       controller.setStatus(`Falha: ${String(err.message || err)}`, 'error');
     } finally {
@@ -1146,6 +1288,7 @@
 
     busy = true;
     controller.clearLog();
+    controller.clearResult();
     controller.setBusy(true);
     controller.setStatus('Buscando o detalhe dos pedidos...');
 
@@ -1155,12 +1298,17 @@
       const payload = await buildPayload(orders, controller.appendLog);
       const json = JSON.stringify({ orders: payload.orders }, null, 2);
       const copied = await copyToClipboard(json);
-      controller.setStatus(
-        copied
-          ? `JSON copiado (${payload.orders.length} pedido(s)). Cole na tela de importação do app.`
-          : 'JSON gerado, mas a cópia falhou. Veja o console (F12).',
-        copied ? 'success' : 'error',
-      );
+      controller.showResult({
+        kind: copied ? 'success' : 'error',
+        title: copied ? 'JSON copiado.' : 'Cópia falhou.',
+        lines: [
+          copied
+            ? `${payload.orders.length} pedido(s) no JSON.`
+            : `${payload.orders.length} pedido(s) no JSON, mas a cópia falhou.`,
+          'Cole na tela de importação do app.',
+        ],
+        hint: 'Nada foi enviado para o app.',
+      });
       if (!copied) console.log(json);
     } catch (err) {
       controller.setStatus(`Falha: ${String(err.message || err)}`, 'error');
@@ -1307,8 +1455,9 @@
   // When `globalThis.__DOTERRA_PARSERS__` is set (only by `tests/setup.js`,
   // which runs before this file in the Vitest environment), we hand the pure
   // helpers to the test runner. In production the sentinel is missing and
-  // nothing is exposed. The list is intentionally narrow: parsers, never the
-  // UI orchestrators, so the floating box stays bound to the live DOM.
+  // nothing is exposed. The list is intentionally narrow: parsers and the pure
+  // feedback formatter, never the UI orchestrators, so the floating box stays
+  // bound to the live DOM.
   if (typeof globalThis !== 'undefined' && globalThis.__DOTERRA_PARSERS__) {
     globalThis.__DOTERRA_PARSERS__ = {
       detectItemsColumns,
@@ -1327,6 +1476,7 @@
       toIsoMonth,
       cleanDetailDescription,
       buildOrderPayload,
+      buildImportSummary,
       viewMoreUrl,
       currentCursor,
       paginate,
