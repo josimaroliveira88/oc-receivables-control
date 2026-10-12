@@ -1,0 +1,155 @@
+<!doctype html>
+<!--
+  Fixture of the real Back Office `OrderInvoice` header table, the only place
+  the account's wellness consultant number is exposed:
+
+    <tr><td class="collapsing"><b>ID do Consultor de Bem-Estar:</b></td>
+        <td>15837743</td></tr>
+
+  Both listing pages (`OrderHistoryFull` ships `Pedidos de <I></I>` and
+  `AccountInquiry` has no per-account heading for several account types), so
+  `accountOwner` arrives null and the import falls back to this field. The
+  items table below keeps the 8-column layout of this order type
+  (`Item | Qtde enviada | Qtde encomendada | Descrição | Volume |
+  Volume total | Preço | Preço total`) — no PV column.
+-->
+<html>
+  <head>
+    <title>Detalhes do Pedido</title>
+  </head>
+  <body>
+    <div class="ui basic segment nopaging InvoiceMain">
+      <div class="ui equal width stackable grid nomargin">
+        <div class="column">
+          <table class="ui very compact very basic basic unstackable table">
+            <tr>
+              <td class="collapsing"><b>Número do pedido:</b></td>
+              <td>160240113</td>
+            </tr>
+            <tr>
+              <td class="collapsing"><b>Data do pedido:</b></td>
+              <td>13/02/2025</td>
+            </tr>
+            <tr>
+              <td class="collapsing"><b>Vol do Mês:</b></td>
+              <td>2/25</td>
+            </tr>
+            <tr>
+              <td class="collapsing"><b>ID do Consultor de Bem-Estar:</b></td>
+              <td>15837743</td>
+            </tr>
+            <tr>
+              <td class="collapsing"><b>Moeda:</b></td>
+              <td>R$</td>
+            </tr>
+          </table>
+        </div>
+        <div class="column">
+          <span class="bold">Faturar para:</span><br />
+          <span>
+            JOSIMAR A OLIVEIRA<br />
+            Rua 19, Duo Residence Mall AP 2704<br />
+            , Brasília<br />
+            BRA<br />
+            6193809317<br />
+            <a href="mailto:cliente@example.com">cliente@example.com</a>
+          </span>
+        </div>
+      </div>
+
+      <div class="ui basic segment tabledivnm">
+        <table class="ui striped unstackable table bigEVOTable celled evotable">
+          <thead>
+            <tr class="InvoiceHeader">
+              <th class="center aligned">Item</th>
+              <th class="center aligned">Qtde enviada</th>
+              <th class="center aligned">Qtde encomendada</th>
+              <th>Descrição</th>
+              <th class="right aligned">Volume</th>
+              <th class="right aligned">Volume total</th>
+              <th class="right aligned">Preço</th>
+              <th class="right aligned">Preço total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="center aligned">60220994</td>
+              <td class="center aligned">1</td>
+              <td class="center aligned">1</td>
+              <td>dōTERRA Serenity®<br /></td>
+              <td class="right aligned">34.00</td>
+              <td class="right aligned">34.00</td>
+              <td class="right aligned">R$ 199.00</td>
+              <td class="right aligned">R$ 199.00</td>
+            </tr>
+            <tr>
+              <td class="center aligned">60231197</td>
+              <td class="center aligned">1</td>
+              <td class="center aligned">1</td>
+              <td>Kit Volta às Aulas<br /></td>
+              <td class="right aligned">30.00</td>
+              <td class="right aligned">30.00</td>
+              <td class="right aligned">R$ 197.00</td>
+              <td class="right aligned">R$ 197.00</td>
+            </tr>
+            <tr>
+              <td class="center aligned">60209630</td>
+              <td class="center aligned">2</td>
+              <td class="center aligned">2</td>
+              <td>10 ml dōTERRA Calmer® Touch Mix Calmante<br /></td>
+              <td class="right aligned">24.00</td>
+              <td class="right aligned">48.00</td>
+              <td class="right aligned">R$ 205.00</td>
+              <td class="right aligned">R$ 410.00</td>
+            </tr>
+            <tr>
+              <td colspan="7">&nbsp;</td>
+              <td class="right aligned"><b>Subtotal:</b> R$ 806.00</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="ui mobile reversed stackable grid nomargin">
+        <div class="six wide tablet five wide computer column">
+          <table class="ui very compact very basic unstackable table">
+            <tr>
+              <td><b>Frete</b> (Envio Normal)</td>
+              <td class="right aligned">R$ 32.00</td>
+            </tr>
+            <tr>
+              <td><b>Imposto</b> 0%</td>
+              <td class="right aligned">R$ 0.00</td>
+            </tr>
+            <tr>
+              <td><b>Total a Pagar</b></td>
+              <td class="right aligned">R$ 838.00</td>
+            </tr>
+            <tr>
+              <td class="bold InvoiceTotals">03 Parcelas de</td>
+              <td class="right aligned">R$ 279.33</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="ui right floated compact basic segment nomargin">
+        <table class="ui very compact very basic collapsing unstackable table">
+          <tr>
+            <td colspan="2" class="center aligned InvoicePayments">
+              Tipo de Pagamento
+            </td>
+          </tr>
+          <tr>
+            <td><b>Tipo de Pagamento</b></td>
+            <td class="right aligned">Card Payment (CYB)</td>
+          </tr>
+          <tr>
+            <td><b>Valor recibo:</b></td>
+            <td class="right aligned">838.00</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>

@@ -237,6 +237,110 @@ describe('dōTERRA detail parser — empty detail page', () => {
   });
 });
 
+describe('dōTERRA detail parser — account owner fallback (Wellness Consultant ID)', () => {
+  // Neither listing page names the person for every account type:
+  // `OrderHistoryFull` renders `Pedidos de <I></I>` with an empty `<I>` and the
+  // `AccountInquiry` ledger has no per-account heading, so `accountOwner`
+  // arrives null. The detail header's "ID do Consultor de Bem-Estar" is the
+  // fallback that fills the "Conta ID" field in those cases.
+  const html = loadFixture('detail-wellness-id.html');
+  const doc = parseDoc(html);
+
+  const listWithoutOwner = {
+    orderNumber: '160240113',
+    orderDate: '2025-02-13',
+    accountOwner: null,
+    listTypeCode: 'I',
+    listOriginCode: 'IN',
+    pvMonth: '2025-02',
+    doterraPv: 112,
+    listValue: 838,
+    paymentHint: null,
+    items: [],
+  };
+
+  it('reads the consultant id from the detail header table', () => {
+    expect(parsers.extractWellnessConsultantId(doc)).toBe('15837743');
+    expect(parsers.parseDetail(doc).wellnessConsultantId).toBe('15837743');
+  });
+
+  it('falls back to it in the payload when the listing named no one', () => {
+    const payload = parsers.buildOrderPayload(
+      listWithoutOwner,
+      parsers.parseDetail(doc),
+    );
+
+    expect(payload.accountOwner).toBe('15837743');
+    expect(payload.orderNumber).toBe('160240113');
+    // The 8-column layout of this order type (Volume / Volume total, no PV)
+    // still parses.
+    expect(payload.items).toHaveLength(3);
+    expect(payload.items[0]).toEqual({
+      code: '60220994',
+      description: 'dōTERRA Serenity®',
+      quantity: 1,
+      unitPrice: 199,
+      unitPv: 0,
+    });
+  });
+
+  it('keeps the listing owner when the page identified the person', () => {
+    const payload = parsers.buildOrderPayload(
+      { ...listWithoutOwner, accountOwner: 'Gouveia Lima, Cássia' },
+      parsers.parseDetail(doc),
+    );
+
+    expect(payload.accountOwner).toBe('Gouveia Lima, Cássia');
+  });
+
+  it('returns null when the detail has no consultant id field', () => {
+    const doc7 = parseDoc(loadFixture('detail-7-cols.html'));
+
+    expect(parsers.extractWellnessConsultantId(doc7)).toBeNull();
+    expect(parsers.parseDetail(doc7).wellnessConsultantId).toBeNull();
+
+    const payload = parsers.buildOrderPayload(
+      listWithoutOwner,
+      parsers.parseDetail(doc7),
+    );
+    expect(payload.accountOwner).toBeNull();
+  });
+
+  it('ignores the "Informações do Consultor de Bem-Estar" menu link', () => {
+    // A loose `/Consultor de Bem-Estar/i` test would capture the nav link text
+    // as the account owner.
+    const docNav = parseDoc(`
+      <body>
+        <ul>
+          <li><a id="EVODistributorInfo">Informações do Consultor de Bem-Estar</a></li>
+        </ul>
+      </body>
+    `);
+
+    expect(parsers.extractWellnessConsultantId(docNav)).toBeNull();
+  });
+
+  it('reads the inline "Label: value" shape and ignores a placeholder', () => {
+    const inline = parseDoc(`
+      <body>
+        <table>
+          <tr><td><b>Wellness Consultant ID:</b> 15837743</td></tr>
+        </table>
+      </body>
+    `);
+    expect(parsers.extractWellnessConsultantId(inline)).toBe('15837743');
+
+    const placeholder = parseDoc(`
+      <body>
+        <table>
+          <tr><td><b>ID do Consultor de Bem-Estar:</b></td><td>-</td></tr>
+        </table>
+      </body>
+    `);
+    expect(parsers.extractWellnessConsultantId(placeholder)).toBeNull();
+  });
+});
+
 describe('dōTERRA detail parser — money helpers', () => {
   it('parseMoney accepts R$, thousands separators, and Brazilian decimals', () => {
     expect(parsers.parseMoney('R$ 199.00')).toBe(199);
