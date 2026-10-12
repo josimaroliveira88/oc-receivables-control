@@ -10,6 +10,13 @@ faz a captura de duas fontes e entrega um JSON ao Controle de Recebíveis:
    (`Rastreamento de Pedidos e Pacotes`) e captura os pedidos da tabela,
    buscando o detalhe de cada um.
 
+> **Nota histórica (v0.8.0):** a importação **não abre mais o aplicativo em
+> nova aba**. Ao terminar, cada caixa flutuante exibe um painel de feedback com
+> o resumo do que foi importado (quantas corridas/pedidos entraram, o que já
+> existia, canceladas, avisos e falhas) e em qual tela do app consultar. O
+> rótulo de build passou para `resumo`; nenhuma chave de `chrome.storage.local`
+> mudou, então o token salvo continua válido.
+>
 > **Nota histórica (v0.7.0):** a pasta desta extensão foi renomeada de
 > `tools/uber-rides-extension/` para `tools/captures-extension/` e o nome
 > visível, de "Capturas — Uber & dōTERRA" para "Capturas — Controle de
@@ -23,8 +30,10 @@ faz a captura de duas fontes e entrega um JSON ao Controle de Recebíveis:
 Em ambos os casos o JSON chega ao app de duas maneiras:
 
 1. **Enviar para o app** (botão dedicado): a extensão chama o endpoint do seu
-   backend usando um token de API gerado no app e abre a tela correspondente em
-   uma nova aba (Finanças para as corridas, Pedidos para os pedidos dōTERRA).
+   backend usando um token de API gerado no app e, ao final, mostra na própria
+   caixa um resumo do que foi importado e onde conferir no app (Finanças ›
+   Corridas para as corridas, Pedidos para os pedidos dōTERRA). Nenhuma aba
+   nova é aberta.
 2. **Copiar JSON** (fallback, sempre disponível): copia o JSON para que você
    cole na tela de importação (Finanças → "Importar corridas" ou Pedidos →
    "Importar pedidos").
@@ -44,7 +53,7 @@ manifest.json                 Manifesto MV3 (3 content scripts + service worker)
 src/page/content.js           Uber, mundo MAIN — gancho em fetch/XHR + coleta GraphQL
 src/ui/content.js             Uber, mundo ISOLATED — UI, storage, clipboard, popup bridge
 src/doterra/content.js        dōTERRA, mundo ISOLATED — leitura da tabela + detalhe
-src/background/background.js  Service worker — envios ao app + abertura das abas
+src/background/background.js  Service worker — envios ao app (sem abrir abas)
 src/popup/popup.html          Popup da barra de ferramentas (status + token/servidor)
 src/popup/popup.js            Lógica do popup
 icons/{16,48,128}.png         Ícones
@@ -120,14 +129,15 @@ caixa flutuante fica liberado (abaixo dele aparece "Token salvo (termina em
 1. Abra <https://riders.uber.com/> e faça login (a extensão precisa estar
    ativa antes da página carregar; por isso `run_at: document_start`).
 2. A caixa **Corridas Uber** aparece no canto inferior direito, com a versão e
-   o rótulo de build no topo (ex.: `v0.7.0 · rebrand`).
+   o rótulo de build no topo (ex.: `v0.8.0 · resumo`).
 3. Ajuste **Início** e **Fim**. A janela deve cobrir o ciclo de fatura com
    folga — a data do lançamento no cartão costuma ser 1 a 3 dias depois da
    corrida. O padrão é hoje até 35 dias atrás.
 4. Escolha como entregar as corridas:
    - **Enviar para o Controle de Recebíveis**: captura e envia direto ao
-     backend, abrindo a tela de Finanças em nova aba com as corridas visíveis
-     (o mesmo resultado de importar pela própria tela). Precisa de um token
+     backend. Ao final, a caixa mostra o painel de resumo (quantas corridas
+     entraram, quantas eram novas, quantas canceladas e os avisos da captura) e
+     lembra em qual tela conferir — nada abre em outra aba. Precisa de um token
      salvo no popup; sem ele, o botão fica desabilitado e o status avisa.
    - **Capturar e copiar JSON**: captura e copia; cole em Finanças →
      "Importar corridas".
@@ -146,14 +156,14 @@ Ao abrir `riders.uber.com` com a extensão ativa, o console (F12) deve mostrar
 **duas** linhas com o mesmo rótulo de build:
 
 ```text
-[Captures] MAIN v0.7.0 (rebrand) carregado em …
-[Captures] ISOLATED v0.7.0 (rebrand) carregado em …
+[Captures] MAIN v0.8.0 (resumo) carregado em …
+[Captures] ISOLATED v0.8.0 (resumo) carregado em …
 ```
 
 Em `office.doterra.com`, a linha correspondente é:
 
 ```text
-[Captures · dōTERRA] ISOLATED v0.7.0 (rebrand) carregado em …
+[Captures · dōTERRA] ISOLATED v0.8.0 (resumo) carregado em …
 ```
 
 Se faltar uma delas (ou nenhuma), remova e re-adicione a extensão. O rótulo de
@@ -224,13 +234,15 @@ O envio para o app envolve o mesmo JSON dentro de:
 4. **Carregar mais antigos** pagina a própria tabela (o mesmo "Ver mais" da
    página), acumulando os pedidos mais antigos.
 5. **Importar novos pedidos**: consulta quais pedidos o app ainda não tem
-   (apenas os números novos têm o detalhe buscado, um a um), envia e abre
-   `Pedidos` com os pedidos importados marcados como **"Pendente de revisão"**.
+   (apenas os números novos têm o detalhe buscado, um a um), envia e mostra na
+   própria caixa o painel de resumo — quantos pedidos foram criados, quais já
+   existiam, os códigos novos que viraram produto **"Pendente de cadastro"**,
+   avisos e falhas — lembrando que a revisão acontece em `Pedidos`, onde os
+   importados ficam marcados como **"Pendente de revisão"**.
    No app, revise cada pedido; códigos desconhecidos viram produtos
    **"Pendente de cadastro"** que você completa e ativa na tela de Produtos.
-   Se algum pedido falhar, o status mostra o motivo da primeira falha e o log
-   da caixa lista cada uma (número do pedido + causa: parsing, validação ou
-   erro do app).
+   Se algum pedido falhar, o painel destaca a causa (parsing, validação ou erro
+   do app) e o log da caixa lista cada uma (número do pedido + causa).
 6. **Capturar e copiar JSON**: gera o mesmo JSON e copia, para você colar em
    Pedidos → **"Importar pedidos"** (caminho manual, sem token).
 
@@ -251,6 +263,8 @@ Conta**, onde os dados vêm mês a mês:
    ignorados — o app gera os lançamentos financeiros a partir do próprio pedido.
 4. **Importar pedidos do mês** e **Capturar e copiar JSON** funcionam igual à
    lista de pedidos, inclusive a checagem de duplicados pelo número do pedido.
+   O painel de resumo diferencia a origem, titulando o resultado **"Pedidos do
+   mês importados"**, e nenhuma aba do app é aberta.
 
 > Não há "Carregar mais antigos" aqui: a consulta é sempre de um mês, então a
 > navegação é feita pelos botões de mês.

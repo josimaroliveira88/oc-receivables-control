@@ -9,6 +9,33 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 137 — Extensão: resumo da importação no lugar da nova aba (2026-10-12)
+
+### Added
+- **Painel de feedback no final da importação** nas duas caixas flutuantes da extensão (`tools/captures-extension/`), no lugar da aba que era aberta automaticamente. O status de uma linha continua com o título do resultado e um painel colorido (verde/amarelo/vermelho) logo abaixo detalha **o que foi feito**:
+  - **Corridas Uber** (`src/ui/content.js`): `N corrida(s) importada(s) para o app (01/09/2026 a 30/09/2026)`, `N nova(s) e N atualizada(s)`, canceladas (quando houver), avisos da captura (contagem + até 3 mensagens, com o restante no log da caixa) e a dica `Consulte as corridas em Finanças › Corridas`. Período sem nenhuma corrida válida gera o aviso **"Nenhuma corrida importada."** em vez de um sucesso vazio.
+  - **Pedidos dōTERRA** (`src/doterra/content.js`, tanto em `evo_Modules.OrderHistoryFull` quanto em `evo_Modules.AccountInquiry` — o fluxo de importação é o mesmo): `N criado(s), N já existia(m), N falha(s)`, os números dos pedidos criados (até 5, com `(+N)`), os códigos que entraram como `PENDENTE_CADASTRO`, os avisos por pedido (total divergente, pedido sem valor) e cada falha com a causa (`• Falha — pedido 1236: …`). O fluxo da Consulta da Conta se distingue pelo título **"Pedidos do mês importados"**.
+  - O caminho de **falha no envio** e o de **cópia do JSON** também passaram a usar o painel, sempre lembrando que nada foi importado e onde colar o JSON.
+- **Escotilha de teste `__UBER_UI__`**: assim como `__DOTERRA_PARSERS__` no script dōTERRA, `src/ui/content.js` expõe os formatadores puros do painel (`buildRideSummary`, `describeSendError`, `formatBrDate`) quando o sentinela já existe — o sentinela só é setado por `tests/setup.js`, então nada é exposto em produção.
+
+### Changed
+- **A extensão não abre mais o aplicativo em nova aba** ao final da captura/importação, em nenhum dos módulos: o `src/background/background.js` removeu os dois `chrome.tabs.create` (Uber → `/finances` e dōTERRA → `/orders`) e passa a devolver apenas o `summary` do servidor. Os atalhos explícitos do popup (**Abrir o app para gerar o token**, **Abrir riders.uber.com**, **Abrir pedidos dōTERRA**) continuam abrindo aba — são ação do usuário, não o fim do fluxo.
+- **Rótulo de build**: `0.7.0 · rebrand` → `0.8.0 · resumo` nos cinco scripts, no `manifest.json` e no `package.json` (confirme `v0.8.0 · resumo` na caixa flutuante para saber que o Chrome carregou o build novo). Nenhuma chave de `chrome.storage.local` mudou, então o token salvo continua válido.
+- **Guia dentro do app**: o passo "Capture na página do Uber" do `frontend/src/pages/Help/UberRidesGuide.jsx` descreve o painel de resumo em vez da abertura da aba.
+- **Docs**: `tools/captures-extension/README.md` (nota histórica da v0.8.0, uso do Uber, pedidos do mês e diagnóstico) e `AGENTS.md` (regra de que o service worker não abre aba e de que o resultado terminal de cada fluxo passa por `showResult`/`clearResult`).
+
+### Fixed
+- A mensagem de falha do envio só passa a afirmar **"JSON copiado"** depois que a cópia para a área de transferência realmente termina (antes ela era exibida antes da cópia); quando a cópia falha, o painel diz para refazer a captura.
+
+### Removed
+- **Abertura automática da aba do app** ao final da importação (`chrome.tabs.create` no service worker, tanto no fluxo Uber quanto no dōTERRA de lista e de mês) e os textos "Abrindo o Controle de Recebíveis…" / "Abrindo o app…" que dependiam dela.
+
+### Tests
+- `tools/captures-extension/tests/background.test.js` (novo, 5): carrega o service worker com `chrome` e `fetch` stubados e garante que **nenhuma** das três mensagens (`SEND_TO_APP`, `DOTERRA_LOOKUP`, `DOTERRA_SEND_TO_APP`) cria aba, além de fixar o contrato de URL, token e payload.
+- `tools/captures-extension/tests/uberUiSummary.test.js` (novo, 6) e `tools/captures-extension/tests/doterraSummary.test.js` (novo, 8): os formatadores do painel, incluindo período vazio, avisos, estouro de lista, falhas e fluxo do mês.
+- `tools/captures-extension/tests/uberBoxFeedback.test.js` (novo, 3): integração no DOM da caixa flutuante — clica no botão de envio com a ponte MAIN-world simulada e confere o painel renderizado.
+- **43 testes da extensão** passando (21 antes). Backend **1120** e frontend **1217** inalterados. `npm run lint` (backend/frontend), `npm run build` (SPA + `captures-extension.zip`) e `npm run format:check` limpos.
+
 ## Phase 136 — ID dōTERRA e data de cadastro no cliente (2026-10-12)
 
 ### Added
