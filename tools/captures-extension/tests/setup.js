@@ -1,10 +1,12 @@
-// The content script is a self-contained IIFE (no module exports), so tests
-// load it into the jsdom environment via `require` and reach the parsers
-// through the `globalThis.__DOTERRA_PARSERS__` escape hatch installed at the
-// bottom of `src/doterra/content.js`. The sentinel must be set BEFORE the
-// script runs so the IIFE picks it up.
+// Both content scripts are self-contained IIFEs (no module exports), so tests
+// load them into the jsdom environment via `require` and reach their pure
+// helpers through the escape hatches installed at the bottom of each file:
+// `globalThis.__DOTERRA_PARSERS__` (`src/doterra/content.js`) and
+// `globalThis.__UBER_UI__` (`src/ui/content.js`). The sentinels must be set
+// BEFORE the scripts run so each IIFE picks them up.
 
 globalThis.__DOTERRA_PARSERS__ = {};
+globalThis.__UBER_UI__ = {};
 
 if (typeof window !== 'undefined' && window.navigator) {
   // jsdom ships without a clipboard implementation; the content script only
