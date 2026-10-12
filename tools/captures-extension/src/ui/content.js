@@ -11,8 +11,8 @@
 (() => {
   'use strict';
 
-  const VERSION = '0.8.0';
-  const BUILD_LABEL = 'resumo';
+  const VERSION = '0.8.1';
+  const BUILD_LABEL = 'conta-id';
   const BRIDGE_SOURCE = 'captures:bridge';
   const BOX_ID = 'captures-box';
   const DAY_MS = 86400000;

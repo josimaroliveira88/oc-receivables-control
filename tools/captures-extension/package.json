@@ -1,6 +1,6 @@
 {
   "name": "captures-extension",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "private": true,
   "description": "Chrome extension that captures Uber rides and dōTERRA Back Office orders and sends them to the Receivables Control app. Tests live here too.",
   "type": "module",

@@ -19,8 +19,8 @@
 (() => {
   'use strict';
 
-  const VERSION = '0.8.0';
-  const BUILD_LABEL = 'resumo';
+  const VERSION = '0.8.1';
+  const BUILD_LABEL = 'conta-id';
   const BOX_ID = 'captures-box';
   const TOKEN_KEY = 'captures:api-token';
 
@@ -839,6 +839,87 @@
     return matchAmount(doc.body ? doc.body.textContent : '', 'Frete');
   };
 
+  // Labels under which the detail header exposes the account's wellness
+  // consultant number. Anchored at the start so the menu link "Informações do
+  // Consultor de Bem-Estar" never matches — a loose
+  // `/Consultor de Bem-Estar/i` test would pick the nav link up and send its
+  // text as the account owner. Everything after the label is handled by the
+  // caller (`:` alone, or `: value` for the single-cell shape).
+  const WELLNESS_ID_LABELS = [
+    /^id\s+do\s+consultor\s+de\s+bem[-\s]?estar\b/i,
+    /^consultor\s+de\s+bem[-\s]?estar\b/i,
+    /^wellness\s+consultant\s+id\b/i,
+  ];
+
+  // Same ceiling as the backend validator (`doterraValidator.js`): a longer
+  // value would fail the whole order at import time, so it is dropped here and
+  // the order is created with an empty `accountOwner` instead.
+  const MAX_ACCOUNT_OWNER = 120;
+
+  const cleanLabeledValue = (raw) => {
+    const value = (raw ?? '')
+      .replace(/\u00a0/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!value || /^-+$/.test(value)) return null;
+    return value.length > MAX_ACCOUNT_OWNER ? null : value;
+  };
+
+  // Reads the wellness consultant id from the order detail header table:
+  //
+  //   <tr>
+  //     <td class="collapsing"><b>ID do Consultor de Bem-Estar:</b></td>
+  //     <td>15837743</td>
+  //   </tr>
+  //
+  // The listing pages cannot always name the person behind the order: the
+  // `OrderHistoryFull` heading ships as `Pedidos de <I></I>` (an empty `<I>`
+  // for several account types) and the `AccountInquiry` ledger has no
+  // per-account heading either, so `accountOwnerFromPage`/`inquiryOwner`
+  // return null and `accountOwner` reaches the import empty. This field is the
+  // fallback used then — and it is already at hand, since every imported order
+  // loads its detail page.
+  //
+  // Same label/value walk as `Tipo de Pagamento`: take the node whose text
+  // starts with the label, prefer the inline `Label: value` remainder, then
+  // fall back to the next cell of its row. Returns null when the field is
+  // absent so the payload simply stays null.
+  const extractWellnessConsultantId = (doc) => {
+    const candidates = doc.querySelectorAll('td, th, b, span, div');
+
+    for (const node of candidates) {
+      const text = node.textContent.trim();
+      if (!text || text.length > MAX_ACCOUNT_OWNER + 40) continue;
+
+      // Splits the node text into `<label>` + remainder. `null` means this node
+      // is not the field, `''` means the label alone (the value sits in the
+      // next cell) and anything else is a single-cell `Label: value` row.
+      let remainder = null;
+      for (const label of WELLNESS_ID_LABELS) {
+        const match = text.match(label);
+        if (!match) continue;
+        const rest = text.slice(match[0].length).trim();
+        remainder = rest.startsWith(':') ? rest.slice(1).trim() : '';
+        break;
+      }
+      if (remainder === null) continue;
+
+      const inline = cleanLabeledValue(remainder);
+      if (inline) return inline;
+
+      const row = node.closest('tr');
+      const cells = row ? [...row.querySelectorAll('td, th')] : [];
+      const index = cells.findIndex((cell) => cell.contains(node));
+      const valueCell = index >= 0 ? cells[index + 1] : null;
+      if (valueCell) {
+        const value = cleanLabeledValue(valueCell.textContent);
+        if (value) return value;
+      }
+    }
+
+    return null;
+  };
+
   const parseDetail = (doc) => {
     const bodyText = doc.body ? doc.body.textContent : '';
 
@@ -899,6 +980,7 @@
       installments,
       installmentValue,
       paymentType,
+      wellnessConsultantId: extractWellnessConsultantId(doc),
       warnings,
     };
   };
@@ -921,10 +1003,14 @@
 
   const buildOrderPayload = (list, detail) => {
     const paymentType = detail.paymentType ?? list.paymentHint ?? null;
+    // The listing owner wins whenever the page named the person. Otherwise the
+    // detail header's wellness consultant id fills the "Conta ID" field.
+    const accountOwner =
+      list.accountOwner ?? detail.wellnessConsultantId ?? null;
     const payload = {
       orderNumber: list.orderNumber,
       orderDate: list.orderDate,
-      accountOwner: list.accountOwner ?? null,
+      accountOwner,
       listTypeCode: list.listTypeCode ?? null,
       listOriginCode: list.listOriginCode ?? null,
       pvMonth: list.pvMonth ?? null,
@@ -1471,6 +1557,7 @@
       parseInquiryOrders,
       findItemsTable,
       extractShipping,
+      extractWellnessConsultantId,
       matchAmount,
       toIsoDate,
       toIsoMonth,

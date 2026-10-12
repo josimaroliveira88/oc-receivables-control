@@ -13,8 +13,8 @@
 (() => {
   'use strict';
 
-  const VERSION = '0.8.0';
-  const BUILD_LABEL = 'resumo';
+  const VERSION = '0.8.1';
+  const BUILD_LABEL = 'conta-id';
 
   console.info(`[Captures background] v${VERSION} (${BUILD_LABEL}) carregado`);
 
