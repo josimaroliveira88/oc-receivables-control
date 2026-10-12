@@ -175,6 +175,9 @@ describe('dōTERRA orders import and lookup', () => {
       expect(response.body).toEqual({
         existing: [existingNumber],
         missing: ['nao-existe-1'],
+        // The seeded order carries no account owner, so it is also a candidate
+        // for the fill (covered by `doterraAccountOwnerFill.test.js`).
+        existingWithoutAccountOwner: [existingNumber],
       });
     });
   });

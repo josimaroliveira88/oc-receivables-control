@@ -386,3 +386,66 @@ describe('dōTERRA detail parser — list parsers are still exported', () => {
     expect(parsers.parseInquiryOrders()).toEqual([]);
   });
 });
+
+describe('dōTERRA list parsers — the account owner still comes from the page', () => {
+  // The account owner fill corrects orders imported before the capture learned
+  // to name the person. It must reuse the value the import already resolves,
+  // so these lock the current source in place: the page heading, not a column
+  // of the row.
+  it('takes the owner from the page heading and repeats it on every row', () => {
+    const html = `
+      <h3 class="white">Pedidos de <i>Gouveia Lima, Cássia</i></h3>
+      <table><tbody id="OrderhistoryRows">
+        <tr>
+          <td><a href="x?ODHNumber=177992784">177992784</a></td>
+          <td>I</td><td>AS</td>
+          <td class="gen">Thatiane, Camilo</td>
+          <td>177992784</td>
+          <td>60224735</td>
+          <td>1</td>
+          <td></td>
+          <td>31/03/2026</td>
+          <td>02/04/2026</td>
+          <td>3/2026</td>
+          <td>53.2</td>
+          <td>324</td>
+          <td></td>
+        </tr>
+      </tbody></table>
+    `;
+    document.body.innerHTML = html;
+
+    const [order] = parsers.parseOrders();
+
+    expect(order.orderNumber).toBe('177992784');
+    // The heading wins: the row's own name column stays unread, which is what
+    // makes the fill's fallback (the detail page) the expected path.
+    expect(order.accountOwner).toBe('Gouveia Lima, Cássia');
+  });
+
+  it('leaves the owner null when the heading is empty', () => {
+    const html = `
+      <h3 class="white">Pedidos de <i></i></h3>
+      <table><tbody id="OrderhistoryRows">
+        <tr>
+          <td><a href="x?ODHNumber=177992784">177992784</a></td>
+          <td>I</td><td>AS</td>
+          <td class="gen">Thatiane, Camilo</td>
+          <td>177992784</td>
+          <td>60224735</td>
+          <td>1</td>
+          <td></td>
+          <td>31/03/2026</td>
+          <td>02/04/2026</td>
+          <td>3/2026</td>
+          <td>53.2</td>
+          <td>324</td>
+          <td></td>
+        </tr>
+      </tbody></table>
+    `;
+    document.body.innerHTML = html;
+
+    expect(parsers.parseOrders()[0].accountOwner).toBeNull();
+  });
+});

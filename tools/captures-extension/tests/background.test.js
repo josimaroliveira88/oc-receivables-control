@@ -222,3 +222,48 @@ describe('background · dōTERRA lookup', () => {
     expect(requests[0].body).toEqual({ numbers: ['1234', '1200'] });
   });
 });
+
+describe('background · dōTERRA account owner fill', () => {
+  it('posts the updates and returns the summary without opening a tab', async () => {
+    nextResponse = jsonResponse(200, {
+      updated: [{ orderNumber: '1234', accountOwner: '15837743' }],
+      unchanged: ['1200'],
+      notFound: [],
+      failed: [],
+    });
+
+    const response = await sendMessage({
+      type: 'DOTERRA_FILL_ACCOUNT_OWNER',
+      updates: [{ orderNumber: '1234', accountOwner: '15837743' }],
+    });
+
+    expect(response).toEqual({
+      ok: true,
+      summary: {
+        updated: [{ orderNumber: '1234', accountOwner: '15837743' }],
+        unchanged: ['1200'],
+        notFound: [],
+        failed: [],
+      },
+    });
+    expect(createdTabs).toEqual([]);
+    expect(requests[0].url).toBe(
+      'http://localhost:4000/api/doterra/orders/fill-account-owner',
+    );
+    expect(requests[0].body).toEqual({
+      updates: [{ orderNumber: '1234', accountOwner: '15837743' }],
+    });
+  });
+
+  it('surfaces an expired token as AUTH without opening a tab', async () => {
+    nextResponse = jsonResponse(401, { error: 'Token inválido ou expirado' });
+
+    const response = await sendMessage({
+      type: 'DOTERRA_FILL_ACCOUNT_OWNER',
+      updates: [{ orderNumber: '1234', accountOwner: '15837743' }],
+    });
+
+    expect(response).toMatchObject({ ok: false, error: 'AUTH' });
+    expect(createdTabs).toEqual([]);
+  });
+});

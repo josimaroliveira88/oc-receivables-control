@@ -22,11 +22,18 @@ const scriptUrl = pathToFileURL(
 ).href;
 await import(scriptUrl);
 
-const { buildImportSummary } = globalThis.__DOTERRA_PARSERS__ ?? {};
+const { buildImportSummary, buildFillAccountOwnerSummary } =
+  globalThis.__DOTERRA_PARSERS__ ?? {};
 
 if (!buildImportSummary) {
   throw new Error(
     'buildImportSummary is not exposed by the dōTERRA parser escape hatch.',
+  );
+}
+
+if (!buildFillAccountOwnerSummary) {
+  throw new Error(
+    'buildFillAccountOwnerSummary is not exposed by the dōTERRA parser escape hatch.',
   );
 }
 
@@ -136,5 +143,97 @@ describe('buildImportSummary', () => {
 
     expect(result.kind).toBe('success');
     expect(result.lines[0]).toBe('0 criado(s), 0 já existia(m), 0 falha(s).');
+  });
+});
+
+describe('buildFillAccountOwnerSummary', () => {
+  it('summarizes a run that filled the blank fields', () => {
+    const result = buildFillAccountOwnerSummary({
+      updated: [
+        { orderNumber: '1234', accountOwner: '15837743' },
+        { orderNumber: '1235', accountOwner: 'Gouveia, Cássia' },
+      ],
+      unchanged: [],
+      notFound: [],
+      failed: [],
+    });
+
+    expect(result.kind).toBe('success');
+    expect(result.title).toBe('Conta ID preenchida.');
+    expect(result.lines[0]).toBe(
+      '2 preenchido(s), 0 já tinha(m) valor, 0 não encontrado(s), 0 falha(s).',
+    );
+    expect(result.lines).toContain('Pedidos: 1234, 1235');
+    expect(result.hint).toMatch(/Conta ID na tela Pedidos/);
+  });
+
+  it('separates the orders that already had a value from the ones it fixed', () => {
+    const result = buildFillAccountOwnerSummary({
+      updated: [{ orderNumber: '1234' }],
+      unchanged: ['1200', '1201'],
+      notFound: [],
+      failed: [],
+    });
+
+    expect(result.lines[0]).toBe(
+      '1 preenchido(s), 2 já tinha(m) valor, 0 não encontrado(s), 0 falha(s).',
+    );
+    // The untouched orders are counted, not listed — the user only needs the
+    // numbers of the ones that actually changed.
+    expect(result.lines.join('\n')).not.toContain('1200');
+  });
+
+  it('lists the order numbers that are not in the app', () => {
+    const result = buildFillAccountOwnerSummary({
+      updated: [],
+      unchanged: [],
+      notFound: ['9999'],
+      failed: [],
+    });
+
+    expect(result.kind).toBe('success');
+    expect(result.title).toBe('Nada a preencher.');
+    expect(result.lines).toContain('Não estão no app: 9999');
+    expect(result.hint).toMatch(/Nada foi alterado/);
+  });
+
+  it('downgrades the feedback to a warning when an order fails', () => {
+    const result = buildFillAccountOwnerSummary({
+      updated: [{ orderNumber: '1234' }],
+      unchanged: [],
+      notFound: [],
+      failed: [{ orderNumber: '1235', error: 'Conta ID não encontrada' }],
+    });
+
+    expect(result.kind).toBe('warning');
+    expect(result.title).toBe('Conta ID preenchida com falhas.');
+    expect(result.lines).toContain(
+      '• Falha — pedido 1235: Conta ID não encontrada',
+    );
+  });
+
+  it('caps the updated list with an overflow marker', () => {
+    const result = buildFillAccountOwnerSummary({
+      updated: Array.from({ length: 7 }, (_, index) => ({
+        orderNumber: `${1000 + index}`,
+      })),
+      unchanged: [],
+      notFound: [],
+      failed: [],
+    });
+
+    expect(result.lines).toContain(
+      'Pedidos: 1000, 1001, 1002, 1003, 1004 (+2)',
+    );
+  });
+
+  it('survives a missing summary', () => {
+    const result = buildFillAccountOwnerSummary(undefined);
+
+    expect(result.kind).toBe('success');
+    expect(result.title).toBe('Nada a preencher.');
+    expect(result.lines[0]).toBe(
+      '0 preenchido(s), 0 já tinha(m) valor, 0 não encontrado(s), 0 falha(s).',
+    );
   });
 });
