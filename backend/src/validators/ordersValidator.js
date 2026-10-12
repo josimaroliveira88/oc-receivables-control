@@ -76,6 +76,13 @@ const orderDescriptiveSchema = {
 const requireCreditCardFields = (data, ctx) => {
   if (data.paymentType !== 'CARTAO_CREDITO') return;
 
+  // A team order is only a record (another person placed it and paid for it), so
+  // syncExpenseFromOrder bails out before the credit-card branch and no bill or
+  // pending installment is ever created. The installment fields stay an optional
+  // annotation kept on the order, so demanding them here would only force the
+  // user to send data the finances discard.
+  if (data.isTeamOrder === true) return;
+
   if (data.installments == null) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
