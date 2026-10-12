@@ -9,6 +9,26 @@ Guidance for maintainers:
 - Keep each entry concise and actionable; refer to `AGENTS.md` for rules and `ARCHITECTURE.md` for system structure.
 - Monetary amounts are in Brazilian Real (BRL) unless stated otherwise.
 
+## Phase 136 — ID dōTERRA e data de cadastro no cliente (2026-10-12)
+
+### Added
+- **ID dōTERRA e data de cadastro no cliente**: o cadastro de clientes (`/people`) ganhou o campo **"ID dōTERRA"** (número da conta dōTERRA, só dígitos, até 12, **único por usuário**) e o campo **"Data do cadastro"** (`@db.Date`, vem preenchido com hoje e é editável). O ID só é habilitado quando o cliente é marcado como **Membro doTERRA** (desmarcar limpa e desabilita o campo) e nunca é obrigatório. A tabela de clientes ganhou a coluna **"ID dōTERRA"** e o modal de detalhes passou a mostrar **ID dōTERRA** e **Data do cadastro**. Migration `20261011120000_add_person_doterra_id_and_registration_date` (`@@unique([userId, doterraId])` — vários `null` permitidos). A busca textual de clientes (`q`) agora também casa pelo ID dōTERRA.
+
+### Changed
+- **"Membro doTERRA" no cadastro de clientes** deixou de ser o seletor Sim/Não e passou a ser um **checkbox**, alinhado ao gesto descrito ("marcar que o cliente é membro"). As demais classificações (VIP, Equipe) seguem em Sim/Não.
+- **Docs**: `AGENTS.md` (novo bullet em High-Value Pitfalls sobre `doterraId`/`registrationDate`) e `ARCHITECTURE.md` (modelo `Person` e `/api/people`).
+
+### Fixed
+- Cadastro/edição de cliente rejeita com **409** um ID dōTERRA já usado por outro cliente do mesmo usuário (o mesmo ID em usuários diferentes é permitido), e o ID é normalizado para apenas dígitos antes de salvar.
+
+### Tests
+- Backend: `backend/tests/people.test.js` (criação/edição de `doterraId` e `registrationDate`, normalização, rejeição de não-dígitos e do formato de data, conflito 409 no mesmo usuário e permissão entre usuários, vários `null`, busca por ID).
+- Frontend: `frontend/tests/peopleHelpers.test.js` (+ máscara de ID, default de hoje, payload, busca por ID); `frontend/tests/PeoplePage.test.jsx` (coluna ID dōTERRA, preenchimento/limpeza do ID pelo checkbox, prefill na edição, payloads).
+- Verificação: `npm run lint` (backend/frontend), `npm run format:check` e `npm run build` limpos; migration aplicada e `prisma generate` executados localmente **e** no container.
+
+### Removed
+- **Vínculo de cliente por ID dōTERRA nos pedidos** (experimental, revertido): um trabalho posterior tenta identificar automaticamente o cliente de um pedido importado pelo ID dōTERRA capturado no Back Office. A tentativa **não atendia à necessidade** e foi revertida por completo — saíram o campo **"Cliente"** do formulário de pedidos (`PersonCombobox`), a coluna `Order.clientPersonId` (migration `20261012182058_drop_order_client_person_id` remove a coluna já aplicada nos bancos), a captura do ID na extensão dōTERRA e o resumo de "cliente vinculado" na importação. Os campos `doterraId`/`registrationDate` do **cadastro de clientes foram mantidos**; eles seguem sendo apenas dados descritivos, sem uso em pedidos ou importação até uma nova avaliação.
+
 ## Phase 135 — Produtos: painel de uso e exclusão física; Trocas: listagem, detalhe e exclusão (2026-10-10)
 
 ### Added
