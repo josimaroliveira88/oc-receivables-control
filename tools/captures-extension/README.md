@@ -10,6 +10,12 @@ faz a captura de duas fontes e entrega um JSON ao Controle de Recebíveis:
    (`Rastreamento de Pedidos e Pacotes`) e captura os pedidos da tabela,
    buscando o detalhe de cada um.
 
+> **Nota histórica (v0.8.1):** quando a tela de listagem não identifica a
+> pessoa por trás do pedido, a captura preenche a **Conta ID** com o
+> **"ID do Consultor de Bem-Estar"** lido no detalhe do pedido (o valor sempre
+> vem do detalhe agora). O rótulo de build passou para `conta-id`; nenhuma chave
+> de `chrome.storage.local` mudou, então o token salvo continua válido.
+>
 > **Nota histórica (v0.8.0):** a importação **não abre mais o aplicativo em
 > nova aba**. Ao terminar, cada caixa flutuante exibe um painel de feedback com
 > o resumo do que foi importado (quantas corridas/pedidos entraram, o que já
@@ -129,7 +135,7 @@ caixa flutuante fica liberado (abaixo dele aparece "Token salvo (termina em
 1. Abra <https://riders.uber.com/> e faça login (a extensão precisa estar
    ativa antes da página carregar; por isso `run_at: document_start`).
 2. A caixa **Corridas Uber** aparece no canto inferior direito, com a versão e
-   o rótulo de build no topo (ex.: `v0.8.0 · resumo`).
+   o rótulo de build no topo (ex.: `v0.8.1 · conta-id`).
 3. Ajuste **Início** e **Fim**. A janela deve cobrir o ciclo de fatura com
    folga — a data do lançamento no cartão costuma ser 1 a 3 dias depois da
    corrida. O padrão é hoje até 35 dias atrás.
@@ -156,14 +162,14 @@ Ao abrir `riders.uber.com` com a extensão ativa, o console (F12) deve mostrar
 **duas** linhas com o mesmo rótulo de build:
 
 ```text
-[Captures] MAIN v0.8.0 (resumo) carregado em …
-[Captures] ISOLATED v0.8.0 (resumo) carregado em …
+[Captures] MAIN v0.8.1 (conta-id) carregado em …
+[Captures] ISOLATED v0.8.1 (conta-id) carregado em …
 ```
 
 Em `office.doterra.com`, a linha correspondente é:
 
 ```text
-[Captures · dōTERRA] ISOLATED v0.8.0 (resumo) carregado em …
+[Captures · dōTERRA] ISOLATED v0.8.1 (conta-id) carregado em …
 ```
 
 Se faltar uma delas (ou nenhuma), remova e re-adicione a extensão. O rótulo de
@@ -249,6 +255,24 @@ O envio para o app envolve o mesmo JSON dentro de:
 Ao excluir um pedido importado, o app remove junto o que a importação criou:
 movimentos de estoque, lançamentos financeiros (e fatura, no cartão) e os
 produtos rascunho que ninguém mais usa.
+
+### Conta ID (quem é a pessoa do pedido)
+
+O campo **"Conta ID"** do app ([`Order.accountOwner`](../../backend/prisma/schema.prisma))
+é preenchido assim:
+
+1. **Nome da listagem** — quando a página mostra quem é a pessoa (o título
+   "Pedidos de &lt;nome&gt;" no Rastreamento de Pedidos ou o cabeçalho do mês
+   na Consulta da Conta), esse valor é usado.
+2. **"ID do Consultor de Bem-Estar" do detalhe** — quando a listagem **não**
+   identifica a pessoa, a captura lê esse campo da tabela de cabeçalho da
+   página de detalhe do pedido
+   (`<td><b>ID do Consultor de Bem-Estar:</b></td><td>15837743</td>`) e usa o
+   número como Conta ID. O detalhe já era buscado para todos os pedidos novos,
+   então isso não custa nenhuma requisição a mais.
+
+Se nem a listagem nem o detalhe tiverem o valor, o campo fica vazio e você
+preenche na revisão do pedido.
 
 ### Consulta da Conta (`evo_Modules.AccountInquiry`)
 
