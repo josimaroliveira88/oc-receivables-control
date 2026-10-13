@@ -58,6 +58,10 @@ export default {
             bg: cssVar('--badge-dinheiro-bg'),
             fg: cssVar('--badge-dinheiro-fg'),
           },
+          doterra: {
+            bg: cssVar('--badge-doterra-bg'),
+            fg: cssVar('--badge-doterra-fg'),
+          },
           infinitepay: {
             bg: cssVar('--badge-infinitepay-bg'),
             fg: cssVar('--badge-infinitepay-fg'),

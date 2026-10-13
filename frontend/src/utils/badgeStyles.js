@@ -37,6 +37,7 @@ export const PAYMENT_TYPE_CLASSES = {
   CARTAO_CREDITO: 'bg-mystic-soft text-mystic-fg',
   INFINITE_PAY: 'bg-badge-infinitepay-bg text-badge-infinitepay-fg',
   DINHEIRO: 'bg-badge-dinheiro-bg text-badge-dinheiro-fg',
+  DOTERRA: 'bg-badge-doterra-bg text-badge-doterra-fg',
 };
 
 export const PAYMENT_TYPE_FALLBACK = 'bg-base text-ink-soft';

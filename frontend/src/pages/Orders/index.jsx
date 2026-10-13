@@ -61,6 +61,7 @@ const OrdersPage = () => {
     showTeamPersonConfirm,
     accountOwner,
     paymentType,
+    paymentTypeError,
     installments,
     firstInstallmentAt,
     orderNotes,
@@ -325,6 +326,7 @@ const OrdersPage = () => {
               people={people}
               orderDate={orderDate}
               paymentType={paymentType}
+              paymentTypeError={paymentTypeError}
               installments={installments}
               firstInstallmentAt={firstInstallmentAt}
               doterraPv={doterraPv}
@@ -363,6 +365,7 @@ const OrdersPage = () => {
               usesOrderLevelClient={usesOrderLevelClient}
               accountOwner={accountOwner}
               paymentType={paymentType}
+              paymentTypeError={paymentTypeError}
               installments={installments}
               firstInstallmentAt={firstInstallmentAt}
               orderNotes={orderNotes}

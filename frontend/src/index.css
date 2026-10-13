@@ -21,6 +21,8 @@
     --badge-boleto-fg: #9c5306;
     --badge-dinheiro-bg: #d8eef7;
     --badge-dinheiro-fg: #0f6b87;
+    --badge-doterra-bg: #d9f2ef;
+    --badge-doterra-fg: #0a5f57;
     --badge-infinitepay-bg: #f6dce6;
     --badge-infinitepay-fg: #a32e5c;
     --badge-pix-bg: #dcf3e4;
@@ -56,6 +58,8 @@
     --badge-boleto-fg: #ffb86c;
     --badge-dinheiro-bg: rgba(139, 233, 253, 0.16);
     --badge-dinheiro-fg: #8be9fd;
+    --badge-doterra-bg: rgba(94, 234, 212, 0.16);
+    --badge-doterra-fg: #5eead4;
     --badge-infinitepay-bg: rgba(255, 121, 198, 0.16);
     --badge-infinitepay-fg: #ff92d0;
     --badge-pix-bg: rgba(80, 250, 123, 0.14);

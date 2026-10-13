@@ -54,9 +54,20 @@ export const paymentTypeLabel = (type) => {
     CARTAO_CREDITO: 'Crédito',
     INFINITE_PAY: 'InfinitePay',
     DINHEIRO: 'Dinheiro',
+    DOTERRA: 'dōTERRA',
   };
   return map[type] || type;
 };
+
+// Payment types that only apply to an order whose total is zero (a free order
+// covered by dōTERRA). Kept in sync with the backend rule in
+// `backend/src/utils/paymentTypes.js`.
+export const DOTERRA_PAYMENT_TYPE = 'DOTERRA';
+
+export const ZERO_TOTAL_PAYMENT_TYPE_MESSAGE =
+  'O tipo de pagamento dōTERRA só pode ser usado quando o valor total do pedido é igual a zero';
+
+export const requiresZeroTotal = (type) => type === DOTERRA_PAYMENT_TYPE;
 
 // Hover text for the order-number cell. Non-team orders list one entry per
 // item with its line total, e.g. "Produto A (Paguei R$ 100,00) / Produto B

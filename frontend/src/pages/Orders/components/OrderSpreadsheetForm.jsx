@@ -1,5 +1,6 @@
 import React from 'react';
 import { Plus } from 'lucide-react';
+import { toCents } from '../../../utils/money';
 import OrderDetailsFields from './OrderDetailsFields';
 import OrderEntryModeSelector from './OrderEntryModeSelector';
 import OrderSpreadsheetRow from './OrderSpreadsheetRow';
@@ -25,6 +26,7 @@ const OrderSpreadsheetForm = ({
   people,
   orderDate,
   paymentType,
+  paymentTypeError,
   installments,
   firstInstallmentAt,
   doterraPv,
@@ -54,6 +56,10 @@ const OrderSpreadsheetForm = ({
 }) => {
   const totals = spreadsheetTotals(rows, products);
   const hasRows = rows.length > 0;
+  const shippingCents =
+    shippingValue === '' || shippingValue == null
+      ? 0
+      : toCents(parseFloat(shippingValue));
 
   return (
     <form onSubmit={onSubmit} className="px-6 py-4">
@@ -75,6 +81,8 @@ const OrderSpreadsheetForm = ({
         people={people}
         orderDate={orderDate}
         paymentType={paymentType}
+        paymentTypeError={paymentTypeError}
+        totalCents={totals.totalChargedCents + shippingCents}
         installments={installments}
         firstInstallmentAt={firstInstallmentAt}
         doterraPv={doterraPv}

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Plus } from 'lucide-react';
+import { toCents } from '../../../utils/money';
 import { lineValueCents } from '../utils/orderHelpers';
 import OrderDetailsFields from './OrderDetailsFields';
 import OrderEntryModeSelector from './OrderEntryModeSelector';
@@ -16,6 +17,7 @@ const OrderForm = ({
   usesOrderLevelClient,
   accountOwner,
   paymentType,
+  paymentTypeError,
   installments,
   firstInstallmentAt,
   orderNotes,
@@ -59,6 +61,10 @@ const OrderForm = ({
     (total, item) => total + lineValueCents(item),
     0,
   );
+  const shippingCents =
+    shippingValue === '' || shippingValue == null
+      ? 0
+      : toCents(parseFloat(shippingValue));
 
   return (
     <form onSubmit={onSubmit} className="px-6 py-4">
@@ -80,6 +86,8 @@ const OrderForm = ({
         people={people}
         orderDate={orderDate}
         paymentType={paymentType}
+        paymentTypeError={paymentTypeError}
+        totalCents={totalChargedCents + shippingCents}
         installments={installments}
         firstInstallmentAt={firstInstallmentAt}
         doterraPv={doterraPv}

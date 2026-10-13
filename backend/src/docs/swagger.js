@@ -286,7 +286,14 @@ const options = {
         },
         PaymentType: {
           type: 'string',
-          enum: ['PIX', 'BOLETO', 'CARTAO_CREDITO', 'INFINITE_PAY', 'DINHEIRO'],
+          enum: [
+            'PIX',
+            'BOLETO',
+            'CARTAO_CREDITO',
+            'INFINITE_PAY',
+            'DINHEIRO',
+            'DOTERRA',
+          ],
         },
         CreditCardBill: {
           type: 'object',

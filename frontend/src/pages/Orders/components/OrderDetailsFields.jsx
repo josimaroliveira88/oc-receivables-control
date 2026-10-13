@@ -4,6 +4,8 @@ import {
   trackingUrl,
   personSelectLabel,
   SELF_PERSON_ID,
+  DOTERRA_PAYMENT_TYPE,
+  ZERO_TOTAL_PAYMENT_TYPE_MESSAGE,
 } from '../utils/orderHelpers';
 import NumericInput from '../../../components/NumericInput';
 
@@ -22,6 +24,8 @@ const OrderDetailsFields = ({
   people,
   orderDate,
   paymentType,
+  paymentTypeError,
+  totalCents = 0,
   installments,
   firstInstallmentAt,
   doterraPv,
@@ -38,6 +42,12 @@ const OrderDetailsFields = ({
     () => (attachmentFile ? URL.createObjectURL(attachmentFile) : null),
     [attachmentFile],
   );
+
+  // The dōTERRA payment type only applies to zero-total orders. The total is
+  // live, so warn as soon as the combination is already invalid instead of
+  // waiting for the submit to be rejected.
+  const showDoterraHint =
+    paymentType === DOTERRA_PAYMENT_TYPE && totalCents !== 0;
 
   return (
     <>
@@ -201,7 +211,24 @@ const OrderDetailsFields = ({
           <option value="PIX">PIX</option>
           <option value="BOLETO">Boleto</option>
           <option value="CARTAO_CREDITO">Crédito</option>
+          <option value={DOTERRA_PAYMENT_TYPE}>dōTERRA</option>
         </select>
+        {showDoterraHint && !paymentTypeError && (
+          <p
+            data-testid="order-payment-type-hint"
+            className="mt-1 text-xs text-warning-fg"
+          >
+            {ZERO_TOTAL_PAYMENT_TYPE_MESSAGE}.
+          </p>
+        )}
+        {paymentTypeError && (
+          <div
+            data-testid="order-payment-type-error"
+            className="mt-1 p-2 bg-danger-soft rounded-md"
+          >
+            <p className="text-sm text-danger-fg">{paymentTypeError}</p>
+          </div>
+        )}
       </div>
 
       {paymentType === 'CARTAO_CREDITO' && (

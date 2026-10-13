@@ -41,6 +41,23 @@ import {
   collectDraftCleanup,
   cleanupDraftProducts,
 } from './draftProductCleanup.js';
+import {
+  requiresZeroTotal,
+  ZERO_TOTAL_PAYMENT_TYPE_MESSAGE,
+} from '../utils/paymentTypes.js';
+
+// Some payment types (currently only `DOTERRA`) only make sense on an order
+// whose total is zero. Every path that persists an order total calls this with
+// the *resulting* total in integer cents, so the invariant survives edits that
+// change the value after the payment type was chosen. Must be called before any
+// write it guards: these functions run inside a transaction, and the throw
+// rolls the whole one back.
+const assertZeroTotalPaymentType = (paymentType, totalCents) => {
+  if (!requiresZeroTotal(paymentType)) return;
+  if (totalCents !== 0) {
+    throw badRequest(ZERO_TOTAL_PAYMENT_TYPE_MESSAGE);
+  }
+};
 
 const getOrders = async (client, { userId, query }) => {
   const {
@@ -223,6 +240,7 @@ const createOrderInTx = async (
   // total (sum of products + shipping), so it is derived, not informed.
   const shippingCents = toCents(payload.shippingValue ?? 0);
   const totalCents = orderLineTotalCents(items) + shippingCents;
+  assertZeroTotalPaymentType(payload.paymentType, totalCents);
   const status = computeOrderStatus({
     items: items.map((item) => ({
       personId: item.personId,
@@ -318,6 +336,11 @@ const updateOrder = async (client, { id, userId, payload }) => {
         toCents(existingOrder.totalValue) -
         toCents(existingOrder.shippingValue ?? 0) +
         newShippingCents;
+
+      assertZeroTotalPaymentType(
+        payload.paymentType ?? existingOrder.paymentType,
+        newTotalCents,
+      );
 
       const order = await tx.order.update({
         where: { id },
@@ -443,6 +466,11 @@ const updateOrder = async (client, { id, userId, payload }) => {
     );
     const totalCents =
       orderLineTotalCents(resolvedPayloadItems) + shippingCents;
+
+    assertZeroTotalPaymentType(
+      payload.paymentType ?? existingOrder.paymentType,
+      totalCents,
+    );
 
     // Resolve kit fields (preserving frozen snapshots for unchanged items),
     // then compute the stock diff between old and new items (skipped for
@@ -726,6 +754,8 @@ const addItemToOrder = async (client, { orderId, userId, payload }) => {
         resolved,
       ]) + toCents(order.shippingValue ?? 0);
 
+    assertZeroTotalPaymentType(order.paymentType, newTotalCents);
+
     // Add item to order
     const item = await tx.item.create({
       data: {
@@ -831,6 +861,21 @@ const updateItem = async (client, { id: itemId, userId, payload }) => {
     );
     validateStockItemRules([newData], selfIds);
 
+    // The order total only changes when the line value changed. Project it and
+    // run the payment-type rules before any write, so a rejection leaves the
+    // item, the order and the stock untouched.
+    const oldLineCents = lineValueCents(existingItem);
+    const newLineCents = lineValueCents(newData);
+    let newTotalCents = null;
+    if (oldLineCents !== newLineCents) {
+      const currentOrder = await tx.order.findUnique({
+        where: { id: existingItem.orderId },
+      });
+      newTotalCents =
+        toCents(currentOrder.totalValue) - oldLineCents + newLineCents;
+      assertZeroTotalPaymentType(existingItem.order.paymentType, newTotalCents);
+    }
+
     // Preserve the frozen snapshot when the product is unchanged; refresh it
     // when the product changes to a different kit.
     await resolveEditedKitFields(tx, existingItem, newData);
@@ -894,16 +939,9 @@ const updateItem = async (client, { id: itemId, userId, payload }) => {
       },
     });
 
-    // Update order total value (exact cents) when line value changed. The
-    // doTERRA value always equals the total, so it follows the same change.
-    const oldLineCents = lineValueCents(existingItem);
-    const newLineCents = lineValueCents(newData);
-    if (oldLineCents !== newLineCents) {
-      const currentOrder = await tx.order.findUnique({
-        where: { id: existingItem.orderId },
-      });
-      const newTotalCents =
-        toCents(currentOrder.totalValue) - oldLineCents + newLineCents;
+    // Update order total value (exact cents). The doTERRA value always equals
+    // the total, so it follows the same change.
+    if (newTotalCents !== null) {
       await tx.order.update({
         where: { id: existingItem.orderId },
         data: {

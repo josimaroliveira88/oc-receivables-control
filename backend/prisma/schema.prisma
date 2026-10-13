@@ -150,6 +150,7 @@ enum PaymentType {
   CARTAO_CREDITO
   INFINITE_PAY
   DINHEIRO
+  DOTERRA
 }
 
 model Item {

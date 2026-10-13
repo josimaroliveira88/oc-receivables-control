@@ -18,6 +18,8 @@ import {
   SELF_PERSON_ID,
   findSelfPerson,
   deriveTeamClientFromItems,
+  requiresZeroTotal,
+  ZERO_TOTAL_PAYMENT_TYPE_MESSAGE,
 } from './utils/orderHelpers';
 import {
   createEmptySpreadsheetRow,
@@ -25,6 +27,7 @@ import {
   itemsFromSpreadsheetRows,
   derivedChargedValueString,
   kitStockModeMissing,
+  spreadsheetTotals,
 } from './utils/orderSpreadsheetHelpers';
 
 export function useOrders() {
@@ -56,6 +59,7 @@ export function useOrders() {
   const [isTeamOrder, setIsTeamOrder] = useState(false);
   const [accountOwner, setAccountOwner] = useState('');
   const [paymentType, setPaymentType] = useState('');
+  const [paymentTypeError, setPaymentTypeError] = useState('');
   const [installments, setInstallments] = useState('1');
   const [firstInstallmentAt, setFirstInstallmentAt] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
@@ -463,6 +467,7 @@ export function useOrders() {
     setIsTeamOrder(false);
     setAccountOwner('');
     setPaymentType('');
+    setPaymentTypeError('');
     setInstallments('1');
     setFirstInstallmentAt('');
     setOrderNotes('');
@@ -546,6 +551,7 @@ export function useOrders() {
         break;
       case 'paymentType':
         setPaymentType(value);
+        setPaymentTypeError('');
         if (value !== 'CARTAO_CREDITO') {
           setInstallments('1');
           setFirstInstallmentAt('');
@@ -608,11 +614,28 @@ export function useOrders() {
         : '';
     setTeamPersonIdError(newTeamPersonIdError);
 
+    // Some payment types only apply to zero-total orders (currently dōTERRA).
+    // The total is the items sum plus the shipping, matching the "Valor Total"
+    // box and the backend check, so a changed total is caught before saving.
+    const formTotalCents =
+      (entryMode === ENTRY_MODES.SPREADSHEET
+        ? spreadsheetTotals(spreadsheetRows, products).totalChargedCents
+        : items.reduce((sum, item) => sum + lineValueCents(item), 0)) +
+      (shippingValue === '' || shippingValue == null
+        ? 0
+        : toCents(parseFloat(shippingValue)));
+    const newPaymentTypeError =
+      requiresZeroTotal(paymentType) && formTotalCents !== 0
+        ? ZERO_TOTAL_PAYMENT_TYPE_MESSAGE
+        : '';
+    setPaymentTypeError(newPaymentTypeError);
+
     const hasOrderLevelError =
       !!newOrderNumberError ||
       !!newShippingValueError ||
       !!newDoterraPvError ||
-      !!newTeamPersonIdError;
+      !!newTeamPersonIdError ||
+      !!newPaymentTypeError;
 
     if (entryMode === ENTRY_MODES.SPREADSHEET) {
       const newRowErrors = {};
@@ -735,6 +758,7 @@ export function useOrders() {
       setOrderNumberBlurred(true);
       setOrderNumberError('');
       setItemErrors({});
+      setPaymentTypeError('');
       setError('');
       const orderDate = order.orderDate
         ? order.orderDate.split('T')[0]
@@ -995,6 +1019,7 @@ export function useOrders() {
     showTeamPersonConfirm,
     accountOwner,
     paymentType,
+    paymentTypeError,
     installments,
     firstInstallmentAt,
     orderNotes,
