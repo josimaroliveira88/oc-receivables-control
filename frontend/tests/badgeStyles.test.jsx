@@ -61,6 +61,9 @@ describe('badgeStyles', () => {
     expect(PAYMENT_TYPE_CLASSES.CARTAO_CREDITO).toBe(
       'bg-mystic-soft text-mystic-fg',
     );
+    expect(PAYMENT_TYPE_CLASSES.DOTERRA).toBe(
+      'bg-badge-doterra-bg text-badge-doterra-fg',
+    );
   });
 
   it('provides neutral fallbacks without raw palette colors', () => {
